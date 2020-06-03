@@ -25,6 +25,8 @@
  */
 
 #include "afl-fuzz.h"
+#include <types.h>
+
 
 typedef struct afl_executor {
     // TODO
@@ -55,4 +57,25 @@ typedef struct afl_queue {
 } afl_queue;
 
 afl_queue * afl_queue_init();
-void afl_queue_deinit(afl_queue * queue);
+void afl_queue_deinit(afl_queue *);
+
+
+// A generic sharememory region to be used by any functions (queues or feedbacks too.)
+
+typedef struct afl_sharedmem {
+    #ifdef USEMMAP
+        int g_shm_id;
+        char g_shm_fname[L_tmpnam];
+    #else
+        int shm_id;
+    #endif
+
+    u8 * map;
+    ssize_t map_size;
+
+} afl_sharedmem_t;
+
+// Functions to create Shared memory region, for feedback and opening inputs and stuff.
+u8 * afl_sharedmem_init(afl_sharedmem_t *, size_t);
+void afl_sharedmem_deinit(afl_sharedmem_t *);
+
