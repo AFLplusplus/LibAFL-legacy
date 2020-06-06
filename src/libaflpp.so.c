@@ -16,14 +16,14 @@
 
      http://www.apache.org/licenses/LICENSE-2.0
 
-   This the actual coded for the library framework.
+   This the actual code for the library framework.
 
  */
 
 #include "libaflpp.h"
 
-afl_queue * afl_queue_init() {
-    afl_queue * queue = ck_alloc(sizeof(afl_queue));
+afl_queue_t * afl_queue_init() {
+    afl_queue_t * queue = ck_alloc(sizeof(afl_queue_t));
 
     queue->queue_current = NULL;
     queue->queue_top = NULL;
@@ -33,7 +33,7 @@ afl_queue * afl_queue_init() {
     queue->init_queue_entry = NULL;
 }
 
-void afl_queue_deinit(afl_queue * queue) {
+void afl_queue_deinit(afl_queue_t * queue) {
 
     struct afl_queue_entry * current;
 
@@ -143,4 +143,45 @@ u8 * afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
 
 }
 
+
+afl_executor_t * afl_executor_init() {
+    
+  afl_executor_t * executor = ck_alloc(sizeof(afl_executor_t));
+
+  executor->current_input = NULL;
+  // These function pointers can be given a default forkserver pointer here when it is ported, thoughts? 
+  executor->executor_ops.destroy_cb = (void *)0x0;
+  executor->executor_ops.init_cb = (void *)0x0;
+  executor->executor_ops.place_input_cb = (void *)0x0;
+  executor->executor_ops.run_target_cb = (void *)0x0;
+
+  return executor;
+
+}
+
+void afl_executor_deinit(afl_executor_t * executor) {
+
+  if (!executor) FATAL("Cannot free a NULL pointer");
+
+  ck_free(executor);
+
+}
+
+/* This is the primary function for the entire library, for each executor, we would pass it to this function which
+start fuzzing it, something similar to what afl_fuzz's main function does.
+This will be the entrypoint of a new thread when it is created (for each executor instance).*/
+void fuzz_start(afl_executor_t * executor) {
+
+  while(1) {
+    // Pre inpur writing stuff, probably mutations, feedback stuff etc.
+
+    if (executor->executor_ops.place_input_cb) executor->executor_ops.place_input_cb(executor);
+
+    executor->executor_ops.run_target_cb(executor);
+
+    // Post run functions, writing results to the "feedback", or whatever afl does right now.
+
+  }
+
+}
 
