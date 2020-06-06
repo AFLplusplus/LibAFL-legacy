@@ -173,7 +173,7 @@ This will be the entrypoint of a new thread when it is created (for each executo
 void fuzz_start(afl_executor_t * executor) {
 
   while(1) {
-    // Pre inpur writing stuff, probably mutations, feedback stuff etc.
+    // Pre input writing stuff, probably mutations, feedback stuff etc.
 
     if (executor->executor_ops.place_input_cb) executor->executor_ops.place_input_cb(executor);
 
