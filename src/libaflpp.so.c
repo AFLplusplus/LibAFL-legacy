@@ -175,9 +175,10 @@ void fuzz_start(afl_executor_t * executor) {
   while(1) {
     // Pre input writing stuff, probably mutations, feedback stuff etc.
 
-    if (executor->executor_ops.place_input_cb) executor->executor_ops.place_input_cb(executor);
+    // Still need a bit of work before we can pass the extra arguments to the virtual functions
+    if (executor->executor_ops.place_input_cb) executor->executor_ops.place_input_cb(executor, NULL, 0);
 
-    executor->executor_ops.run_target_cb(executor);
+    executor->executor_ops.run_target_cb(executor, 0, NULL);
 
     // Post run functions, writing results to the "feedback", or whatever afl does right now.
 

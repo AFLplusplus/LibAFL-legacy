@@ -34,11 +34,11 @@ fields to it.
 */
 
 typedef struct afl_executor_operation {
-    u8 (*init_cb)(afl_executor_t *); // can be NULL
+    u8 (*init_cb)(afl_executor_t *, void *); // can be NULL
     u8 (*destroy_cb)(afl_executor_t *); // can be NULL
 
-    u8 (*run_target_cb)(afl_executor_t *);  //Similar to afl_fsrv_run_target we have in afl
-    u8 (*place_input_cb)(afl_executor_t *); //similar to the write_to_testcase function in afl.
+    u8 (*run_target_cb)(afl_executor_t *, u32 , void *);  //Similar to afl_fsrv_run_target we have in afl
+    u8 (*place_input_cb)(afl_executor_t *, u8 * buf, size_t len); //similar to the write_to_testcase function in afl.
 } afl_executor_operations_t;
 
 
