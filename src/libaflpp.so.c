@@ -149,11 +149,14 @@ afl_executor_t * afl_executor_init() {
   afl_executor_t * executor = ck_alloc(sizeof(afl_executor_t));
 
   executor->current_input = NULL;
-  // These function pointers can be given a default forkserver pointer here when it is ported, thoughts? 
-  executor->executor_ops.destroy_cb = (void *)0x0;
-  executor->executor_ops.init_cb = (void *)0x0;
-  executor->executor_ops.place_input_cb = (void *)0x0;
-  executor->executor_ops.run_target_cb = (void *)0x0;
+
+  // These function pointers can be given a default forkserver pointer here when it is ported, thoughts?
+  struct afl_executor_operation * executor_ops = ck_alloc(sizeof(struct afl_executor_operation));
+  executor->executor_ops = executor_ops;
+  executor->executor_ops->destroy_cb = (void *)0x0;
+  executor->executor_ops->init_cb = (void *)0x0;
+  executor->executor_ops->place_input_cb = (void *)0x0;
+  executor->executor_ops->run_target_cb = (void *)0x0;
 
   return executor;
 
@@ -176,9 +179,9 @@ void fuzz_start(afl_executor_t * executor) {
     // Pre input writing stuff, probably mutations, feedback stuff etc.
 
     // Still need a bit of work before we can pass the extra arguments to the virtual functions
-    if (executor->executor_ops.place_input_cb) executor->executor_ops.place_input_cb(executor, NULL, 0);
+    if (executor->executor_ops->place_input_cb) executor->executor_ops->place_input_cb(executor, NULL, 0);
 
-    executor->executor_ops.run_target_cb(executor, 0, NULL);
+    executor->executor_ops->run_target_cb(executor, 0, NULL);
 
     // Post run functions, writing results to the "feedback", or whatever afl does right now.
 

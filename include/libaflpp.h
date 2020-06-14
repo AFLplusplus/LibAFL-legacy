@@ -33,6 +33,25 @@ This is the generic forkserver interface that we have, in order to use the libra
 fields to it.
 */
 
+typedef struct afl_queue_entry {
+
+    u8 * file_name;
+    u32 len;
+
+    struct afl_queue_entry * next_queue_entry;
+
+} afl_queue_entry_t ;
+
+typedef struct afl_executor {
+    list_t observors;    // This will be swapped for the observation channel once its ready
+
+    afl_queue_entry_t * current_input;  //Holds current input for the executor
+
+    struct afl_executor_operation * executor_ops; // afl executor_ops;
+
+} afl_executor_t;
+
+
 typedef struct afl_executor_operation {
     u8 (*init_cb)(afl_executor_t *, void *); // can be NULL
     u8 (*destroy_cb)(afl_executor_t *); // can be NULL
@@ -42,28 +61,10 @@ typedef struct afl_executor_operation {
 } afl_executor_operations_t;
 
 
-typedef struct afl_executor {
-    list_t observors;    // This will be swapped for the observation channel once its ready
-
-    afl_queue_entry_t * current_input;  //Holds current input for the executor
-
-    afl_executor_operations_t executor_ops;
-    // afl executor_ops;
-
-} afl_executor_t;
-
 // This is like the generic vtable for the executor.
 
 list_t afl_executor_list;
 
-typedef struct afl_queue_entry {
-
-    u8 * file_name;
-    u32 len;
-
-    struct afl_queue_entry * next_queue_entry;
-
-} afl_queue_entry_t ;
 
 typedef struct afl_queue {
 
