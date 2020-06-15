@@ -1,8 +1,9 @@
 #include "afl-forkserver.h"
 
-afl_forkserver_executor_t *  afl_fsrv_create(void) {
+afl_forkserver_executor_t *afl_fsrv_create(void) {
 
-  afl_forkserver_executor_t * fsrv_executor =  ck_alloc(sizeof(afl_forkserver_executor_t));
+  afl_forkserver_executor_t *fsrv_executor =
+      ck_alloc(sizeof(afl_forkserver_executor_t));
 
   // this structure needs default so we initialize it if this was not done
   // already
@@ -28,21 +29,24 @@ afl_forkserver_executor_t *  afl_fsrv_create(void) {
 
   fsrv_executor->super.executor_ops.init_cb = afl_fsrv_exc_start;
   fsrv_executor->super.executor_ops.run_target_cb = afl_fsrv_exc_run_target;
-  fsrv_executor->super.executor_ops.place_input_cb = afl_fsrv_exc_write_to_testcase;
+  fsrv_executor->super.executor_ops.place_input_cb =
+      afl_fsrv_exc_write_to_testcase;
   fsrv_executor->super.executor_ops.destroy_cb = afl_fsrv_exc_kill;
 
   return fsrv_executor;
 
 }
 
-void afl_fsrv_exc_start(afl_executor_t * executor,void *fsrv_start_args) {
+void afl_fsrv_exc_start(afl_executor_t *executor, void *fsrv_start_args) {
+
   int st_pipe[2], ctl_pipe[2];
   int status;
   s32 rlen;
 
-  afl_forkserver_executor_t * fsrv = (afl_forkserver_executor_t *)executor;
+  afl_forkserver_executor_t *fsrv = (afl_forkserver_executor_t *)executor;
 
-  struct forkserver_start_args * fsrv_args = (struct forkserver_start_args *)(fsrv_start_args);
+  struct forkserver_start_args *fsrv_args =
+      (struct forkserver_start_args *)(fsrv_start_args);
 
   if (pipe(st_pipe) || pipe(ctl_pipe)) { PFATAL("pipe() failed"); }
 
@@ -180,8 +184,9 @@ void afl_fsrv_exc_start(afl_executor_t * executor,void *fsrv_start_args) {
   rlen = 0;
   if (fsrv->exec_tmout) {
 
-    u32 time = read_timed(fsrv->fsrv_st_fd, &status, 4,
-                          fsrv->exec_tmout * FORK_WAIT_MULT, fsrv_args->stop_soon_p);
+    u32 time =
+        read_timed(fsrv->fsrv_st_fd, &status, 4,
+                   fsrv->exec_tmout * FORK_WAIT_MULT, fsrv_args->stop_soon_p);
 
     if (!time) {
 
@@ -214,11 +219,7 @@ void afl_fsrv_exc_start(afl_executor_t * executor,void *fsrv_start_args) {
 
     if ((status & FS_OPT_ENABLED) == FS_OPT_ENABLED) {
 
-      if ((status & FS_OPT_SNAPSHOT) == FS_OPT_SNAPSHOT) {
-
-        fsrv->snapshot = 1;
-
-      }
+      if ((status & FS_OPT_SNAPSHOT) == FS_OPT_SNAPSHOT) { fsrv->snapshot = 1; }
 
       if ((status & FS_OPT_MAPSIZE) == FS_OPT_MAPSIZE) {
 
@@ -497,9 +498,10 @@ void afl_fsrv_exc_start(afl_executor_t * executor,void *fsrv_start_args) {
 
 }
 
-void afl_fsrv_exc_write_to_testcase(afl_executor_t * executor, u8 *buf, size_t len) {
+void afl_fsrv_exc_write_to_testcase(afl_executor_t *executor, u8 *buf,
+                                    size_t len) {
 
-  afl_forkserver_executor_t * fsrv = (afl_forkserver_executor_t *)executor;
+  afl_forkserver_executor_t *fsrv = (afl_forkserver_executor_t *)executor;
 
   s32 fd = fsrv->out_fd;
 
@@ -540,13 +542,13 @@ void afl_fsrv_exc_write_to_testcase(afl_executor_t * executor, u8 *buf, size_t l
 }
 
 fsrv_run_result_t afl_fsrv_exc_run_target(afl_executor_t *executor, u32 timeout,
-                                      void * stop_soon) {
+                                          void *stop_soon) {
 
   s32 res;
   u32 exec_ms;
 
-  afl_forkserver_executor_t * fsrv = (afl_forkserver_t *)executor;
-  volatile u8 *stop_soon_p = (volatile u8 *)stop_soon;
+  afl_forkserver_executor_t *fsrv = (afl_forkserver_t *)executor;
+  volatile u8 *              stop_soon_p = (volatile u8 *)stop_soon;
 
   /* After this memset, fsrv->trace_bits[] are effectively volatile, so we
      must prevent any earlier operations from venturing into that
@@ -664,7 +666,7 @@ fsrv_run_result_t afl_fsrv_exc_run_target(afl_executor_t *executor, u32 timeout,
 
 void afl_fsrv_exc_kill(afl_executor_t *executor) {
 
-  afl_forkserver_executor_t * fsrv = (afl_forkserver_executor_t *)executor;
+  afl_forkserver_executor_t *fsrv = (afl_forkserver_executor_t *)executor;
 
   if (fsrv->child_pid > 0) { kill(fsrv->child_pid, SIGKILL); }
   if (fsrv->fsrv_pid > 0) {

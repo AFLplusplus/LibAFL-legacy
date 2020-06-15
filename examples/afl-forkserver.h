@@ -1,6 +1,5 @@
 #include "libaflpp.h"
 
-
 typedef struct afl_forkserver_executor {
 
   /* a program that includes afl-forkserver needs to define these */
@@ -57,16 +56,18 @@ typedef struct afl_forkserver_executor {
 } afl_forkserver_executor_t;
 
 struct forkserver_start_args {
-  char **argv;
+
+  char **      argv;
   volatile u8 *stop_soon_p;
-  u8 debug_child_output;
+  u8           debug_child_output;
+
 };
 
-void afl_fsrv_exc_init(afl_executor_t * );
+void afl_fsrv_exc_init(afl_executor_t *);
 void afl_fsrv_exc_init_dup(afl_executor_t *, afl_executor_t *);
 void afl_fsrv_exc_start(afl_executor_t *, void *);
 void afl_fsrv_exc_write_to_testcase(afl_executor_t *, u8 *, size_t);
-fsrv_run_result_t afl_fsrv_exc_run_target(afl_executor_t *, u32,
-                                      void *);
+fsrv_run_result_t afl_fsrv_exc_run_target(afl_executor_t *, u32, void *);
 void              afl_fsrv_exc_killall(void);
 void              afl_fsrv_exc_kill(afl_executor_t *fsrv);
+

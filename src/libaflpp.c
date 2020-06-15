@@ -22,35 +22,39 @@
 
 #include "libaflpp.h"
 
-afl_queue_t * afl_queue_init() {
-    afl_queue_t * queue = ck_alloc(sizeof(afl_queue_t));
+afl_queue_t *afl_queue_init() {
 
-    queue->queue_current = NULL;
-    queue->queue_top = NULL;
+  afl_queue_t *queue = ck_alloc(sizeof(afl_queue_t));
 
-    queue->executor = NULL;
-    queue->destroy_queue_entry = NULL;
-    queue->init_queue_entry = NULL;
+  queue->queue_current = NULL;
+  queue->queue_top = NULL;
+
+  queue->executor = NULL;
+  queue->destroy_queue_entry = NULL;
+  queue->init_queue_entry = NULL;
+
 }
 
-void afl_queue_deinit(afl_queue_t * queue) {
+void afl_queue_deinit(afl_queue_t *queue) {
 
-    struct afl_queue_entry * current;
+  struct afl_queue_entry *current;
 
-    current = queue->queue_top;
-    if (!current) FATAL("The queue is empty, cannot deinit");
+  current = queue->queue_top;
+  if (!current) FATAL("The queue is empty, cannot deinit");
 
-    // Free each entry present in the queue.
-    while (current) {
-        struct afl_queue_entry * temp = current->next_queue_entry;
+  // Free each entry present in the queue.
+  while (current) {
 
-        ck_free(current);
-        current = temp;
-    }
+    struct afl_queue_entry *temp = current->next_queue_entry;
 
-    ck_free(queue); // Free the queue itself now.
+    ck_free(current);
+    current = temp;
 
-    SAYF("queue has been deinited");
+  }
+
+  ck_free(queue);  // Free the queue itself now.
+
+  SAYF("queue has been deinited");
 
 }
 
@@ -79,7 +83,7 @@ void afl_sharedmem_deinit(afl_sharedmem_t *shm) {
 
 }
 
-u8 * afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
+u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
 
   shm->map_size = map_size;
 
@@ -143,15 +147,16 @@ u8 * afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
 
 }
 
+afl_executor_t *afl_executor_init() {
 
-afl_executor_t * afl_executor_init() {
-    
-  afl_executor_t * executor = ck_alloc(sizeof(afl_executor_t));
+  afl_executor_t *executor = ck_alloc(sizeof(afl_executor_t));
 
   executor->current_input = NULL;
 
-  // These function pointers can be given a default forkserver pointer here when it is ported, thoughts?
-  struct afl_executor_operation * executor_ops = ck_alloc(sizeof(struct afl_executor_operation));
+  // These function pointers can be given a default forkserver pointer here when
+  // it is ported, thoughts?
+  struct afl_executor_operation *executor_ops =
+      ck_alloc(sizeof(struct afl_executor_operation));
   executor->executor_ops = executor_ops;
   executor->executor_ops->destroy_cb = (void *)0x0;
   executor->executor_ops->init_cb = (void *)0x0;
@@ -162,7 +167,7 @@ afl_executor_t * afl_executor_init() {
 
 }
 
-void afl_executor_deinit(afl_executor_t * executor) {
+void afl_executor_deinit(afl_executor_t *executor) {
 
   if (!executor) FATAL("Cannot free a NULL pointer");
 
@@ -170,20 +175,26 @@ void afl_executor_deinit(afl_executor_t * executor) {
 
 }
 
-/* This is the primary function for the entire library, for each executor, we would pass it to this function which
-start fuzzing it, something similar to what afl_fuzz's main function does.
-This will be the entrypoint of a new thread when it is created (for each executor instance).*/
-void fuzz_start(afl_executor_t * executor) {
+/* This is the primary function for the entire library, for each executor, we
+would pass it to this function which start fuzzing it, something similar to what
+afl_fuzz's main function does.
+This will be the entrypoint of a new thread when it is created (for each
+executor instance).*/
+void fuzz_start(afl_executor_t *executor) {
 
-  while(1) {
+  while (1) {
+
     // Pre input writing stuff, probably mutations, feedback stuff etc.
 
-    // Still need a bit of work before we can pass the extra arguments to the virtual functions
-    if (executor->executor_ops->place_input_cb) executor->executor_ops->place_input_cb(executor, NULL, 0);
+    // Still need a bit of work before we can pass the extra arguments to the
+    // virtual functions
+    if (executor->executor_ops->place_input_cb)
+      executor->executor_ops->place_input_cb(executor, NULL, 0);
 
     executor->executor_ops->run_target_cb(executor, 0, NULL);
 
-    // Post run functions, writing results to the "feedback", or whatever afl does right now.
+    // Post run functions, writing results to the "feedback", or whatever afl
+    // does right now.
 
   }
 
