@@ -25,14 +25,15 @@
  */
 
 #include "afl-fuzz.h"
+#include "lib-common.h"
 #include <types.h>
 
 /*
-This is the generic forkserver interface that we have, in order to use the
-library to build something, "inherit" from this struct (yes, we'll be trying OO
-design principles here :D) and then extend adding your own fields to it.
+This is the generic interface implementation for the queue and queue entries.
+We've tried to keep it generic and yet including, but if you want to extend the
+queue/entry, simply "inherit" this struct by including it in your custom struct
+and keeping it as the first member of your struct.
 */
-
 typedef struct afl_queue_entry {
 
   u8 *file_name;
@@ -42,6 +43,37 @@ typedef struct afl_queue_entry {
 
 } afl_queue_entry_t;
 
+typedef struct afl_queue {
+
+  struct afl_queue_entry *queue_top;      // Top entry of queue
+  struct afl_queue_entry *queue_current;  // Current entry of queue
+
+  struct afl_executor
+      *executor; /* Executor this queue belongs to, one executor can have many
+                    queues, thus the mapping is done in the queue itself. */
+
+  // Function pointers specific to the queue
+  struct afl_queue_operations *queue_ops;
+
+} afl_queue_t;
+
+typedef struct afl_queue_operations {
+
+  void (*init_queue_entry)(struct afl_queue_entry *entry);
+  void (*destroy_queue_entry)(struct afl_queue_entry *entry);
+
+} afl_queue_operations_t;
+
+afl_queue_t *afl_queue_init();           /* Function to initialize the queue*/
+void afl_queue_deinit(afl_queue_t *); /* Function to destroy the given queue*/
+
+/*
+This is the generic forkserver interface that we have, in order to use the
+library to build something, agin "inherit" from this struct (yes, we'll be
+trying OO design principles here :D) and then extend adding your own fields to
+it. See the example forksever executor that we have in examples/
+*/
+
 typedef struct afl_executor {
 
   list_t observors;  // This will be swapped for the observation channel once
@@ -49,11 +81,13 @@ typedef struct afl_executor {
 
   afl_queue_entry_t *current_input;  // Holds current input for the executor
 
-  struct afl_executor_operation *executor_ops;  // afl executor_ops;
+  struct afl_executor_operations *executor_ops;  // afl executor_ops;
 
 } afl_executor_t;
 
-typedef struct afl_executor_operation {
+// This is like the generic vtable for the executor.
+
+typedef struct afl_executor_operations {
 
   u8 (*init_cb)(afl_executor_t *, void *);  // can be NULL
   u8 (*destroy_cb)(afl_executor_t *);       // can be NULL
@@ -61,57 +95,42 @@ typedef struct afl_executor_operation {
   u8 (*run_target_cb)(afl_executor_t *, u32,
                       void *);  // Similar to afl_fsrv_run_target we have in afl
   u8 (*place_input_cb)(
-      afl_executor_t *, u8 *buf,
-      size_t len);  // similar to the write_to_testcase function in afl.
+      afl_executor_t *, u8 *,
+      size_t);  // similar to the write_to_testcase function in afl.
 
 } afl_executor_operations_t;
 
-// This is like the generic vtable for the executor.
+list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-list_t afl_executor_list;
-
-typedef struct afl_queue {
-
-  struct afl_queue_entry *queue_top;      // Top entry of queue
-  struct afl_queue_entry *queue_current;  // Current entry of queue
-
-  afl_executor_t
-      *executor;  // Executor this queue belongs too.
-                  // We don't plan to share the testcases among executors
-
-  // Function pointers specific to the queue
-
-  void (*init_queue_entry)(struct afl_queue_entry *entry);
-  void (*destroy_queue_entry)(struct afl_queue_entry *entry);
-
-} afl_queue_t;
-
-afl_queue_t *afl_queue_init();
-void         afl_queue_deinit(afl_queue_t *);
-
-// A generic sharememory region to be used by any functions (queues or feedbacks
-// too.)
-
-typedef struct afl_sharedmem {
-
-#ifdef USEMMAP
-  int  g_shm_id;
-  char g_shm_fname[L_tmpnam];
-#else
-  int shm_id;
-#endif
-
-  u8 *    map;
-  ssize_t map_size;
-
-} afl_sharedmem_t;
-
-// Functions to create Shared memory region, for feedback and opening inputs and
-// stuff.
-u8 * afl_sharedmem_init(afl_sharedmem_t *, size_t);
-void afl_sharedmem_deinit(afl_sharedmem_t *);
-
-void            fuzz_start(afl_executor_t *);
 afl_executor_t *afl_executor_init();
 void            afl_executor_deinit(afl_executor_t *);
+
+/*
+This is the inetrafce for the observation channel for the library. To get the
+gist of it, it resembles the bitmap in original AFL.
+*/
+
+typedef struct afl_observation_channel {
+
+  afl_queue_t *queue;  // Each observation channel is connected to a queue, for
+                       // which it collects data to send to a feedback.
+  void *interface; /* A void pointer to keep the interface (can be a shared map,
+                      or something else, anything) generic.
+                      TODO: Better ideas for this, guys?? */
+
+  struct afl_obs_channel_operations_t *operations;
+
+} afl_observation_channel_t;
+
+typedef struct afl_obs_channel_operations {
+
+  u8 (*init_cb)(struct afl_observation_channel *);     // can be NULL
+  u8 (*destroy_cb)(struct afl_observation_channel *);  // can be NULL
+
+  u8 (*flush_cb)(struct afl_observation_channel *);  // can be NULL
+  u8 (*reset_cb)(struct afl_observation_channel *);  // can be NULL
+
+} afl_obs_channel_operations_t;
+
+void fuzz_start(afl_executor_t *);
 
