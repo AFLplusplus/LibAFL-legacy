@@ -106,31 +106,51 @@ afl_executor_t *afl_executor_init();
 void            afl_executor_deinit(afl_executor_t *);
 
 /*
-This is the inetrafce for the observation channel for the library. To get the
-gist of it, it resembles the bitmap in original AFL.
+This is the interface for the observation channel for the library. To get the gist of it,
+it resembles the bitmap in original AFL.
 */
 
 typedef struct afl_observation_channel {
 
-  afl_queue_t *queue;  // Each observation channel is connected to a queue, for
-                       // which it collects data to send to a feedback.
-  void *interface; /* A void pointer to keep the interface (can be a shared map,
-                      or something else, anything) generic.
-                      TODO: Better ideas for this, guys?? */
+  afl_queue_t * queue;        // Each observation channel is connected to a queue, for which it collects data to send to a feedback.
+  void * interface;           /* A void pointer to keep the interface (can be a shared map, or something else, anything) generic. 
+                                 TODO: Better ideas for this, guys?? */
 
-  struct afl_obs_channel_operations_t *operations;
+  struct afl_obs_channel_operations_t * operations;
 
 } afl_observation_channel_t;
 
 typedef struct afl_obs_channel_operations {
+  u8 (*init_cb)(struct afl_observation_channel*);     // can be NULL
+  u8 (*destroy_cb)(struct afl_observation_channel*);  // can be NULL
 
-  u8 (*init_cb)(struct afl_observation_channel *);     // can be NULL
-  u8 (*destroy_cb)(struct afl_observation_channel *);  // can be NULL
-
-  u8 (*flush_cb)(struct afl_observation_channel *);  // can be NULL
-  u8 (*reset_cb)(struct afl_observation_channel *);  // can be NULL
-
+  u8 (*flush_cb)(struct afl_observation_channel*);    // can be NULL
+  u8 (*reset_cb)(struct afl_observation_channel*);    // can be NULL
 } afl_obs_channel_operations_t;
+
+/*
+The generic interface for the feedback for the observation channel, this channel is queue specifc. 
+*/
+
+typedef struct afl_feedback {
+  afl_executor_t * executor;  // The execuotr for which feedback is done.
+  /*TODO: Should the executor be here? Considering we have the executor specified in the queue itself??*/
+  afl_observation_channel_t * obs_channel;  //The observation channel (which contains the queue).
+
+  struct afl_fbck_operations * operations;
+
+} afl_feedback_t;
+
+typedef struct afl_fbck_operations {
+
+  u8 (*init_cb)(struct afl_feedback *); // can be NULL
+  u8 (*destroy_cb)(struct afl_feedback *); // can be NULL
+
+  u64 (*reducer_function)(u64, u64); // new_value = reducer(old_value, proposed_value)
+  s32 (*is_interesting_cb)(struct afl_executor*); // returns rate
+
+} afl_fbck_operations_t ;
+
 
 void fuzz_start(afl_executor_t *);
 
