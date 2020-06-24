@@ -27,11 +27,11 @@ afl_forkserver_executor_t *afl_fsrv_create(void) {
 
   fsrv_executor->init_child_func = NULL;
 
-  fsrv_executor->super.executor_ops.init_cb = afl_fsrv_exc_start;
-  fsrv_executor->super.executor_ops.run_target_cb = afl_fsrv_exc_run_target;
-  fsrv_executor->super.executor_ops.place_input_cb =
+  fsrv_executor->super.executor_ops->init_cb = afl_fsrv_exc_start;
+  fsrv_executor->super.executor_ops->run_target_cb = afl_fsrv_exc_run_target;
+  fsrv_executor->super.executor_ops->place_inputs_cb =
       afl_fsrv_exc_write_to_testcase;
-  fsrv_executor->super.executor_ops.destroy_cb = afl_fsrv_exc_kill;
+  fsrv_executor->super.executor_ops->destroy_cb = afl_fsrv_exc_kill;
 
   return fsrv_executor;
 

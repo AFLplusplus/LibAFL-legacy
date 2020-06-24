@@ -22,7 +22,7 @@
 
 #include "libaflpp.h"
 
-afl_queue_t *afl_queue_init() {
+afl_queue_t * afl_queue_init() {
 
   afl_queue_t *queue = ck_alloc(sizeof(afl_queue_t));
 
@@ -33,6 +33,8 @@ afl_queue_t *afl_queue_init() {
   afl_queue_operations_t *queue_ops = ck_alloc(sizeof(afl_queue_operations_t));
 
   queue->queue_ops = queue_ops;
+
+  return queue;
 
 }
 
@@ -83,6 +85,21 @@ void afl_executor_deinit(afl_executor_t *executor) {
 
 }
 
+// Functions to allocate and deallocate the standard observation channel struct
+afl_observation_channel_t * afl_observation_init(void) {
+
+  afl_observation_channel_t * obs_channel = ck_alloc(sizeof(afl_observation_channel_t));
+
+  obs_channel->operations = ck_alloc(sizeof(afl_obs_channel_operations_t));
+
+  return obs_channel;
+}
+
+void afl_observation_deinit(afl_observation_channel_t * obs_channel) {
+  ck_free(obs_channel->operations);
+  ck_free(obs_channel);
+}
+
 /* This is the primary function for the entire library, for each executor, we
 would pass it to this function which start fuzzing it, something similar to what
 afl_fuzz's main function does.
@@ -96,8 +113,8 @@ void fuzz_start(afl_executor_t *executor) {
 
     // Still need a bit of work before we can pass the extra arguments to the
     // virtual functions
-    if (executor->executor_ops->place_input_cb)
-      executor->executor_ops->place_input_cb(executor, NULL, 0);
+    if (executor->executor_ops->place_inputs_cb)
+      executor->executor_ops->place_inputs_cb(executor, NULL, 0);
 
     executor->executor_ops->run_target_cb(executor, 0, NULL);
 

@@ -59,12 +59,12 @@ typedef struct afl_queue {
 
 typedef struct afl_queue_operations {
 
-  void (*init_queue_entry)(struct afl_queue_entry *entry);
-  void (*destroy_queue_entry)(struct afl_queue_entry *entry);
+  void (*init_queue_entry)(struct afl_queue *entry);
+  void (*destroy_queue_entry)(struct afl_queue *entry);
 
 } afl_queue_operations_t;
 
-afl_queue_t *afl_queue_init();           /* Function to initialize the queue*/
+afl_queue_t * afl_queue_init();           /* Function to initialize the queue*/
 void afl_queue_deinit(afl_queue_t *); /* Function to destroy the given queue*/
 
 /*
@@ -94,7 +94,7 @@ typedef struct afl_executor_operations {
 
   u8 (*run_target_cb)(afl_executor_t *, u32,
                       void *);  // Similar to afl_fsrv_run_target we have in afl
-  u8 (*place_input_cb)(
+  u8 (*place_inputs_cb)(
       afl_executor_t *, u8 *,
       size_t);  // similar to the write_to_testcase function in afl.
 
@@ -116,7 +116,7 @@ typedef struct afl_observation_channel {
   void * interface;           /* A void pointer to keep the interface (can be a shared map, or something else, anything) generic. 
                                  TODO: Better ideas for this, guys?? */
 
-  struct afl_obs_channel_operations_t * operations;
+  afl_obs_channel_operations_t * operations;
 
 } afl_observation_channel_t;
 
@@ -124,9 +124,12 @@ typedef struct afl_obs_channel_operations {
   u8 (*init_cb)(struct afl_observation_channel*);     // can be NULL
   u8 (*destroy_cb)(struct afl_observation_channel*);  // can be NULL
 
-  u8 (*flush_cb)(struct afl_observation_channel*);    // can be NULL
-  u8 (*reset_cb)(struct afl_observation_channel*);    // can be NULL
+  u8 (*pre_run_call)(struct afl_observation_channel*);    // can be NULL
+  u8 (*post_run_call)(struct afl_observation_channel*);    // can be NULL
 } afl_obs_channel_operations_t;
+
+afl_observation_channel_t * afl_observation_init(void);
+void afl_observation_deinit(afl_observation_channel_t *);
 
 /*
 The generic interface for the feedback for the observation channel, this channel is queue specifc. 
