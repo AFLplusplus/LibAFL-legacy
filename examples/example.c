@@ -15,6 +15,7 @@ typedef struct test_executors {
 struct obs_interface {
   afl_queue_entry_t * entry;
   time_t exec_time;
+  float fbck_score;
 };
 
 
@@ -148,6 +149,37 @@ u8 run_target(afl_executor_t * super, u32 opt_one, void * opt_two) {
 
 }
 
+u64 reduce_feedback(afl_feedback_t * feedback, u64 old_value, u64 proposed_value) {
+
+  struct obs_interface * interface = (struct obs_interface *)feedback->obs_channel->interface;
+
+  time_t avg_exec_time;
+  for (int i = 0; i < 20; i++) {
+    avg_exec_time = avg_exec_time + interface[i].exec_time;
+
+    if (interface[i + 1].exec_time == 0) {
+      avg_exec_time = avg_exec_time/i;
+
+      break;
+    }
+
+  }
+
+  // Assuming the avg execution time has a score of 0.5, we scale other scores based on that.
+  for (int i = 0; i < 20; i++) {
+    
+    interface[i].fbck_score = 0.5 * (interface[i].exec_time/avg_exec_time);
+
+    if (interface[i + 1].exec_time == 0) {
+      break;
+    }
+
+  } 
+
+  return 0;
+}
+
+
 int main() {
 
   afl_queue_t * queue = afl_queue_init();
@@ -178,12 +210,18 @@ int main() {
   test_executor->super.current_input = ck_alloc(sizeof(afl_queue_entry_t));
   test_executor->super.current_input->file_name = "./testcase";
 
+  afl_feedback_t * feedback = afl_feedback_init();
+  feedback->executor = test_executor;
+  feedback->obs_channel = channel;
+  feedback->operations->reducer_function = reduce_feedback;
+
   char mem[100] = "THIS IS TEST DATA"; 
 
   for (int i = 0; i < 10; i++)
   {
 
     // We do mutations on the data here.
+
 
     test_executor->super.executor_ops->place_inputs_cb(&test_executor->super, mem, 80);
 

@@ -116,7 +116,7 @@ typedef struct afl_observation_channel {
   void * interface;           /* A void pointer to keep the interface (can be a shared map, or something else, anything) generic. 
                                  TODO: Better ideas for this, guys?? */
 
-  afl_obs_channel_operations_t * operations;
+  struct afl_obs_channel_operations * operations;
 
 } afl_observation_channel_t;
 
@@ -136,7 +136,7 @@ The generic interface for the feedback for the observation channel, this channel
 */
 
 typedef struct afl_feedback {
-  afl_executor_t * executor;  // The execuotr for which feedback is done.
+  afl_executor_t * executor;  // The executor for which feedback is done.
   /*TODO: Should the executor be here? Considering we have the executor specified in the queue itself??*/
   afl_observation_channel_t * obs_channel;  //The observation channel (which contains the queue).
 
@@ -149,11 +149,18 @@ typedef struct afl_fbck_operations {
   u8 (*init_cb)(struct afl_feedback *); // can be NULL
   u8 (*destroy_cb)(struct afl_feedback *); // can be NULL
 
-  u64 (*reducer_function)(u64, u64); // new_value = reducer(old_value, proposed_value)
+  u64 (*reducer_function)(struct afl_feedback *,u64 ,u64); // new_value = reducer(old_value, proposed_value)
   s32 (*is_interesting_cb)(struct afl_executor*); // returns rate
 
 } afl_fbck_operations_t ;
 
+afl_feedback_t * afl_feedback_init(void);
+void afl_feedback_deinit(afl_feedback_t *);
 
-void fuzz_start(afl_executor_t *);
+u8 fuzz_start(afl_executor_t *, afl_feedback_t *);
 
+enum {
+  ALL_OK,
+  AFL_PLACE_INPUT_MISSING
+
+};
