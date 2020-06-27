@@ -5,6 +5,10 @@ afl_forkserver_executor_t *afl_fsrv_create(void) {
   afl_forkserver_executor_t *fsrv_executor =
       ck_alloc(sizeof(afl_forkserver_executor_t));
 
+  fsrv_executor->super =
+      *(afl_executor_init());  // Init the basic executor class. NOTE the
+                               // dereference here.
+
   // this structure needs default so we initialize it if this was not done
   // already
   fsrv_executor->out_fd = -1;
@@ -675,6 +679,9 @@ void afl_fsrv_exc_kill(afl_executor_t *executor) {
     if (waitpid(fsrv->fsrv_pid, NULL, 0) <= 0) { WARNF("error waitpid\n"); }
 
   }
+
+  // This would free the forkserver too.
+  afl_executor_deinit(executor);
 
 }
 

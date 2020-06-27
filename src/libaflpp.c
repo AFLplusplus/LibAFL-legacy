@@ -23,7 +23,7 @@
 #include "libaflpp.h"
 #include "list.h"
 
-afl_queue_t * afl_queue_init() {
+afl_queue_t *afl_queue_init() {
 
   afl_queue_t *queue = ck_alloc(sizeof(afl_queue_t));
 
@@ -68,16 +68,20 @@ afl_executor_t *afl_executor_init() {
 
   executor->current_input = NULL;
 
-  // These function pointers can be given a default forkserver pointer here when
-  // it is ported, thoughts?
-  struct afl_executor_operations *executor_ops =
-      ck_alloc(sizeof(struct afl_executor_operations));
-  executor->executor_ops = executor_ops;
+  executor->executor_ops = ck_alloc(sizeof(struct afl_executor_operations));
+
+  // Default implementations of the functions
+  executor->executor_ops->destroy_cb = afl_executor_deinit;
+  executor->executor_ops->add_observation_channel = afl_add_observation_channel;
+  executor->executor_ops->get_observation_channels =
+      afl_get_observation_channels;
+  executor->executor_ops->get_current_input = afl_get_current_input;
 
   return executor;
 
 }
 
+// Default implementations for executor vtable
 void afl_executor_deinit(afl_executor_t *executor) {
 
   if (!executor) FATAL("Cannot free a NULL pointer");
@@ -86,26 +90,50 @@ void afl_executor_deinit(afl_executor_t *executor) {
 
 }
 
-// Functions to allocate and deallocate the standard observation channel struct
-afl_observation_channel_t * afl_observation_init(void) {
+u8 afl_add_observation_channel(afl_executor_t *executor, void *obs_channel) {
 
-  afl_observation_channel_t * obs_channel = ck_alloc(sizeof(afl_observation_channel_t));
+  list_append(&executor->observors, obs_channel);
+
+  return 0;
+
+}
+
+list_t afl_get_observation_channels(afl_executor_t *executor) {
+
+  return executor->observors;
+
+}
+
+afl_queue_entry_t *afl_get_current_input(afl_executor_t *executor) {
+
+  return executor->current_input;
+
+}
+
+// Functions to allocate and deallocate the standard observation channel struct
+afl_observation_channel_t *afl_observation_init(void) {
+
+  afl_observation_channel_t *obs_channel =
+      ck_alloc(sizeof(afl_observation_channel_t));
 
   obs_channel->operations = ck_alloc(sizeof(afl_obs_channel_operations_t));
 
   return obs_channel;
+
 }
 
-void afl_observation_deinit(afl_observation_channel_t * obs_channel) {
+void afl_observation_deinit(afl_observation_channel_t *obs_channel) {
+
   ck_free(obs_channel->operations);
   ck_free(obs_channel);
+
 }
 
 // Functions to allocate and deallocate the standard feedback structs
 
-afl_feedback_t * afl_feedback_init(void) {
+afl_feedback_t *afl_feedback_init(void) {
 
-  afl_feedback_t * feedback = ck_alloc(sizeof(afl_feedback_t));
+  afl_feedback_t *feedback = ck_alloc(sizeof(afl_feedback_t));
 
   feedback->operations = ck_alloc(sizeof(afl_fbck_operations_t));
 
@@ -113,7 +141,7 @@ afl_feedback_t * afl_feedback_init(void) {
 
 }
 
-void afl_feedback_deinit(afl_feedback_t * feedback) {
+void afl_feedback_deinit(afl_feedback_t *feedback) {
 
   ck_free(feedback->operations);
   ck_free(feedback);
@@ -125,41 +153,46 @@ would pass it to this function which start fuzzing it, something similar to what
 afl_fuzz's main function does.
 This will be the entrypoint of a new thread when it is created (for each
 executor instance).*/
-u8 fuzz_start(afl_executor_t *executor, afl_feedback_t * feedback) {
+u8 fuzz_start(afl_executor_t *executor, afl_feedback_t *feedback) {
 
   while (1) {
 
     // Pre input writing stuff, probably mutations, feedback stuff etc.
 
-    u8 * mem; //Mutated data we want to fuzz with.
-    size_t len; //Length of mutated data
+    u8 *mem;     // Mutated data we want to fuzz with.
+    size_t len;  // Length of mutated data
 
-    if (!executor->executor_ops->place_inputs_cb) return AFL_PLACE_INPUT_MISSING;
-    
+    if (!executor->executor_ops->place_inputs_cb)
+      return AFL_PLACE_INPUT_MISSING;
+
     executor->executor_ops->place_inputs_cb(executor, mem, len);
 
     // Pre run clean up for the observation channels
-    LIST_FOREACH(&executor->observors, struct afl_observation_channel , {
-      if (el->operations->pre_run_call)
-        el->operations->pre_run_call(el);
+    LIST_FOREACH(&executor->observors, struct afl_observation_channel, {
+
+      if (el->operations->pre_run_call) el->operations->pre_run_call(el);
+
     });
 
     executor->executor_ops->run_target_cb(executor, 0, NULL);
-    
+
     // Post run call of the observation channel...
     // TODO: Should this be done after feedback reduction or before??
-    LIST_FOREACH(&executor->observors, struct afl_observation_channel , {
-      if (el->operations->post_run_call)
-        el->operations->post_run_call(el);
+    LIST_FOREACH(&executor->observors, struct afl_observation_channel, {
+
+      if (el->operations->post_run_call) el->operations->post_run_call(el);
+
     });
 
     // Feedback functions called now.
 
-    // Based on above steps, we calculate the previous value and proposed value for the queue feedback.
-    u64 prev_value, proposed_value; //Arguments for the feedback reducer call
+    // Based on above steps, we calculate the previous value and proposed value
+    // for the queue feedback.
+    u64 prev_value, proposed_value;  // Arguments for the feedback reducer call
 
     if (feedback->operations->reducer_function)
-      feedback->operations->reducer_function(feedback, prev_value, proposed_value);
+      feedback->operations->reducer_function(feedback, prev_value,
+                                             proposed_value);
 
     // Scheduler functions for the queues run after this.
 

@@ -64,7 +64,7 @@ typedef struct afl_queue_operations {
 
 } afl_queue_operations_t;
 
-afl_queue_t * afl_queue_init();           /* Function to initialize the queue*/
+afl_queue_t *afl_queue_init();           /* Function to initialize the queue*/
 void afl_queue_deinit(afl_queue_t *); /* Function to destroy the given queue*/
 
 /*
@@ -98,68 +98,91 @@ typedef struct afl_executor_operations {
       afl_executor_t *, u8 *,
       size_t);  // similar to the write_to_testcase function in afl.
 
+  list_t (*get_observation_channels)(
+      afl_executor_t *);  // Getter function for observation channels list
+
+  u8 (*add_observation_channel)(
+      afl_executor_t *, struct afl_observation_channel
+                            *);  // Add an observtion channel to the list
+
+  afl_queue_entry_t *(*get_current_input)(
+      afl_executor_t *);  // Getter function for the current input
+
 } afl_executor_operations_t;
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-afl_executor_t *afl_executor_init();
-void            afl_executor_deinit(afl_executor_t *);
-
+afl_executor_t *   afl_executor_init();
+void               afl_executor_deinit(afl_executor_t *);
+u8                 afl_add_observation_channel(afl_executor_t *, void *);
+list_t             afl_get_observation_channels(afl_executor_t *);
+afl_queue_entry_t *afl_get_current_input(afl_executor_t *);
 /*
-This is the interface for the observation channel for the library. To get the gist of it,
-it resembles the bitmap in original AFL.
+This is the interface for the observation channel for the library. To get the
+gist of it, it resembles the bitmap in original AFL.
 */
 
 typedef struct afl_observation_channel {
 
-  afl_queue_t * queue;        // Each observation channel is connected to a queue, for which it collects data to send to a feedback.
-  void * interface;           /* A void pointer to keep the interface (can be a shared map, or something else, anything) generic. 
-                                 TODO: Better ideas for this, guys?? */
+  afl_queue_t *queue;  // Each observation channel is connected to a queue, for
+                       // which it collects data to send to a feedback.
+  void *interface; /* A void pointer to keep the interface (can be a shared map,
+                      or something else, anything) generic.
+                      TODO: Better ideas for this, guys?? */
 
-  struct afl_obs_channel_operations * operations;
+  struct afl_obs_channel_operations *operations;
 
 } afl_observation_channel_t;
 
 typedef struct afl_obs_channel_operations {
-  u8 (*init_cb)(struct afl_observation_channel*);     // can be NULL
-  u8 (*destroy_cb)(struct afl_observation_channel*);  // can be NULL
 
-  u8 (*pre_run_call)(struct afl_observation_channel*);    // can be NULL
-  u8 (*post_run_call)(struct afl_observation_channel*);    // can be NULL
+  u8 (*init_cb)(struct afl_observation_channel *);     // can be NULL
+  u8 (*destroy_cb)(struct afl_observation_channel *);  // can be NULL
+
+  u8 (*pre_run_call)(struct afl_observation_channel *);   // can be NULL
+  u8 (*post_run_call)(struct afl_observation_channel *);  // can be NULL
+
 } afl_obs_channel_operations_t;
 
-afl_observation_channel_t * afl_observation_init(void);
-void afl_observation_deinit(afl_observation_channel_t *);
+afl_observation_channel_t *afl_observation_init(void);
+void                       afl_observation_deinit(afl_observation_channel_t *);
 
 /*
-The generic interface for the feedback for the observation channel, this channel is queue specifc. 
+The generic interface for the feedback for the observation channel, this channel
+is queue specifc.
 */
 
 typedef struct afl_feedback {
-  afl_executor_t * executor;  // The executor for which feedback is done.
-  /*TODO: Should the executor be here? Considering we have the executor specified in the queue itself??*/
-  afl_observation_channel_t * obs_channel;  //The observation channel (which contains the queue).
 
-  struct afl_fbck_operations * operations;
+  afl_executor_t *executor;  // The executor for which feedback is done.
+  /*TODO: Should the executor be here? Considering we have the executor
+   * specified in the queue itself??*/
+  afl_observation_channel_t
+      *obs_channel;  // The observation channel (which contains the queue).
+
+  struct afl_fbck_operations *operations;
 
 } afl_feedback_t;
 
 typedef struct afl_fbck_operations {
 
-  u8 (*init_cb)(struct afl_feedback *); // can be NULL
-  u8 (*destroy_cb)(struct afl_feedback *); // can be NULL
+  u8 (*init_cb)(struct afl_feedback *);     // can be NULL
+  u8 (*destroy_cb)(struct afl_feedback *);  // can be NULL
 
-  u64 (*reducer_function)(struct afl_feedback *,u64 ,u64); // new_value = reducer(old_value, proposed_value)
-  s32 (*is_interesting_cb)(struct afl_executor*); // returns rate
+  u64 (*reducer_function)(
+      struct afl_feedback *, u64,
+      u64);  // new_value = reducer(old_value, proposed_value)
+  s32 (*is_interesting_cb)(struct afl_executor *);  // returns rate
 
-} afl_fbck_operations_t ;
+} afl_fbck_operations_t;
 
-afl_feedback_t * afl_feedback_init(void);
-void afl_feedback_deinit(afl_feedback_t *);
+afl_feedback_t *afl_feedback_init(void);
+void            afl_feedback_deinit(afl_feedback_t *);
 
 u8 fuzz_start(afl_executor_t *, afl_feedback_t *);
 
 enum {
+
   ALL_OK,
   AFL_PLACE_INPUT_MISSING
 
