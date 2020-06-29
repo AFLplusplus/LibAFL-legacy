@@ -16,7 +16,7 @@
 
      http://www.apache.org/licenses/LICENSE-2.0
 
-   This the actual code for the library framework.
+   This is the actual code for the library framework.
 
  */
 
@@ -104,30 +104,12 @@ list_t afl_get_observation_channels(afl_executor_t *executor) {
 
 }
 
-afl_queue_entry_t *afl_get_current_input(afl_executor_t *executor) {
+raw_input_t *afl_get_current_input(afl_executor_t *executor) {
 
   return executor->current_input;
 
 }
 
-// Functions to allocate and deallocate the standard observation channel struct
-afl_observation_channel_t *afl_observation_init(void) {
-
-  afl_observation_channel_t *obs_channel =
-      ck_alloc(sizeof(afl_observation_channel_t));
-
-  obs_channel->operations = ck_alloc(sizeof(afl_obs_channel_operations_t));
-
-  return obs_channel;
-
-}
-
-void afl_observation_deinit(afl_observation_channel_t *obs_channel) {
-
-  ck_free(obs_channel->operations);
-  ck_free(obs_channel);
-
-}
 
 // Functions to allocate and deallocate the standard feedback structs
 
@@ -159,7 +141,7 @@ u8 fuzz_start(afl_executor_t *executor, afl_feedback_t *feedback) {
 
     // Pre input writing stuff, probably mutations, feedback stuff etc.
 
-    u8 *mem;     // Mutated data we want to fuzz with.
+    u8 *   mem;  // Mutated data we want to fuzz with.
     size_t len;  // Length of mutated data
 
     if (!executor->executor_ops->place_inputs_cb)
@@ -168,9 +150,9 @@ u8 fuzz_start(afl_executor_t *executor, afl_feedback_t *feedback) {
     executor->executor_ops->place_inputs_cb(executor, mem, len);
 
     // Pre run clean up for the observation channels
-    LIST_FOREACH(&executor->observors, struct afl_observation_channel, {
+    LIST_FOREACH(&executor->observors, struct observation_channel, {
 
-      if (el->operations->pre_run_call) el->operations->pre_run_call(el);
+      if (el->operations->reset) el->operations->reset(el);
 
     });
 
@@ -178,9 +160,9 @@ u8 fuzz_start(afl_executor_t *executor, afl_feedback_t *feedback) {
 
     // Post run call of the observation channel...
     // TODO: Should this be done after feedback reduction or before??
-    LIST_FOREACH(&executor->observors, struct afl_observation_channel, {
+    LIST_FOREACH(&executor->observors, struct observation_channel, {
 
-      if (el->operations->post_run_call) el->operations->post_run_call(el);
+      if (el->operations->post_exec) el->operations->post_exec(el);
 
     });
 
