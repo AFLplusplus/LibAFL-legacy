@@ -1,0 +1,96 @@
+#include "lib-common.h"
+#include "libinput.h"
+#include "list.h"
+#include <stdbool.h>
+
+/*
+This is the generic interface implementation for the queue and queue entries.
+We've tried to keep it generic and yet including, but if you want to extend the
+queue/entry, simply "inherit" this struct by including it in your custom struct
+and keeping it as the first member of your struct.
+*/
+
+struct base_queue;
+
+typedef struct queue_entry {
+
+  raw_input_t *       input;
+  bool                on_disk;
+  u8 *                filename;
+  struct base_queue * queue;
+  struct queue_entry *next;
+  struct queue_entry *prev;
+  struct queue_entry *parent;
+
+  list_t children;
+
+  struct queue_entry_operations *operations;
+
+  /* TODO: Add feedback_meta_data member after feedback completion */
+
+} queue_entry_t;
+
+struct queue_entry_operations {
+
+  raw_input_t *(*get_input)(queue_entry_t *);
+  bool (*is_on_disk)(queue_entry_t *);
+  queue_entry_t *(*get_next)(queue_entry_t *);
+  queue_entry_t *(*get_prev)(queue_entry_t *);
+  queue_entry_t *(*get_parent)(queue_entry_t *);
+  queue_entry_t *(*get_child)(
+      queue_entry_t *,
+      size_t);     /*TODO: Still need to add a base implementation for this.*/
+
+};
+
+queue_entry_t *afl_queue_entry_init();
+void           afl_queue_entry_deinit(queue_entry_t *);
+
+// Default implementations for the functions for queue_entry vtable
+raw_input_t *  get_input(queue_entry_t *entry);
+queue_entry_t *get_next(queue_entry_t *entry);
+queue_entry_t *get_prev(queue_entry_t *entry);
+queue_entry_t *get_parent(queue_entry_t *entry);
+
+typedef struct base_queue {
+
+  queue_entry_t *base;
+  size_t         size;
+  u8 *           dirpath;
+  size_t         names_id;
+  bool           save_to_files;
+
+  struct base_queue_operations *operations;
+
+  /* TODO: Still need to add shared_mutex (after multithreading), map of
+   * engine:queue_entry */
+
+} base_queue_t;
+
+struct base_queue_operations {
+
+  void (*add_to_queue)(base_queue_t *, queue_entry_t *);
+  void (*remove_from_queue)(base_queue_t *);
+
+  queue_entry_t *(*get)(base_queue_t *);
+  queue_entry_t *(*get_next_in_queue)(base_queue_t *);
+  queue_entry_t *(*get_queue_base)(base_queue_t *);
+  size_t (*get_size)(base_queue_t *);
+  u8 *(*get_dirpath)(base_queue_t *);
+  size_t (*get_names_id)(base_queue_t *);
+  bool (*get_save_to_files)(base_queue_t *);
+
+  void (*set_directory)(base_queue_t *, u8 *);
+
+};
+
+base_queue_t *afl_base_queue_init();
+void          afl_base_queue_deinit(base_queue_t *);
+
+void           add_to_queue(base_queue_t *, queue_entry_t *);
+queue_entry_t *get_queue_base(base_queue_t *);
+size_t         get_size(base_queue_t *);
+u8 *           get_dirpath(base_queue_t *);
+size_t         get_names_id(base_queue_t *);
+bool           get_save_to_files(base_queue_t *);
+

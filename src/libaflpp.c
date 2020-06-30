@@ -23,45 +23,6 @@
 #include "libaflpp.h"
 #include "list.h"
 
-afl_queue_t *afl_queue_init() {
-
-  afl_queue_t *queue = ck_alloc(sizeof(afl_queue_t));
-
-  queue->queue_current = NULL;
-  queue->queue_top = NULL;
-
-  queue->executor = NULL;
-  afl_queue_operations_t *queue_ops = ck_alloc(sizeof(afl_queue_operations_t));
-
-  queue->queue_ops = queue_ops;
-
-  return queue;
-
-}
-
-void afl_queue_deinit(afl_queue_t *queue) {
-
-  struct afl_queue_entry *current;
-
-  current = queue->queue_top;
-  if (!current) FATAL("The queue is empty, cannot deinit");
-
-  // Free each entry present in the queue.
-  while (current) {
-
-    struct afl_queue_entry *temp = current->next_queue_entry;
-
-    ck_free(current);
-    current = temp;
-
-  }
-
-  ck_free(queue);  // Free the queue itself now.
-
-  SAYF("queue has been deinited");
-
-}
-
 afl_executor_t *afl_executor_init() {
 
   afl_executor_t *executor = ck_alloc(sizeof(afl_executor_t));
@@ -109,7 +70,6 @@ raw_input_t *afl_get_current_input(afl_executor_t *executor) {
   return executor->current_input;
 
 }
-
 
 // Functions to allocate and deallocate the standard feedback structs
 
