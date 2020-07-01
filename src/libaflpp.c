@@ -73,72 +73,15 @@ raw_input_t *afl_get_current_input(afl_executor_t *executor) {
 
 // Functions to allocate and deallocate the standard feedback structs
 
-afl_feedback_t *afl_feedback_init(void) {
-
-  afl_feedback_t *feedback = ck_alloc(sizeof(afl_feedback_t));
-
-  feedback->operations = ck_alloc(sizeof(afl_fbck_operations_t));
-
-  return feedback;
-
-}
-
-void afl_feedback_deinit(afl_feedback_t *feedback) {
-
-  ck_free(feedback->operations);
-  ck_free(feedback);
-
-}
 
 /* This is the primary function for the entire library, for each executor, we
 would pass it to this function which start fuzzing it, something similar to what
 afl_fuzz's main function does.
 This will be the entrypoint of a new thread when it is created (for each
 executor instance).*/
-u8 fuzz_start(afl_executor_t *executor, afl_feedback_t *feedback) {
+u8 fuzz_start(afl_executor_t *executor) {
 
-  while (1) {
-
-    // Pre input writing stuff, probably mutations, feedback stuff etc.
-
-    u8 *   mem;  // Mutated data we want to fuzz with.
-    size_t len;  // Length of mutated data
-
-    if (!executor->executor_ops->place_inputs_cb)
-      return AFL_PLACE_INPUT_MISSING;
-
-    executor->executor_ops->place_inputs_cb(executor, mem, len);
-
-    // Pre run clean up for the observation channels
-    LIST_FOREACH(&executor->observors, struct observation_channel, {
-
-      if (el->operations->reset) el->operations->reset(el);
-
-    });
-
-    executor->executor_ops->run_target_cb(executor, 0, NULL);
-
-    // Post run call of the observation channel...
-    // TODO: Should this be done after feedback reduction or before??
-    LIST_FOREACH(&executor->observors, struct observation_channel, {
-
-      if (el->operations->post_exec) el->operations->post_exec(el);
-
-    });
-
-    // Feedback functions called now.
-
-    // Based on above steps, we calculate the previous value and proposed value
-    // for the queue feedback.
-    u64 prev_value, proposed_value;  // Arguments for the feedback reducer call
-
-    if (feedback->operations->reducer_function)
-      feedback->operations->reducer_function(feedback, prev_value,
-                                             proposed_value);
-
-    // Scheduler functions for the queues run after this.
-
-  }
+  /* TODO: Implementation yet to be done based on design changes. Will be moved to fuzz_one */
 
 }
 

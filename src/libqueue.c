@@ -140,3 +140,57 @@ void set_directory(base_queue_t *queue, u8 *new_dirpath) {
 
 }
 
+feedback_queue_t *afl_feedback_queue_init(struct feedback *feedback, u8 *name) {
+
+  feedback_queue_t *fbck_queue = ck_alloc(sizeof(feedback_queue_t));
+
+  fbck_queue->super = *(afl_base_queue_init());
+  fbck_queue->feedback = feedback;
+
+  if (!name) name = "";
+
+  fbck_queue->name = name;
+
+  return fbck_queue;
+
+}
+
+void afl_feedback_queue_deinit(feedback_queue_t * feedback) {
+  ck_free(feedback->name);
+
+  ck_free(feedback);
+
+}
+
+global_queue_t * afl_global_queue_init() {
+
+  global_queue_t * global_queue = ck_alloc(sizeof(global_queue_t));
+
+  global_queue->super = *(afl_base_queue_init());
+
+  global_queue->extra_ops = ck_alloc(sizeof(struct global_queue_operations));
+
+  global_queue->extra_ops->add_feedback_queue = add_feedback_queue;
+
+  return global_queue;
+
+}
+
+void afl_global_queue_deinit(global_queue_t * queue) {
+
+  if (queue->feedback_queues_num)
+    LIST_FOREACH_CLEAR(&(queue->feedback_queues), feedback_queue_t, {
+      afl_feedback_queue_deinit(el);
+    });
+
+  ck_free(queue->extra_ops);
+  ck_free(queue);
+
+}
+
+void add_feedback_queue(global_queue_t *global_queue, feedback_queue_t *fbck_queue) {
+
+  list_append(&(global_queue->feedback_queues), fbck_queue);
+  global_queue->feedback_queues_num++;
+
+}
