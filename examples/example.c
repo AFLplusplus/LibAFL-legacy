@@ -2,7 +2,7 @@
 
 typedef struct test_executors {
 
-  afl_executor_t super;  // Executor struct we are "inheriting" from
+  executor_t super;  // Executor struct we are "inheriting" from
 
   char target_name[100];  // Target to fuzz
 
@@ -117,7 +117,7 @@ u8 post_run_call(afl_observation_channel_t *obs_channel) {
 
 }
 
-u8 place_inputs(afl_executor_t *super, u8 *mem, size_t len) {
+u8 place_inputs(executor_t *super, u8 *mem, size_t len) {
 
   // Write the data to the file present in current queue entry
 
@@ -136,7 +136,7 @@ u8 place_inputs(afl_executor_t *super, u8 *mem, size_t len) {
 
 }
 
-u8 run_target(afl_executor_t *super, u32 opt_one, void *opt_two) {
+u8 run_target(executor_t *super, u32 opt_one, void *opt_two) {
 
   // Here we simply execute the target and fill up the observation channel and
   // stuff

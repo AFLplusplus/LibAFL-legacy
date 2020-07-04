@@ -23,27 +23,27 @@
 #include "libaflpp.h"
 #include "list.h"
 
-afl_executor_t *afl_executor_init() {
+executor_t *afl_executor_init() {
 
-  afl_executor_t *executor = ck_alloc(sizeof(afl_executor_t));
+  executor_t *executor = ck_alloc(sizeof(executor_t));
 
   executor->current_input = NULL;
 
-  executor->executor_ops = ck_alloc(sizeof(struct afl_executor_operations));
+  executor->executor_ops = ck_alloc(sizeof(struct executor_operations));
 
   // Default implementations of the functions
   executor->executor_ops->destroy_cb = afl_executor_deinit;
-  executor->executor_ops->add_observation_channel = afl_add_observation_channel;
+  executor->executor_ops->add_observation_channel = _add_observation_channel_;
   executor->executor_ops->get_observation_channels =
-      afl_get_observation_channels;
-  executor->executor_ops->get_current_input = afl_get_current_input;
+      _get_observation_channels_;
+  executor->executor_ops->get_current_input = _get_current_input_;
 
   return executor;
 
 }
 
 // Default implementations for executor vtable
-void afl_executor_deinit(afl_executor_t *executor) {
+void afl_executor_deinit(executor_t *executor) {
 
   if (!executor) FATAL("Cannot free a NULL pointer");
 
@@ -51,7 +51,7 @@ void afl_executor_deinit(afl_executor_t *executor) {
 
 }
 
-u8 afl_add_observation_channel(afl_executor_t *executor, void *obs_channel) {
+u8 _add_observation_channel_(executor_t *executor, void *obs_channel) {
 
   list_append(&executor->observors, obs_channel);
 
@@ -59,13 +59,13 @@ u8 afl_add_observation_channel(afl_executor_t *executor, void *obs_channel) {
 
 }
 
-list_t afl_get_observation_channels(afl_executor_t *executor) {
+list_t _get_observation_channels_(executor_t *executor) {
 
   return executor->observors;
 
 }
 
-raw_input_t *afl_get_current_input(afl_executor_t *executor) {
+raw_input_t *_get_current_input_(executor_t *executor) {
 
   return executor->current_input;
 
@@ -79,7 +79,7 @@ would pass it to this function which start fuzzing it, something similar to what
 afl_fuzz's main function does.
 This will be the entrypoint of a new thread when it is created (for each
 executor instance).*/
-u8 fuzz_start(afl_executor_t *executor) {
+u8 fuzz_start(executor_t *executor) {
 
   /* TODO: Implementation yet to be done based on design changes. Will be moved to fuzz_one */
 

@@ -37,49 +37,49 @@ trying OO design principles here :D) and then extend adding your own fields to
 it. See the example forksever executor that we have in examples/
 */
 
-typedef struct afl_executor {
+typedef struct executor {
 
   list_t observors;  // This will be swapped for the observation channel once
                      // its ready
 
   raw_input_t *current_input;  // Holds current input for the executor
 
-  struct afl_executor_operations *executor_ops;  // afl executor_ops;
+  struct executor_operations *executor_ops;  // afl executor_ops;
 
-} afl_executor_t;
+} executor_t;
 
 // This is like the generic vtable for the executor.
 
-typedef struct afl_executor_operations {
+struct executor_operations {
 
-  u8 (*init_cb)(afl_executor_t *, void *);  // can be NULL
-  u8 (*destroy_cb)(afl_executor_t *);       // can be NULL
+  u8 (*init_cb)(executor_t *, void *);  // can be NULL
+  u8 (*destroy_cb)(executor_t *);       // can be NULL
 
-  u8 (*run_target_cb)(afl_executor_t *, u32,
+  u8 (*run_target_cb)(executor_t *, u32,
                       void *);  // Similar to afl_fsrv_run_target we have in afl
   u8 (*place_inputs_cb)(
-      afl_executor_t *, u8 *,
+      executor_t *, u8 *,
       size_t);  // similar to the write_to_testcase function in afl.
 
   list_t (*get_observation_channels)(
-      afl_executor_t *);  // Getter function for observation channels list
+      executor_t *);  // Getter function for observation channels list
 
   u8 (*add_observation_channel)(
-      afl_executor_t *, struct afl_observation_channel
+      executor_t *, struct afl_observation_channel
                             *);  // Add an observtion channel to the list
 
   raw_input_t *(*get_current_input)(
-      afl_executor_t *);  // Getter function for the current input
+      executor_t *);  // Getter function for the current input
 
-} afl_executor_operations_t;
+};
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-afl_executor_t *afl_executor_init();
-void            afl_executor_deinit(afl_executor_t *);
-u8              afl_add_observation_channel(afl_executor_t *, void *);
-list_t          afl_get_observation_channels(afl_executor_t *);
-raw_input_t *   afl_get_current_input(afl_executor_t *);
+executor_t *afl_executor_init();
+void            afl_executor_deinit(executor_t *);
+u8              _add_observation_channel_(executor_t *, void *);
+list_t          _get_observation_channels_(executor_t *);
+raw_input_t *   _get_current_input_(executor_t *);
 
 /*
 The generic interface for the feedback for the observation channel, this channel
@@ -87,7 +87,7 @@ is queue specifc.
 */
 
 
-u8 fuzz_start(afl_executor_t *);
+u8 fuzz_start(executor_t *);
 
 enum {
 

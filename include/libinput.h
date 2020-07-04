@@ -1,3 +1,29 @@
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
+
 #include "lib-common.h"
 
 #define DEFAULT_INPUT_LEN 100
@@ -30,15 +56,15 @@ raw_input_t *afl_input_init();
 void         afl_input_deinit(raw_input_t *);
 
 // Default implementations of the functions for raw input vtable
-void         afl_inp_deserialize(raw_input_t *, u8 *, size_t);
-u8 *         afl_inp_serialize(raw_input_t *);
-raw_input_t *afl_inp_copy(raw_input_t *);
-raw_input_t *afl_inp_empty(raw_input_t *);
-void         afl_inp_restore(raw_input_t *, raw_input_t *);
-u8           afl_inp_load_from_file(raw_input_t *, u8 *);
-u8           afl_inp_save_to_file(raw_input_t *, u8 *);
-void         afl_inp_clear(raw_input_t *);
-u8 *         afl_inp_get_bytes(raw_input_t *);
+void         _raw_inp_deserialize_(raw_input_t *, u8 *, size_t);
+u8 *         _raw_inp_serialize_(raw_input_t *);
+raw_input_t *_raw_inp_copy_(raw_input_t *);
+raw_input_t *_raw_inp_empty_(raw_input_t *);
+void         _raw_inp_restore_(raw_input_t *, raw_input_t *);
+u8           _raw_inp_load_from_file_(raw_input_t *, u8 *);
+u8           _raw_inp_save_to_file_(raw_input_t *, u8 *);
+void         _raw_inp_clear_(raw_input_t *);
+u8 *         _raw_inp_get_bytes_(raw_input_t *);
 
 // input_clear and empty functions... difference??
 // serializing and deserializing would be done on the basis of some structure

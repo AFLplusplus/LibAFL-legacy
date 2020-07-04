@@ -4,7 +4,7 @@ typedef struct afl_forkserver_executor {
 
   /* a program that includes afl-forkserver needs to define these */
 
-  afl_executor_t super;                 /* Base executor "class"            */
+  executor_t super;                 /* Base executor "class"            */
 
   u8  uses_asan;                        /* Target uses ASAN?                */
   u8 *trace_bits;                       /* SHM with instrumentation bitmap  */
@@ -63,11 +63,11 @@ struct forkserver_start_args {
 
 };
 
-void afl_fsrv_exc_init(afl_executor_t *);
-void afl_fsrv_exc_init_dup(afl_executor_t *, afl_executor_t *);
-void afl_fsrv_exc_start(afl_executor_t *, void *);
-void afl_fsrv_exc_write_to_testcase(afl_executor_t *, u8 *, size_t);
-fsrv_run_result_t afl_fsrv_exc_run_target(afl_executor_t *, u32, void *);
+void afl_fsrv_exc_init(executor_t *);
+void afl_fsrv_exc_init_dup(executor_t *, executor_t *);
+void afl_fsrv_exc_start(executor_t *, void *);
+void afl_fsrv_exc_write_to_testcase(executor_t *, u8 *, size_t);
+fsrv_run_result_t afl_fsrv_exc_run_target(executor_t *, u32, void *);
 void              afl_fsrv_exc_killall(void);
-void              afl_fsrv_exc_kill(afl_executor_t *fsrv);
+void              afl_fsrv_exc_kill(executor_t *fsrv);
 

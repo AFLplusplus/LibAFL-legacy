@@ -7,7 +7,7 @@ int main() {
 
   char input[100];
 
-  char * fname = file_name;
+  char *fname = file_name;
 
   FILE *f = fopen(fname, "r+");
   char *s = input;

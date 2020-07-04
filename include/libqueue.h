@@ -1,3 +1,29 @@
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
+
 #include "lib-common.h"
 #include "libinput.h"
 #include "list.h"
@@ -48,10 +74,10 @@ queue_entry_t *afl_queue_entry_init();
 void           afl_queue_entry_deinit(queue_entry_t *);
 
 // Default implementations for the functions for queue_entry vtable
-raw_input_t *  get_input(queue_entry_t *entry);
-queue_entry_t *get_next(queue_entry_t *entry);
-queue_entry_t *get_prev(queue_entry_t *entry);
-queue_entry_t *get_parent(queue_entry_t *entry);
+raw_input_t *  _get_input_(queue_entry_t *entry);
+queue_entry_t *_get_next_(queue_entry_t *entry);
+queue_entry_t *_get_prev_(queue_entry_t *entry);
+queue_entry_t *_get_parent_(queue_entry_t *entry);
 
 typedef struct base_queue {
 
@@ -88,12 +114,12 @@ struct base_queue_operations {
 base_queue_t *afl_base_queue_init();
 void          afl_base_queue_deinit(base_queue_t *);
 
-void           add_to_queue(base_queue_t *, queue_entry_t *);
-queue_entry_t *get_queue_base(base_queue_t *);
-size_t         get_size(base_queue_t *);
-u8 *           get_dirpath(base_queue_t *);
-size_t         get_names_id(base_queue_t *);
-bool           get_save_to_files(base_queue_t *);
+void           _add_to_queue_(base_queue_t *, queue_entry_t *);
+queue_entry_t *_get_queue_base_(base_queue_t *);
+size_t         _get_base_queue_size_(base_queue_t *);
+u8 *           _get_dirpath_(base_queue_t *);
+size_t         _get_names_id_(base_queue_t *);
+bool           _get_save_to_files_(base_queue_t *);
 
 typedef struct feedback_queue {
 
@@ -129,7 +155,7 @@ struct global_queue_operations {
 };
 
 // Default implementations of global queue vtable functions
-void add_feedback_queue(global_queue_t *, feedback_queue_t *);
+void _add_feedback_queue_(global_queue_t *, feedback_queue_t *);
 /* TODO: ADD defualt implementation for the schedule function based on random. */
 
 global_queue_t * afl_global_queue_init();

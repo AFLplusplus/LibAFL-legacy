@@ -41,7 +41,7 @@ afl_forkserver_executor_t *afl_fsrv_create(void) {
 
 }
 
-void afl_fsrv_exc_start(afl_executor_t *executor, void *fsrv_start_args) {
+void afl_fsrv_exc_start(executor_t *executor, void *fsrv_start_args) {
 
   int st_pipe[2], ctl_pipe[2];
   int status;
@@ -502,7 +502,7 @@ void afl_fsrv_exc_start(afl_executor_t *executor, void *fsrv_start_args) {
 
 }
 
-void afl_fsrv_exc_write_to_testcase(afl_executor_t *executor, u8 *buf,
+void afl_fsrv_exc_write_to_testcase(executor_t *executor, u8 *buf,
                                     size_t len) {
 
   afl_forkserver_executor_t *fsrv = (afl_forkserver_executor_t *)executor;
@@ -545,7 +545,7 @@ void afl_fsrv_exc_write_to_testcase(afl_executor_t *executor, u8 *buf,
 
 }
 
-fsrv_run_result_t afl_fsrv_exc_run_target(afl_executor_t *executor, u32 timeout,
+fsrv_run_result_t afl_fsrv_exc_run_target(executor_t *executor, u32 timeout,
                                           void *stop_soon) {
 
   s32 res;
@@ -668,7 +668,7 @@ fsrv_run_result_t afl_fsrv_exc_run_target(afl_executor_t *executor, u32 timeout,
 
 }
 
-void afl_fsrv_exc_kill(afl_executor_t *executor) {
+void afl_fsrv_exc_kill(executor_t *executor) {
 
   afl_forkserver_executor_t *fsrv = (afl_forkserver_executor_t *)executor;
 
