@@ -99,7 +99,7 @@ base_queue_t *afl_base_queue_init(void) {
   queue->operations->get_dirpath = _get_dirpath_;
   queue->operations->get_names_id = _get_names_id_;
   queue->operations->get_save_to_files = _get_save_to_files_;
-  queue->operations->set_directory = set_directory;
+  queue->operations->set_directory = _set_directory_;
 
   return queue;
 
@@ -155,7 +155,7 @@ bool _get_save_to_files_(base_queue_t *queue) {
 
 }
 
-void set_directory(base_queue_t *queue, u8 *new_dirpath) {
+void _set_directory_(base_queue_t *queue, u8 *new_dirpath) {
 
   if (!new_dirpath) queue->dirpath = "";  // We are unsetting the directory path
   queue->dirpath = new_dirpath;
@@ -181,16 +181,17 @@ feedback_queue_t *afl_feedback_queue_init(struct feedback *feedback, u8 *name) {
 
 }
 
-void afl_feedback_queue_deinit(feedback_queue_t * feedback) {
+void afl_feedback_queue_deinit(feedback_queue_t *feedback) {
+
   ck_free(feedback->name);
 
   ck_free(feedback);
 
 }
 
-global_queue_t * afl_global_queue_init() {
+global_queue_t *afl_global_queue_init() {
 
-  global_queue_t * global_queue = ck_alloc(sizeof(global_queue_t));
+  global_queue_t *global_queue = ck_alloc(sizeof(global_queue_t));
 
   global_queue->super = *(afl_base_queue_init());
 
@@ -202,21 +203,22 @@ global_queue_t * afl_global_queue_init() {
 
 }
 
-void afl_global_queue_deinit(global_queue_t * queue) {
+void afl_global_queue_deinit(global_queue_t *queue) {
 
   if (queue->feedback_queues_num)
-    LIST_FOREACH_CLEAR(&(queue->feedback_queues), feedback_queue_t, {
-      afl_feedback_queue_deinit(el);
-    });
+    LIST_FOREACH_CLEAR(&(queue->feedback_queues), feedback_queue_t,
+                       { afl_feedback_queue_deinit(el); });
 
   ck_free(queue->extra_ops);
   ck_free(queue);
 
 }
 
-void _add_feedback_queue_(global_queue_t *global_queue, feedback_queue_t *fbck_queue) {
+void _add_feedback_queue_(global_queue_t *  global_queue,
+                          feedback_queue_t *fbck_queue) {
 
   list_append(&(global_queue->feedback_queues), fbck_queue);
   global_queue->feedback_queues_num++;
 
 }
+

@@ -44,7 +44,7 @@ typedef struct queue_entry {
   raw_input_t *       input;
   bool                on_disk;
   u8 *                filename;
-  struct base_queue  *queue;
+  struct base_queue * queue;
   struct queue_entry *next;
   struct queue_entry *prev;
   struct queue_entry *parent;
@@ -111,6 +111,8 @@ struct base_queue_operations {
 
 };
 
+/* TODO: Add the base  */
+
 base_queue_t *afl_base_queue_init();
 void          afl_base_queue_deinit(base_queue_t *);
 
@@ -120,6 +122,7 @@ size_t         _get_base_queue_size_(base_queue_t *);
 u8 *           _get_dirpath_(base_queue_t *);
 size_t         _get_names_id_(base_queue_t *);
 bool           _get_save_to_files_(base_queue_t *);
+void           _set_directory_(base_queue_t *, u8 *);
 
 typedef struct feedback_queue {
 
@@ -136,13 +139,14 @@ feedback_queue_t *afl_feedback_queue_init(
 void afl_feedback_queue_deinit(feedback_queue_t *);
 
 typedef struct global_queue {
+
   base_queue_t super;
-  list_t feedback_queues; // One global queue can have multiple feedback queues
+  list_t feedback_queues;  // One global queue can have multiple feedback queues
 
   size_t feedback_queues_num;
 
-  struct global_queue_operations * extra_ops;
-  /*TODO: Add a map of Engine:feedback_queue 
+  struct global_queue_operations *extra_ops;
+  /*TODO: Add a map of Engine:feedback_queue
     UPDATE: Engine will have a ptr to current feedback queue rather than this*/
 
 } global_queue_t;
@@ -156,7 +160,9 @@ struct global_queue_operations {
 
 // Default implementations of global queue vtable functions
 void _add_feedback_queue_(global_queue_t *, feedback_queue_t *);
-/* TODO: ADD defualt implementation for the schedule function based on random. */
+/* TODO: ADD defualt implementation for the schedule function based on random.
+ */
 
-global_queue_t * afl_global_queue_init();
-void afl_global_queue_deinit(global_queue_t *);
+global_queue_t *afl_global_queue_init();
+void            afl_global_queue_deinit(global_queue_t *);
+
