@@ -48,7 +48,6 @@ typedef struct afl_sharedmem {
 u8 * afl_sharedmem_init(afl_sharedmem_t *, size_t);
 void afl_sharedmem_deinit(afl_sharedmem_t *);
 
-
 // We're declaring a few structs here which have an interdependency between them
 
 typedef struct fuzz_one fuzz_one_t;
@@ -56,3 +55,4 @@ typedef struct fuzz_one fuzz_one_t;
 typedef struct engine engine_t;
 
 typedef struct stage stage_t;
+

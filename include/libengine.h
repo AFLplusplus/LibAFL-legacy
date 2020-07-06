@@ -29,39 +29,42 @@
 #include "libfeedback.h"
 
 struct engine {
-    fuzz_one_t * fuzz_one;
-    global_queue_t * global_queue;
-    executor_t * executor;
-    list_t feedbacks;
-    u64 executions, start_time;
-    int id;
 
-    struct engine_operations * operations;
+  fuzz_one_t *    fuzz_one;
+  global_queue_t *global_queue;
+  executor_t *    executor;
+  list_t          feedbacks;
+  u64             executions, start_time;
+  int             id;
+
+  struct engine_operations *operations;
+
 };
 
 struct engine_operations {
-    global_queue_t * (*get_queue)(engine_t *);
-    fuzz_one_t * (*get_fuzz_one)(engine_t *);
-    u64 (*get_execs)(engine_t *);
-    u64 (*get_start_time)(engine_t *);
 
-    void (*set_fuzz_one)(engine_t *, feedback_t);
-    void (*increase_execs)(engine_t *);
-    void (*add_feedback)(engine_t *, feedback_t *);
+  global_queue_t *(*get_queue)(engine_t *);
+  fuzz_one_t *(*get_fuzz_one)(engine_t *);
+  u64 (*get_execs)(engine_t *);
+  u64 (*get_start_time)(engine_t *);
 
-    void (*execute)(engine_t *, raw_input_t *);
-    void (*load_testcases_from_dir)(engine_t *, u8 *);
-    void (*load_zero_testcase)(size_t);
+  void (*set_fuzz_one)(engine_t *, feedback_t);
+  void (*increase_execs)(engine_t *);
+  void (*add_feedback)(engine_t *, feedback_t *);
 
-    void (*loop)(); // Not sure about this functions usa-case. Was in FFF though.
+  void (*execute)(engine_t *, raw_input_t *);
+  void (*load_testcases_from_dir)(engine_t *, u8 *);
+  void (*load_zero_testcase)(size_t);
+
+  void (*loop)();  // Not sure about this functions usa-case. Was in FFF though.
+
 };
 
-
 /* TODO: Add default implementations for load_testcases and execute */
-global_queue_t * _get_queue_(engine_t *);
-fuzz_one_t * _get_fuzz_one_(engine_t *);
-u64 _get_execs_(engine_t *);
-u64 _get_start_time_(engine_t *);
+global_queue_t *_get_queue_(engine_t *);
+fuzz_one_t *    _get_fuzz_one_(engine_t *);
+u64             _get_execs_(engine_t *);
+u64             _get_start_time_(engine_t *);
 
 void _set_fuzz_one_(engine_t *, fuzz_one_t *);
 void _increase_execs_(engine_t *);
@@ -71,9 +74,8 @@ void _execute_(engine_t *, raw_input_t *);
 void _load_testcases_from_dir_(engine_t *, u8 *);
 void _load_zero_testcase_(size_t);
 
-void _loop_(); // Not sure about this functions usa-case. Was in FFF though.
+void _loop_();  // Not sure about this functions usa-case. Was in FFF though.
 
-
-engine_t * afl_engine_init();
-void afl_engine_deinit();
+engine_t *afl_engine_init();
+void      afl_engine_deinit();
 

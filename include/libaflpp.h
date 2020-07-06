@@ -66,7 +66,7 @@ struct executor_operations {
 
   u8 (*add_observation_channel)(
       executor_t *, struct afl_observation_channel
-                            *);  // Add an observtion channel to the list
+                        *);  // Add an observtion channel to the list
 
   raw_input_t *(*get_current_input)(
       executor_t *);  // Getter function for the current input
@@ -75,17 +75,16 @@ struct executor_operations {
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-executor_t *afl_executor_init();
-void            afl_executor_deinit(executor_t *);
-u8              _add_observation_channel_(executor_t *, void *);
-list_t          _get_observation_channels_(executor_t *);
-raw_input_t *   _get_current_input_(executor_t *);
+executor_t * afl_executor_init();
+void         afl_executor_deinit(executor_t *);
+u8           _add_observation_channel_(executor_t *, void *);
+list_t       _get_observation_channels_(executor_t *);
+raw_input_t *_get_current_input_(executor_t *);
 
 /*
 The generic interface for the feedback for the observation channel, this channel
 is queue specifc.
 */
-
 
 u8 fuzz_start(executor_t *);
 
