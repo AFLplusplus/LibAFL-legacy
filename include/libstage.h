@@ -38,7 +38,7 @@ struct stage_operations {
 };
 
 stage_t *afl_stage_init(engine_t *);
-void     afl_stage_deinit(stage_t);
+void     afl_stage_deinit(stage_t *);
 
 /*
 This structure here represents a single fuzzing stage in  the process. e.g It
