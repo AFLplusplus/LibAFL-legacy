@@ -27,7 +27,7 @@
 stage_t *afl_stage_init(engine_t *engine) {
 
   stage_t *stage = ck_alloc(sizeof(stage_t));
-  stage->operations = ck_alloc(sizeof(struct stage_operations));
+  stage->functions = ck_alloc(sizeof(struct stage_functions));
 
   stage->engine = engine;
 
@@ -41,7 +41,7 @@ stage_t *afl_stage_init(engine_t *engine) {
 
 void afl_stage_deinit(stage_t *stage) {
 
-  ck_free(stage->operations);
+  ck_free(stage->functions);
   ck_free(stage);
 
 }
@@ -52,9 +52,9 @@ fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 
   fuzz_stage->super = *(afl_stage_init(engine));
 
-  fuzz_stage->operations = ck_alloc(sizeof(struct fuzzing_stage_operations));
+  fuzz_stage->functions = ck_alloc(sizeof(struct fuzzing_stage_functions));
 
-  fuzz_stage->operations->add_mutator = _add_mutator_;
+  fuzz_stage->functions->add_mutator = _add_mutator_;
 
   return fuzz_stage;
 
@@ -62,7 +62,7 @@ fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 
 void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
 
-  ck_free(stage->operations);
+  ck_free(stage->functions);
   ck_free(stage);
 
 }

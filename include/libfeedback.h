@@ -24,7 +24,7 @@
 
  */
 
-#include "lib-common.h"
+#include "libcommon.h"
 #include "libqueue.h"
 #include "libaflpp.h"
 
@@ -35,11 +35,11 @@ typedef struct feedback {
   struct feedback_metadata *metadata; /* We can have a void pointer for the
                                          struct here. What do you guys say? */
 
-  struct feedback_operations *operations;
+  struct feedback_functions *functions;
 
 } feedback_t;
 
-struct feedback_operations {
+struct feedback_functions {
 
   float (*is_interesting)(feedback_t *, executor_t *);
   void (*set_feedback_queue)(feedback_t *, feedback_queue_t *);

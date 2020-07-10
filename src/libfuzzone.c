@@ -32,10 +32,10 @@ fuzz_one_t *afl_fuzz_one_init(engine_t *engine) {
 
   // We also add the fuzzone to the engine here.
   engine->fuzz_one = fuzz_one;
-  fuzz_one->operations = ck_alloc(sizeof(struct fuzz_one_operations));
+  fuzz_one->functions = ck_alloc(sizeof(struct fuzz_one_functions));
 
-  fuzz_one->operations->add_stage = _add_stage_;
-  fuzz_one->operations->perform = _perform_;
+  fuzz_one->functions->add_stage = _add_stage_;
+  fuzz_one->functions->perform = _perform_;
 
   return fuzz_one;
 
@@ -44,12 +44,12 @@ fuzz_one_t *afl_fuzz_one_init(engine_t *engine) {
 void _perform_(fuzz_one_t *fuzz_one) {
 
   engine_t *      engine = engine;
-  global_queue_t *g_queue = engine->operations->get_queue(engine);
+  global_queue_t *g_queue = engine->functions->get_queue(engine);
 
-  queue_entry_t *entry = g_queue->super.operations->get_next_in_queue(g_queue);
+  queue_entry_t *entry = g_queue->super.functions->get_next_in_queue(g_queue);
 
-  raw_input_t *original = entry->operations->get_input(entry);
-  raw_input_t *input = original->operations->copy(original);
+  raw_input_t *original = entry->functions->get_input(entry);
+  raw_input_t *input = original->functions->copy(original);
 
   // Implement the rest after Stage is created.
 

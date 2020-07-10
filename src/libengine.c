@@ -25,15 +25,15 @@
 engine_t *afl_engine_init() {
 
   engine_t *engine = ck_alloc(sizeof(engine_t));
-  engine->operations = ck_alloc(sizeof(struct engine_operations));
-  engine->operations->get_queue = _get_queue_;
-  engine->operations->get_execs = _get_execs_;
-  engine->operations->get_fuzz_one = _get_fuzz_one_;
-  engine->operations->get_start_time = _get_start_time_;
+  engine->functions = ck_alloc(sizeof(struct engine_functions));
+  engine->functions->get_queue = _get_queue_;
+  engine->functions->get_execs = _get_execs_;
+  engine->functions->get_fuzz_one = _get_fuzz_one_;
+  engine->functions->get_start_time = _get_start_time_;
 
-  engine->operations->set_fuzz_one = _set_fuzz_one_;
-  engine->operations->add_feedback = _add_feedback_;
-  engine->operations->increase_execs = _increase_execs_;
+  engine->functions->set_fuzz_one = _set_fuzz_one_;
+  engine->functions->add_feedback = _add_feedback_;
+  engine->functions->increase_execs = _increase_execs_;
 
   return engine;
 
@@ -41,7 +41,7 @@ engine_t *afl_engine_init() {
 
 void afl_engine_deinit(engine_t *engine) {
 
-  ck_free(engine->operations);
+  ck_free(engine->functions);
 
   ck_free(engine);
 

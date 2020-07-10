@@ -25,8 +25,8 @@
  */
 
 #include "afl-fuzz.h"
-#include "lib-common.h"
-#include "lib-obserationchannel.h"
+#include "libcommon.h"
+#include "libobservationchannel.h"
 #include "libinput.h"
 #include <types.h>
 
@@ -44,13 +44,13 @@ typedef struct executor {
 
   raw_input_t *current_input;  // Holds current input for the executor
 
-  struct executor_operations *executor_ops;  // afl executor_ops;
+  struct executor_functions *executor_ops;  // afl executor_ops;
 
 } executor_t;
 
 // This is like the generic vtable for the executor.
 
-struct executor_operations {
+struct executor_functions {
 
   u8 (*init_cb)(executor_t *, void *);  // can be NULL
   u8 (*destroy_cb)(executor_t *);       // can be NULL

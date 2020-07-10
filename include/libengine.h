@@ -23,7 +23,7 @@
 
  */
 
-#include "lib-common.h"
+#include "libcommon.h"
 #include "libaflpp.h"
 #include "libqueue.h"
 #include "libfeedback.h"
@@ -37,11 +37,11 @@ struct engine {
   u64             executions, start_time;
   int             id;
 
-  struct engine_operations *operations;
+  struct engine_functions *functions;
 
 };
 
-struct engine_operations {
+struct engine_functions {
 
   global_queue_t *(*get_queue)(engine_t *);
   fuzz_one_t *(*get_fuzz_one)(engine_t *);

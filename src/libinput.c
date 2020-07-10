@@ -32,17 +32,17 @@ raw_input_t *afl_input_init() {
 
   raw_input_t *input = ck_alloc(sizeof(raw_input_t));
 
-  input->operations = ck_alloc(sizeof(raw_input_operations_t));
+  input->functions = ck_alloc(sizeof(raw_input_functions_t));
 
-  input->operations->clear = _raw_inp_clear_;
-  input->operations->copy = _raw_inp_copy_;
-  input->operations->deserialize = _raw_inp_deserialize_;
-  input->operations->empty = _raw_inp_empty_;
-  input->operations->get_bytes = _raw_inp_get_bytes_;
-  input->operations->load_from_file = _raw_inp_load_from_file_;
-  input->operations->restore = _raw_inp_restore_;
-  input->operations->save_to_file = _raw_inp_save_to_file_;
-  input->operations->serialize = _raw_inp_serialize_;
+  input->functions->clear = _raw_inp_clear_;
+  input->functions->copy = _raw_inp_copy_;
+  input->functions->deserialize = _raw_inp_deserialize_;
+  input->functions->empty = _raw_inp_empty_;
+  input->functions->get_bytes = _raw_inp_get_bytes_;
+  input->functions->load_from_file = _raw_inp_load_from_file_;
+  input->functions->restore = _raw_inp_restore_;
+  input->functions->save_to_file = _raw_inp_save_to_file_;
+  input->functions->serialize = _raw_inp_serialize_;
 
 }
 

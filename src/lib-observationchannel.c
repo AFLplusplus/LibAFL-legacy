@@ -24,13 +24,13 @@
 
  */
 
-#include "lib-obserationchannel.h"
+#include "libobservationchannel.h"
 
 observation_channel_t *afl_obs_channel_init(void) {
 
   observation_channel_t *channel = ck_alloc(sizeof(observation_channel_t));
 
-  channel->operations = ck_alloc(sizeof(struct observation_channel_operations));
+  channel->functions = ck_alloc(sizeof(struct observation_channel_functions));
 
   return channel;
 
@@ -38,7 +38,7 @@ observation_channel_t *afl_obs_channel_init(void) {
 
 void afl_obs_channel_deinit(observation_channel_t *channel) {
 
-  ck_free(channel->operations);
+  ck_free(channel->functions);
 
   ck_free(channel);
 
@@ -53,10 +53,10 @@ map_based_channel_t *afl_map_channel_init(size_t map_size) {
   map_channel->shared_map = ck_alloc(sizeof(afl_sharedmem_t));
   afl_sharedmem_init(map_channel->shared_map, map_size);
 
-  map_channel->extra_ops =
-      ck_alloc(sizeof(struct map_based_channel_operations));
-  map_channel->extra_ops->get_map_size = _get_map_size_;
-  map_channel->extra_ops->get_trace_bits = _get_trace_bits_;
+  map_channel->extra_functions =
+      ck_alloc(sizeof(struct map_based_channel_functions));
+  map_channel->extra_functions->get_map_size = _get_map_size_;
+  map_channel->extra_functions->get_trace_bits = _get_trace_bits_;
 
   return map_channel;
 
@@ -64,8 +64,8 @@ map_based_channel_t *afl_map_channel_init(size_t map_size) {
 
 void afl_map_channel_deinit(map_based_channel_t *map_channel) {
 
-  ck_free(map_channel->super.operations);
-  ck_free(map_channel->extra_ops);
+  ck_free(map_channel->super.functions);
+  ck_free(map_channel->extra_functions);
   afl_sharedmem_deinit(map_channel->shared_map);
 
   ck_free(map_channel);

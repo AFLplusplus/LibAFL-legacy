@@ -24,7 +24,7 @@
 
  */
 
-#include "lib-common.h"
+#include "libcommon.h"
 
 #define DEFAULT_INPUT_LEN 100
 
@@ -34,11 +34,11 @@ typedef struct raw_input {
   size_t len;  // Length of the input field. C++ had strings, we have to make do
                // with storing the lengths :/
 
-  struct raw_input_operations *operations;
+  struct raw_input_functions *functions;
 
 } raw_input_t;
 
-typedef struct raw_input_operations {
+typedef struct raw_input_functions {
 
   void (*deserialize)(raw_input_t *, u8 *, size_t);
   u8 *(*serialize)(raw_input_t *);
@@ -50,7 +50,7 @@ typedef struct raw_input_operations {
   void (*clear)(raw_input_t *);
   u8 *(*get_bytes)(raw_input_t *);
 
-} raw_input_operations_t;
+} raw_input_functions_t;
 
 raw_input_t *afl_input_init();
 void         afl_input_deinit(raw_input_t *);

@@ -24,7 +24,7 @@
 
  */
 
-#include "lib-common.h"
+#include "libcommon.h"
 #include "libinput.h"
 #include "list.h"
 #include <stdbool.h>
@@ -51,13 +51,13 @@ typedef struct queue_entry {
 
   list_t children;
 
-  struct queue_entry_operations *operations;
+  struct queue_entry_functions *functions;
 
   /* TODO: Add feedback_meta_data member after feedback completion */
 
 } queue_entry_t;
 
-struct queue_entry_operations {
+struct queue_entry_functions {
 
   raw_input_t *(*get_input)(queue_entry_t *);
   bool (*is_on_disk)(queue_entry_t *);
@@ -87,14 +87,14 @@ typedef struct base_queue {
   size_t         names_id;
   bool           save_to_files;
 
-  struct base_queue_operations *operations;
+  struct base_queue_functions *functions;
 
   /* TODO: Still need to add shared_mutex (after multithreading), map of
    * engine:queue_entry */
 
 } base_queue_t;
 
-struct base_queue_operations {
+struct base_queue_functions {
 
   void (*add_to_queue)(base_queue_t *, queue_entry_t *);
   void (*remove_from_queue)(base_queue_t *);
@@ -145,13 +145,13 @@ typedef struct global_queue {
 
   size_t feedback_queues_num;
 
-  struct global_queue_operations *extra_ops;
+  struct global_queue_functions *extra_functions;
   /*TODO: Add a map of Engine:feedback_queue
     UPDATE: Engine will have a ptr to current feedback queue rather than this*/
 
 } global_queue_t;
 
-struct global_queue_operations {
+struct global_queue_functions {
 
   int (*schedule)(global_queue_t *);
   void (*add_feedback_queue)(global_queue_t *, feedback_queue_t *);

@@ -502,8 +502,7 @@ void afl_fsrv_exc_start(executor_t *executor, void *fsrv_start_args) {
 
 }
 
-void afl_fsrv_exc_write_to_testcase(executor_t *executor, u8 *buf,
-                                    size_t len) {
+void afl_fsrv_exc_write_to_testcase(executor_t *executor, u8 *buf, size_t len) {
 
   afl_forkserver_executor_t *fsrv = (afl_forkserver_executor_t *)executor;
 
@@ -555,7 +554,7 @@ fsrv_run_result_t afl_fsrv_exc_run_target(executor_t *executor, u32 timeout,
   volatile u8 *              stop_soon_p = (volatile u8 *)stop_soon;
 
   /* After this memset, fsrv->trace_bits[] are effectively volatile, so we
-     must prevent any earlier operations from venturing into that
+     must prevent any earlier functions from venturing into that
      territory. */
 
   memset(fsrv->trace_bits, 0, fsrv->map_size);
@@ -629,7 +628,7 @@ fsrv_run_result_t afl_fsrv_exc_run_target(executor_t *executor, u32 timeout,
 
   fsrv->total_execs++;
 
-  /* Any subsequent operations on fsrv->trace_bits must not be moved by the
+  /* Any subsequent functions on fsrv->trace_bits must not be moved by the
      compiler below this point. Past this location, fsrv->trace_bits[]
      behave very normally and do not have to be treated as volatile. */
 

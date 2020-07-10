@@ -22,7 +22,7 @@
 
  */
 
-#include "lib-common.h"
+#include "libcommon.h"
 #include "list.h"
 
 struct fuzz_one {
@@ -30,11 +30,11 @@ struct fuzz_one {
   engine_t *engine;
   list_t    stages;
 
-  struct fuzz_one_operations *operations;
+  struct fuzz_one_functions *functions;
 
 };
 
-struct fuzz_one_operations {
+struct fuzz_one_functions {
 
   void (*perform)(fuzz_one_t *);
   void (*add_stage)(fuzz_one_t *, stage_t);

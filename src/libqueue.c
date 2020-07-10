@@ -30,12 +30,12 @@
 queue_entry_t *afl_queue_entry_init() {
 
   queue_entry_t *entry = ck_alloc(sizeof(queue_entry_t));
-  entry->operations = ck_alloc(sizeof(struct queue_entry_operations));
+  entry->functions = ck_alloc(sizeof(struct queue_entry_functions));
 
-  entry->operations->get_input = _get_input_;
-  entry->operations->get_next = _get_next_;
-  entry->operations->get_prev = _get_prev_;
-  entry->operations->get_parent = _get_parent_;
+  entry->functions->get_input = _get_input_;
+  entry->functions->get_next = _get_next_;
+  entry->functions->get_prev = _get_prev_;
+  entry->functions->get_parent = _get_parent_;
 
   return entry;
 
@@ -43,7 +43,7 @@ queue_entry_t *afl_queue_entry_init() {
 
 void afl_queue_entry_deinit(queue_entry_t *entry) {
 
-  ck_free(entry->operations);
+  ck_free(entry->functions);
   ck_free(entry);
 
 }
@@ -53,9 +53,9 @@ raw_input_t *_get_input_(queue_entry_t *entry) {
 
   if (entry->on_disk) {
 
-    raw_input_t *load = entry->input->operations->empty(entry->input);
+    raw_input_t *load = entry->input->functions->empty(entry->input);
 
-    if (!load->operations->load_from_file(load, entry->filename))
+    if (!load->functions->load_from_file(load, entry->filename))
       return load;
     else
       return NULL;
@@ -89,17 +89,17 @@ queue_entry_t *_get_parent_(queue_entry_t *entry) {
 base_queue_t *afl_base_queue_init(void) {
 
   base_queue_t *queue = ck_alloc(sizeof(base_queue_t));
-  queue->operations = ck_alloc(sizeof(struct base_queue_operations));
+  queue->functions = ck_alloc(sizeof(struct base_queue_functions));
 
   queue->save_to_files = false;
 
-  queue->operations->add_to_queue = _add_to_queue_;
-  queue->operations->get_queue_base = _get_queue_base_;
-  queue->operations->get_size = _get_base_queue_size_;
-  queue->operations->get_dirpath = _get_dirpath_;
-  queue->operations->get_names_id = _get_names_id_;
-  queue->operations->get_save_to_files = _get_save_to_files_;
-  queue->operations->set_directory = _set_directory_;
+  queue->functions->add_to_queue = _add_to_queue_;
+  queue->functions->get_queue_base = _get_queue_base_;
+  queue->functions->get_size = _get_base_queue_size_;
+  queue->functions->get_dirpath = _get_dirpath_;
+  queue->functions->get_names_id = _get_names_id_;
+  queue->functions->get_save_to_files = _get_save_to_files_;
+  queue->functions->set_directory = _set_directory_;
 
   return queue;
 
@@ -107,7 +107,7 @@ base_queue_t *afl_base_queue_init(void) {
 
 void afl_base_queue_deinit(base_queue_t *queue) {
 
-  ck_free(queue->operations);
+  ck_free(queue->functions);
   ck_free(queue);
 
   /*TODO: Clear the queue entries too here*/
@@ -195,9 +195,9 @@ global_queue_t *afl_global_queue_init() {
 
   global_queue->super = *(afl_base_queue_init());
 
-  global_queue->extra_ops = ck_alloc(sizeof(struct global_queue_operations));
+  global_queue->extra_functions = ck_alloc(sizeof(struct global_queue_functions));
 
-  global_queue->extra_ops->add_feedback_queue = _add_feedback_queue_;
+  global_queue->extra_functions->add_feedback_queue = _add_feedback_queue_;
 
   return global_queue;
 
@@ -209,7 +209,7 @@ void afl_global_queue_deinit(global_queue_t *queue) {
     LIST_FOREACH_CLEAR(&(queue->feedback_queues), feedback_queue_t,
                        { afl_feedback_queue_deinit(el); });
 
-  ck_free(queue->extra_ops);
+  ck_free(queue->extra_functions);
   ck_free(queue);
 
 }

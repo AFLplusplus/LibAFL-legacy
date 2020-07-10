@@ -24,17 +24,17 @@
 
  */
 
-#include "lib-common.h"
+#include "libcommon.h"
 
 typedef struct observation_channel {
 
-  struct observation_channel_operations *operations;
+  struct observation_channel_functions *functions;
 
 } observation_channel_t;
 
 // vtable for the observation channel
 
-struct observation_channel_operations {
+struct observation_channel_functions {
 
   void (*flush)(observation_channel_t *);
   void (*reset)(observation_channel_t *);
@@ -54,11 +54,11 @@ typedef struct map_based_channel {
 
   afl_sharedmem_t *shared_map;
 
-  struct map_based_channel_operations *extra_ops;
+  struct map_based_channel_functions *extra_functions;
 
 } map_based_channel_t;
 
-struct map_based_channel_operations {
+struct map_based_channel_functions {
 
   u8 *(*get_trace_bits)(map_based_channel_t *);
   size_t (*get_map_size)(map_based_channel_t *);

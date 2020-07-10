@@ -21,7 +21,7 @@
 
  */
 
-#include "lib-common.h"
+#include "libcommon.h"
 #include "libinput.h"
 #include "list.h"
 
@@ -32,12 +32,12 @@ typedef struct mutator {
 
   stage_t *stage;
 
-  struct mutator_operations *operations;
+  struct mutator_functions *functions;
 
 } mutator_t;
 
 /* Do we need more functions in the mutator? */
-struct mutator_operations {
+struct mutator_functions {
 
   void (*init)(mutator_t *);  // Sort of like the afl_custom_init we have for
                               // custom mutators?
@@ -66,11 +66,11 @@ typedef struct scheduled_mutator {
   mutator_t super;
   list_t    mutations;
 
-  struct scheduled_mutator_operations *extra_ops;
+  struct scheduled_mutator_functions *extra_functions;
 
 } scheduled_mutator_t;
 
-struct scheduled_mutator_operations {
+struct scheduled_mutator_functions {
 
   int (*schedule)(scheduled_mutator_t *);
   void (*add_mutator)(scheduled_mutator_t *, mutator_func_type);

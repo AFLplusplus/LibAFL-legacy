@@ -226,13 +226,13 @@ int main() {
 
   afl_observation_channel_t *channel = afl_observation_init();
   channel->interface = (void *)interface;
-  channel->operations->init_cb = init_obs_channel;
+  channel->functions->init_cb = init_obs_channel;
 
   executor_t *test_executor = ck_alloc(sizeof(executor_t));
   memcpy(test_executor->target_name, "target", 6);
 
   test_executor->super.executor_ops =
-      ck_alloc(sizeof(afl_executor_operations_t));
+      ck_alloc(sizeof(afl_executor_functions_t));
   test_executor->super.executor_ops->run_target_cb = &run_target;
   test_executor->super.executor_ops->place_inputs_cb = &place_inputs;
 
@@ -242,7 +242,7 @@ int main() {
   afl_feedback_t *feedback = afl_feedback_init();
   feedback->executor = test_executor;
   feedback->obs_channel = channel;
-  feedback->operations->reducer_function = reduce_feedback;
+  feedback->functions->reducer_function = reduce_feedback;
 
   char mem[100] = "THIS IS TEST DATA";
 

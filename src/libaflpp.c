@@ -29,7 +29,7 @@ executor_t *afl_executor_init() {
 
   executor->current_input = NULL;
 
-  executor->executor_ops = ck_alloc(sizeof(struct executor_operations));
+  executor->executor_ops = ck_alloc(sizeof(struct executor_functions));
 
   // Default implementations of the functions
   executor->executor_ops->destroy_cb = afl_executor_deinit;

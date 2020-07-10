@@ -20,18 +20,18 @@
 
  */
 
-#include "lib-common.h"
+#include "libcommon.h"
 #include "libinput.h"
 #include "list.h"
 
 struct stage {
 
   engine_t *               engine;
-  struct stage_operations *operations;
+  struct stage_functions *functions;
 
 };
 
-struct stage_operations {
+struct stage_functions {
 
   void (*perform)(raw_input_t *input, raw_input_t *original);
 
@@ -53,11 +53,11 @@ typedef struct fuzzing_stage {
 
   list_t mutators;  // The list of mutator operators that this stage has
 
-  struct fuzzing_stage_operations *operations;
+  struct fuzzing_stage_functions *functions;
 
 } fuzzing_stage_t;
 
-struct fuzzing_stage_operations {
+struct fuzzing_stage_functions {
 
   /* Change the void pointer to a mutator * once it is ready */
   void (*add_mutator)(fuzzing_stage_t *, void *);

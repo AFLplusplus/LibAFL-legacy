@@ -29,10 +29,10 @@
 feedback_t *afl_feedback_init() {
 
   feedback_t *feedback = ck_alloc(sizeof(feedback_t));
-  feedback->operations = ck_alloc(sizeof(struct feedback_operations));
+  feedback->functions = ck_alloc(sizeof(struct feedback_functions));
 
-  feedback->operations->set_feedback_queue = _set_feedback_queue_;
-  feedback->operations->get_feedback_queue = _get_feedback_queue_;
+  feedback->functions->set_feedback_queue = _set_feedback_queue_;
+  feedback->functions->get_feedback_queue = _get_feedback_queue_;
 
   return feedback;
 
@@ -40,7 +40,7 @@ feedback_t *afl_feedback_init() {
 
 void afl_feedback_deinit(feedback_t *feedback) {
 
-  ck_free(feedback->operations);
+  ck_free(feedback->functions);
   if (feedback->metadata) ck_free(feedback->metadata);
 
   ck_free(feedback);
