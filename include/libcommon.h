@@ -56,3 +56,4 @@ typedef struct engine engine_t;
 
 typedef struct stage stage_t;
 
+typedef struct executor executor_t;

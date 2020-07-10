@@ -23,9 +23,7 @@
 
  */
 
-#include "libcommon.h"
 #include "libaflpp.h"
-#include "libqueue.h"
 #include "libfeedback.h"
 
 struct engine {

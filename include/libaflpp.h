@@ -37,7 +37,7 @@ trying OO design principles here :D) and then extend adding your own fields to
 it. See the example forksever executor that we have in examples/
 */
 
-typedef struct executor {
+struct executor {
 
   list_t observors;  // This will be swapped for the observation channel once
                      // its ready
@@ -46,7 +46,7 @@ typedef struct executor {
 
   struct executor_functions *executor_ops;  // afl executor_ops;
 
-} executor_t;
+};
 
 // This is like the generic vtable for the executor.
 

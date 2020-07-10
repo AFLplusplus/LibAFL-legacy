@@ -24,9 +24,7 @@
 
  */
 
-#include "libcommon.h"
 #include "libqueue.h"
-#include "libaflpp.h"
 
 typedef struct feedback {
 
