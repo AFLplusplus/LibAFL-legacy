@@ -85,9 +85,15 @@ void _increase_execs_(engine_t *engine) {
 
 }
 
-void _add_feedback_(engine_t *engine, feedback_t *feedback) {
+int _add_feedback_(engine_t *engine, feedback_t *feedback) {
 
-  list_append(&engine->feedbacks, feedback);
+  if (engine->feedbacks_num >= MAX_FEEDBACKS)  return 1;
+
+  engine->feedbacks_num++;
+
+  engine->feedbacks[(engine->feedbacks_num-1)] = feedback;
+
+  return 0;
 
 }
 

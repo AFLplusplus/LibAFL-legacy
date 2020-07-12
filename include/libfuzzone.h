@@ -25,10 +25,13 @@
 #include "libcommon.h"
 #include "list.h"
 
+#define MAX_STAGES 5
+
 struct fuzz_one {
 
   engine_t *engine;
-  list_t    stages;
+  stage_t  *    stages[MAX_STAGES];
+  u64 stages_num;
 
   struct fuzz_one_functions *functions;
 
@@ -42,7 +45,7 @@ struct fuzz_one_functions {
 };
 
 void _perform_(fuzz_one_t *);
-void _add_stage_(fuzz_one_t *, stage_t *);
+int _add_stage_(fuzz_one_t *, stage_t *);
 
 fuzz_one_t *afl_fuzz_one_init(engine_t *);
 void        afl_fuzz_one_deinit(fuzz_one_t *);

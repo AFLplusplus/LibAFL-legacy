@@ -55,9 +55,14 @@ void _perform_(fuzz_one_t *fuzz_one) {
 
 }
 
-void _add_stage_(fuzz_one_t *fuzz_one, stage_t *stage) {
+int _add_stage_(fuzz_one_t *fuzz_one, stage_t *stage) {
 
-  list_append(&(fuzz_one->stages), stage);
+  if (fuzz_one->stages_num >= MAX_STAGES)  return 1;
 
+  fuzz_one->stages_num++;
+
+  fuzz_one->stages[(fuzz_one->stages_num-1)] = stage;
+
+  return 0;
 }
 
