@@ -24,6 +24,9 @@
 
  */
 
+#ifndef QUEUE_FILE_INCLUDED
+#define QUEUE_FILE_INCLUDED
+
 #include "libinput.h"
 #include "list.h"
 #include <stdbool.h>
@@ -165,3 +168,4 @@ void _add_feedback_queue_(global_queue_t *, feedback_queue_t *);
 global_queue_t *afl_global_queue_init();
 void            afl_global_queue_deinit(global_queue_t *);
 
+#endif

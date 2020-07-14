@@ -24,6 +24,9 @@
 
  */
 
+#ifndef OBSERVATION_FILE_INCLUDED
+#define OBSERVATION_FILE_INCLUDED
+
 #include "libcommon.h"
 
 typedef struct observation_channel {
@@ -73,3 +76,4 @@ size_t _get_map_size_(map_based_channel_t *obs_channel);
 map_based_channel_t *afl_map_channel_init(size_t);
 void                 afl_map_channel_deinit(map_based_channel_t *);
 
+#endif

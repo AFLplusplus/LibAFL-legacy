@@ -114,6 +114,7 @@ void afl_base_queue_deinit(base_queue_t *queue) {
 
 }
 
+/* *** Possible error cases here? *** */
 void _add_to_queue_(base_queue_t *queue, queue_entry_t *entry) {
 
   entry->next = queue->base;
@@ -195,7 +196,8 @@ global_queue_t *afl_global_queue_init() {
 
   global_queue->super = *(afl_base_queue_init());
 
-  global_queue->extra_functions = ck_alloc(sizeof(struct global_queue_functions));
+  global_queue->extra_functions =
+      ck_alloc(sizeof(struct global_queue_functions));
 
   global_queue->extra_functions->add_feedback_queue = _add_feedback_queue_;
 

@@ -24,6 +24,9 @@
 
  */
 
+#ifndef INPUT_FILE_INCLUDED
+#define INPUT_FILE_INCLUDED
+
 #include "libcommon.h"
 
 #define DEFAULT_INPUT_LEN 100
@@ -40,14 +43,14 @@ typedef struct raw_input {
 
 typedef struct raw_input_functions {
 
-  void (*deserialize)(raw_input_t *, u8 *, size_t);
+  u8 (*deserialize)(raw_input_t *, u8 *, size_t);
   u8 *(*serialize)(raw_input_t *);
   raw_input_t *(*copy)(raw_input_t *);
   raw_input_t *(*empty)(raw_input_t *);
-  void (*restore)(raw_input_t *, raw_input_t *);
+  u8 (*restore)(raw_input_t *, raw_input_t *);
   u8 (*load_from_file)(raw_input_t *, u8 *);
   u8 (*save_to_file)(raw_input_t *, u8 *);
-  void (*clear)(raw_input_t *);
+  u8 (*clear)(raw_input_t *);
   u8 *(*get_bytes)(raw_input_t *);
 
 } raw_input_functions_t;
@@ -56,17 +59,25 @@ raw_input_t *afl_input_init();
 void         afl_input_deinit(raw_input_t *);
 
 // Default implementations of the functions for raw input vtable
-void         _raw_inp_deserialize_(raw_input_t *, u8 *, size_t);
+u8           _raw_inp_deserialize_(raw_input_t *, u8 *, size_t);
 u8 *         _raw_inp_serialize_(raw_input_t *);
 raw_input_t *_raw_inp_copy_(raw_input_t *);
 raw_input_t *_raw_inp_empty_(raw_input_t *);
-void         _raw_inp_restore_(raw_input_t *, raw_input_t *);
+u8           _raw_inp_restore_(raw_input_t *, raw_input_t *);
 u8           _raw_inp_load_from_file_(raw_input_t *, u8 *);
 u8           _raw_inp_save_to_file_(raw_input_t *, u8 *);
-void         _raw_inp_clear_(raw_input_t *);
+u8           _raw_inp_clear_(raw_input_t *);
 u8 *         _raw_inp_get_bytes_(raw_input_t *);
 
 // input_clear and empty functions... difference??
 // serializing and deserializing would be done on the basis of some structure
 // right??
+
+enum input_erros {
+
+  INPUT_CLEAR_FAIL = 1,
+
+};
+
+#endif
 

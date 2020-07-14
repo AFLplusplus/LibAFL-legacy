@@ -23,6 +23,11 @@
 
  */
 
+#ifndef ENGINE_FILE_INCLUDED
+#define ENGINE_FILE_INCLUDED
+
+#include "libcommon.h"
+#include "libqueue.h"
 #include "libaflpp.h"
 #include "libfeedback.h"
 
@@ -33,9 +38,12 @@ struct engine {
   fuzz_one_t *    fuzz_one;
   global_queue_t *global_queue;
   executor_t *    executor;
-  feedback_t * feedbacks[MAX_FEEDBACKS];  //We're keeping a pointer of feedbacks here to save memory, consideting the original feedback would already be allocated
-  u64             executions, start_time, feedbacks_num;
-  int             id;
+  feedback_t
+      *feedbacks[MAX_FEEDBACKS];  // We're keeping a pointer of feedbacks here
+                                  // to save memory, consideting the original
+                                  // feedback would already be allocated
+  u64 executions, start_time, feedbacks_num;
+  int id;
 
   struct engine_functions *functions;
 
@@ -48,9 +56,9 @@ struct engine_functions {
   u64 (*get_execs)(engine_t *);
   u64 (*get_start_time)(engine_t *);
 
-  void (*set_fuzz_one)(engine_t *, feedback_t);
+  void (*set_fuzz_one)(engine_t *, fuzz_one_t *);
   void (*increase_execs)(engine_t *);
-  void (*add_feedback)(engine_t *, feedback_t );
+  int (*add_feedback)(engine_t *, feedback_t *);
 
   void (*execute)(engine_t *, raw_input_t *);
   void (*load_testcases_from_dir)(engine_t *, u8 *);
@@ -68,14 +76,16 @@ u64             _get_start_time_(engine_t *);
 
 void _set_fuzz_one_(engine_t *, fuzz_one_t *);
 void _increase_execs_(engine_t *);
-int _add_feedback_(engine_t *, feedback_t *);
+int  _add_feedback_(engine_t *, feedback_t *);
 
 void _execute_(engine_t *, raw_input_t *);
 void _load_testcases_from_dir_(engine_t *, u8 *);
 void _load_zero_testcase_(size_t);
 
-void _loop_();  // Not sure about this functions usa-case. Was in FFF though.
+void _loop_();  // Not sure about this functions use-case. Was in FFF though.
 
 engine_t *afl_engine_init();
 void      afl_engine_deinit();
+
+#endif
 

@@ -25,7 +25,6 @@
  */
 
 #include <fcntl.h>
-
 #include "libinput.h"
 
 raw_input_t *afl_input_init() {
@@ -48,9 +47,13 @@ raw_input_t *afl_input_init() {
 
 // default implemenatations for the vtable functions for the raw_input type
 
-void _raw_inp_clear_(raw_input_t *input) {
+u8 _raw_inp_clear_(raw_input_t *input) {
 
-  memset(input->bytes, 0x0, input->len);
+  void *s = memset(input->bytes, 0x0, input->len);
+
+  if (s != (void *)input) return INPUT_CLEAR_FAIL;
+
+  return ALL_OK;
 
 }
 
@@ -62,11 +65,13 @@ raw_input_t *_raw_inp_copy_(raw_input_t *orig_inp) {
 
 }
 
-void _raw_inp_deserialize_(raw_input_t *input, u8 *bytes, size_t len) {
+u8 _raw_inp_deserialize_(raw_input_t *input, u8 *bytes, size_t len) {
 
   ck_free(input->bytes);
   input->bytes = bytes;
   input->len = len;
+
+  return ALL_OK;
 
 }
 
@@ -83,10 +88,10 @@ u8 _raw_inp_load_from_file_(raw_input_t *input, u8 *fname) {
   FILE *f = fopen(fname, "r");
   input->bytes = ck_alloc(sizeof(input->len));
 
-  if (!f) return 1;
+  if (!f) return FILE_OPEN_ERROR;
 
   int  i = 0;
-  char c = NULL;
+  char c = '\x00';
 
   while (c != EOF) {
 
@@ -106,7 +111,7 @@ u8 _raw_inp_load_from_file_(raw_input_t *input, u8 *fname) {
 
   fclose(f);
 
-  return 0;
+  return ALL_OK;
 
 }
 
@@ -114,19 +119,21 @@ u8 _raw_inp_save_to_file_(raw_input_t *input, u8 *fname) {
 
   FILE *f = fopen(fname, "w+");
 
-  if (!f) return 1;
+  if (!f) return FILE_OPEN_ERROR;
 
   fwrite(input->bytes, 1, input->len, f);
 
   fclose(f);
-  return 0;
+  return ALL_OK;
 
 }
 
-void _raw_inp_restore_(raw_input_t *input, raw_input_t *new_inp) {
+u8 _raw_inp_restore_(raw_input_t *input, raw_input_t *new_inp) {
 
   ck_free(input->bytes);
   input->bytes = new_inp->bytes;
+
+  return ALL_OK;
 
 }
 

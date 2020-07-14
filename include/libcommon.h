@@ -24,6 +24,9 @@
 
  */
 
+#ifndef COMMON_FILE_INCLUDED
+#define COMMON_FILE_INCLUDED
+
 #include "types.h"
 #include "alloc-inl.h"
 // A generic sharememory region to be used by any functions (queues or feedbacks
@@ -57,3 +60,8 @@ typedef struct engine engine_t;
 typedef struct stage stage_t;
 
 typedef struct executor executor_t;
+
+// enum to mark common-error (and status) types across the library
+enum common_errors { ALL_OK = 0, FILE_OPEN_ERROR = 1 };
+
+#endif

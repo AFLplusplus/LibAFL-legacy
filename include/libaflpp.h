@@ -24,10 +24,13 @@
 
  */
 
-#include "afl-fuzz.h"
+#ifndef AFL_FILE_INCLUDED
+#define AFL_FILE_INCLUDED
+
 #include "libcommon.h"
 #include "libobservationchannel.h"
 #include "libinput.h"
+#include "list.h"
 #include <types.h>
 
 /*
@@ -65,8 +68,8 @@ struct executor_functions {
       executor_t *);  // Getter function for observation channels list
 
   u8 (*add_observation_channel)(
-      executor_t *, struct afl_observation_channel
-                        *);  // Add an observtion channel to the list
+      executor_t *,
+      observation_channel_t *);  // Add an observtion channel to the list
 
   raw_input_t *(*get_current_input)(
       executor_t *);  // Getter function for the current input
@@ -77,7 +80,7 @@ list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
 executor_t * afl_executor_init();
 void         afl_executor_deinit(executor_t *);
-u8           _add_observation_channel_(executor_t *, void *);
+u8           _add_observation_channel_(executor_t *, observation_channel_t *);
 list_t       _get_observation_channels_(executor_t *);
 raw_input_t *_get_current_input_(executor_t *);
 
@@ -90,8 +93,8 @@ u8 fuzz_start(executor_t *);
 
 enum {
 
-  ALL_OK,                  // 0
-  AFL_PLACE_INPUT_MISSING  // 1
+  AFL_PLACE_INPUT_MISSING = 1  // 1
 
 };
 
+#endif

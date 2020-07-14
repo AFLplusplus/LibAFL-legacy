@@ -20,12 +20,15 @@
 
  */
 
+#ifndef STAGE_FILE_INCLUDED
+#define STAGE_FILE_INCLUDED
+
 #include "libinput.h"
 #include "list.h"
 
 struct stage {
 
-  engine_t *               engine;
+  engine_t *              engine;
   struct stage_functions *functions;
 
 };
@@ -59,12 +62,14 @@ typedef struct fuzzing_stage {
 struct fuzzing_stage_functions {
 
   /* Change the void pointer to a mutator * once it is ready */
-  void (*add_mutator)(fuzzing_stage_t *, void *);
+  void (*add_mutator_to_stage)(fuzzing_stage_t *, void *);
 
 };
 
-void _add_mutator_(fuzzing_stage_t *, void *);
+void _add_mutator_to_stage_(fuzzing_stage_t *, void *);
 
 fuzzing_stage_t *afl_fuzz_stage_init(engine_t *);
 void             afl_fuzzing_stage_deinit(fuzzing_stage_t *);
+
+#endif
 

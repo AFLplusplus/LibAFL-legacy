@@ -21,6 +21,9 @@
 
  */
 
+#ifndef MUTATOR_FILE_INCLUDED
+#define MUTATOR_FILE_INCLUDED
+
 #include "libinput.h"
 #include "list.h"
 
@@ -71,9 +74,9 @@ typedef struct scheduled_mutator {
 
 struct scheduled_mutator_functions {
 
-  int (*schedule)(scheduled_mutator_t *);
+  void (*schedule)(scheduled_mutator_t *);
   void (*add_mutator)(scheduled_mutator_t *, mutator_func_type);
-  int (*iterations)(void);
+  int (*iterations)(scheduled_mutator_t *);
 
 };
 
@@ -85,4 +88,6 @@ void _schedule_(scheduled_mutator_t *);
 
 scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *);
 void                 afl_scheduled_mutator_deinit(scheduled_mutator_t *);
+
+#endif
 

@@ -20,9 +20,9 @@
 
  */
 
+#include "libqueue.h"
 #include "libfuzzone.h"
 #include "libengine.h"
-#include "libqueue.h"
 #include "list.h"
 
 fuzz_one_t *afl_fuzz_one_init(engine_t *engine) {
@@ -41,28 +41,23 @@ fuzz_one_t *afl_fuzz_one_init(engine_t *engine) {
 
 }
 
-void _perform_(fuzz_one_t *fuzz_one) {
+int _perform_(fuzz_one_t *fuzz_one) {
 
-  engine_t *      engine = engine;
-  global_queue_t *g_queue = engine->functions->get_queue(engine);
+  // Implement after Stage is created.
 
-  queue_entry_t *entry = g_queue->super.functions->get_next_in_queue(g_queue);
-
-  raw_input_t *original = entry->functions->get_input(entry);
-  raw_input_t *input = original->functions->copy(original);
-
-  // Implement the rest after Stage is created.
+  return 0;
 
 }
 
 int _add_stage_(fuzz_one_t *fuzz_one, stage_t *stage) {
 
-  if (fuzz_one->stages_num >= MAX_STAGES)  return 1;
+  if (fuzz_one->stages_num >= MAX_STAGES) return 1;
 
   fuzz_one->stages_num++;
 
-  fuzz_one->stages[(fuzz_one->stages_num-1)] = stage;
+  fuzz_one->stages[(fuzz_one->stages_num - 1)] = stage;
 
   return 0;
+
 }
 

@@ -24,6 +24,9 @@
 
  */
 
+#ifndef FEEDBACK_FILE_INCLUDED
+#define FEEDBACK_FILE_INCLUDED
+
 #include "libqueue.h"
 
 typedef struct feedback {
@@ -64,3 +67,4 @@ feedback_t *afl_feedback_init();
 
 /* TODO: Add MaximizeMapFeedback implementation */
 
+#endif

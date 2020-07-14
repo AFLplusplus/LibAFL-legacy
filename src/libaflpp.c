@@ -32,7 +32,6 @@ executor_t *afl_executor_init() {
   executor->executor_ops = ck_alloc(sizeof(struct executor_functions));
 
   // Default implementations of the functions
-  executor->executor_ops->destroy_cb = afl_executor_deinit;
   executor->executor_ops->add_observation_channel = _add_observation_channel_;
   executor->executor_ops->get_observation_channels = _get_observation_channels_;
   executor->executor_ops->get_current_input = _get_current_input_;
@@ -50,7 +49,8 @@ void afl_executor_deinit(executor_t *executor) {
 
 }
 
-u8 _add_observation_channel_(executor_t *executor, void *obs_channel) {
+u8 _add_observation_channel_(executor_t *           executor,
+                             observation_channel_t *obs_channel) {
 
   list_append(&executor->observors, obs_channel);
 
