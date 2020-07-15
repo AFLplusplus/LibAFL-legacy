@@ -55,7 +55,7 @@ typedef struct raw_input_functions {
 
 } raw_input_functions_t;
 
-raw_input_t *afl_input_init();
+void afl_input_init(raw_input_t *);
 void         afl_input_deinit(raw_input_t *);
 
 // Default implementations of the functions for raw input vtable
@@ -72,6 +72,22 @@ u8 *         _raw_inp_get_bytes_(raw_input_t *);
 // input_clear and empty functions... difference??
 // serializing and deserializing would be done on the basis of some structure
 // right??
+
+
+static inline raw_input_t * AFL_INPUT_INIT(raw_input_t * input) {
+
+  raw_input_t * new_input = NULL;
+
+  if (input)  afl_input_init(input);
+  
+  else {
+    new_input = ck_alloc(sizeof(raw_input_t));
+    afl_input_init(new_input);
+  }
+
+  return new_input;
+
+}
 
 enum input_erros {
 

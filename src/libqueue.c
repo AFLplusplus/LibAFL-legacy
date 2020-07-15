@@ -27,17 +27,14 @@
 #include "libqueue.h"
 
 // We start with the implementation of queue_entry functions here.
-queue_entry_t *afl_queue_entry_init() {
+void afl_queue_entry_init(queue_entry_t * entry) {
 
-  queue_entry_t *entry = ck_alloc(sizeof(queue_entry_t));
   entry->functions = ck_alloc(sizeof(struct queue_entry_functions));
 
   entry->functions->get_input = _get_input_;
   entry->functions->get_next = _get_next_;
   entry->functions->get_prev = _get_prev_;
   entry->functions->get_parent = _get_parent_;
-
-  return entry;
 
 }
 
@@ -86,9 +83,8 @@ queue_entry_t *_get_parent_(queue_entry_t *entry) {
 
 // We implement the queue based functions now.
 
-base_queue_t *afl_base_queue_init(void) {
+void afl_base_queue_init(base_queue_t * queue) {
 
-  base_queue_t *queue = ck_alloc(sizeof(base_queue_t));
   queue->functions = ck_alloc(sizeof(struct base_queue_functions));
 
   queue->save_to_files = false;
@@ -100,8 +96,6 @@ base_queue_t *afl_base_queue_init(void) {
   queue->functions->get_names_id = _get_names_id_;
   queue->functions->get_save_to_files = _get_save_to_files_;
   queue->functions->set_directory = _set_directory_;
-
-  return queue;
 
 }
 
@@ -171,7 +165,7 @@ feedback_queue_t *afl_feedback_queue_init(struct feedback *feedback, u8 *name) {
 
   feedback_queue_t *fbck_queue = ck_alloc(sizeof(feedback_queue_t));
 
-  fbck_queue->super = *(afl_base_queue_init());
+  AFL_BASE_QUEUE_INIT(&(fbck_queue->super));
   fbck_queue->feedback = feedback;
 
   if (!name) name = "";
@@ -194,7 +188,7 @@ global_queue_t *afl_global_queue_init() {
 
   global_queue_t *global_queue = ck_alloc(sizeof(global_queue_t));
 
-  global_queue->super = *(afl_base_queue_init());
+  AFL_BASE_QUEUE_INIT(&(global_queue->super));
 
   global_queue->extra_functions =
       ck_alloc(sizeof(struct global_queue_functions));

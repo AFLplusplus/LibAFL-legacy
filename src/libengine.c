@@ -22,9 +22,8 @@
 
 #include "libengine.h"
 
-engine_t *afl_engine_init() {
+void afl_engine_init(engine_t * engine) {
 
-  engine_t *engine = ck_alloc(sizeof(engine_t));
   engine->functions = ck_alloc(sizeof(struct engine_functions));
   engine->functions->get_queue = _get_queue_;
   engine->functions->get_execs = _get_execs_;
@@ -34,8 +33,6 @@ engine_t *afl_engine_init() {
   engine->functions->set_fuzz_one = _set_fuzz_one_;
   engine->functions->add_feedback = _add_feedback_;
   engine->functions->increase_execs = _increase_execs_;
-
-  return engine;
 
 }
 

@@ -48,8 +48,26 @@ struct observation_channel_functions {
 // Functions to initialize and deinitialize the generic observation channel. P.S
 // You probably will need to extend it the way we've done below.
 
-observation_channel_t *afl_obs_channel_init();
-void                   afl_obs_channel_deinit();
+void afl_observation_channel_init(observation_channel_t *);
+void                   afl_observation_channel_deinit(observation_channel_t *);
+
+
+static inline observation_channel_t * AFL_OBSERVATION_CHANNEL_INIT(observation_channel_t * obs_channel) {
+
+  observation_channel_t * new_obs_channel = NULL;
+
+  if (obs_channel)  afl_observation_channel_init(obs_channel);
+
+  else {
+    new_obs_channel = ck_alloc(sizeof(observation_channel_t));
+    afl_observation_channel_init(new_obs_channel);
+  }
+
+  return new_obs_channel;
+
+}
+
+#define AFL_OBSERVATION_CHANNEL_DEINIT(obs_channel) afl_observation_channel_deinit(obs_channel);
 
 typedef struct map_based_channel {
 
@@ -77,3 +95,4 @@ map_based_channel_t *afl_map_channel_init(size_t);
 void                 afl_map_channel_deinit(map_based_channel_t *);
 
 #endif
+

@@ -26,16 +26,12 @@
 
 #include "libmutator.h"
 
-mutator_t *afl_mutator_init(stage_t *stage) {
-
-  mutator_t *mutator = ck_alloc(sizeof(mutator_t));
+void afl_mutator_init(mutator_t * mutator, stage_t *stage) {
 
   mutator->stage = stage;
   mutator->functions = ck_alloc(sizeof(struct mutator_functions));
 
   mutator->functions->get_stage = _get_mutator_stage_;
-
-  return mutator;
 
 }
 
@@ -55,7 +51,7 @@ stage_t *_get_mutator_stage_(mutator_t *mutator) {
 scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *stage) {
 
   scheduled_mutator_t *sched_mut = ck_alloc(sizeof(scheduled_mutator_t));
-  sched_mut->super = *(afl_mutator_init(stage));
+  AFL_MUTATOR_INIT(&(sched_mut->super), stage);
   sched_mut->extra_functions =
       ck_alloc(sizeof(struct scheduled_mutator_functions));
 

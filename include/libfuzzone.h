@@ -50,8 +50,25 @@ struct fuzz_one_functions {
 int _perform_(fuzz_one_t *);
 int _add_stage_(fuzz_one_t *, stage_t *);
 
-fuzz_one_t *afl_fuzz_one_init(engine_t *);
+void afl_fuzz_one_init(fuzz_one_t *, engine_t *);
 void        afl_fuzz_one_deinit(fuzz_one_t *);
+
+static inline fuzz_one_t * AFL_FUZZ_ONE_INIT(fuzz_one_t * fuzzone, engine_t * engine) {
+
+  fuzz_one_t * new_fuzzone = NULL;
+
+  if (fuzzone) afl_fuzz_one_init(fuzzone, engine);
+
+  else {
+    new_fuzzone = ck_alloc(sizeof(fuzz_one_t));
+    afl_fuzz_one_init(new_fuzzone, engine);
+  }
+
+  return new_fuzzone;
+
+}
+
+#define AFL_FUZZ_ONE_DEINIT(fuzzone) afl_fuzz_one_deinit(fuzzone);
 
 #endif
 

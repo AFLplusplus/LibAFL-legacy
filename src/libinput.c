@@ -27,9 +27,8 @@
 #include <fcntl.h>
 #include "libinput.h"
 
-raw_input_t *afl_input_init() {
+void afl_input_init(raw_input_t * input) {
 
-  raw_input_t *input = ck_alloc(sizeof(raw_input_t));
 
   input->functions = ck_alloc(sizeof(raw_input_functions_t));
 
@@ -59,7 +58,7 @@ u8 _raw_inp_clear_(raw_input_t *input) {
 
 raw_input_t *_raw_inp_copy_(raw_input_t *orig_inp) {
 
-  raw_input_t *copy_inp = afl_input_init();
+  raw_input_t *copy_inp = AFL_INPUT_INIT(NULL);
   copy_inp->bytes = ck_alloc(orig_inp->len);
   memcpy(copy_inp->bytes, orig_inp->bytes, orig_inp->len);
 

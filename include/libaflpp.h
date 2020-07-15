@@ -78,11 +78,29 @@ struct executor_functions {
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-executor_t * afl_executor_init();
+void afl_executor_init(executor_t *);
 void         afl_executor_deinit(executor_t *);
 u8           _add_observation_channel_(executor_t *, observation_channel_t *);
 list_t       _get_observation_channels_(executor_t *);
 raw_input_t *_get_current_input_(executor_t *);
+
+
+static inline executor_t * AFL_EXECUTOR_INIT(executor_t * executor) {
+
+  executor_t * new_executor = NULL;
+  
+  if (executor) afl_executor_init(executor);
+
+  else {
+    new_executor = ck_alloc(sizeof(executor_t));
+    afl_executor_init(new_executor);
+  }
+
+  return new_executor;
+
+}
+
+#define AFL_EXECUTOR_DEINIT(executor) afl_executor_deinit(executor);
 
 /*
 The generic interface for the feedback for the observation channel, this channel
@@ -98,3 +116,4 @@ enum {
 };
 
 #endif
+

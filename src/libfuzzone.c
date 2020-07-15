@@ -25,9 +25,8 @@
 #include "libengine.h"
 #include "list.h"
 
-fuzz_one_t *afl_fuzz_one_init(engine_t *engine) {
+void afl_fuzz_one_init(fuzz_one_t * fuzz_one,engine_t *engine) {
 
-  fuzz_one_t *fuzz_one = ck_alloc(sizeof(fuzz_one_t));
   fuzz_one->engine = engine;
 
   // We also add the fuzzone to the engine here.
@@ -36,8 +35,6 @@ fuzz_one_t *afl_fuzz_one_init(engine_t *engine) {
 
   fuzz_one->functions->add_stage = _add_stage_;
   fuzz_one->functions->perform = _perform_;
-
-  return fuzz_one;
 
 }
 

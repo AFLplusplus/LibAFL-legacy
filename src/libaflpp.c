@@ -23,9 +23,7 @@
 #include "libaflpp.h"
 #include "list.h"
 
-executor_t *afl_executor_init() {
-
-  executor_t *executor = ck_alloc(sizeof(executor_t));
+void afl_executor_init(executor_t *executor) {
 
   executor->current_input = NULL;
 
@@ -35,8 +33,6 @@ executor_t *afl_executor_init() {
   executor->executor_ops->add_observation_channel = _add_observation_channel_;
   executor->executor_ops->get_observation_channels = _get_observation_channels_;
   executor->executor_ops->get_current_input = _get_current_input_;
-
-  return executor;
 
 }
 

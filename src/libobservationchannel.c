@@ -26,17 +26,13 @@
 
 #include "libobservationchannel.h"
 
-observation_channel_t *afl_obs_channel_init(void) {
-
-  observation_channel_t *channel = ck_alloc(sizeof(observation_channel_t));
+void afl_observation_channel_init(observation_channel_t * channel) {
 
   channel->functions = ck_alloc(sizeof(struct observation_channel_functions));
 
-  return channel;
-
 }
 
-void afl_obs_channel_deinit(observation_channel_t *channel) {
+void afl_observation_channel_deinit(observation_channel_t *channel) {
 
   ck_free(channel->functions);
 
@@ -48,7 +44,7 @@ map_based_channel_t *afl_map_channel_init(size_t map_size) {
 
   map_based_channel_t *map_channel = ck_alloc(sizeof(map_based_channel_t));
 
-  map_channel->super = *(afl_obs_channel_init());
+  AFL_OBSERVATION_CHANNEL_INIT(&(map_channel->super));
 
   map_channel->shared_map = ck_alloc(sizeof(afl_sharedmem_t));
   afl_sharedmem_init(map_channel->shared_map, map_size);

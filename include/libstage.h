@@ -39,8 +39,25 @@ struct stage_functions {
 
 };
 
-stage_t *afl_stage_init(engine_t *);
+void afl_stage_init(stage_t *, engine_t *);
 void     afl_stage_deinit(stage_t *);
+
+
+
+static inline stage_t * AFL_STAGE_INIT(stage_t * stage, engine_t * engine) {
+
+  stage_t * new_stage = NULL;
+
+  if (stage)  afl_stage_init(stage, engine);
+
+  else {
+    new_stage = ck_alloc(sizeof(stage_t));
+    afl_stage_init(new_stage, engine);
+  }
+
+  return new_stage;
+
+}
 
 /*
 This structure here represents a single fuzzing stage in  the process. e.g It

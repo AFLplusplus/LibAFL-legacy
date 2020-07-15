@@ -59,6 +59,7 @@ typedef struct queue_entry {
 
 } queue_entry_t;
 
+
 struct queue_entry_functions {
 
   raw_input_t *(*get_input)(queue_entry_t *);
@@ -72,8 +73,27 @@ struct queue_entry_functions {
 
 };
 
-queue_entry_t *afl_queue_entry_init();
+void afl_queue_entry_init(queue_entry_t *);
 void           afl_queue_entry_deinit(queue_entry_t *);
+
+
+static inline queue_entry_t * AFL_QUEUE_ENTRY_INIT(queue_entry_t * queue_entry) {
+
+  queue_entry_t * new_queue_entry = NULL;
+
+  if (queue_entry)  afl_queue_entry_init(queue_entry);
+
+  else {
+    new_queue_entry = ck_alloc(sizeof(queue_entry_t));
+    afl_queue_entry_init(new_queue_entry);
+  }
+
+  return new_queue_entry;
+
+}
+
+
+#define AFL_QUEUE_ENTRY_DEINIT(queue_entry) afl_queue_entry_deinit(queue_entry);
 
 // Default implementations for the functions for queue_entry vtable
 raw_input_t *  _get_input_(queue_entry_t *entry);
@@ -115,7 +135,7 @@ struct base_queue_functions {
 
 /* TODO: Add the base  */
 
-base_queue_t *afl_base_queue_init();
+void afl_base_queue_init(base_queue_t *);
 void          afl_base_queue_deinit(base_queue_t *);
 
 void           _add_to_queue_(base_queue_t *, queue_entry_t *);
@@ -125,6 +145,25 @@ u8 *           _get_dirpath_(base_queue_t *);
 size_t         _get_names_id_(base_queue_t *);
 bool           _get_save_to_files_(base_queue_t *);
 void           _set_directory_(base_queue_t *, u8 *);
+
+
+static inline base_queue_t * AFL_BASE_QUEUE_INIT(base_queue_t * base_queue) {
+
+  base_queue_t * new_base_queue = NULL;
+
+  if (base_queue)  afl_base_queue_init(base_queue);
+
+  else {
+    new_base_queue = ck_alloc(sizeof(base_queue_t));
+    afl_base_queue_init(new_base_queue);
+  }
+
+  return new_base_queue;
+
+}
+
+#define AFL_BASE_QUEUE_DEINIT(base_queue) afl_base_queue_deinit(base_queue);
+
 
 typedef struct feedback_queue {
 
@@ -169,3 +208,4 @@ global_queue_t *afl_global_queue_init();
 void            afl_global_queue_deinit(global_queue_t *);
 
 #endif
+

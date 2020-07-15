@@ -84,8 +84,26 @@ void _load_zero_testcase_(size_t);
 
 void _loop_();  // Not sure about this functions use-case. Was in FFF though.
 
-engine_t *afl_engine_init();
+void afl_engine_init(engine_t *);
 void      afl_engine_deinit();
+
+
+#define AFL_ENGINE_DEINIT(engine) afl_engine_deinit(engine);
+
+static inline engine_t * AFL_ENGINE_INIT(engine_t * engine) {
+
+  engine_t * new_engine = NULL;
+  
+  if (engine) afl_engine_init(engine);
+
+  else {
+    new_engine = ck_alloc(sizeof(engine_t));
+    afl_engine_init(new_engine);
+  }
+
+  return new_engine;
+
+}
 
 #endif
 
