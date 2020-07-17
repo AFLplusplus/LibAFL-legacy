@@ -51,12 +51,16 @@ libstage.o: ./src/libstage.c ./include/libstage.h ./src/libinput.o
 libengine.o: ./src/libengine.c ./include/libengine.h ./src/libfeedback.o ./src/libqueue.o ./src/libcommon.o ./include/libaflpp.h
 	$(CC) ./src/libengine.c -o libengine.so $(CFLAGS)
 
+# Compiling the OS helper lib for the library
+libos.o: ./src/libos.c ./include/libos.h ./src/libcommon.o ./src/libinput.o
+	$(CC ./src/libos.c -o libos.so $(CFLAGS)
+
 # Compiling the final library
 libaflpp.o: ./src/libaflpp.c ./include/libaflpp.h ./src/libobservationchannel.o ./src/libinput.observation
 	$(CC) ./src/libaflpp.c -o libaflpp.so $(CFLAGS)
 
-libaflpp.so: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libinput.o ./src/libcommon.o
-	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libinput.o ./src/libcommon.o -o libaflpp.so $(CFLAGS)
+libaflpp.so: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
+	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libinput.o ./src/libcommon.o ./src/libos.o -o libaflpp.so $(CFLAGS)
 	rm ./src/*.o
 
 code-format:

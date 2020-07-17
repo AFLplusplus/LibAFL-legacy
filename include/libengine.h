@@ -38,6 +38,7 @@ struct engine {
   fuzz_one_t *    fuzz_one;
   global_queue_t *global_queue;
   executor_t *    executor;
+  feedback_queue_t * current_feedback_queue;
   feedback_t
       *feedbacks[MAX_FEEDBACKS];  // We're keeping a pointer of feedbacks here
                                   // to save memory, consideting the original
