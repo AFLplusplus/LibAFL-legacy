@@ -57,7 +57,6 @@ fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 
 void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
 
-  ck_free(stage->funcs);
   ck_free(stage);
 
 }
