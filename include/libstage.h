@@ -73,7 +73,7 @@ typedef struct fuzzing_stage {
 
   list_t mutators;  // The list of mutator operators that this stage has
 
-  struct fuzzing_stage_functions *functions;
+  struct fuzzing_stage_functions funcs;
 
 } fuzzing_stage_t;
 
@@ -84,7 +84,7 @@ struct fuzzing_stage_functions {
 
 };
 
-void _add_mutator_to_stage_(fuzzing_stage_t *, void *);
+void add_mutator_to_stage_default(fuzzing_stage_t *, void *);
 
 fuzzing_stage_t *afl_fuzz_stage_init(engine_t *);
 void             afl_fuzzing_stage_deinit(fuzzing_stage_t *);

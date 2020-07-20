@@ -49,9 +49,7 @@ fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 
   AFL_STAGE_INIT(&(fuzz_stage->super), engine);
 
-  fuzz_stage->functions = ck_alloc(sizeof(struct fuzzing_stage_functions));
-
-  fuzz_stage->functions->add_mutator_to_stage = _add_mutator_to_stage_;
+  fuzz_stage->funcs.add_mutator_to_stage = add_mutator_to_stage_default;
 
   return fuzz_stage;
 
@@ -59,12 +57,12 @@ fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 
 void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
 
-  ck_free(stage->functions);
+  ck_free(stage->funcs);
   ck_free(stage);
 
 }
 
-void _add_mutator_to_stage_(fuzzing_stage_t *stage, void *mutator) {
+void add_mutator_to_stage_default(fuzzing_stage_t *stage, void *mutator) {
 
   list_append(&(stage->mutators), mutator);
 
