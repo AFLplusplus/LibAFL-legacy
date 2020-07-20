@@ -77,6 +77,7 @@ u8 fuzz_start(executor_t *executor) {
 
   /* TODO: Implementation yet to be done based on design changes. Will be moved
    * to fuzz_one */
+  return 0;
 
 }
 

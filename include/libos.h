@@ -56,6 +56,7 @@ static inline process_t * AFL_PROCESS_INIT(process_t * process, pid_t handler_pi
   if (process) {
     afl_process_init(process);
     process->handler_process = (void *)(intptr_t)(handler_pid);
+    return process;
   }
 
   else {

@@ -1,11 +1,12 @@
 CC=gcc
-CFLAGS=-shared -g -O0 -fPIC -I./include -I../include -I../AFLplusplus/include
+CFLAGS=-g -O0 -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Werror
+LDFLAGS=-shared
 
 all:	libaflpp.so
 
 clean:
-	rm ./*.so
-	rm ./src/*.o
+	rm ./src/*.o || true
+	rm ./*.so || true
 
 # Compiling the common lib file
 libcommon.o: ./src/libcommon.c ./include/libcommon.h
@@ -60,7 +61,7 @@ libaflpp.o: ./src/libaflpp.c ./include/libaflpp.h ./src/libobservationchannel.o 
 	$(CC) ./src/libaflpp.c -o libaflpp.so $(CFLAGS)
 
 libaflpp.so: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
-	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libinput.o ./src/libcommon.o ./src/libos.o -o libaflpp.so $(CFLAGS)
+	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libinput.o ./src/libcommon.o ./src/libos.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
 	rm ./src/*.o
 
 code-format:

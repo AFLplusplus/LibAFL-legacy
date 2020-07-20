@@ -152,12 +152,12 @@ bool _get_save_to_files_(base_queue_t *queue) {
 
 void _set_directory_(base_queue_t *queue, u8 *new_dirpath) {
 
-  if (!new_dirpath) queue->dirpath = "";  // We are unsetting the directory path
+  if (!new_dirpath) queue->dirpath = (u8 *)"";  // We are unsetting the directory path
   queue->dirpath = new_dirpath;
 
   queue->save_to_files = true;
   // If the dirpath is empty, we make the save_to_files bool as false
-  if (!strcmp(queue->dirpath, "")) queue->save_to_files = false;
+  if (!strcmp((char *)queue->dirpath, "")) queue->save_to_files = false;
 
 }
 
@@ -168,7 +168,7 @@ feedback_queue_t *afl_feedback_queue_init(struct feedback *feedback, u8 *name) {
   AFL_BASE_QUEUE_INIT(&(fbck_queue->super));
   fbck_queue->feedback = feedback;
 
-  if (!name) name = "";
+  if (!name) name = (u8 *)"";
 
   fbck_queue->name = name;
 

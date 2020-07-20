@@ -61,6 +61,7 @@ raw_input_t *_raw_inp_copy_(raw_input_t *orig_inp) {
   raw_input_t *copy_inp = AFL_INPUT_INIT(NULL);
   copy_inp->bytes = ck_alloc(orig_inp->len);
   memcpy(copy_inp->bytes, orig_inp->bytes, orig_inp->len);
+  return copy_inp;
 
 }
 
@@ -84,7 +85,7 @@ u8 _raw_inp_load_from_file_(raw_input_t *input, u8 *fname) {
 
   if (!input->len) input->len = DEFAULT_INPUT_LEN;
 
-  FILE *f = fopen(fname, "r");
+  FILE *f = fopen((char *)fname, "r");
   input->bytes = ck_alloc(sizeof(input->len));
 
   if (!f) return FILE_OPEN_ERROR;
@@ -116,7 +117,7 @@ u8 _raw_inp_load_from_file_(raw_input_t *input, u8 *fname) {
 
 u8 _raw_inp_save_to_file_(raw_input_t *input, u8 *fname) {
 
-  FILE *f = fopen(fname, "w+");
+  FILE *f = fopen((char *)fname, "w+");
 
   if (!f) return FILE_OPEN_ERROR;
 

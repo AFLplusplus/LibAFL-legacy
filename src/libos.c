@@ -80,7 +80,7 @@ void _resume_(process_t * process) {
 
 exit_type_t _wait_(process_t * process, bool untraced) {
 
-    int status;
+    int status = 0;
     if (waitpid((pid_t)(intptr_t)(process->handler_process), &status, untraced ? WUNTRACED : 0) < 0)    return -1;  // Waitpid fails here, how should we handle this?
 
     if (WIFEXITED(status))  return NORMAL;
@@ -91,23 +91,27 @@ exit_type_t _wait_(process_t * process, bool untraced) {
     // If the process exited with a signal, we check the corresponsing signum of the process and return values correspondingly
     if (WIFSIGNALED(status)) {
 
-        int signal_num = WTERMSIG(status);  // signal number
-
-        if (signal_num == SIGKILL)  return TIMEOUT;
-
-        if (signal_num == SIGSEGV)  return SEGV;
-
-        if (signal_num == SIGABRT)  return ABRT;
-
-        if (signal_num == SIGBUS)   return BUS;
-
-        if (signal_num == SIGILL)   return ILL;
-
-        /* Any other SIGNAL we need to take care of? */
-        else return CRASH;
-
+        int signal_num = WTERMSIG(status); // signal number
+        switch (signal_num) {
+            case SIGKILL:
+                return TIMEOUT;
+            case SIGSEGV:
+                return SEGV;
+            case SIGABRT: 
+                return ABRT;
+            case SIGBUS:
+                return BUS;
+            case SIGILL: 
+                return ILL;
+            default: 
+                /* Any other SIGNAL we need to take care of? */
+                return CRASH;
+        }
     }
 
+    else {
+        FATAL("Currently Unhandled");
+    }
 
 }
 
