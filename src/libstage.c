@@ -24,7 +24,7 @@
 #include "libengine.h"
 #include "libfuzzone.h"
 
-void afl_stage_init(stage_t * stage, engine_t *engine) {
+void afl_stage_init(stage_t *stage, engine_t *engine) {
 
   stage->functions = ck_alloc(sizeof(struct stage_functions));
 

@@ -26,7 +26,7 @@
 
 #include "libfeedback.h"
 
-void afl_feedback_init(feedback_t * feedback) {
+void afl_feedback_init(feedback_t *feedback) {
 
   feedback->functions = ck_alloc(sizeof(struct feedback_functions));
 

@@ -35,10 +35,10 @@
 
 struct engine {
 
-  fuzz_one_t *    fuzz_one;
-  global_queue_t *global_queue;
-  executor_t *    executor;
-  feedback_queue_t * current_feedback_queue;
+  fuzz_one_t *      fuzz_one;
+  global_queue_t *  global_queue;
+  executor_t *      executor;
+  feedback_queue_t *current_feedback_queue;
   feedback_t
       *feedbacks[MAX_FEEDBACKS];  // We're keeping a pointer of feedbacks here
                                   // to save memory, consideting the original
@@ -86,20 +86,22 @@ void _load_zero_testcase_(size_t);
 void _loop_();  // Not sure about this functions use-case. Was in FFF though.
 
 void afl_engine_init(engine_t *);
-void      afl_engine_deinit();
-
+void afl_engine_deinit();
 
 #define AFL_ENGINE_DEINIT(engine) afl_engine_deinit(engine);
 
-static inline engine_t * AFL_ENGINE_INIT(engine_t * engine) {
+static inline engine_t *AFL_ENGINE_INIT(engine_t *engine) {
 
-  engine_t * new_engine = NULL;
-  
-  if (engine) afl_engine_init(engine);
+  engine_t *new_engine = NULL;
+
+  if (engine)
+    afl_engine_init(engine);
 
   else {
+
     new_engine = ck_alloc(sizeof(engine_t));
     afl_engine_init(new_engine);
+
   }
 
   return new_engine;

@@ -55,21 +55,24 @@ struct mutator_functions {
 
 stage_t *_get_mutator_stage_(mutator_t *);
 
-void afl_mutator_init(mutator_t *,stage_t *);
-void       afl_mutator_deinit(mutator_t *);
+void afl_mutator_init(mutator_t *, stage_t *);
+void afl_mutator_deinit(mutator_t *);
 
 // A simple scheduled mutator based on the above mutator. Will act something
 // similar to the havoc stage
 
-static inline mutator_t * AFL_MUTATOR_INIT(mutator_t * mutator, stage_t * stage) {
+static inline mutator_t *AFL_MUTATOR_INIT(mutator_t *mutator, stage_t *stage) {
 
-  mutator_t * new_mutator = NULL;
+  mutator_t *new_mutator = NULL;
 
-  if (mutator)  afl_mutator_init(mutator, stage);
+  if (mutator)
+    afl_mutator_init(mutator, stage);
 
   else {
+
     new_mutator = ck_alloc(sizeof(mutator_t));
     afl_mutator_init(new_mutator, stage);
+
   }
 
   return new_mutator;
@@ -77,7 +80,6 @@ static inline mutator_t * AFL_MUTATOR_INIT(mutator_t * mutator, stage_t * stage)
 }
 
 #define AFL_MUTATOR_DEINIT(mutator) afl_mutator_deinit(mutator);
-
 
 typedef void (*mutator_func_type)(mutator_t *, raw_input_t *);
 

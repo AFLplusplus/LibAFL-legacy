@@ -26,7 +26,7 @@
 
 #include "libmutator.h"
 
-void afl_mutator_init(mutator_t * mutator, stage_t *stage) {
+void afl_mutator_init(mutator_t *mutator, stage_t *stage) {
 
   mutator->stage = stage;
   mutator->functions = ck_alloc(sizeof(struct mutator_functions));

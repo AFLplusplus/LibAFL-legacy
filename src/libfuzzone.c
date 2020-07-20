@@ -25,7 +25,7 @@
 #include "libengine.h"
 #include "list.h"
 
-void afl_fuzz_one_init(fuzz_one_t * fuzz_one,engine_t *engine) {
+void afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
 

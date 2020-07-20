@@ -59,7 +59,6 @@ typedef struct queue_entry {
 
 } queue_entry_t;
 
-
 struct queue_entry_functions {
 
   raw_input_t *(*get_input)(queue_entry_t *);
@@ -74,24 +73,25 @@ struct queue_entry_functions {
 };
 
 void afl_queue_entry_init(queue_entry_t *);
-void           afl_queue_entry_deinit(queue_entry_t *);
+void afl_queue_entry_deinit(queue_entry_t *);
 
+static inline queue_entry_t *AFL_QUEUE_ENTRY_INIT(queue_entry_t *queue_entry) {
 
-static inline queue_entry_t * AFL_QUEUE_ENTRY_INIT(queue_entry_t * queue_entry) {
+  queue_entry_t *new_queue_entry = NULL;
 
-  queue_entry_t * new_queue_entry = NULL;
-
-  if (queue_entry)  afl_queue_entry_init(queue_entry);
+  if (queue_entry)
+    afl_queue_entry_init(queue_entry);
 
   else {
+
     new_queue_entry = ck_alloc(sizeof(queue_entry_t));
     afl_queue_entry_init(new_queue_entry);
+
   }
 
   return new_queue_entry;
 
 }
-
 
 #define AFL_QUEUE_ENTRY_DEINIT(queue_entry) afl_queue_entry_deinit(queue_entry);
 
@@ -136,7 +136,7 @@ struct base_queue_functions {
 /* TODO: Add the base  */
 
 void afl_base_queue_init(base_queue_t *);
-void          afl_base_queue_deinit(base_queue_t *);
+void afl_base_queue_deinit(base_queue_t *);
 
 void           _add_to_queue_(base_queue_t *, queue_entry_t *);
 queue_entry_t *_get_queue_base_(base_queue_t *);
@@ -146,16 +146,18 @@ size_t         _get_names_id_(base_queue_t *);
 bool           _get_save_to_files_(base_queue_t *);
 void           _set_directory_(base_queue_t *, u8 *);
 
+static inline base_queue_t *AFL_BASE_QUEUE_INIT(base_queue_t *base_queue) {
 
-static inline base_queue_t * AFL_BASE_QUEUE_INIT(base_queue_t * base_queue) {
+  base_queue_t *new_base_queue = NULL;
 
-  base_queue_t * new_base_queue = NULL;
-
-  if (base_queue)  afl_base_queue_init(base_queue);
+  if (base_queue)
+    afl_base_queue_init(base_queue);
 
   else {
+
     new_base_queue = ck_alloc(sizeof(base_queue_t));
     afl_base_queue_init(new_base_queue);
+
   }
 
   return new_base_queue;
@@ -163,7 +165,6 @@ static inline base_queue_t * AFL_BASE_QUEUE_INIT(base_queue_t * base_queue) {
 }
 
 #define AFL_BASE_QUEUE_DEINIT(base_queue) afl_base_queue_deinit(base_queue);
-
 
 typedef struct feedback_queue {
 

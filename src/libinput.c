@@ -27,8 +27,7 @@
 #include <fcntl.h>
 #include "libinput.h"
 
-void afl_input_init(raw_input_t * input) {
-
+void afl_input_init(raw_input_t *input) {
 
   input->functions = ck_alloc(sizeof(raw_input_functions_t));
 

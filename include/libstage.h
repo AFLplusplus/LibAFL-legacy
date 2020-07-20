@@ -40,19 +40,20 @@ struct stage_functions {
 };
 
 void afl_stage_init(stage_t *, engine_t *);
-void     afl_stage_deinit(stage_t *);
+void afl_stage_deinit(stage_t *);
 
+static inline stage_t *AFL_STAGE_INIT(stage_t *stage, engine_t *engine) {
 
+  stage_t *new_stage = NULL;
 
-static inline stage_t * AFL_STAGE_INIT(stage_t * stage, engine_t * engine) {
-
-  stage_t * new_stage = NULL;
-
-  if (stage)  afl_stage_init(stage, engine);
+  if (stage)
+    afl_stage_init(stage, engine);
 
   else {
+
     new_stage = ck_alloc(sizeof(stage_t));
     afl_stage_init(new_stage, engine);
+
   }
 
   return new_stage;

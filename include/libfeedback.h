@@ -62,25 +62,26 @@ void              _set_feedback_queue_(feedback_t *, feedback_queue_t *);
 feedback_queue_t *_get_feedback_queue_(feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
-void        afl_feedback_deinit(feedback_t *);
+void afl_feedback_deinit(feedback_t *);
 void afl_feedback_init(feedback_t *);
 
+static inline feedback_t *AFL_FEEDBACK_INIT(feedback_t *feedback) {
 
-static inline feedback_t * AFL_FEEDBACK_INIT(feedback_t * feedback) {
+  feedback_t *new_feedback = NULL;
 
-  feedback_t * new_feedback = NULL;
-  
-  if (feedback) afl_feedback_init(feedback);
+  if (feedback)
+    afl_feedback_init(feedback);
 
   else {
+
     new_feedback = ck_alloc(sizeof(feedback_t));
     afl_feedback_init(new_feedback);
+
   }
 
   return new_feedback;
 
 }
-
 
 #define AFL_FEEDBACK_DEINIT(fbck) afl_feedback_deinit(fbck);
 

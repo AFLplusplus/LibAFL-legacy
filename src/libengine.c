@@ -22,7 +22,7 @@
 
 #include "libengine.h"
 
-void afl_engine_init(engine_t * engine) {
+void afl_engine_init(engine_t *engine) {
 
   engine->functions = ck_alloc(sizeof(struct engine_functions));
   engine->functions->get_queue = _get_queue_;

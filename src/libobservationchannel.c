@@ -26,7 +26,7 @@
 
 #include "libobservationchannel.h"
 
-void afl_observation_channel_init(observation_channel_t * channel) {
+void afl_observation_channel_init(observation_channel_t *channel) {
 
   channel->functions = ck_alloc(sizeof(struct observation_channel_functions));
 

@@ -27,7 +27,7 @@
 #include "libqueue.h"
 
 // We start with the implementation of queue_entry functions here.
-void afl_queue_entry_init(queue_entry_t * entry) {
+void afl_queue_entry_init(queue_entry_t *entry) {
 
   entry->functions = ck_alloc(sizeof(struct queue_entry_functions));
 
@@ -83,7 +83,7 @@ queue_entry_t *_get_parent_(queue_entry_t *entry) {
 
 // We implement the queue based functions now.
 
-void afl_base_queue_init(base_queue_t * queue) {
+void afl_base_queue_init(base_queue_t *queue) {
 
   queue->functions = ck_alloc(sizeof(struct base_queue_functions));
 
@@ -152,7 +152,8 @@ bool _get_save_to_files_(base_queue_t *queue) {
 
 void _set_directory_(base_queue_t *queue, u8 *new_dirpath) {
 
-  if (!new_dirpath) queue->dirpath = (u8 *)"";  // We are unsetting the directory path
+  if (!new_dirpath)
+    queue->dirpath = (u8 *)"";  // We are unsetting the directory path
   queue->dirpath = new_dirpath;
 
   queue->save_to_files = true;

@@ -49,25 +49,29 @@ struct observation_channel_functions {
 // You probably will need to extend it the way we've done below.
 
 void afl_observation_channel_init(observation_channel_t *);
-void                   afl_observation_channel_deinit(observation_channel_t *);
+void afl_observation_channel_deinit(observation_channel_t *);
 
+static inline observation_channel_t *AFL_OBSERVATION_CHANNEL_INIT(
+    observation_channel_t *obs_channel) {
 
-static inline observation_channel_t * AFL_OBSERVATION_CHANNEL_INIT(observation_channel_t * obs_channel) {
+  observation_channel_t *new_obs_channel = NULL;
 
-  observation_channel_t * new_obs_channel = NULL;
-
-  if (obs_channel)  afl_observation_channel_init(obs_channel);
+  if (obs_channel)
+    afl_observation_channel_init(obs_channel);
 
   else {
+
     new_obs_channel = ck_alloc(sizeof(observation_channel_t));
     afl_observation_channel_init(new_obs_channel);
+
   }
 
   return new_obs_channel;
 
 }
 
-#define AFL_OBSERVATION_CHANNEL_DEINIT(obs_channel) afl_observation_channel_deinit(obs_channel);
+#define AFL_OBSERVATION_CHANNEL_DEINIT(obs_channel) \
+  afl_observation_channel_deinit(obs_channel);
 
 typedef struct map_based_channel {
 
