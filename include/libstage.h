@@ -86,8 +86,6 @@ typedef struct fuzzing_stage {
 
 } fuzzing_stage_t;
 
-
-
 void add_mutator_to_stage_default(fuzzing_stage_t *, void *);
 
 fuzzing_stage_t *afl_fuzz_stage_init(engine_t *);

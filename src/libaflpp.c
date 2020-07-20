@@ -34,7 +34,6 @@ void afl_executor_init(executor_t *executor) {
   executor->funcs.get_observation_channels = _get_observation_channels_;
   executor->funcs.get_current_input = _get_current_input_;
 
-
 }
 
 // Default implementations for executor vtable

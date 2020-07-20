@@ -77,8 +77,11 @@ static inline raw_input_t *AFL_INPUT_INIT(raw_input_t *input) {
 
   raw_input_t *new_input = NULL;
 
-  if (input)
+  if (input) {
+
     afl_input_init(input);
+
+  }
 
   else {
 

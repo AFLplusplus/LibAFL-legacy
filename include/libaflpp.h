@@ -76,8 +76,6 @@ struct executor {
 
 };
 
-
-
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
 void         afl_executor_init(executor_t *);
