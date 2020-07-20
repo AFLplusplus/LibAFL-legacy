@@ -67,7 +67,7 @@ void afl_scheduled_mutator_deinit(scheduled_mutator_t *mutator) {
 
   LIST_FOREACH_CLEAR(&(mutator->mutations), mutator_func_type, {});
 
-  ck_free(mutator->extra_functions);
+  free(mutator->extra_functions);
   ck_free(mutator);
 
 }

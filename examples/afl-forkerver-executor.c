@@ -3,7 +3,10 @@
 afl_forkserver_executor_t *afl_fsrv_create(void) {
 
   afl_forkserver_executor_t *fsrv_executor =
-      ck_alloc(sizeof(afl_forkserver_executor_t));
+      calloc(1, sizeof(afl_forkserver_executor_t));
+  if (!fsrv_executor) {
+    return NULL;
+  }
 
   fsrv_executor->super =
       *(afl_executor_init());  // Init the basic executor class. NOTE the

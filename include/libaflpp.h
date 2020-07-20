@@ -40,19 +40,6 @@ trying OO design principles here :D) and then extend adding your own fields to
 it. See the example forksever executor that we have in examples/
 */
 
-struct executor {
-
-  list_t observors;  // This will be swapped for the observation channel once
-                     // its ready
-
-  raw_input_t *current_input;  // Holds current input for the executor
-
-  struct executor_functions *executor_ops;  // afl executor_ops;
-
-};
-
-// This is like the generic vtable for the executor.
-
 struct executor_functions {
 
   u8 (*init_cb)(executor_t *, void *);  // can be NULL
@@ -75,6 +62,21 @@ struct executor_functions {
       executor_t *);  // Getter function for the current input
 
 };
+
+// This is like the generic vtable for the executor.
+
+struct executor {
+
+  list_t observors;  // This will be swapped for the observation channel once
+                     // its ready
+
+  raw_input_t *current_input;  // Holds current input for the executor
+
+  struct executor_functions funcs;  // afl executor_ops;
+
+};
+
+
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 

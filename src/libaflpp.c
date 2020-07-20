@@ -22,17 +22,18 @@
 
 #include "libaflpp.h"
 #include "list.h"
+#include "stdbool.h"
+#include "afl-errors.h"
 
 void afl_executor_init(executor_t *executor) {
 
   executor->current_input = NULL;
 
-  executor->executor_ops = ck_alloc(sizeof(struct executor_functions));
-
   // Default implementations of the functions
-  executor->executor_ops->add_observation_channel = _add_observation_channel_;
-  executor->executor_ops->get_observation_channels = _get_observation_channels_;
-  executor->executor_ops->get_current_input = _get_current_input_;
+  executor->funcs.add_observation_channel = _add_observation_channel_;
+  executor->funcs.get_observation_channels = _get_observation_channels_;
+  executor->funcs.get_current_input = _get_current_input_;
+
 
 }
 
