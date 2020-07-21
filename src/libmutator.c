@@ -56,8 +56,8 @@ scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *stage) {
       ck_alloc(sizeof(struct scheduled_mutator_functions));
 
   sched_mut->extra_functions->add_mutator = _add_mutator_;
-  sched_mut->extra_functions->iterations = _iterations_;
-  sched_mut->extra_functions->schedule = _schedule_;
+  // TODO: sched_mut->extra_functions->iterations = _iterations_;
+  // TODO: sched_mut->extra_functions->schedule = _schedule_;
 
   return sched_mut;
 
@@ -67,7 +67,7 @@ void afl_scheduled_mutator_deinit(scheduled_mutator_t *mutator) {
 
   LIST_FOREACH_CLEAR(&(mutator->mutations), mutator_func_type, {});
 
-  ck_free(mutator->extra_functions);
+  free(mutator->extra_functions);
   ck_free(mutator);
 
 }

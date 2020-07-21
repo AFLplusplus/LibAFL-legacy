@@ -34,12 +34,12 @@ void afl_input_init(raw_input_t *input) {
   input->functions->clear = _raw_inp_clear_;
   input->functions->copy = _raw_inp_copy_;
   input->functions->deserialize = _raw_inp_deserialize_;
-  input->functions->empty = _raw_inp_empty_;
+  // TODO: input->functions->empty = _raw_inp_empty_;
   input->functions->get_bytes = _raw_inp_get_bytes_;
   input->functions->load_from_file = _raw_inp_load_from_file_;
   input->functions->restore = _raw_inp_restore_;
   input->functions->save_to_file = _raw_inp_save_to_file_;
-  input->functions->serialize = _raw_inp_serialize_;
+  // TODO: input->functions->serialize = _raw_inp_serialize_;
 
 }
 

@@ -67,24 +67,26 @@ phase, or the havoc phase. Since each of the stages can have their own mutators,
 a list of mutators can be added to the stage.
 */
 
+struct fuzzing_stage;
+
+struct fuzzing_stage_functions {
+
+  /* Change the void pointer to a mutator * once it is ready */
+  void (*add_mutator_to_stage)(struct fuzzing_stage *, void *);
+
+};
+
 typedef struct fuzzing_stage {
 
   stage_t super;  // Standard "inheritence" from stage
 
   list_t mutators;  // The list of mutator operators that this stage has
 
-  struct fuzzing_stage_functions *functions;
+  struct fuzzing_stage_functions funcs;
 
 } fuzzing_stage_t;
 
-struct fuzzing_stage_functions {
-
-  /* Change the void pointer to a mutator * once it is ready */
-  void (*add_mutator_to_stage)(fuzzing_stage_t *, void *);
-
-};
-
-void _add_mutator_to_stage_(fuzzing_stage_t *, void *);
+void add_mutator_to_stage_default(fuzzing_stage_t *, void *);
 
 fuzzing_stage_t *afl_fuzz_stage_init(engine_t *);
 void             afl_fuzzing_stage_deinit(fuzzing_stage_t *);
