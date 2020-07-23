@@ -33,23 +33,6 @@
 
 #define MAX_FEEDBACKS 10
 
-struct engine {
-
-  fuzz_one_t *      fuzz_one;
-  global_queue_t *  global_queue;
-  executor_t *      executor;
-  feedback_queue_t *current_feedback_queue;
-  feedback_t
-      *feedbacks[MAX_FEEDBACKS];  // We're keeping a pointer of feedbacks here
-                                  // to save memory, consideting the original
-                                  // feedback would already be allocated
-  u64 executions, start_time, feedbacks_num;
-  int id;
-
-  struct engine_functions *functions;
-
-};
-
 struct engine_functions {
 
   global_queue_t *(*get_queue)(engine_t *);
@@ -69,38 +52,57 @@ struct engine_functions {
 
 };
 
+struct engine {
+
+  fuzz_one_t *      fuzz_one;
+  global_queue_t *  global_queue;
+  executor_t *      executor;
+  feedback_queue_t *current_feedback_queue;
+  feedback_t
+      *feedbacks[MAX_FEEDBACKS];  // We're keeping a pointer of feedbacks here
+                                  // to save memory, consideting the original
+                                  // feedback would already be allocated
+  u64 executions, start_time, feedbacks_num;
+  int id;
+
+  struct engine_functions funcs;
+
+};
+
+
 /* TODO: Add default implementations for load_testcases and execute */
-global_queue_t *_get_queue_(engine_t *);
-fuzz_one_t *    _get_fuzz_one_(engine_t *);
-u64             _get_execs_(engine_t *);
-u64             _get_start_time_(engine_t *);
+global_queue_t *get_queue_default(engine_t *);
+fuzz_one_t *    get_fuzz_one_default(engine_t *);
+u64             get_execs_defualt(engine_t *);
+u64             get_start_time_default(engine_t *);
 
-void _set_fuzz_one_(engine_t *, fuzz_one_t *);
-void _increase_execs_(engine_t *);
-int  _add_feedback_(engine_t *, feedback_t *);
+void set_fuzz_one_default(engine_t *, fuzz_one_t *);
+void increase_execs_default(engine_t *);
+int  add_feedback_default(engine_t *, feedback_t *);
 
-void _execute_(engine_t *, raw_input_t *);
-void _load_testcases_from_dir_(engine_t *, u8 *);
-void _load_zero_testcase_(size_t);
+void execute_default(engine_t *, raw_input_t *);
+void load_testcases_from_dir_default(engine_t *, u8 *);
+void load_zero_testcase_default(size_t);
 
-void _loop_();  // Not sure about this functions use-case. Was in FFF though.
+void loop_default();  // Not sure about this functions use-case. Was in FFF though.
 
-void afl_engine_init(engine_t *);
+void _afl_engine_init_(engine_t *);
 void afl_engine_deinit();
 
 #define AFL_ENGINE_DEINIT(engine) afl_engine_deinit(engine);
 
-static inline engine_t *AFL_ENGINE_INIT(engine_t *engine) {
+static inline engine_t *afl_engine_init(engine_t *engine) {
 
-  engine_t *new_engine = NULL;
+  engine_t *new_engine = engine;
 
   if (engine)
-    afl_engine_init(engine);
+    _afl_engine_init_(engine);
 
   else {
 
-    new_engine = ck_alloc(sizeof(engine_t));
-    afl_engine_init(new_engine);
+    new_engine = calloc(1, sizeof(engine_t));
+    if (!new_engine)  return NULL;
+    _afl_engine_init_(new_engine);
 
   }
 

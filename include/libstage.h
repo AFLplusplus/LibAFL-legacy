@@ -26,12 +26,6 @@
 #include "libinput.h"
 #include "list.h"
 
-struct stage {
-
-  engine_t *              engine;
-  struct stage_functions *functions;
-
-};
 
 struct stage_functions {
 
@@ -39,20 +33,29 @@ struct stage_functions {
 
 };
 
-void afl_stage_init(stage_t *, engine_t *);
+struct stage {
+
+  engine_t *              engine;
+  struct stage_functions funcs;
+
+};
+
+
+void _afl_stage_init_(stage_t *, engine_t *);
 void afl_stage_deinit(stage_t *);
 
-static inline stage_t *AFL_STAGE_INIT(stage_t *stage, engine_t *engine) {
+static inline stage_t *afl_stage_init(stage_t *stage, engine_t *engine) {
 
   stage_t *new_stage = NULL;
 
   if (stage)
-    afl_stage_init(stage, engine);
+    _afl_stage_init_(stage, engine);
 
   else {
 
-    new_stage = ck_alloc(sizeof(stage_t));
-    afl_stage_init(new_stage, engine);
+    new_stage = calloc(1, sizeof(stage_t));
+    if (!new_stage) { return NULL; }
+    _afl_stage_init_(new_stage, engine);
 
   }
 
@@ -67,16 +70,16 @@ phase, or the havoc phase. Since each of the stages can have their own mutators,
 a list of mutators can be added to the stage.
 */
 
-struct fuzzing_stage;
+typedef struct fuzzing_stage fuzzing_stage_t;
 
 struct fuzzing_stage_functions {
 
   /* Change the void pointer to a mutator * once it is ready */
-  void (*add_mutator_to_stage)(struct fuzzing_stage *, void *);
+  void (*add_mutator_to_stage)(fuzzing_stage_t *, void *);
 
 };
 
-typedef struct fuzzing_stage {
+struct fuzzing_stage {
 
   stage_t super;  // Standard "inheritence" from stage
 
@@ -84,7 +87,7 @@ typedef struct fuzzing_stage {
 
   struct fuzzing_stage_functions funcs;
 
-} fuzzing_stage_t;
+};
 
 void add_mutator_to_stage_default(fuzzing_stage_t *, void *);
 

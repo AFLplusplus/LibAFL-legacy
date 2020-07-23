@@ -24,21 +24,19 @@
 #include "libengine.h"
 #include "libfuzzone.h"
 
-void afl_stage_init(stage_t *stage, engine_t *engine) {
-
-  stage->functions = ck_alloc(sizeof(struct stage_functions));
+void _afl_stage_init_(stage_t *stage, engine_t *engine) {
 
   stage->engine = engine;
 
   // We also add this stage to the engine's fuzzone
 
-  _add_stage_(engine->fuzz_one, stage);
+  engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage);
+
 
 }
 
 void afl_stage_deinit(stage_t *stage) {
 
-  ck_free(stage->functions);
   ck_free(stage);
 
 }
@@ -47,7 +45,7 @@ fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 
   fuzzing_stage_t *fuzz_stage = ck_alloc(sizeof(fuzzing_stage_t));
 
-  AFL_STAGE_INIT(&(fuzz_stage->super), engine);
+  afl_stage_init(&(fuzz_stage->super), engine);
 
   fuzz_stage->funcs.add_mutator_to_stage = add_mutator_to_stage_default;
 

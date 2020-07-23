@@ -30,15 +30,9 @@
 // Mutator struct will have many internal functions like mutate, trimming etc.
 // This is based on both the FFF prototype and the custom mutators that we have
 // in AFL++ without the AFL++ specific parts
-typedef struct mutator {
 
-  stage_t *stage;
+typedef struct mutator mutator_t;
 
-  struct mutator_functions *functions;
-
-} mutator_t;
-
-/* Do we need more functions in the mutator? */
 struct mutator_functions {
 
   void (*init)(mutator_t *);  // Sort of like the afl_custom_init we have for
@@ -53,25 +47,39 @@ struct mutator_functions {
 
 };
 
-stage_t *_get_mutator_stage_(mutator_t *);
+struct mutator {
 
-void afl_mutator_init(mutator_t *, stage_t *);
+  stage_t *stage;
+
+  struct mutator_functions funcs;
+
+};
+
+
+void mutator_init_default(mutator_t *);
+size_t trim_default(mutator_t *, u8 *, u8 *);
+size_t mutate_default(mutator_t *, raw_input_t *, size_t);
+stage_t *get_mutator_stage_default(mutator_t *);
+
+
+void _afl_mutator_init_(mutator_t *, stage_t *);
 void afl_mutator_deinit(mutator_t *);
 
 // A simple scheduled mutator based on the above mutator. Will act something
 // similar to the havoc stage
 
-static inline mutator_t *AFL_MUTATOR_INIT(mutator_t *mutator, stage_t *stage) {
+static inline mutator_t *afl_mutator_init(mutator_t *mutator, stage_t *stage) {
 
-  mutator_t *new_mutator = NULL;
+  mutator_t *new_mutator = mutator;
 
   if (mutator)
-    afl_mutator_init(mutator, stage);
+    _afl_mutator_init_(mutator, stage);
 
   else {
 
-    new_mutator = ck_alloc(sizeof(mutator_t));
-    afl_mutator_init(new_mutator, stage);
+    new_mutator = calloc(1, sizeof(mutator_t));
+    if (!new_mutator) return NULL;
+    _afl_mutator_init_(new_mutator, stage);
 
   }
 
@@ -83,28 +91,30 @@ static inline mutator_t *AFL_MUTATOR_INIT(mutator_t *mutator, stage_t *stage) {
 
 typedef void (*mutator_func_type)(mutator_t *, raw_input_t *);
 
-typedef struct scheduled_mutator {
-
-  mutator_t super;
-  list_t    mutations;
-
-  struct scheduled_mutator_functions *extra_functions;
-
-} scheduled_mutator_t;
+typedef struct scheduled_mutator scheduled_mutator_t;
 
 struct scheduled_mutator_functions {
 
-  void (*schedule)(scheduled_mutator_t *);
+  int (*schedule)(scheduled_mutator_t *);
   void (*add_mutator)(scheduled_mutator_t *, mutator_func_type);
   int (*iterations)(scheduled_mutator_t *);
 
 };
 
+struct scheduled_mutator {
+
+  mutator_t super;
+  list_t    mutations;
+
+  struct scheduled_mutator_functions extra_funcs;
+
+};
+
 /* TODO add implementation for the _schedule_ and _iterations_ functions, need a
  * random list element pop type implementation for this */
-int  _iterations_(scheduled_mutator_t *);
-void _add_mutator_(scheduled_mutator_t *, mutator_func_type);
-void _schedule_(scheduled_mutator_t *);
+int  iterations_default(scheduled_mutator_t *);
+void add_mutator_default(scheduled_mutator_t *, mutator_func_type);
+int schedule_default(scheduled_mutator_t *);
 
 scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *);
 void                 afl_scheduled_mutator_deinit(scheduled_mutator_t *);

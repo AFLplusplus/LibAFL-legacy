@@ -26,31 +26,29 @@
 
 #include "libfeedback.h"
 
-void afl_feedback_init(feedback_t *feedback) {
+void _afl_feedback_init_(feedback_t *feedback) {
 
-  feedback->functions = ck_alloc(sizeof(struct feedback_functions));
 
-  feedback->functions->set_feedback_queue = _set_feedback_queue_;
-  feedback->functions->get_feedback_queue = _get_feedback_queue_;
+  feedback->funcs.set_feedback_queue = set_feedback_queue_default;
+  feedback->funcs.get_feedback_queue = get_feedback_queue_default;
 
 }
 
 void afl_feedback_deinit(feedback_t *feedback) {
 
-  ck_free(feedback->functions);
   if (feedback->metadata) ck_free(feedback->metadata);
 
   ck_free(feedback);
 
 }
 
-void _set_feedback_queue_(feedback_t *feedback, feedback_queue_t *queue) {
+void set_feedback_queue_default(feedback_t *feedback, feedback_queue_t *queue) {
 
   feedback->queue = queue;
 
 }
 
-feedback_queue_t *_get_feedback_queue_(feedback_t *feedback) {
+feedback_queue_t *get_feedback_queue_default(feedback_t *feedback) {
 
   return feedback->queue;
 

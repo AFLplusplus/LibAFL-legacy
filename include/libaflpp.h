@@ -32,6 +32,7 @@
 #include "libinput.h"
 #include "list.h"
 #include <types.h>
+#include "afl-errors.h"
 
 /*
 This is the generic forkserver interface that we have, in order to use the
@@ -70,6 +71,8 @@ struct executor {
   list_t observors;  // This will be swapped for the observation channel once
                      // its ready
 
+  u32 observors_num;
+
   raw_input_t *current_input;  // Holds current input for the executor
 
   struct executor_functions funcs;  // afl executor_ops;
@@ -78,23 +81,27 @@ struct executor {
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-void         afl_executor_init(executor_t *);
+void         _afl_executor_init_(executor_t *);
 void         afl_executor_deinit(executor_t *);
-u8           _add_observation_channel_(executor_t *, observation_channel_t *);
-list_t       _get_observation_channels_(executor_t *);
-raw_input_t *_get_current_input_(executor_t *);
+u8           add_observation_channel_default(executor_t *, observation_channel_t *);
+list_t       get_observation_channels_default(executor_t *);
+raw_input_t *get_current_input_default(executor_t *);
 
-static inline executor_t *AFL_EXECUTOR_INIT(executor_t *executor) {
+// Function used to initialize an executor, pass a NULL ptr if you want a new base executor, pass the base executor if you already have inherited it and allocated mem for it.
+// Returns the initialized executor on success, and NULL on error.
 
-  executor_t *new_executor = NULL;
+static inline executor_t *afl_executor_init(executor_t *executor) {
+
+  executor_t *new_executor = executor;
 
   if (executor)
-    afl_executor_init(executor);
+    _afl_executor_init_(executor);
 
   else {
 
-    new_executor = ck_alloc(sizeof(executor_t));
-    afl_executor_init(new_executor);
+    new_executor = calloc(1, sizeof(executor_t));
+    if (!new_executor)  return NULL;
+    _afl_executor_init_(new_executor);
 
   }
 

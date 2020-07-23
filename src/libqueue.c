@@ -27,32 +27,29 @@
 #include "libqueue.h"
 
 // We start with the implementation of queue_entry functions here.
-void afl_queue_entry_init(queue_entry_t *entry) {
+void _afl_queue_entry_init_(queue_entry_t *entry) {
 
-  entry->functions = ck_alloc(sizeof(struct queue_entry_functions));
-
-  entry->functions->get_input = _get_input_;
-  entry->functions->get_next = _get_next_;
-  entry->functions->get_prev = _get_prev_;
-  entry->functions->get_parent = _get_parent_;
+  entry->funcs.get_input = get_input_default;
+  entry->funcs.get_next = get_next_default;
+  entry->funcs.get_prev = get_prev_default;
+  entry->funcs.get_parent = get_parent_default;
 
 }
 
 void afl_queue_entry_deinit(queue_entry_t *entry) {
 
-  ck_free(entry->functions);
-  ck_free(entry);
+  free(entry);
 
 }
 
 // Default implementations for the queue entry vtable functions
-raw_input_t *_get_input_(queue_entry_t *entry) {
+raw_input_t *get_input_default(queue_entry_t *entry) {
 
   if (entry->on_disk) {
 
-    raw_input_t *load = entry->input->functions->empty(entry->input);
+    raw_input_t *load = entry->input->funcs.empty(entry->input);
 
-    if (!load->functions->load_from_file(load, entry->filename))
+    if (!load->funcs.load_from_file(load, entry->filename))
       return load;
     else
       return NULL;
@@ -63,19 +60,19 @@ raw_input_t *_get_input_(queue_entry_t *entry) {
 
 }
 
-queue_entry_t *_get_next_(queue_entry_t *entry) {
+queue_entry_t *get_next_default(queue_entry_t *entry) {
 
   return entry->next;
 
 }
 
-queue_entry_t *_get_prev_(queue_entry_t *entry) {
+queue_entry_t *get_prev_default(queue_entry_t *entry) {
 
   return entry->prev;
 
 }
 
-queue_entry_t *_get_parent_(queue_entry_t *entry) {
+queue_entry_t *get_parent_default(queue_entry_t *entry) {
 
   return entry->parent;
 
@@ -83,33 +80,30 @@ queue_entry_t *_get_parent_(queue_entry_t *entry) {
 
 // We implement the queue based functions now.
 
-void afl_base_queue_init(base_queue_t *queue) {
-
-  queue->functions = ck_alloc(sizeof(struct base_queue_functions));
+void _afl_base_queue_init_(base_queue_t *queue) {
 
   queue->save_to_files = false;
 
-  queue->functions->add_to_queue = _add_to_queue_;
-  queue->functions->get_queue_base = _get_queue_base_;
-  queue->functions->get_size = _get_base_queue_size_;
-  queue->functions->get_dirpath = _get_dirpath_;
-  queue->functions->get_names_id = _get_names_id_;
-  queue->functions->get_save_to_files = _get_save_to_files_;
-  queue->functions->set_directory = _set_directory_;
+  queue->funcs.add_to_queue = add_to_queue_default;
+  queue->funcs.get_queue_base = get_queue_base_default;
+  queue->funcs.get_size = get_base_queue_size_default;
+  queue->funcs.get_dirpath = get_dirpath_default;
+  queue->funcs.get_names_id = get_names_id_default;
+  queue->funcs.get_save_to_files = get_save_to_files_default;
+  queue->funcs.set_directory = set_directory_default;
 
 }
 
 void afl_base_queue_deinit(base_queue_t *queue) {
 
-  ck_free(queue->functions);
-  ck_free(queue);
+  free(queue);
 
   /*TODO: Clear the queue entries too here*/
 
 }
 
 /* *** Possible error cases here? *** */
-void _add_to_queue_(base_queue_t *queue, queue_entry_t *entry) {
+void add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   entry->next = queue->base;
   /*TODO: Need to add mutex stuff here. */
@@ -120,37 +114,37 @@ void _add_to_queue_(base_queue_t *queue, queue_entry_t *entry) {
 
 }
 
-queue_entry_t *_get_queue_base_(base_queue_t *queue) {
+queue_entry_t *get_queue_base_default(base_queue_t *queue) {
 
   return queue->base;
 
 }
 
-size_t _get_base_queue_size_(base_queue_t *queue) {
+size_t get_base_queue_size_default(base_queue_t *queue) {
 
   return queue->size;
 
 }
 
-u8 *_get_dirpath_(base_queue_t *queue) {
+u8 *get_dirpath_default(base_queue_t *queue) {
 
   return queue->dirpath;
 
 }
 
-size_t _get_names_id_(base_queue_t *queue) {
+size_t get_names_id_default(base_queue_t *queue) {
 
   return queue->names_id;
 
 }
 
-bool _get_save_to_files_(base_queue_t *queue) {
+bool get_save_to_files_default(base_queue_t *queue) {
 
   return queue->save_to_files;
 
 }
 
-void _set_directory_(base_queue_t *queue, u8 *new_dirpath) {
+void set_directory_default(base_queue_t *queue, u8 *new_dirpath) {
 
   if (!new_dirpath)
     queue->dirpath = (u8 *)"";  // We are unsetting the directory path
@@ -166,7 +160,7 @@ feedback_queue_t *afl_feedback_queue_init(struct feedback *feedback, u8 *name) {
 
   feedback_queue_t *fbck_queue = ck_alloc(sizeof(feedback_queue_t));
 
-  AFL_BASE_QUEUE_INIT(&(fbck_queue->super));
+  afl_base_queue_init(&(fbck_queue->super));
   fbck_queue->feedback = feedback;
 
   if (!name) name = (u8 *)"";
@@ -185,18 +179,12 @@ void afl_feedback_queue_deinit(feedback_queue_t *feedback) {
 
 }
 
-global_queue_t *afl_global_queue_init() {
+void _afl_global_queue_init_(global_queue_t * global_queue) {
 
-  global_queue_t *global_queue = ck_alloc(sizeof(global_queue_t));
+  afl_base_queue_init(&(global_queue->super));
 
-  AFL_BASE_QUEUE_INIT(&(global_queue->super));
-
-  global_queue->extra_functions =
-      ck_alloc(sizeof(struct global_queue_functions));
-
-  global_queue->extra_functions->add_feedback_queue = _add_feedback_queue_;
-
-  return global_queue;
+  global_queue->extra_funcs.add_feedback_queue = add_feedback_queue_default;
+  global_queue->extra_funcs.schedule = global_schedule_default;
 
 }
 
@@ -206,12 +194,11 @@ void afl_global_queue_deinit(global_queue_t *queue) {
     LIST_FOREACH_CLEAR(&(queue->feedback_queues), feedback_queue_t,
                        { afl_feedback_queue_deinit(el); });
 
-  ck_free(queue->extra_functions);
-  ck_free(queue);
+  free(queue);
 
 }
 
-void _add_feedback_queue_(global_queue_t *  global_queue,
+void add_feedback_queue_default(global_queue_t *  global_queue,
                           feedback_queue_t *fbck_queue) {
 
   list_append(&(global_queue->feedback_queues), fbck_queue);
@@ -219,3 +206,9 @@ void _add_feedback_queue_(global_queue_t *  global_queue,
 
 }
 
+int global_schedule_default(global_queue_t * queue) {
+
+  /* TODO: Implementation */
+  return 0;
+
+}

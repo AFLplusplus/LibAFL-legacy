@@ -29,11 +29,7 @@
 
 #include "libcommon.h"
 
-typedef struct observation_channel {
-
-  struct observation_channel_functions *functions;
-
-} observation_channel_t;
+typedef struct observation_channel observation_channel_t;
 
 // vtable for the observation channel
 
@@ -45,24 +41,36 @@ struct observation_channel_functions {
 
 };
 
+struct observation_channel {
+
+  // Can we have anything else here?
+  struct observation_channel_functions funcs;
+
+};
+
+/* They're void now, but I think post_exec should have some return type? Since, they'll mostly be implemented by user */
+void flush_default(observation_channel_t *);
+void reset_default(observation_channel_t *);
+void post_exec(observation_channel_t *);
 // Functions to initialize and deinitialize the generic observation channel. P.S
 // You probably will need to extend it the way we've done below.
 
-void afl_observation_channel_init(observation_channel_t *);
+void _afl_observation_channel_init_(observation_channel_t *);
 void afl_observation_channel_deinit(observation_channel_t *);
 
-static inline observation_channel_t *AFL_OBSERVATION_CHANNEL_INIT(
+static inline observation_channel_t *afl_observation_channel_init(
     observation_channel_t *obs_channel) {
 
-  observation_channel_t *new_obs_channel = NULL;
+  observation_channel_t *new_obs_channel = obs_channel;
 
   if (obs_channel)
-    afl_observation_channel_init(obs_channel);
+    _afl_observation_channel_init_(obs_channel);
 
   else {
 
-    new_obs_channel = ck_alloc(sizeof(observation_channel_t));
-    afl_observation_channel_init(new_obs_channel);
+    new_obs_channel = calloc(1, sizeof(observation_channel_t));
+    if (!new_obs_channel) return NULL;
+    _afl_observation_channel_init_(new_obs_channel);
 
   }
 
@@ -73,15 +81,8 @@ static inline observation_channel_t *AFL_OBSERVATION_CHANNEL_INIT(
 #define AFL_OBSERVATION_CHANNEL_DEINIT(obs_channel) \
   afl_observation_channel_deinit(obs_channel);
 
-typedef struct map_based_channel {
 
-  observation_channel_t super;  // Base observation channel "class"
-
-  afl_sharedmem_t *shared_map;
-
-  struct map_based_channel_functions *extra_functions;
-
-} map_based_channel_t;
+typedef struct map_based_channel map_based_channel_t;
 
 struct map_based_channel_functions {
 
@@ -90,8 +91,19 @@ struct map_based_channel_functions {
 
 };
 
-u8 *   _get_trace_bits_(map_based_channel_t *obs_channel);
-size_t _get_map_size_(map_based_channel_t *obs_channel);
+struct map_based_channel {
+
+  observation_channel_t super;  // Base observation channel "class"
+
+  afl_sharedmem_t *shared_map;
+
+  struct map_based_channel_functions extra_funcs;
+
+};
+
+
+u8 *   get_trace_bits_default(map_based_channel_t *obs_channel);
+size_t get_map_size_default(map_based_channel_t *obs_channel);
 
 // Functions to initialize and delete a map based observation channel
 

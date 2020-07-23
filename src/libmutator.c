@@ -26,38 +26,59 @@
 
 #include "libmutator.h"
 
-void afl_mutator_init(mutator_t *mutator, stage_t *stage) {
+void _afl_mutator_init_(mutator_t *mutator, stage_t *stage) {
 
   mutator->stage = stage;
-  mutator->functions = ck_alloc(sizeof(struct mutator_functions));
 
-  mutator->functions->get_stage = _get_mutator_stage_;
+  mutator->funcs.get_stage = get_mutator_stage_default;
+  mutator->funcs.init = mutator_init_default;
+  mutator->funcs.mutate = mutate_default;
+  mutator->funcs.trim = trim_default;
 
 }
 
 void afl_mutator_deinit(mutator_t *mutator) {
 
-  ck_free(mutator->functions);
-  ck_free(mutator);
+  free(mutator);
 
 }
 
-stage_t *_get_mutator_stage_(mutator_t *mutator) {
+stage_t *get_mutator_stage_default(mutator_t *mutator) {
 
   return mutator->stage;
 
 }
 
+void mutator_init_default(mutator_t *mutator) {
+
+  /* TODO: Implementation */
+  return;
+
+};
+
+size_t trim_default(mutator_t *mutator, u8 *mem, u8 *new_mem) {
+
+  /* TODO: Implementation */
+  return 0;
+
+};
+
+size_t mutate_default(mutator_t *mutator, raw_input_t *input, size_t size) {
+
+  /* TODO: Implementation */
+  return 0;
+
+};
+
 scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *stage) {
 
   scheduled_mutator_t *sched_mut = ck_alloc(sizeof(scheduled_mutator_t));
-  AFL_MUTATOR_INIT(&(sched_mut->super), stage);
-  sched_mut->extra_functions =
-      ck_alloc(sizeof(struct scheduled_mutator_functions));
+  afl_mutator_init(&(sched_mut->super), stage);
 
-  sched_mut->extra_functions->add_mutator = _add_mutator_;
-  // TODO: sched_mut->extra_functions->iterations = _iterations_;
-  // TODO: sched_mut->extra_functions->schedule = _schedule_;
+
+  sched_mut->extra_funcs.add_mutator = add_mutator_default;
+  sched_mut->extra_funcs.iterations = iterations_default;
+  sched_mut->extra_funcs.schedule = schedule_default;
 
   return sched_mut;
 
@@ -67,15 +88,28 @@ void afl_scheduled_mutator_deinit(scheduled_mutator_t *mutator) {
 
   LIST_FOREACH_CLEAR(&(mutator->mutations), mutator_func_type, {});
 
-  free(mutator->extra_functions);
-  ck_free(mutator);
+  free(mutator);
 
 }
 
-void _add_mutator_(scheduled_mutator_t *mutator,
+void add_mutator_default(scheduled_mutator_t *mutator,
                    mutator_func_type    mutator_func) {
 
   list_append(&(mutator->mutations), mutator_func);
 
 }
+
+int  iterations_default(scheduled_mutator_t * mutator) {
+
+  /* TODO: Implementation */
+  return 0;
+
+};
+
+int schedule_default(scheduled_mutator_t *mutator) {
+
+  /* TODO: Implementation */
+  return 0;
+
+};
 

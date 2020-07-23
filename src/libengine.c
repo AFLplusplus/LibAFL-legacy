@@ -22,67 +22,64 @@
 
 #include "libengine.h"
 
-void afl_engine_init(engine_t *engine) {
+void _afl_engine_init_(engine_t *engine) {
 
-  engine->functions = ck_alloc(sizeof(struct engine_functions));
-  engine->functions->get_queue = _get_queue_;
-  engine->functions->get_execs = _get_execs_;
-  engine->functions->get_fuzz_one = _get_fuzz_one_;
-  engine->functions->get_start_time = _get_start_time_;
+  engine->funcs.get_queue = get_queue_default;
+  engine->funcs.get_execs = get_execs_defualt;
+  engine->funcs.get_fuzz_one = get_fuzz_one_default;
+  engine->funcs.get_start_time = get_start_time_default;
 
-  engine->functions->set_fuzz_one = _set_fuzz_one_;
-  engine->functions->add_feedback = _add_feedback_;
-  engine->functions->increase_execs = _increase_execs_;
+  engine->funcs.set_fuzz_one = set_fuzz_one_default;
+  engine->funcs.add_feedback = add_feedback_default;
+  engine->funcs.increase_execs = increase_execs_default;
 
 }
 
 void afl_engine_deinit(engine_t *engine) {
 
-  ck_free(engine->functions);
+  free(engine);
 
-  ck_free(engine);
-
-  /* TODO: Should we free everything else liek feedback, etc with engine too */
+  /* TODO: Should we free everything else like feedback, etc with engine too */
 
 }
 
-global_queue_t *_get_queue_(engine_t *engine) {
+global_queue_t *get_queue_default(engine_t *engine) {
 
   return engine->global_queue;
 
 }
 
-fuzz_one_t *_get_fuzz_one_(engine_t *engine) {
+fuzz_one_t *get_fuzz_one_default(engine_t *engine) {
 
   return engine->fuzz_one;
 
 }
 
-u64 _get_execs_(engine_t *engine) {
+u64 get_execs_defualt(engine_t *engine) {
 
   return engine->executions;
 
 }
 
-u64 _get_start_time_(engine_t *engine) {
+u64 get_start_time_default(engine_t *engine) {
 
   return engine->start_time;
 
 }
 
-void _set_fuzz_one_(engine_t *engine, fuzz_one_t *fuzz_one) {
+void set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
   engine->fuzz_one = fuzz_one;
 
 }
 
-void _increase_execs_(engine_t *engine) {
+void increase_execs_default(engine_t *engine) {
 
   engine->executions++;
 
 }
 
-int _add_feedback_(engine_t *engine, feedback_t *feedback) {
+int add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
   if (engine->feedbacks_num >= MAX_FEEDBACKS) return 1;
 

@@ -25,14 +25,14 @@
 #include "stdbool.h"
 #include "afl-errors.h"
 
-void afl_executor_init(executor_t *executor) {
+void _afl_executor_init_(executor_t *executor) {
 
   executor->current_input = NULL;
 
   // Default implementations of the functions
-  executor->funcs.add_observation_channel = _add_observation_channel_;
-  executor->funcs.get_observation_channels = _get_observation_channels_;
-  executor->funcs.get_current_input = _get_current_input_;
+  executor->funcs.add_observation_channel = add_observation_channel_default;
+  executor->funcs.get_observation_channels = get_observation_channels_default;
+  executor->funcs.get_current_input = get_current_input_default;
 
 }
 
@@ -45,7 +45,7 @@ void afl_executor_deinit(executor_t *executor) {
 
 }
 
-u8 _add_observation_channel_(executor_t *           executor,
+u8 add_observation_channel_default(executor_t *           executor,
                              observation_channel_t *obs_channel) {
 
   list_append(&executor->observors, obs_channel);
@@ -54,13 +54,13 @@ u8 _add_observation_channel_(executor_t *           executor,
 
 }
 
-list_t _get_observation_channels_(executor_t *executor) {
+list_t get_observation_channels_default(executor_t *executor) {
 
   return executor->observors;
 
 }
 
-raw_input_t *_get_current_input_(executor_t *executor) {
+raw_input_t *get_current_input_default(executor_t *executor) {
 
   return executor->current_input;
 

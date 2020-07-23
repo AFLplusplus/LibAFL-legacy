@@ -29,16 +29,7 @@
 
 #include "libqueue.h"
 
-typedef struct feedback {
-
-  feedback_queue_t *queue;
-
-  struct feedback_metadata *metadata; /* We can have a void pointer for the
-                                         struct here. What do you guys say? */
-
-  struct feedback_functions *functions;
-
-} feedback_t;
+typedef struct feedback feedback_t;
 
 struct feedback_functions {
 
@@ -47,6 +38,19 @@ struct feedback_functions {
   feedback_queue_t *(*get_feedback_queue)(feedback_t *);
 
 };
+
+struct feedback {
+
+  feedback_queue_t *queue;
+
+  struct feedback_metadata *metadata; /* We can have a void pointer for the
+                                         struct here. What do you guys say? */
+
+  struct feedback_functions funcs;
+
+};
+
+
 
 typedef struct feedback_metadata {
 
@@ -58,24 +62,25 @@ typedef struct feedback_metadata {
 // Default implementation of the vtables functions
 
 /*TODO: Can we have a similiar implementation for the is_interesting function?*/
-void              _set_feedback_queue_(feedback_t *, feedback_queue_t *);
-feedback_queue_t *_get_feedback_queue_(feedback_t *);
+void              set_feedback_queue_default(feedback_t *, feedback_queue_t *);
+feedback_queue_t *get_feedback_queue_default(feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
 void afl_feedback_deinit(feedback_t *);
-void afl_feedback_init(feedback_t *);
+void _afl_feedback_init_(feedback_t *);
 
-static inline feedback_t *AFL_FEEDBACK_INIT(feedback_t *feedback) {
+static inline feedback_t *afl_feedback_init(feedback_t *feedback) {
 
-  feedback_t *new_feedback = NULL;
+  feedback_t *new_feedback = feedback;
 
   if (feedback)
-    afl_feedback_init(feedback);
+    _afl_feedback_init_(feedback);
 
   else {
 
-    new_feedback = ck_alloc(sizeof(feedback_t));
-    afl_feedback_init(new_feedback);
+    new_feedback = calloc(1, sizeof(feedback_t));
+    if (! new_feedback) return NULL;
+    _afl_feedback_init_(new_feedback);
 
   }
 

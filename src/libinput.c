@@ -27,25 +27,23 @@
 #include <fcntl.h>
 #include "libinput.h"
 
-void afl_input_init(raw_input_t *input) {
+void _afl_input_init_(raw_input_t *input) {
 
-  input->functions = ck_alloc(sizeof(raw_input_functions_t));
-
-  input->functions->clear = _raw_inp_clear_;
-  input->functions->copy = _raw_inp_copy_;
-  input->functions->deserialize = _raw_inp_deserialize_;
-  // TODO: input->functions->empty = _raw_inp_empty_;
-  input->functions->get_bytes = _raw_inp_get_bytes_;
-  input->functions->load_from_file = _raw_inp_load_from_file_;
-  input->functions->restore = _raw_inp_restore_;
-  input->functions->save_to_file = _raw_inp_save_to_file_;
-  // TODO: input->functions->serialize = _raw_inp_serialize_;
+  input->funcs.clear = raw_inp_clear_default;
+  input->funcs.copy = raw_inp_copy_default;
+  input->funcs.deserialize = raw_inp_deserialize_default;
+  input->funcs.empty = raw_inp_empty_default;
+  input->funcs.get_bytes = raw_inp_get_bytes_default;
+  input->funcs.load_from_file = raw_inp_load_from_file_default;
+  input->funcs.restore = raw_inp_restore_default;
+  input->funcs.save_to_file = raw_inp_save_to_file_default;
+  input->funcs.serialize = raw_inp_serialize_default;
 
 }
 
 // default implemenatations for the vtable functions for the raw_input type
 
-u8 _raw_inp_clear_(raw_input_t *input) {
+u8 raw_inp_clear_default(raw_input_t *input) {
 
   void *s = memset(input->bytes, 0x0, input->len);
 
@@ -55,16 +53,16 @@ u8 _raw_inp_clear_(raw_input_t *input) {
 
 }
 
-raw_input_t *_raw_inp_copy_(raw_input_t *orig_inp) {
+raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
 
-  raw_input_t *copy_inp = AFL_INPUT_INIT(NULL);
+  raw_input_t *copy_inp = afl_input_init(NULL);
   copy_inp->bytes = ck_alloc(orig_inp->len);
   memcpy(copy_inp->bytes, orig_inp->bytes, orig_inp->len);
   return copy_inp;
 
 }
 
-u8 _raw_inp_deserialize_(raw_input_t *input, u8 *bytes, size_t len) {
+u8 raw_inp_deserialize_default(raw_input_t *input, u8 *bytes, size_t len) {
 
   ck_free(input->bytes);
   input->bytes = bytes;
@@ -74,13 +72,13 @@ u8 _raw_inp_deserialize_(raw_input_t *input, u8 *bytes, size_t len) {
 
 }
 
-u8 *_raw_inp_get_bytes_(raw_input_t *input) {
+u8 *raw_inp_get_bytes_default(raw_input_t *input) {
 
   return input->bytes;
 
 }
 
-u8 _raw_inp_load_from_file_(raw_input_t *input, u8 *fname) {
+u8 raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
 
   if (!input->len) input->len = DEFAULT_INPUT_LEN;
 
@@ -114,7 +112,7 @@ u8 _raw_inp_load_from_file_(raw_input_t *input, u8 *fname) {
 
 }
 
-u8 _raw_inp_save_to_file_(raw_input_t *input, u8 *fname) {
+u8 raw_inp_save_to_file_default(raw_input_t *input, u8 *fname) {
 
   FILE *f = fopen((char *)fname, "w+");
 
@@ -127,12 +125,24 @@ u8 _raw_inp_save_to_file_(raw_input_t *input, u8 *fname) {
 
 }
 
-u8 _raw_inp_restore_(raw_input_t *input, raw_input_t *new_inp) {
+u8 raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
 
   ck_free(input->bytes);
   input->bytes = new_inp->bytes;
 
   return ALL_OK;
 
+}
+
+raw_input_t * raw_inp_empty_default(raw_input_t * input) {
+
+  /* TODO: Implementation */
+  return NULL;
+
+}
+
+u8 * raw_inp_serialize_default(raw_input_t * input) {
+  /* TODO: Implementation */
+  return NULL;
 }
 

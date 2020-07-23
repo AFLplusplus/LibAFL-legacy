@@ -25,20 +25,19 @@
 #include "libengine.h"
 #include "list.h"
 
-void afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
+void _afl_fuzz_one_init_(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
 
   // We also add the fuzzone to the engine here.
   engine->fuzz_one = fuzz_one;
-  fuzz_one->functions = ck_alloc(sizeof(struct fuzz_one_functions));
 
-  fuzz_one->functions->add_stage = _add_stage_;
-  fuzz_one->functions->perform = _perform_;
+  fuzz_one->funcs.add_stage = add_stage_default;
+  fuzz_one->funcs.perform = perform_default;
 
 }
 
-int _perform_(fuzz_one_t *fuzz_one) {
+int perform_default(fuzz_one_t *fuzz_one) {
 
   // Implement after Stage is created.
 
@@ -46,7 +45,7 @@ int _perform_(fuzz_one_t *fuzz_one) {
 
 }
 
-int _add_stage_(fuzz_one_t *fuzz_one, stage_t *stage) {
+int add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
   if (fuzz_one->stages_num >= MAX_STAGES) return 1;
 

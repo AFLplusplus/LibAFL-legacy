@@ -30,15 +30,6 @@
 
 #define MAX_STAGES 5
 
-struct fuzz_one {
-
-  engine_t *engine;
-  stage_t * stages[MAX_STAGES];
-  u64       stages_num;
-
-  struct fuzz_one_functions *functions;
-
-};
 
 struct fuzz_one_functions {
 
@@ -47,24 +38,36 @@ struct fuzz_one_functions {
 
 };
 
-int _perform_(fuzz_one_t *);
-int _add_stage_(fuzz_one_t *, stage_t *);
 
-void afl_fuzz_one_init(fuzz_one_t *, engine_t *);
+struct fuzz_one {
+
+  engine_t *engine;
+  stage_t  *stages[MAX_STAGES];
+  u64       stages_num;
+
+  struct fuzz_one_functions funcs;
+
+};
+
+int perform_default(fuzz_one_t *);
+int add_stage_default(fuzz_one_t *, stage_t *);
+
+void _afl_fuzz_one_init_(fuzz_one_t *, engine_t *);
 void afl_fuzz_one_deinit(fuzz_one_t *);
 
-static inline fuzz_one_t *AFL_FUZZ_ONE_INIT(fuzz_one_t *fuzzone,
+static inline fuzz_one_t *afl_fuzz_one_init(fuzz_one_t *fuzzone,
                                             engine_t *  engine) {
 
-  fuzz_one_t *new_fuzzone = NULL;
+  fuzz_one_t *new_fuzzone = fuzzone;
 
   if (fuzzone)
-    afl_fuzz_one_init(fuzzone, engine);
+    _afl_fuzz_one_init_(fuzzone, engine);
 
   else {
 
-    new_fuzzone = ck_alloc(sizeof(fuzz_one_t));
-    afl_fuzz_one_init(new_fuzzone, engine);
+    new_fuzzone = calloc(1, sizeof(fuzz_one_t));
+    if (!new_fuzzone) return NULL;
+    _afl_fuzz_one_init_(new_fuzzone, engine);
 
   }
 

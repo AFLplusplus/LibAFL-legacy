@@ -31,17 +31,10 @@
 
 #define DEFAULT_INPUT_LEN 100
 
-typedef struct raw_input {
 
-  u8 *   bytes;  // Raw input bytes
-  size_t len;  // Length of the input field. C++ had strings, we have to make do
-               // with storing the lengths :/
+typedef struct raw_input  raw_input_t;
 
-  struct raw_input_functions *functions;
-
-} raw_input_t;
-
-typedef struct raw_input_functions {
+struct raw_input_functions {
 
   u8 (*deserialize)(raw_input_t *, u8 *, size_t);
   u8 *(*serialize)(raw_input_t *);
@@ -53,40 +46,53 @@ typedef struct raw_input_functions {
   u8 (*clear)(raw_input_t *);
   u8 *(*get_bytes)(raw_input_t *);
 
-} raw_input_functions_t;
+};
 
-void afl_input_init(raw_input_t *);
+struct raw_input {
+
+  u8 *   bytes;  // Raw input bytes
+  size_t len;  // Length of the input field. C++ had strings, we have to make do
+               // with storing the lengths :/
+
+  struct raw_input_functions funcs;
+
+};
+
+
+void _afl_input_init_(raw_input_t *);
 void afl_input_deinit(raw_input_t *);
 
 // Default implementations of the functions for raw input vtable
-u8           _raw_inp_deserialize_(raw_input_t *, u8 *, size_t);
-u8 *         _raw_inp_serialize_(raw_input_t *);
-raw_input_t *_raw_inp_copy_(raw_input_t *);
-raw_input_t *_raw_inp_empty_(raw_input_t *);
-u8           _raw_inp_restore_(raw_input_t *, raw_input_t *);
-u8           _raw_inp_load_from_file_(raw_input_t *, u8 *);
-u8           _raw_inp_save_to_file_(raw_input_t *, u8 *);
-u8           _raw_inp_clear_(raw_input_t *);
-u8 *         _raw_inp_get_bytes_(raw_input_t *);
+u8           raw_inp_deserialize_default(raw_input_t *, u8 *, size_t);
+u8 *         raw_inp_serialize_default(raw_input_t *);
+raw_input_t *raw_inp_copy_default(raw_input_t *);
+raw_input_t *raw_inp_empty_default(raw_input_t *);
+u8           raw_inp_restore_default(raw_input_t *, raw_input_t *);
+u8           raw_inp_load_from_file_default(raw_input_t *, u8 *);
+u8           raw_inp_save_to_file_default(raw_input_t *, u8 *);
+u8           raw_inp_clear_default(raw_input_t *);
+u8 *         raw_inp_get_bytes_default(raw_input_t *);
 
 // input_clear and empty functions... difference??
 // serializing and deserializing would be done on the basis of some structure
 // right??
 
-static inline raw_input_t *AFL_INPUT_INIT(raw_input_t *input) {
+static inline raw_input_t *afl_input_init(raw_input_t *input) {
 
-  raw_input_t *new_input = NULL;
+  raw_input_t *new_input = input;
 
   if (input) {
 
-    afl_input_init(input);
+    _afl_input_init_(input);
 
   }
 
   else {
 
-    new_input = ck_alloc(sizeof(raw_input_t));
-    afl_input_init(new_input);
+    new_input = calloc(1, sizeof(raw_input_t));
+    if (!new_input) return NULL;
+
+    _afl_input_init_(new_input);
 
   }
 
