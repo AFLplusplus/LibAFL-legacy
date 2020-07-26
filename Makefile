@@ -60,9 +60,9 @@ libos.o: ./src/libos.c ./include/libos.h ./src/libcommon.o ./src/libinput.o
 libaflpp.o: ./src/libaflpp.c ./include/libaflpp.h ./src/libobservationchannel.o ./src/libinput.observation
 	$(CC) ./src/libaflpp.c -o libaflpp.so $(CFLAGS)
 
-libaflpp.so: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
-	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libinput.o ./src/libcommon.o ./src/libos.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
-	rm ./src/*.o
+libaflpp.so: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
+	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
+	# rm ./src/*.o
 
 code-format:
 	./.custom-format.py -i src/*.c

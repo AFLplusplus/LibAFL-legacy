@@ -69,7 +69,6 @@ struct engine {
 
 };
 
-
 /* TODO: Add default implementations for load_testcases and execute */
 global_queue_t *get_queue_default(engine_t *);
 fuzz_one_t *    get_fuzz_one_default(engine_t *);
@@ -84,7 +83,8 @@ void execute_default(engine_t *, raw_input_t *);
 void load_testcases_from_dir_default(engine_t *, u8 *);
 void load_zero_testcase_default(size_t);
 
-void loop_default();  // Not sure about this functions use-case. Was in FFF though.
+void loop_default();  // Not sure about this functions use-case. Was in FFF
+                      // though.
 
 void _afl_engine_init_(engine_t *);
 void afl_engine_deinit();
@@ -101,7 +101,7 @@ static inline engine_t *afl_engine_init(engine_t *engine) {
   else {
 
     new_engine = calloc(1, sizeof(engine_t));
-    if (!new_engine)  return NULL;
+    if (!new_engine) return NULL;
     _afl_engine_init_(new_engine);
 
   }

@@ -32,7 +32,6 @@ void _afl_stage_init_(stage_t *stage, engine_t *engine) {
 
   engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage);
 
-
 }
 
 void afl_stage_deinit(stage_t *stage) {

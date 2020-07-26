@@ -31,8 +31,7 @@
 
 #define DEFAULT_INPUT_LEN 100
 
-
-typedef struct raw_input  raw_input_t;
+typedef struct raw_input raw_input_t;
 
 struct raw_input_functions {
 
@@ -57,7 +56,6 @@ struct raw_input {
   struct raw_input_functions funcs;
 
 };
-
 
 void _afl_input_init_(raw_input_t *);
 void afl_input_deinit(raw_input_t *);

@@ -50,8 +50,6 @@ struct feedback {
 
 };
 
-
-
 typedef struct feedback_metadata {
 
   // This struct is more dependent on user's implementation.
@@ -79,7 +77,7 @@ static inline feedback_t *afl_feedback_init(feedback_t *feedback) {
   else {
 
     new_feedback = calloc(1, sizeof(feedback_t));
-    if (! new_feedback) return NULL;
+    if (!new_feedback) return NULL;
     _afl_feedback_init_(new_feedback);
 
   }

@@ -48,7 +48,8 @@ struct observation_channel {
 
 };
 
-/* They're void now, but I think post_exec should have some return type? Since, they'll mostly be implemented by user */
+/* They're void now, but I think post_exec should have some return type? Since,
+ * they'll mostly be implemented by user */
 void flush_default(observation_channel_t *);
 void reset_default(observation_channel_t *);
 void post_exec(observation_channel_t *);
@@ -81,7 +82,6 @@ static inline observation_channel_t *afl_observation_channel_init(
 #define AFL_OBSERVATION_CHANNEL_DEINIT(obs_channel) \
   afl_observation_channel_deinit(obs_channel);
 
-
 typedef struct map_based_channel map_based_channel_t;
 
 struct map_based_channel_functions {
@@ -100,7 +100,6 @@ struct map_based_channel {
   struct map_based_channel_functions extra_funcs;
 
 };
-
 
 u8 *   get_trace_bits_default(map_based_channel_t *obs_channel);
 size_t get_map_size_default(map_based_channel_t *obs_channel);

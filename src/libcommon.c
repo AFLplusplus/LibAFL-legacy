@@ -69,7 +69,7 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
   thanks to f*cking glibc we can not use tmpnam securely, it generates a
   security warning that cannot be suppressed
   so we do this worse workaround */
-  snprintf(shm->g_shm_file_path, L_tmpnam, "/afl_%d_%ld", getpid(), random());
+  snprintf(shm->g_shm_file_path, 20, "/afl_%d_%ld", getpid(), random());
 
   /* create the shared memory segment as if it was a file */
   shm->g_shm_fd =
@@ -104,6 +104,7 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
   if (shm->shm_id < 0) { PFATAL("shmget() failed"); }
 
   shm_str = alloc_printf("%d", shm->shm_id);
+  setenv(SHM_ENV_VAR, (char *)shm_str, 1);
 
   ck_free(shm_str);
 

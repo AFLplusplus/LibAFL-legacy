@@ -134,15 +134,17 @@ u8 raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
 
 }
 
-raw_input_t * raw_inp_empty_default(raw_input_t * input) {
+raw_input_t *raw_inp_empty_default(raw_input_t *input) {
 
   /* TODO: Implementation */
   return NULL;
 
 }
 
-u8 * raw_inp_serialize_default(raw_input_t * input) {
+u8 *raw_inp_serialize_default(raw_input_t *input) {
+
   /* TODO: Implementation */
   return NULL;
+
 }
 

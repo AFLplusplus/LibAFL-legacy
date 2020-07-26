@@ -179,7 +179,7 @@ void afl_feedback_queue_deinit(feedback_queue_t *feedback) {
 
 }
 
-void _afl_global_queue_init_(global_queue_t * global_queue) {
+void _afl_global_queue_init_(global_queue_t *global_queue) {
 
   afl_base_queue_init(&(global_queue->super));
 
@@ -199,16 +199,17 @@ void afl_global_queue_deinit(global_queue_t *queue) {
 }
 
 void add_feedback_queue_default(global_queue_t *  global_queue,
-                          feedback_queue_t *fbck_queue) {
+                                feedback_queue_t *fbck_queue) {
 
   list_append(&(global_queue->feedback_queues), fbck_queue);
   global_queue->feedback_queues_num++;
 
 }
 
-int global_schedule_default(global_queue_t * queue) {
+int global_schedule_default(global_queue_t *queue) {
 
   /* TODO: Implementation */
   return 0;
 
 }
+

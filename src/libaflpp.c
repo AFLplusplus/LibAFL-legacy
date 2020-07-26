@@ -46,7 +46,7 @@ void afl_executor_deinit(executor_t *executor) {
 }
 
 u8 add_observation_channel_default(executor_t *           executor,
-                             observation_channel_t *obs_channel) {
+                                   observation_channel_t *obs_channel) {
 
   list_append(&executor->observors, obs_channel);
 

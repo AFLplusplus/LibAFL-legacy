@@ -72,7 +72,6 @@ struct queue_entry {
 
 };
 
-
 void _afl_queue_entry_init_(queue_entry_t *);
 void afl_queue_entry_deinit(queue_entry_t *);
 
@@ -80,7 +79,11 @@ static inline queue_entry_t *afl_queue_entry_init(queue_entry_t *queue_entry) {
 
   queue_entry_t *new_queue_entry = queue_entry;
 
-  if (queue_entry)  { _afl_queue_entry_init_(queue_entry); }
+  if (queue_entry) {
+
+    _afl_queue_entry_init_(queue_entry);
+
+  }
 
   else {
 
@@ -101,8 +104,6 @@ raw_input_t *  get_input_default(queue_entry_t *entry);
 queue_entry_t *get_next_default(queue_entry_t *entry);
 queue_entry_t *get_prev_default(queue_entry_t *entry);
 queue_entry_t *get_parent_default(queue_entry_t *entry);
-
-
 
 typedef struct base_queue base_queue_t;
 
@@ -138,7 +139,6 @@ struct base_queue {
 
 };
 
-
 /* TODO: Add the base  */
 
 void _afl_base_queue_init_(base_queue_t *);
@@ -156,12 +156,16 @@ static inline base_queue_t *afl_base_queue_init(base_queue_t *base_queue) {
 
   base_queue_t *new_base_queue = base_queue;
 
-  if (base_queue) { _afl_base_queue_init_(base_queue); }
+  if (base_queue) {
+
+    _afl_base_queue_init_(base_queue);
+
+  }
 
   else {
 
     new_base_queue = calloc(1, sizeof(base_queue_t));
-    if (!new_base_queue)  { return NULL; }
+    if (!new_base_queue) { return NULL; }
 
     _afl_base_queue_init_(new_base_queue);
 
@@ -187,8 +191,6 @@ feedback_queue_t *afl_feedback_queue_init(
 
 void afl_feedback_queue_deinit(feedback_queue_t *);
 
-
-
 typedef struct global_queue global_queue_t;
 
 struct global_queue_functions {
@@ -211,30 +213,35 @@ struct global_queue {
 
 };
 
-
 // Default implementations of global queue vtable functions
 void add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
-int global_schedule_default(global_queue_t *);
+int  global_schedule_default(global_queue_t *);
 
 /* TODO: ADD defualt implementation for the schedule function based on random.
  */
 
 void _afl_global_queue_init_(global_queue_t *);
-void            afl_global_queue_deinit(global_queue_t *);
+void afl_global_queue_deinit(global_queue_t *);
 
+static inline global_queue_t *afl_global_queue_init(
+    global_queue_t *global_queue) {
 
-static inline global_queue_t * afl_global_queue_init(global_queue_t *global_queue) {
+  global_queue_t *new_queue = global_queue;
 
-    global_queue_t * new_queue = global_queue;
+  if (global_queue) {
 
-    if (global_queue) { _afl_global_queue_init_(global_queue); }
+    _afl_global_queue_init_(global_queue);
 
-    else {
-      new_queue = calloc(1, sizeof(global_queue_t));
-      if (!new_queue)  { return NULL; }
-    }
+  }
 
-    return new_queue;
+  else {
+
+    new_queue = calloc(1, sizeof(global_queue_t));
+    if (!new_queue) { return NULL; }
+
+  }
+
+  return new_queue;
 
 }
 

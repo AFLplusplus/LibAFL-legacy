@@ -26,7 +26,6 @@
 #include "libinput.h"
 #include "list.h"
 
-
 struct stage_functions {
 
   void (*perform)(raw_input_t *input, raw_input_t *original);
@@ -35,11 +34,10 @@ struct stage_functions {
 
 struct stage {
 
-  engine_t *              engine;
+  engine_t *             engine;
   struct stage_functions funcs;
 
 };
-
 
 void _afl_stage_init_(stage_t *, engine_t *);
 void afl_stage_deinit(stage_t *);

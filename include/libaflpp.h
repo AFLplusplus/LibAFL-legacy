@@ -81,14 +81,16 @@ struct executor {
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-void         _afl_executor_init_(executor_t *);
-void         afl_executor_deinit(executor_t *);
-u8           add_observation_channel_default(executor_t *, observation_channel_t *);
-list_t       get_observation_channels_default(executor_t *);
+void   _afl_executor_init_(executor_t *);
+void   afl_executor_deinit(executor_t *);
+u8     add_observation_channel_default(executor_t *, observation_channel_t *);
+list_t get_observation_channels_default(executor_t *);
 raw_input_t *get_current_input_default(executor_t *);
 
-// Function used to initialize an executor, pass a NULL ptr if you want a new base executor, pass the base executor if you already have inherited it and allocated mem for it.
-// Returns the initialized executor on success, and NULL on error.
+// Function used to initialize an executor, pass a NULL ptr if you want a new
+// base executor, pass the base executor if you already have inherited it and
+// allocated mem for it. Returns the initialized executor on success, and NULL
+// on error.
 
 static inline executor_t *afl_executor_init(executor_t *executor) {
 
@@ -100,7 +102,7 @@ static inline executor_t *afl_executor_init(executor_t *executor) {
   else {
 
     new_executor = calloc(1, sizeof(executor_t));
-    if (!new_executor)  return NULL;
+    if (!new_executor) return NULL;
     _afl_executor_init_(new_executor);
 
   }

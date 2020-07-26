@@ -36,7 +36,7 @@ typedef struct afl_sharedmem {
 
 #ifdef USEMMAP
   int  g_shm_id;
-  char g_shm_fname[L_tmpnam];
+  char g_shm_file_path[20];
 #else
   int shm_id;
 #endif

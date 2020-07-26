@@ -28,8 +28,6 @@
 
 void _afl_observation_channel_init_(observation_channel_t *channel) {
 
-  
-
 }
 
 void afl_observation_channel_deinit(observation_channel_t *channel) {
@@ -44,16 +42,19 @@ void flush_default(observation_channel_t *channel) {
   return;
 
 };
+
 void reset_default(observation_channel_t *channel) {
 
   /* TODO: Implementation */
   return;
 
 }
+
 void post_exec(observation_channel_t *channel) {
 
   /* TODO: Implementation */
   return;
+
 }
 
 map_based_channel_t *afl_map_channel_init(size_t map_size) {

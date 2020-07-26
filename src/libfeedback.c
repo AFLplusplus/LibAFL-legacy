@@ -28,7 +28,6 @@
 
 void _afl_feedback_init_(feedback_t *feedback) {
 
-
   feedback->funcs.set_feedback_queue = set_feedback_queue_default;
   feedback->funcs.get_feedback_queue = get_feedback_queue_default;
 

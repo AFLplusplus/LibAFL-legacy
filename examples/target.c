@@ -1,29 +1,21 @@
 #include <stdio.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 char file_name[20] = "./testcase";
 
 int main() {
 
-  char input[100];
+  char input[100] = {'\x00'};
 
-  char *fname = file_name;
+  int r = read(0, input, 50);
 
-  FILE *f = fopen(fname, "r+");
-  char *s = input;
+  int fd = open("./success", O_RDWR | O_CREAT, 0600);
 
-  while (*s != EOF) {
+  write(fd, input, 50);
 
-    *s = fgetc(f);
-    s++;
-
-  }
-
-  int fd = open('./output', O_RDWR | O_CREAT);
-
-  write(fd, "SUCCESS!!\x00\x00");
-
-  printf("%s\n", input);
+  exit(0);
 
 }
 

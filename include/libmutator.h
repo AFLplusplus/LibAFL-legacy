@@ -55,12 +55,10 @@ struct mutator {
 
 };
 
-
-void mutator_init_default(mutator_t *);
-size_t trim_default(mutator_t *, u8 *, u8 *);
-size_t mutate_default(mutator_t *, raw_input_t *, size_t);
+void     mutator_init_default(mutator_t *);
+size_t   trim_default(mutator_t *, u8 *, u8 *);
+size_t   mutate_default(mutator_t *, raw_input_t *, size_t);
 stage_t *get_mutator_stage_default(mutator_t *);
-
 
 void _afl_mutator_init_(mutator_t *, stage_t *);
 void afl_mutator_deinit(mutator_t *);
@@ -114,7 +112,7 @@ struct scheduled_mutator {
  * random list element pop type implementation for this */
 int  iterations_default(scheduled_mutator_t *);
 void add_mutator_default(scheduled_mutator_t *, mutator_func_type);
-int schedule_default(scheduled_mutator_t *);
+int  schedule_default(scheduled_mutator_t *);
 
 scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *);
 void                 afl_scheduled_mutator_deinit(scheduled_mutator_t *);
