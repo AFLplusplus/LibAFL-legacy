@@ -1,19 +1,9 @@
-#include "libaflpp.h"
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <dirent.h>
-#include <sys/wait.h>
 #define AFL_MAIN
 
 #include "config.h"
 #include "types.h"
 #include "debug.h"
 #include "alloc-inl.h"
-#include "hash.h"
-#include "common.h"
-#include "sharedmem.h"
 #include "libaflpp.h"
 #include "libobservationchannel.h"
 #include "libos.h"
@@ -21,13 +11,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <errno.h>
 #include <signal.h>
 #include <dirent.h>
 #include <fcntl.h>
-#include <limits.h>
 
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -36,7 +22,6 @@
 #endif
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <sys/resource.h>
 
 #define MAP_SIZE 65536
 #define MAX_PATH_LEN 100
@@ -46,7 +31,7 @@ typedef struct afl_forkserver {
   executor_t super;                      /* executer struct to inherit from */
 
   u8 *trace_bits;
-      /* SHM with instrumentation bitmap  */  // Put it in map based obs channel
+      /* SHM with instrumentation bitmap  */
   u8 use_stdin;                         /* use stdin for sending data       */
 
   s32 fsrv_pid,                         /* PID of the fork server           */
@@ -81,7 +66,7 @@ static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 
 static afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file);
 static exit_type_t       run_target(afl_forkserver_t *fsrv, u32 timeout);
-static u8 place_inputs(afl_forkserver_t *fsrv, u8 *mem, size_t len);
+static u8 place_inputs(afl_forkserver_t *fsrv,raw_input_t * input);
 static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args);
 
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
@@ -328,11 +313,11 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
 
 };
 
-u8 place_inputs(afl_forkserver_t *fsrv, u8 *mem, size_t len) {
+u8 place_inputs(afl_forkserver_t *fsrv, raw_input_t * input) {
 
-  int write_len = write(fsrv->out_fd, mem, len);
+  int write_len = write(fsrv->out_fd, input->bytes, input->len);
 
-  if (write_len != len) { FATAL("Short Write"); }
+  if (write_len != input->len) { FATAL("Short Write"); }
 
   return write_len;
 
@@ -459,6 +444,9 @@ int main(int argc, char **argv) {
 
   }
 
+  raw_input_t * current_input = afl_input_init(NULL);
+  fsrv->super.current_input = current_input;
+
   while ((dir_ent = readdir(dir_in))) {
 
     if (dir_ent->d_name[0] == '.') {
@@ -469,9 +457,9 @@ int main(int argc, char **argv) {
 
     snprintf(infile, sizeof(infile), "%s/%s", in_dir, dir_ent->d_name);
 
-    if (read_file(infile)) {
+    if (fsrv->super.current_input->funcs.load_from_file(fsrv->super.current_input, infile) == AFL_ALL_OK ) {
 
-      fsrv->super.funcs.place_inputs_cb(fsrv, file_data_read, in_len);
+      fsrv->super.funcs.place_inputs_cb(fsrv, current_input);
 
       fsrv->super.funcs.run_target_cb(fsrv, 1000, NULL);
 

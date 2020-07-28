@@ -49,8 +49,7 @@ struct executor_functions {
   u8 (*run_target_cb)(executor_t *, u32,
                       void *);  // Similar to afl_fsrv_run_target we have in afl
   u8 (*place_inputs_cb)(
-      executor_t *, u8 *,
-      size_t);  // similar to the write_to_testcase function in afl.
+      executor_t *, raw_input_t *);  // similar to the write_to_testcase function in afl.
 
   list_t (*get_observation_channels)(
       executor_t *);  // Getter function for observation channels list

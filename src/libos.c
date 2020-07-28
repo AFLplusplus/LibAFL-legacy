@@ -25,29 +25,29 @@ void dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
 
 static process_t *current_process;
 
-void afl_process_init(process_t *process) {
+void _afl_process_init_(process_t *process) {
 
-  process->current = _return_current_;
-  process->fork = _do_fork_;
+  process->current = return_current_default;
+  process->fork = do_fork_default;
 
-  process->resume = _resume_;
-  process->wait = _wait_;
-  process->suspend = _suspend_;
+  process->resume = resume_default;
+  process->wait = wait_default;
+  process->suspend = suspend_default;
 
 }
 
-process_t *_return_current_(process_t *process) {
+process_t *return_current_default(process_t *process) {
 
   if (current_process) return current_process;
 
-  process_t *p = AFL_PROCESS_INIT(NULL, getpid());
+  process_t *p = afl_process_init(NULL, getpid());
 
   current_process = p;
   return p;
 
 }
 
-fork_result_t _do_fork_(process_t *process) {
+fork_result_t do_fork_default(process_t *process) {
 
   pid_t child = fork();
 
@@ -56,27 +56,27 @@ fork_result_t _do_fork_(process_t *process) {
   else if (child < 0)
     return FORK_FAILED;
 
-  process->handler_process = (void *)(intptr_t)child;
+  process->handler_process = child;
   return PARENT;
 
 }
 
-void _suspend_(process_t *process) {
+void suspend_default(process_t *process) {
 
-  kill((pid_t)(intptr_t)(process->handler_process), SIGSTOP);
-
-}
-
-void _resume_(process_t *process) {
-
-  kill((pid_t)(intptr_t)(process->handler_process), SIGCONT);
+  kill(process->handler_process, SIGSTOP);
 
 }
 
-exit_type_t _wait_(process_t *process, bool untraced) {
+void resume_default(process_t *process) {
+
+  kill(process->handler_process, SIGCONT);
+
+}
+
+exit_type_t wait_default(process_t *process, bool untraced) {
 
   int status = 0;
-  if (waitpid((pid_t)(intptr_t)(process->handler_process), &status,
+  if (waitpid((process->handler_process), &status,
               untraced ? WUNTRACED : 0) < 0)
     return -1;  // Waitpid fails here, how should we handle this?
 

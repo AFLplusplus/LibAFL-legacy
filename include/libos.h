@@ -39,21 +39,21 @@ typedef struct process {
   void (*resume)(struct process *);
   exit_type_t (*wait)(struct process *, bool untraced);
 
-  void *handler_process;  // "handler" pid or the process which spawned this one
+  pid_t handler_process;  // Something similar to the child process
 
 } process_t;
 
-void afl_process_init(process_t *);
+void _afl_process_init_(process_t *);
 
-static inline process_t *AFL_PROCESS_INIT(process_t *process,
+static inline process_t *afl_process_init(process_t *process,
                                           pid_t      handler_pid) {
 
   process_t *new_process;
 
   if (process) {
 
-    afl_process_init(process);
-    process->handler_process = (void *)(intptr_t)(handler_pid);
+    _afl_process_init_(process);
+    process->handler_process = handler_pid;
     return process;
 
   }
@@ -61,8 +61,8 @@ static inline process_t *AFL_PROCESS_INIT(process_t *process,
   else {
 
     new_process = ck_alloc(sizeof(process_t));
-    afl_process_init(new_process);
-    new_process->handler_process = (void *)(intptr_t)(handler_pid);
+    _afl_process_init_(new_process);
+    new_process->handler_process = (handler_pid);
 
   }
 
@@ -70,9 +70,9 @@ static inline process_t *AFL_PROCESS_INIT(process_t *process,
 
 }
 
-process_t *   _return_current_(process_t *);
-fork_result_t _do_fork_(process_t *);
-void          _suspend_(process_t *);
-void          _resume_(process_t *);
-exit_type_t   _wait_(process_t *, bool);
+process_t *   return_current_default(process_t *);
+fork_result_t do_fork_default(process_t *);
+void          suspend_default(process_t *);
+void          resume_default(process_t *);
+exit_type_t   wait_default(process_t *, bool);
 

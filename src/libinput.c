@@ -25,7 +25,10 @@
  */
 
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "libinput.h"
+#include "afl-errors.h"
 
 void _afl_input_init_(raw_input_t *input) {
 
@@ -80,35 +83,28 @@ u8 *raw_inp_get_bytes_default(raw_input_t *input) {
 
 u8 raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
 
-  if (!input->len) input->len = DEFAULT_INPUT_LEN;
 
-  FILE *f = fopen((char *)fname, "r");
-  input->bytes = ck_alloc(sizeof(input->len));
+  struct stat st;
+  s32         fd = open((char *)fname, O_RDONLY);
 
-  if (!f) return FILE_OPEN_ERROR;
+  if (fd < 0) { return AFL_ERROR_FILE_OPEN; }
 
-  int  i = 0;
-  char c = '\x00';
+  if (fstat(fd, &st) || !st.st_size) {
 
-  while (c != EOF) {
-
-    c = fgetc(f);
-    input->bytes[i] = c;
-
-    i++;
-
-    if (i >= input->len) {
-
-      input->bytes = ck_realloc(input->bytes, 2 * input->len);
-      input->len = input->len * 2;
-
-    }
+    return AFL_ERROR_FILE_SIZE;
 
   }
 
-  fclose(f);
+  input->len = st.st_size;
+  input->bytes = malloc(input->len);
 
-  return ALL_OK;
+  int ret = read(fd, input->bytes, input->len);
+
+  if (ret != input->len)  { return AFL_ERROR_SHORT_READ; }
+
+  close(fd);
+
+  return 0;
 
 }
 
