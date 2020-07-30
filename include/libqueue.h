@@ -72,16 +72,16 @@ struct queue_entry {
 
 };
 
-void _afl_queue_entry_init_(queue_entry_t *);
+void _afl_queue_entry_init_(queue_entry_t *, raw_input_t *);
 void afl_queue_entry_deinit(queue_entry_t *);
 
-static inline queue_entry_t *afl_queue_entry_init(queue_entry_t *queue_entry) {
+static inline queue_entry_t *afl_queue_entry_init(queue_entry_t *queue_entry, raw_input_t *input) {
 
   queue_entry_t *new_queue_entry = queue_entry;
 
   if (queue_entry) {
 
-    _afl_queue_entry_init_(queue_entry);
+    _afl_queue_entry_init_(queue_entry, input);
 
   }
 
@@ -89,7 +89,7 @@ static inline queue_entry_t *afl_queue_entry_init(queue_entry_t *queue_entry) {
 
     new_queue_entry = calloc(1, sizeof(queue_entry_t));
     if (!new_queue_entry) { return NULL; }
-    _afl_queue_entry_init_(new_queue_entry);
+    _afl_queue_entry_init_(new_queue_entry, input);
 
   }
 
@@ -186,10 +186,35 @@ typedef struct feedback_queue {
 
 } feedback_queue_t;
 
-feedback_queue_t *afl_feedback_queue_init(
+feedback_queue_t *_afl_feedback_queue_init_( feedback_queue_t *,
     struct feedback *, u8 *);  // "constructor" for the above feedback queue
 
 void afl_feedback_queue_deinit(feedback_queue_t *);
+
+
+static inline feedback_queue_t *afl_feedback_queue_init(feedback_queue_t *fbck_queue, struct feedback *feedback, u8 *name) {
+  
+
+  feedback_queue_t *new_fbck_queue = fbck_queue;
+
+  if (fbck_queue) {
+
+    _afl_feedback_queue_init_(fbck_queue, feedback, name);
+
+  }
+
+  else {
+
+    new_fbck_queue = calloc(1, sizeof(feedback_queue_t));
+    if (!new_fbck_queue) { return NULL; }
+
+    _afl_feedback_queue_init_(new_fbck_queue, feedback, name);
+
+  }
+
+  return new_fbck_queue;
+
+}
 
 typedef struct global_queue global_queue_t;
 

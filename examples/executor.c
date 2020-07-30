@@ -7,6 +7,7 @@
 #include "libaflpp.h"
 #include "libobservationchannel.h"
 #include "libos.h"
+#include "libqueue.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -412,7 +413,7 @@ int main(int argc, char **argv) {
   if (argc < 3) {
 
     FATAL(
-        "Usage: ./executor_example /target/path /input/directory "
+        "Usage: ./executor /target/path /input/directory "
         "/out/file/path ");
 
   }
@@ -438,14 +439,20 @@ int main(int argc, char **argv) {
 
   fsrv->super.funcs.init_cb(fsrv, argv);
 
+  /* Let's create a simple feedback queue now which we'll use to get feedback from the obs channel given*/
+
+  feedback_queue_t * queue = afl_feedback_queue_init(NULL, NULL, NULL); // We are initializing a new queue for which feedback will be added later.
+
   if (!(dir_in = opendir(in_dir))) {
 
     PFATAL("cannot open directory %s", in_dir);
 
   }
 
-  raw_input_t * current_input = afl_input_init(NULL);
-  fsrv->super.current_input = current_input;
+  raw_input_t * input;
+  fsrv->super.current_input = input;
+
+  queue_entry_t * queue_entry;
 
   while ((dir_ent = readdir(dir_in))) {
 
@@ -455,15 +462,31 @@ int main(int argc, char **argv) {
 
     }
 
+    input = afl_input_init(NULL);
+
+    queue_entry = afl_queue_entry_init(NULL, input);
+
     snprintf(infile, sizeof(infile), "%s/%s", in_dir, dir_ent->d_name);
 
-    if (fsrv->super.current_input->funcs.load_from_file(fsrv->super.current_input, infile) == AFL_ALL_OK ) {
+    if (input->funcs.load_from_file(input, infile) == AFL_ALL_OK ) {
 
-      fsrv->super.funcs.place_inputs_cb(fsrv, current_input);
-
-      fsrv->super.funcs.run_target_cb(fsrv, 1000, NULL);
+      queue->super.funcs.add_to_queue(queue, queue_entry);
 
     }
+
+  }
+
+  /* Now that the queue is ready, we take each entry from the queue and send it to the target. */
+
+  queue_entry_t * current_entry = queue->super.funcs.get_queue_base(queue);
+
+  while(current_entry) {
+
+    fsrv->super.funcs.place_inputs_cb(fsrv, current_entry->input);
+
+    fsrv->super.funcs.run_target_cb(fsrv, 1000, NULL);
+
+    current_entry = current_entry->next;
 
   }
 

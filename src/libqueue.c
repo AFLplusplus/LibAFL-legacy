@@ -27,7 +27,9 @@
 #include "libqueue.h"
 
 // We start with the implementation of queue_entry functions here.
-void _afl_queue_entry_init_(queue_entry_t *entry) {
+void _afl_queue_entry_init_(queue_entry_t *entry, raw_input_t * input) {
+
+  entry->input = input;
 
   entry->funcs.get_input = get_input_default;
   entry->funcs.get_next = get_next_default;
@@ -156,9 +158,7 @@ void set_directory_default(base_queue_t *queue, u8 *new_dirpath) {
 
 }
 
-feedback_queue_t *afl_feedback_queue_init(struct feedback *feedback, u8 *name) {
-
-  feedback_queue_t *fbck_queue = ck_alloc(sizeof(feedback_queue_t));
+feedback_queue_t *_afl_feedback_queue_init_(feedback_queue_t * fbck_queue, struct feedback *feedback, u8 *name) {
 
   afl_base_queue_init(&(fbck_queue->super));
   fbck_queue->feedback = feedback;
