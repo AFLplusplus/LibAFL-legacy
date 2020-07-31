@@ -26,7 +26,9 @@
 
 #include "libfeedback.h"
 
-void _afl_feedback_init_(feedback_t *feedback) {
+void _afl_feedback_init_(feedback_t *feedback, feedback_queue_t * queue) {
+
+  feedback->queue = queue;
 
   feedback->funcs.set_feedback_queue = set_feedback_queue_default;
   feedback->funcs.get_feedback_queue = get_feedback_queue_default;

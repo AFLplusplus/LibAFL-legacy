@@ -34,6 +34,8 @@
 #include <types.h>
 #include "afl-errors.h"
 
+#define MAX_OBS_CHANNELS 5
+
 /*
 This is the generic forkserver interface that we have, in order to use the
 library to build something, agin "inherit" from this struct (yes, we'll be
@@ -51,8 +53,8 @@ struct executor_functions {
   u8 (*place_inputs_cb)(
       executor_t *, raw_input_t *);  // similar to the write_to_testcase function in afl.
 
-  list_t (*get_observation_channels)(
-      executor_t *);  // Getter function for observation channels list
+  observation_channel_t * (*get_observation_channels)(
+      executor_t *, size_t);  // Getter function for observation channels list
 
   u8 (*add_observation_channel)(
       executor_t *,
@@ -67,7 +69,7 @@ struct executor_functions {
 
 struct executor {
 
-  list_t observors;  // This will be swapped for the observation channel once
+  observation_channel_t * observors[MAX_OBS_CHANNELS];  // This will be swapped for the observation channel once
                      // its ready
 
   u32 observors_num;
@@ -83,7 +85,7 @@ list_t afl_executor_list;  // We'll be maintaining a list of executors.
 void   _afl_executor_init_(executor_t *);
 void   afl_executor_deinit(executor_t *);
 u8     add_observation_channel_default(executor_t *, observation_channel_t *);
-list_t get_observation_channels_default(executor_t *);
+observation_channel_t * get_observation_channels_default(executor_t *, size_t);
 raw_input_t *get_current_input_default(executor_t *);
 
 // Function used to initialize an executor, pass a NULL ptr if you want a new

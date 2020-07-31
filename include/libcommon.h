@@ -95,3 +95,8 @@ enum common_status_flags { ALL_OK = 0, FILE_OPEN_ERROR = 1 };
 
 #endif
 
+
+void * insert_substring(void * buf, size_t len, void * token, size_t token_len, size_t offset);
+int rand_below(size_t limit);
+size_t erase_bytes(void * buf, size_t len, size_t offset, size_t remove_len);
+void * insert_bytes(void * buf, size_t len, u8 byte, size_t insert_len, size_t offset);

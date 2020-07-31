@@ -62,7 +62,6 @@ libaflpp.o: ./src/libaflpp.c ./include/libaflpp.h ./src/libobservationchannel.o 
 
 libaflpp.so: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
 	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
-	# rm ./src/*.o
 
 code-format:
 	./.custom-format.py -i src/*.c

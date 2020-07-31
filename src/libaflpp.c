@@ -47,16 +47,20 @@ void afl_executor_deinit(executor_t *executor) {
 
 u8 add_observation_channel_default(executor_t *           executor,
                                    observation_channel_t *obs_channel) {
+  
+  executor->observors[executor->observors_num] = obs_channel;
 
-  list_append(&executor->observors, obs_channel);
-
+  executor->observors_num++;
+  
   return 0;
 
 }
 
-list_t get_observation_channels_default(executor_t *executor) {
+observation_channel_t * get_observation_channels_default(executor_t *executor, size_t idx) {
 
-  return executor->observors;
+  if (executor->observors_num <= idx) { return NULL; }
+
+  return executor->observors[idx];
 
 }
 
