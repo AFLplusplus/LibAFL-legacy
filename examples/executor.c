@@ -8,6 +8,7 @@
 #include "libobservationchannel.h"
 #include "libos.h"
 #include "libqueue.h"
+#include "libfeedback.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -59,6 +60,17 @@ typedef struct afl_forkserver {
 
 } afl_forkserver_t;
 
+/* We implement a simple map maximising feedback here. */
+typedef struct maximize_map_feedback {
+
+  feedback_t super;
+
+  u8 * virgin_bits;
+  size_t size;
+
+} maximize_map_feedback_t;
+
+
 static u8 *file_data_read;  // When we read an input file, it goes here
 static u32 in_len;          // File Input length
 
@@ -69,6 +81,10 @@ static afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file);
 static exit_type_t       run_target(afl_forkserver_t *fsrv, u32 timeout);
 static u8 place_inputs(afl_forkserver_t *fsrv,raw_input_t * input);
 static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args);
+
+static bool fbck_is_interesting(maximize_map_feedback_t * feedback, executor_t * fsrv);
+static maximize_map_feedback_t * map_feedback_init(feedback_queue_t * queue ,size_t size);
+
 
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
 
@@ -405,6 +421,45 @@ static exit_type_t run_target(afl_forkserver_t *fsrv, u32 timeout) {
   }
 
   return NORMAL;
+
+}
+
+
+/* Init function for the feedback */
+static maximize_map_feedback_t * map_feedback_init(feedback_queue_t * queue ,size_t size) {
+
+  maximize_map_feedback_t * feedback = ck_alloc(sizeof(maximize_map_feedback_t));
+  afl_feedback_init(feedback, queue);
+
+  feedback->super.funcs.is_interesting = fbck_is_interesting;
+
+  feedback->size = ck_alloc(size);
+
+  return feedback;
+
+}
+
+/* We'll implement a simple is_interesting function for the feedback, which checks if new tuples have been hit in the map */
+static bool fbck_is_interesting(maximize_map_feedback_t * feedback, executor_t * fsrv) {
+
+  /* First get the observation channel */
+
+  map_based_channel_t * obs_channel = fsrv->funcs.get_observation_channels(fsrv, 0);
+  bool found = false;
+
+  u8 * trace_bits = obs_channel->shared_map->map;
+  size_t map_size = obs_channel->shared_map->map_size;
+
+  for (size_t i = 0; i < map_size; ++i) {
+    
+    if (trace_bits[i] > feedback->virgin_bits[i]) { 
+      feedback->virgin_bits[i] = trace_bits[i];
+      found = true;
+    }
+    
+  }
+  
+  return found;
 
 }
 
