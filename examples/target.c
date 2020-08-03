@@ -11,6 +11,20 @@ int main() {
 
   int r = read(0, input, 50);
 
+  if ( input[2] == 'B' || input[2] == 'C')  {
+
+    printf("1st block hit");
+
+    int x = 1;
+
+    if (input[2] == 'C') {
+
+      printf("2nd block hit");
+      int y = 2;
+    }
+
+  }
+
   int fd = open("./success", O_RDWR | O_CREAT, 0600);
 
   write(fd, input, 50);

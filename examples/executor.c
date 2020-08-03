@@ -16,6 +16,7 @@
 #include <signal.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -28,18 +29,23 @@
 #define MAP_SIZE 65536
 #define MAX_PATH_LEN 100
 
+#define SUPER_INTERESTING 0.5
+#define VERY_INTERESTING 0.4
+#define INTERESTING 0.3
+
 typedef struct afl_forkserver {
 
   executor_t super;                      /* executer struct to inherit from */
 
   u8 *trace_bits;
-      /* SHM with instrumentation bitmap  */
+  /* SHM with instrumentation bitmap  */
   u8 use_stdin;                         /* use stdin for sending data       */
 
   s32 fsrv_pid,                         /* PID of the fork server           */
       child_pid,                        /* PID of the fuzzed program        */
       child_status,                     /* waitpid result for the child     */
-      out_dir_fd;                       /* FD of the lock file              */
+      out_dir_fd,                       /* FD of the lock file              */
+      dev_null_fd;
 
   s32 out_fd,                           /* Persistent fd for fsrv->out_file */
 
@@ -65,11 +71,10 @@ typedef struct maximize_map_feedback {
 
   feedback_t super;
 
-  u8 * virgin_bits;
+  u8 *   virgin_bits;
   size_t size;
 
 } maximize_map_feedback_t;
-
 
 static u8 *file_data_read;  // When we read an input file, it goes here
 static u32 in_len;          // File Input length
@@ -79,12 +84,27 @@ static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 
 static afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file);
 static exit_type_t       run_target(afl_forkserver_t *fsrv, u32 timeout);
-static u8 place_inputs(afl_forkserver_t *fsrv,raw_input_t * input);
+static u8 place_inputs(afl_forkserver_t *fsrv, raw_input_t *input);
 static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args);
 
-static bool fbck_is_interesting(maximize_map_feedback_t * feedback, executor_t * fsrv);
-static maximize_map_feedback_t * map_feedback_init(feedback_queue_t * queue ,size_t size);
+static float fbck_is_interesting(maximize_map_feedback_t *feedback,
+                                 executor_t *             fsrv);
+static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
+                                                  size_t            size);
 
+static const u8 count_class_binary[256] = {
+
+    [0] = 0,
+    [1] = 1,
+    [2] = 2,
+    [3] = 4,
+    [4 ... 7] = 8,
+    [8 ... 15] = 16,
+    [16 ... 31] = 32,
+    [32 ... 127] = 64,
+    [128 ... 255] = 128
+
+};
 
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
 
@@ -210,6 +230,8 @@ afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file) {
 
   fsrv->out_dir_fd = -1;
 
+  fsrv->dev_null_fd = open("/dev/null", O_WRONLY);
+
   /* Settings */
   fsrv->use_stdin = 1;
 
@@ -246,6 +268,9 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
 
     dup2(fsrv->out_fd, 0);
     close(fsrv->out_fd);
+
+    dup2(fsrv->dev_null_fd, 1);
+    dup2(fsrv->dev_null_fd, 2);
 
     /* Set up control and status pipes, close the unneeded original fds. */
 
@@ -330,7 +355,7 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
 
 };
 
-u8 place_inputs(afl_forkserver_t *fsrv, raw_input_t * input) {
+u8 place_inputs(afl_forkserver_t *fsrv, raw_input_t *input) {
 
   int write_len = write(fsrv->out_fd, input->bytes, input->len);
 
@@ -378,9 +403,6 @@ static exit_type_t run_target(afl_forkserver_t *fsrv, u32 timeout) {
 
   exec_ms = read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, timeout);
 
-  SAYF("Child pid %d Exec ms %d Timeout %d\n", fsrv->child_pid, exec_ms,
-       timeout);
-
   if (exec_ms > timeout) {
 
     /* If there was no response from forkserver after timeout seconds,
@@ -424,42 +446,53 @@ static exit_type_t run_target(afl_forkserver_t *fsrv, u32 timeout) {
 
 }
 
-
 /* Init function for the feedback */
-static maximize_map_feedback_t * map_feedback_init(feedback_queue_t * queue ,size_t size) {
+static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
+                                                  size_t            size) {
 
-  maximize_map_feedback_t * feedback = ck_alloc(sizeof(maximize_map_feedback_t));
+  maximize_map_feedback_t *feedback = ck_alloc(sizeof(maximize_map_feedback_t));
   afl_feedback_init(feedback, queue);
 
   feedback->super.funcs.is_interesting = fbck_is_interesting;
 
-  feedback->size = ck_alloc(size);
+  feedback->virgin_bits = ck_alloc(size);
+  feedback->size = size;
 
   return feedback;
 
 }
 
-/* We'll implement a simple is_interesting function for the feedback, which checks if new tuples have been hit in the map */
-static bool fbck_is_interesting(maximize_map_feedback_t * feedback, executor_t * fsrv) {
+/* We'll implement a simple is_interesting function for the feedback, which
+ * checks if new tuples have been hit in the map */
+static float fbck_is_interesting(maximize_map_feedback_t *feedback,
+                                 executor_t *             fsrv) {
 
   /* First get the observation channel */
 
-  map_based_channel_t * obs_channel = fsrv->funcs.get_observation_channels(fsrv, 0);
+  map_based_channel_t *obs_channel =
+      fsrv->funcs.get_observation_channels(fsrv, 0);
   bool found = false;
 
-  u8 * trace_bits = obs_channel->shared_map->map;
+  float interesting_val;
+
+  u8 *   trace_bits = obs_channel->shared_map->map;
   size_t map_size = obs_channel->shared_map->map_size;
 
   for (size_t i = 0; i < map_size; ++i) {
-    
-    if (trace_bits[i] > feedback->virgin_bits[i]) { 
+
+    if (trace_bits[i] >= feedback->virgin_bits[i]) {
+
+      interesting_val += (float)(1 / (1 + (int)log2((double)(trace_bits[i]))));
       feedback->virgin_bits[i] = trace_bits[i];
       found = true;
+
     }
-    
+
   }
-  
-  return found;
+
+  interesting_val = interesting_val / (1 + interesting_val);
+
+  return interesting_val;
 
 }
 
@@ -494,9 +527,12 @@ int main(int argc, char **argv) {
 
   fsrv->super.funcs.init_cb(fsrv, argv);
 
-  /* Let's create a simple feedback queue now which we'll use to get feedback from the obs channel given*/
+  /* Let's create a simple feedback queue now which we'll use to get feedback
+   * from the obs channel given*/
 
-  feedback_queue_t * queue = afl_feedback_queue_init(NULL, NULL, NULL); // We are initializing a new queue for which feedback will be added later.
+  feedback_queue_t *queue = afl_feedback_queue_init(
+      NULL, NULL, NULL);  // We are initializing a new queue for which feedback
+                          // will be added later.
 
   if (!(dir_in = opendir(in_dir))) {
 
@@ -504,10 +540,10 @@ int main(int argc, char **argv) {
 
   }
 
-  raw_input_t * input;
+  raw_input_t *input;
   fsrv->super.current_input = input;
 
-  queue_entry_t * queue_entry;
+  queue_entry_t *queue_entry;
 
   while ((dir_ent = readdir(dir_in))) {
 
@@ -523,7 +559,7 @@ int main(int argc, char **argv) {
 
     snprintf(infile, sizeof(infile), "%s/%s", in_dir, dir_ent->d_name);
 
-    if (input->funcs.load_from_file(input, infile) == AFL_ALL_OK ) {
+    if (input->funcs.load_from_file(input, infile) == AFL_ALL_OK) {
 
       queue->super.funcs.add_to_queue(queue, queue_entry);
 
@@ -531,15 +567,25 @@ int main(int argc, char **argv) {
 
   }
 
-  /* Now that the queue is ready, we take each entry from the queue and send it to the target. */
+  /* Feedback initialization */
 
-  queue_entry_t * current_entry = queue->super.funcs.get_queue_base(queue);
+  maximize_map_feedback_t *feedback =
+      map_feedback_init(queue, trace_bits_channel->shared_map->map_size);
 
-  while(current_entry) {
+  /* Now that the queue is ready, we take each entry from the queue and send it
+   * to the target. */
+
+  queue_entry_t *current_entry = queue->super.funcs.get_queue_base(queue);
+
+  while (current_entry) {
 
     fsrv->super.funcs.place_inputs_cb(fsrv, current_entry->input);
 
     fsrv->super.funcs.run_target_cb(fsrv, 1000, NULL);
+
+    float score_value = feedback->super.funcs.is_interesting(feedback, fsrv);
+
+    SAYF("input %10s Perf score %4f \n", current_entry->input->bytes, score_value);
 
     current_entry = current_entry->next;
 

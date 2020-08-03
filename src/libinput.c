@@ -83,24 +83,19 @@ u8 *raw_inp_get_bytes_default(raw_input_t *input) {
 
 u8 raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
 
-
   struct stat st;
   s32         fd = open((char *)fname, O_RDONLY);
 
   if (fd < 0) { return AFL_ERROR_FILE_OPEN; }
 
-  if (fstat(fd, &st) || !st.st_size) {
-
-    return AFL_ERROR_FILE_SIZE;
-
-  }
+  if (fstat(fd, &st) || !st.st_size) { return AFL_ERROR_FILE_SIZE; }
 
   input->len = st.st_size;
   input->bytes = malloc(input->len);
 
   int ret = read(fd, input->bytes, input->len);
 
-  if (ret != input->len)  { return AFL_ERROR_SHORT_READ; }
+  if (ret != input->len) { return AFL_ERROR_SHORT_READ; }
 
   close(fd);
 

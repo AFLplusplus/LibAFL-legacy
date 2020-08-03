@@ -122,13 +122,14 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
 
 int rand_below(size_t limit) {
 
-  return rand()%limit;
+  return rand() % limit;
 
 }
 
-void * insert_substring(void * buf, size_t len, void * token, size_t token_len, size_t offset) {
+void *insert_substring(void *buf, size_t len, void *token, size_t token_len,
+                       size_t offset) {
 
-  void * new_buf = maybe_grow(&buf, &len, len + token_len);
+  void *new_buf = maybe_grow(&buf, &len, len + token_len);
 
   memcpy(new_buf, buf, offset);
 
@@ -140,21 +141,23 @@ void * insert_substring(void * buf, size_t len, void * token, size_t token_len, 
 
 }
 
-void * insert_bytes(void * buf, size_t len, u8 byte, size_t insert_len, size_t offset) {
+void *insert_bytes(void *buf, size_t len, u8 byte, size_t insert_len,
+                   size_t offset) {
 
-  void * new_buf = maybe_grow(&buf, &len, len + insert_len);
+  void *new_buf = maybe_grow(&buf, &len, len + insert_len);
 
   memcpy(new_buf, buf, offset);
 
   memset(new_buf + offset, byte, insert_len);
 
-  memcpy(new_buf + offset + insert_len, buf + offset + insert_len, len - offset);
+  memcpy(new_buf + offset + insert_len, buf + offset + insert_len,
+         len - offset);
 
   return new_buf;
 
 }
 
-size_t erase_bytes(void * buf, size_t len, size_t offset, size_t remove_len) {
+size_t erase_bytes(void *buf, size_t len, size_t offset, size_t remove_len) {
 
   memcpy(buf + offset, buf + offset + remove_len, len - offset - remove_len);
   memset(buf + len - remove_len, 0x0, remove_len);

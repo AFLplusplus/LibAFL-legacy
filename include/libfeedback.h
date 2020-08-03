@@ -67,7 +67,8 @@ feedback_queue_t *get_feedback_queue_default(feedback_t *);
 void afl_feedback_deinit(feedback_t *);
 void _afl_feedback_init_(feedback_t *, feedback_queue_t *);
 
-static inline feedback_t *afl_feedback_init(feedback_t *feedback, feedback_queue_t * queue) {
+static inline feedback_t *afl_feedback_init(feedback_t *      feedback,
+                                            feedback_queue_t *queue) {
 
   feedback_t *new_feedback = feedback;
 

@@ -51,9 +51,10 @@ struct executor_functions {
   u8 (*run_target_cb)(executor_t *, u32,
                       void *);  // Similar to afl_fsrv_run_target we have in afl
   u8 (*place_inputs_cb)(
-      executor_t *, raw_input_t *);  // similar to the write_to_testcase function in afl.
+      executor_t *,
+      raw_input_t *);  // similar to the write_to_testcase function in afl.
 
-  observation_channel_t * (*get_observation_channels)(
+  observation_channel_t *(*get_observation_channels)(
       executor_t *, size_t);  // Getter function for observation channels list
 
   u8 (*add_observation_channel)(
@@ -69,8 +70,9 @@ struct executor_functions {
 
 struct executor {
 
-  observation_channel_t * observors[MAX_OBS_CHANNELS];  // This will be swapped for the observation channel once
-                     // its ready
+  observation_channel_t
+      *observors[MAX_OBS_CHANNELS];  // This will be swapped for the observation
+                                     // channel once its ready
 
   u32 observors_num;
 
@@ -82,11 +84,11 @@ struct executor {
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-void   _afl_executor_init_(executor_t *);
-void   afl_executor_deinit(executor_t *);
-u8     add_observation_channel_default(executor_t *, observation_channel_t *);
-observation_channel_t * get_observation_channels_default(executor_t *, size_t);
-raw_input_t *get_current_input_default(executor_t *);
+void _afl_executor_init_(executor_t *);
+void afl_executor_deinit(executor_t *);
+u8   add_observation_channel_default(executor_t *, observation_channel_t *);
+observation_channel_t *get_observation_channels_default(executor_t *, size_t);
+raw_input_t *          get_current_input_default(executor_t *);
 
 // Function used to initialize an executor, pass a NULL ptr if you want a new
 // base executor, pass the base executor if you already have inherited it and

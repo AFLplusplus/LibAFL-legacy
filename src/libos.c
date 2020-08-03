@@ -76,8 +76,8 @@ void resume_default(process_t *process) {
 exit_type_t wait_default(process_t *process, bool untraced) {
 
   int status = 0;
-  if (waitpid((process->handler_process), &status,
-              untraced ? WUNTRACED : 0) < 0)
+  if (waitpid((process->handler_process), &status, untraced ? WUNTRACED : 0) <
+      0)
     return -1;  // Waitpid fails here, how should we handle this?
 
   if (WIFEXITED(status)) return NORMAL;

@@ -34,7 +34,6 @@
 #define HAVOC_BLK_LARGE 1500
 #define HAVOC_BLK_XL 32768
 
-
 void _afl_mutator_init_(mutator_t *mutator, stage_t *stage) {
 
   mutator->stage = stage;
@@ -127,6 +126,7 @@ static size_t choose_block_len(size_t limit) {
 
   size_t min_value, max_value;
   switch (rand_below(3)) {
+
     case 0:
       min_value = 1;
       max_value = HAVOC_BLK_SMALL;
@@ -137,70 +137,75 @@ static size_t choose_block_len(size_t limit) {
       break;
     default:
       if (rand_below(10)) {
+
         min_value = HAVOC_BLK_MEDIUM;
         max_value = HAVOC_BLK_LARGE;
+
       } else {
+
         min_value = HAVOC_BLK_LARGE;
         max_value = HAVOC_BLK_XL;
+
       }
+
   }
 
   if (min_value >= limit) min_value = 1;
 
-  return min_value + rand_below((max_value < limit ? max_value : limit) - min_value + 1);
+  return min_value +
+         rand_below((max_value < limit ? max_value : limit) - min_value + 1);
 
 }
 
+void flip_bit_mutation(mutator_t *mutator, raw_input_t *input) {
 
+  int bit = (rand()) % (input->len * 8);
 
-void flip_bit_mutation(mutator_t * mutator, raw_input_t * input) {
-
-  int bit = (rand())%(input->len*8);
-
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8)); 
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
 
 }
 
-void flip_2_bits_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input) {
 
   size_t size = input->len;
 
-  int bit = (rand())%(size<<3);
+  int bit = (rand()) % (size << 3);
 
-  if ((size<<3) - bit > 2)  { return; }
+  if ((size << 3) - bit > 2) { return; }
 
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
   bit++;
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
 
 }
 
-void flip_4_bits_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input) {
 
   size_t size = input->len;
 
-  if (size <= 0)  { return; }
+  if (size <= 0) { return; }
 
-  int bit = (rand())%(size<<3);
+  int bit = (rand()) % (size << 3);
 
-  if ((size<<3) - bit > 4)  { return; }
+  if ((size << 3) - bit > 4) { return; }
 
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
   bit++;
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
   bit++;
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
   bit++;
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
+
 }
 
-void flip_byte_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 
   size_t size = input->len;
 
-  if (size <= 0)  { return; }
+  if (size <= 0) { return; }
 
-  int byte = rand()%size;
+  int byte = rand() % size;
 
   input->bytes[byte] ^= 0xff;
 
@@ -208,24 +213,23 @@ void flip_byte_mutation(mutator_t * mutator, raw_input_t * input) {
 
 }
 
-void flip_2_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
   size_t size = input->len;
 
-  if (size < 2)  { return; }
+  if (size < 2) { return; }
 
   int byte = rand_below(size - 1);
 
   ((u16 *)input->bytes)[byte] ^= 0xffff;
 
-
 }
 
-void flip_4_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
   size_t size = input->len;
 
-  if (size < 4)  { return; }
+  if (size < 4) { return; }
 
   int byte = rand_below(size - 3);
 
@@ -233,10 +237,11 @@ void flip_4_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
 
 }
 
-void random_byte_add_sub_mutation(mutator_t * mutator, raw_input_t * input) {
+void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input) {
+
   size_t size = input->len;
 
-  if (size <= 0)  { return; }
+  if (size <= 0) { return; }
 
   size_t idx = rand_below(size);
 
@@ -245,17 +250,17 @@ void random_byte_add_sub_mutation(mutator_t * mutator, raw_input_t * input) {
 
 }
 
-void random_byte_mutation(mutator_t * mutator, raw_input_t * input) {
+void random_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 
   size_t size = input->len;
-  if (size <= 0)  { return; }
+  if (size <= 0) { return; }
 
   int idx = rand_below(size);
   input->bytes[idx] ^= 1 + rand_below(255);
-  
+
 }
 
-void delete_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
+void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
   size_t size = input->len;
 
@@ -263,17 +268,17 @@ void delete_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
 
   size_t del_len = choose_block_len(size - 1);
   size_t del_from = rand_below(size - del_len + 1);
-  
+
   /* We delete the bytes and then update the new input length*/
   input->len = erase_bytes(input->bytes, size, del_from, del_len);
 
 }
 
-void clone_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
+void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
   size_t size = input->len;
 
-  if ( !size )  { return; }
+  if (!size) { return; }
   int actually_clone = rand_below(4);
 
   size_t clone_from, clone_to, clone_len;
@@ -285,17 +290,18 @@ void clone_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
     clone_len = choose_block_len(size);
     clone_from = rand_below(size - clone_len + 1);
 
-    input->bytes = insert_substring(input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
+    input->bytes = insert_substring(
+        input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
     input->len += clone_len;
 
-  }
-  else {
+  } else {
+
     clone_len = choose_block_len(HAVOC_BLK_XL);
 
     clone_from = 0;
     insert_bytes(input->bytes, size, rand_below(255), clone_len, clone_to);
 
-    input->len += clone_len; 
+    input->len += clone_len;
 
   }
 

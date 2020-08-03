@@ -75,7 +75,8 @@ struct queue_entry {
 void _afl_queue_entry_init_(queue_entry_t *, raw_input_t *);
 void afl_queue_entry_deinit(queue_entry_t *);
 
-static inline queue_entry_t *afl_queue_entry_init(queue_entry_t *queue_entry, raw_input_t *input) {
+static inline queue_entry_t *afl_queue_entry_init(queue_entry_t *queue_entry,
+                                                  raw_input_t *  input) {
 
   queue_entry_t *new_queue_entry = queue_entry;
 
@@ -186,14 +187,14 @@ typedef struct feedback_queue {
 
 } feedback_queue_t;
 
-feedback_queue_t *_afl_feedback_queue_init_( feedback_queue_t *,
-    struct feedback *, u8 *);  // "constructor" for the above feedback queue
+feedback_queue_t *_afl_feedback_queue_init_(
+    feedback_queue_t *, struct feedback *,
+    u8 *);  // "constructor" for the above feedback queue
 
 void afl_feedback_queue_deinit(feedback_queue_t *);
 
-
-static inline feedback_queue_t *afl_feedback_queue_init(feedback_queue_t *fbck_queue, struct feedback *feedback, u8 *name) {
-  
+static inline feedback_queue_t *afl_feedback_queue_init(
+    feedback_queue_t *fbck_queue, struct feedback *feedback, u8 *name) {
 
   feedback_queue_t *new_fbck_queue = fbck_queue;
 
