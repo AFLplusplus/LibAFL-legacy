@@ -65,12 +65,11 @@ typedef struct afl_forkserver {
 
 } afl_forkserver_t;
 
-
 /* Get unix time in microseconds */
 
 static u64 get_cur_time_us(void) {
 
-  struct timeval tv;
+  struct timeval  tv;
   struct timezone tz;
 
   gettimeofday(&tv, &tz);

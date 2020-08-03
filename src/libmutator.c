@@ -334,7 +334,6 @@ void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
     clone_len = choose_block_len(HAVOC_BLK_XL);
 
-    clone_from = 0;
     insert_bytes(input->bytes, size, rand_below(255), clone_len, clone_to);
 
     input->len += clone_len;
