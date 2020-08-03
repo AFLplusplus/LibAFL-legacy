@@ -150,9 +150,11 @@ bool get_save_to_files_default(base_queue_t *queue) {
 
 void set_directory_default(base_queue_t *queue, u8 *new_dirpath) {
 
-  if (!new_dirpath)
+  if (new_dirpath) {
+    queue->dirpath = new_dirpath;
+  } else {
     queue->dirpath = (u8 *)"";  // We are unsetting the directory path
-  queue->dirpath = new_dirpath;
+  }
 
   queue->save_to_files = true;
   // If the dirpath is empty, we make the save_to_files bool as false
