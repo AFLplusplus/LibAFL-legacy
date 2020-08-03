@@ -26,7 +26,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define MAP_SIZE 65536
 #define MAX_PATH_LEN 100
 
 #define SUPER_INTERESTING 0.5
@@ -65,6 +64,20 @@ typedef struct afl_forkserver {
   u8 last_kill_signal;                  /* Signal that killed the child     */
 
 } afl_forkserver_t;
+
+
+/* Get unix time in microseconds */
+
+static u64 get_cur_time_us(void) {
+
+  struct timeval tv;
+  struct timezone tz;
+
+  gettimeofday(&tv, &tz);
+
+  return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
+
+}
 
 /* We implement a simple map maximising feedback here. */
 typedef struct maximize_map_feedback {

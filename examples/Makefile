@@ -1,7 +1,6 @@
-AFL_CC=~/AFLplusplus/afl-clang
-CC=gcc
 AFL_DIR=$(PWD)/../..
-CFLAGS=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -laflpp -lm
+AFL_CC=$(AFL_DIR)/AFLplusplus/afl-clang
+CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -laflpp -lm
 
 all: clean target executor
 
