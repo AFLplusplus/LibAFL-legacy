@@ -209,6 +209,7 @@ static u32 read_file(u8 *in_file) {
   return in_len;
 
 }
+
 #endif
 
 afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file) {
@@ -373,7 +374,11 @@ u8 place_inputs(afl_forkserver_t *fsrv, raw_input_t *input) {
 
   ssize_t write_len = write(fsrv->out_fd, input->bytes, input->len);
 
-  if (write_len < 0 || (size_t) write_len != input->len) { FATAL("Short Write"); }
+  if (write_len < 0 || (size_t)write_len != input->len) {
+
+    FATAL("Short Write");
+
+  }
 
   return write_len;
 
@@ -522,8 +527,8 @@ int main(int argc, char **argv) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
-  u8 *         in_dir = (u8 *)argv[2];
-  u8           infile[MAX_PATH_LEN] = {0};
+  u8 *           in_dir = (u8 *)argv[2];
+  u8             infile[MAX_PATH_LEN] = {0};
 
   afl_forkserver_t *fsrv = fsrv_init((u8 *)argv[1], (u8 *)argv[3]);
 
