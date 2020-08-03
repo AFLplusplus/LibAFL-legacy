@@ -1,6 +1,7 @@
 AFL_DIR=$(PWD)/../..
 AFL_CC=$(AFL_DIR)/AFLplusplus/afl-clang
-CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -laflpp -lm
+# TODO: Disable/fix -Wincompatible-pointer-types
+CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -laflpp -lm -Wall -Wextra -Werror -Wno-incompatible-pointer-types
 
 all: clean target executor
 

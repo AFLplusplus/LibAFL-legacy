@@ -97,7 +97,7 @@ u8 raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
 
   ssize_t ret = read(fd, input->bytes, input->len);
 
-  if ((size_t)ret != input->len) { return AFL_ERROR_SHORT_READ; }
+  if (ret < 0 || (size_t)ret != input->len) { return AFL_ERROR_SHORT_READ; }
 
   close(fd);
 

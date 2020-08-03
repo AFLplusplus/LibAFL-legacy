@@ -88,10 +88,10 @@ typedef struct maximize_map_feedback {
 
 } maximize_map_feedback_t;
 
-static u8 *file_data_read;  // When we read an input file, it goes here
-static u32 in_len;          // File Input length
+/* static u8 *file_data_read;  // When we read an input file, it goes here */
+/* static u32 in_len;          // File Input length */
 
-static u32 read_file(u8 *in_file);
+/* static u32 read_file(u8 *in_file); */
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 
 static afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file);
@@ -104,7 +104,7 @@ static float fbck_is_interesting(maximize_map_feedback_t *feedback,
 static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
                                                   size_t            size);
 
-static const u8 count_class_binary[256] = {
+/* static const u8 count_class_binary[256] = {
 
     [0] = 0,
     [1] = 1,
@@ -116,7 +116,7 @@ static const u8 count_class_binary[256] = {
     [32 ... 127] = 64,
     [128 ... 255] = 128
 
-};
+}; */
 
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
 
@@ -183,12 +183,13 @@ restart_select:
 
 }
 
+#if 0
 /* This function simply reads data from a file and stores it in file_data_read,
  * length in in_len*/
 static u32 read_file(u8 *in_file) {
 
   struct stat st;
-  s32         fd = open(in_file, O_RDONLY);
+  s32         fd = open((char *)in_file, O_RDONLY);
 
   if (fd < 0) { WARNF("Unable to open '%s'", in_file); }
 
@@ -208,6 +209,7 @@ static u32 read_file(u8 *in_file) {
   return in_len;
 
 }
+#endif
 
 afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file) {
 
@@ -236,7 +238,7 @@ afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file) {
 
   } else {
 
-    fsrv->out_fd = open(fsrv->out_file, O_WRONLY | O_CREAT, 0600);
+    fsrv->out_fd = open((char *)fsrv->out_file, O_WRONLY | O_CREAT, 0600);
 
   }
 
@@ -276,7 +278,7 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
 
     setsid();
 
-    fsrv->out_fd = open(fsrv->out_file, O_RDONLY | O_CREAT, 0600);
+    fsrv->out_fd = open((char *)fsrv->out_file, O_RDONLY | O_CREAT, 0600);
 
     dup2(fsrv->out_fd, 0);
     close(fsrv->out_fd);
@@ -294,7 +296,7 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
     close(st_pipe[0]);
     close(st_pipe[1]);
 
-    execv(fsrv->target_path, extra_args);
+    execv((char *)fsrv->target_path, extra_args);
 
     /* Use a distinctive bitmap signature to tell the parent about execv()
        falling through. */
@@ -369,9 +371,9 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
 
 u8 place_inputs(afl_forkserver_t *fsrv, raw_input_t *input) {
 
-  int write_len = write(fsrv->out_fd, input->bytes, input->len);
+  ssize_t write_len = write(fsrv->out_fd, input->bytes, input->len);
 
-  if (write_len != input->len) { FATAL("Short Write"); }
+  if (write_len < 0 || (size_t) write_len != input->len) { FATAL("Short Write"); }
 
   return write_len;
 
@@ -485,7 +487,7 @@ static float fbck_is_interesting(maximize_map_feedback_t *feedback,
       fsrv->funcs.get_observation_channels(fsrv, 0);
   bool found = false;
 
-  float interesting_val;
+  float interesting_val = 0.0;
 
   u8 *   trace_bits = obs_channel->shared_map->map;
   size_t map_size = obs_channel->shared_map->map_size;
@@ -520,10 +522,10 @@ int main(int argc, char **argv) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
-  u8 *           in_dir = argv[2];
-  u8             infile[MAX_PATH_LEN] = {0};
+  u8 *         in_dir = (u8 *)argv[2];
+  u8           infile[MAX_PATH_LEN] = {0};
 
-  afl_forkserver_t *fsrv = fsrv_init(argv[1], argv[3]);
+  afl_forkserver_t *fsrv = fsrv_init((u8 *)argv[1], (u8 *)argv[3]);
 
   /* Let's now create a simple map-based observation channel and add it to the
    * executor */
@@ -533,7 +535,7 @@ int main(int argc, char **argv) {
 
   /* for the fsrv to work, we also need a set __AFL_SHM_FD env variable */
   u8 *shm_str = alloc_printf("%d", trace_bits_channel->shared_map->shm_id);
-  setenv("__AFL_SHM_ID", shm_str, 1);
+  setenv("__AFL_SHM_ID", (char *)shm_str, 1);
 
   fsrv->trace_bits = trace_bits_channel->shared_map->map;
 
@@ -546,13 +548,13 @@ int main(int argc, char **argv) {
       NULL, NULL, NULL);  // We are initializing a new queue for which feedback
                           // will be added later.
 
-  if (!(dir_in = opendir(in_dir))) {
+  if (!(dir_in = opendir((char *)in_dir))) {
 
     PFATAL("cannot open directory %s", in_dir);
 
   }
 
-  raw_input_t *input;
+  raw_input_t *input = NULL;
   fsrv->super.current_input = input;
 
   queue_entry_t *queue_entry;
@@ -566,10 +568,11 @@ int main(int argc, char **argv) {
     }
 
     input = afl_input_init(NULL);
+    fsrv->super.current_input = input;
 
     queue_entry = afl_queue_entry_init(NULL, input);
 
-    snprintf(infile, sizeof(infile), "%s/%s", in_dir, dir_ent->d_name);
+    snprintf((char *)infile, sizeof(infile), "%s/%s", in_dir, dir_ent->d_name);
 
     if (input->funcs.load_from_file(input, infile) == AFL_ALL_OK) {
 
