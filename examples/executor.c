@@ -585,7 +585,8 @@ int main(int argc, char **argv) {
 
     float score_value = feedback->super.funcs.is_interesting(feedback, fsrv);
 
-    SAYF("input %10s Perf score %4f \n", current_entry->input->bytes, score_value);
+    SAYF("input %10s Perf score %4f \n", current_entry->input->bytes,
+         score_value);
 
     current_entry = current_entry->next;
 

@@ -25,6 +25,8 @@
 #include "stdbool.h"
 #include "afl-errors.h"
 
+#define UNUSED(x) (void)(x)
+
 void _afl_executor_init_(executor_t *executor) {
 
   executor->current_input = NULL;
@@ -80,8 +82,11 @@ This will be the entrypoint of a new thread when it is created (for each
 executor instance).*/
 u8 fuzz_start(executor_t *executor) {
 
+  UNUSED(executor);
+
   /* TODO: Implementation yet to be done based on design changes. Will be moved
    * to fuzz_one */
+
   return 0;
 
 }

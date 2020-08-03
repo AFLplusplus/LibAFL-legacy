@@ -34,6 +34,8 @@
 #define HAVOC_BLK_LARGE 1500
 #define HAVOC_BLK_XL 32768
 
+#define UNUSED(x) (void)(x)
+
 void _afl_mutator_init_(mutator_t *mutator, stage_t *stage) {
 
   mutator->stage = stage;
@@ -59,6 +61,8 @@ stage_t *get_mutator_stage_default(mutator_t *mutator) {
 
 void mutator_init_default(mutator_t *mutator) {
 
+  UNUSED(mutator);
+
   /* TODO: Implementation */
   return;
 
@@ -66,12 +70,20 @@ void mutator_init_default(mutator_t *mutator) {
 
 size_t trim_default(mutator_t *mutator, u8 *mem, u8 *new_mem) {
 
+  UNUSED(mutator);
+  UNUSED(mem);
+  UNUSED(new_mem);
+
   /* TODO: Implementation */
   return 0;
 
 };
 
 size_t mutate_default(mutator_t *mutator, raw_input_t *input, size_t size) {
+
+  UNUSED(mutator);
+  UNUSED(size);
+  UNUSED(input);
 
   /* TODO: Implementation */
   return 0;
@@ -108,12 +120,16 @@ void add_mutator_default(scheduled_mutator_t *mutator,
 
 int iterations_default(scheduled_mutator_t *mutator) {
 
+  UNUSED(mutator);
+
   /* TODO: Implementation */
   return 0;
 
 };
 
 int schedule_default(scheduled_mutator_t *mutator) {
+
+  UNUSED(mutator);
 
   /* TODO: Implementation */
   return 0;
@@ -159,6 +175,8 @@ static size_t choose_block_len(size_t limit) {
 
 void flip_bit_mutation(mutator_t *mutator, raw_input_t *input) {
 
+  UNUSED(mutator);
+
   int bit = (rand()) % (input->len * 8);
 
   input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
@@ -166,6 +184,8 @@ void flip_bit_mutation(mutator_t *mutator, raw_input_t *input) {
 }
 
 void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input) {
+
+  UNUSED(mutator);
 
   size_t size = input->len;
 
@@ -180,6 +200,8 @@ void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input) {
 }
 
 void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input) {
+
+  UNUSED(mutator);
 
   size_t size = input->len;
 
@@ -201,6 +223,8 @@ void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input) {
 
 void flip_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 
+  UNUSED(mutator);
+
   size_t size = input->len;
 
   if (size <= 0) { return; }
@@ -215,6 +239,8 @@ void flip_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 
 void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
+  UNUSED(mutator);
+
   size_t size = input->len;
 
   if (size < 2) { return; }
@@ -227,6 +253,8 @@ void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
 void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
+  UNUSED(mutator);
+
   size_t size = input->len;
 
   if (size < 4) { return; }
@@ -238,6 +266,8 @@ void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 }
 
 void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input) {
+
+  UNUSED(mutator);
 
   size_t size = input->len;
 
@@ -252,6 +282,8 @@ void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input) {
 
 void random_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 
+  UNUSED(mutator);
+
   size_t size = input->len;
   if (size <= 0) { return; }
 
@@ -261,6 +293,8 @@ void random_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 }
 
 void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
+
+  UNUSED(mutator);
 
   size_t size = input->len;
 
@@ -275,6 +309,8 @@ void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 }
 
 void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
+
+  UNUSED(mutator);
 
   size_t size = input->len;
 

@@ -30,6 +30,8 @@
 #include "libinput.h"
 #include "afl-errors.h"
 
+#define UNUSED(x) (void)(x)
+
 void _afl_input_init_(raw_input_t *input) {
 
   input->funcs.clear = raw_inp_clear_default;
@@ -93,9 +95,9 @@ u8 raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
   input->len = st.st_size;
   input->bytes = malloc(input->len);
 
-  int ret = read(fd, input->bytes, input->len);
+  ssize_t ret = read(fd, input->bytes, input->len);
 
-  if (ret != input->len) { return AFL_ERROR_SHORT_READ; }
+  if ((size_t)ret != input->len) { return AFL_ERROR_SHORT_READ; }
 
   close(fd);
 
@@ -127,12 +129,16 @@ u8 raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
 
 raw_input_t *raw_inp_empty_default(raw_input_t *input) {
 
+  UNUSED(input);
+
   /* TODO: Implementation */
   return NULL;
 
 }
 
 u8 *raw_inp_serialize_default(raw_input_t *input) {
+
+  UNUSED(input);
 
   /* TODO: Implementation */
   return NULL;

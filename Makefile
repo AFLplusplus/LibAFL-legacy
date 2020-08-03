@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -O0 -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Werror
+CFLAGS=-g -O0 -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Wextra -Werror
 LDFLAGS=-shared
 
 all:	libaflpp.so

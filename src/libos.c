@@ -6,8 +6,12 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+#define UNUSED(x) (void)(x)
+
 // Crash related functions
 void dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
+
+  UNUSED(exit_type);
 
   char *filename = ck_alloc(100);
 
@@ -37,6 +41,8 @@ void _afl_process_init_(process_t *process) {
 }
 
 process_t *return_current_default(process_t *process) {
+
+  UNUSED(process);
 
   if (current_process) return current_process;
 

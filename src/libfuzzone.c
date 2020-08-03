@@ -25,6 +25,8 @@
 #include "libengine.h"
 #include "list.h"
 
+#define UNUSED(x) (void)(x)
+
 void _afl_fuzz_one_init_(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
@@ -38,6 +40,8 @@ void _afl_fuzz_one_init_(fuzz_one_t *fuzz_one, engine_t *engine) {
 }
 
 int perform_default(fuzz_one_t *fuzz_one) {
+
+  UNUSED(fuzz_one);
 
   // Implement after Stage is created.
 
