@@ -170,7 +170,7 @@ feedback_queue_t *_afl_feedback_queue_init_(feedback_queue_t *fbck_queue,
                                             struct feedback * feedback,
                                             u8 *              name) {
 
-  afl_base_queue_init(&(fbck_queue->super));
+  afl_base_queue_init(&(fbck_queue->base));
   fbck_queue->feedback = feedback;
 
   if (!name) name = (u8 *)"";
@@ -191,7 +191,7 @@ void afl_feedback_queue_deinit(feedback_queue_t *feedback) {
 
 void _afl_global_queue_init_(global_queue_t *global_queue) {
 
-  afl_base_queue_init(&(global_queue->super));
+  afl_base_queue_init(&(global_queue->base));
 
   global_queue->extra_funcs.add_feedback_queue = add_feedback_queue_default;
   global_queue->extra_funcs.schedule = global_schedule_default;

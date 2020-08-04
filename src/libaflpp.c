@@ -35,6 +35,8 @@ void _afl_executor_init_(executor_t *executor) {
   executor->funcs.add_observation_channel = add_observation_channel_default;
   executor->funcs.get_observation_channels = get_observation_channels_default;
   executor->funcs.get_current_input = get_current_input_default;
+  executor->funcs.reset_observation_channels =
+      reset_observation_channel_default;
 
 }
 
@@ -70,6 +72,21 @@ observation_channel_t *get_observation_channels_default(executor_t *executor,
 raw_input_t *get_current_input_default(executor_t *executor) {
 
   return executor->current_input;
+
+}
+
+void reset_observation_channel_default(executor_t *executor) {
+
+  for (size_t i = 0; i < executor->observors_num; ++i) {
+
+    observation_channel_t *obs_channel = executor->observors[i];
+    if (obs_channel->funcs.post_exec) {
+
+      obs_channel->funcs.post_exec(executor->observors[i]);
+
+    }
+
+  }
 
 }
 

@@ -93,7 +93,7 @@ size_t mutate_default(mutator_t *mutator, raw_input_t *input, size_t size) {
 scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *stage) {
 
   scheduled_mutator_t *sched_mut = ck_alloc(sizeof(scheduled_mutator_t));
-  afl_mutator_init(&(sched_mut->super), stage);
+  afl_mutator_init(&(sched_mut->base), stage);
 
   sched_mut->extra_funcs.add_mutator = add_mutator_default;
   sched_mut->extra_funcs.iterations = iterations_default;

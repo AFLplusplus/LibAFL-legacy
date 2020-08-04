@@ -79,7 +79,7 @@ struct fuzzing_stage_functions {
 
 struct fuzzing_stage {
 
-  stage_t super;  // Standard "inheritence" from stage
+  stage_t base;  // Standard "inheritence" from stage
 
   list_t mutators;  // The list of mutator operators that this stage has
 

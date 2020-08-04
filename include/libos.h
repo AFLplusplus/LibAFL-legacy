@@ -1,3 +1,6 @@
+#ifndef OS_FILE_INCLUDED
+#define OS_FILE_INCLUDED
+
 #include "libcommon.h"
 #include "libinput.h"
 
@@ -75,4 +78,6 @@ fork_result_t do_fork_default(process_t *);
 void          suspend_default(process_t *);
 void          resume_default(process_t *);
 exit_type_t   wait_default(process_t *, bool);
+
+#endif
 

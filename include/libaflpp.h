@@ -31,6 +31,7 @@
 #include "libobservationchannel.h"
 #include "libinput.h"
 #include "list.h"
+#include "libos.h"
 #include <types.h>
 #include "afl-errors.h"
 
@@ -45,11 +46,11 @@ it. See the example forksever executor that we have in examples/
 
 struct executor_functions {
 
-  u8 (*init_cb)(executor_t *, void *);  // can be NULL
-  u8 (*destroy_cb)(executor_t *);       // can be NULL
+  u8 (*init_cb)(executor_t *);     // can be NULL
+  u8 (*destroy_cb)(executor_t *);  // can be NULL
 
-  u8 (*run_target_cb)(executor_t *, u32,
-                      void *);  // Similar to afl_fsrv_run_target we have in afl
+  exit_type_t (*run_target_cb)(
+      executor_t *);  // Similar to afl_fsrv_run_target we have in afl
   u8 (*place_inputs_cb)(
       executor_t *,
       raw_input_t *);  // similar to the write_to_testcase function in afl.
@@ -63,6 +64,9 @@ struct executor_functions {
 
   raw_input_t *(*get_current_input)(
       executor_t *);  // Getter function for the current input
+
+  void (*reset_observation_channels)(
+      executor_t *);  // Reset the observation channels
 
 };
 
@@ -89,6 +93,7 @@ void afl_executor_deinit(executor_t *);
 u8   add_observation_channel_default(executor_t *, observation_channel_t *);
 observation_channel_t *get_observation_channels_default(executor_t *, size_t);
 raw_input_t *          get_current_input_default(executor_t *);
+void                   reset_observation_channel_default(executor_t *);
 
 // Function used to initialize an executor, pass a NULL ptr if you want a new
 // base executor, pass the base executor if you already have inherited it and
@@ -115,13 +120,6 @@ static inline executor_t *afl_executor_init(executor_t *executor) {
 }
 
 #define AFL_EXECUTOR_DEINIT(executor) afl_executor_deinit(executor);
-
-/*
-The generic interface for the feedback for the observation channel, this channel
-is queue specifc.
-*/
-
-u8 fuzz_start(executor_t *);
 
 enum {
 

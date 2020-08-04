@@ -180,7 +180,7 @@ static inline base_queue_t *afl_base_queue_init(base_queue_t *base_queue) {
 
 typedef struct feedback_queue {
 
-  base_queue_t super;  // Inheritence from base queue
+  base_queue_t base;  // Inheritence from base queue
 
   struct feedback *feedback;
   u8 *             name;
@@ -228,7 +228,7 @@ struct global_queue_functions {
 
 struct global_queue {
 
-  base_queue_t super;
+  base_queue_t base;
   list_t feedback_queues;  // One global queue can have multiple feedback queues
 
   size_t feedback_queues_num;

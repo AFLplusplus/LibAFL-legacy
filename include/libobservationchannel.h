@@ -93,7 +93,7 @@ struct map_based_channel_functions {
 
 struct map_based_channel {
 
-  observation_channel_t super;  // Base observation channel "class"
+  observation_channel_t base;  // Base observation channel "class"
 
   afl_sharedmem_t *shared_map;
 

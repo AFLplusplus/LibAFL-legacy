@@ -101,7 +101,7 @@ struct scheduled_mutator_functions {
 
 struct scheduled_mutator {
 
-  mutator_t super;
+  mutator_t base;
   list_t    mutations;
 
   struct scheduled_mutator_functions extra_funcs;

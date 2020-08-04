@@ -12,6 +12,8 @@ int main() {
   int r = read(0, input, 50);
   if (!r) { puts("Error!\n"); }
 
+  printf("In target\n");
+
   if (input[2] == 'B' || input[2] == 'C') {
 
     puts("1st block hit");

@@ -44,7 +44,7 @@ fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 
   fuzzing_stage_t *fuzz_stage = ck_alloc(sizeof(fuzzing_stage_t));
 
-  afl_stage_init(&(fuzz_stage->super), engine);
+  afl_stage_init(&(fuzz_stage->base), engine);
 
   fuzz_stage->funcs.add_mutator_to_stage = add_mutator_to_stage_default;
 
