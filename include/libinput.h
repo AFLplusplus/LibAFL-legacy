@@ -67,7 +67,7 @@ u8 *         raw_inp_serialize_default(raw_input_t *);
 raw_input_t *raw_inp_copy_default(raw_input_t *);
 raw_input_t *raw_inp_empty_default(raw_input_t *);
 u8           raw_inp_restore_default(raw_input_t *, raw_input_t *);
-afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, u8 *fname);
+afl_ret_t    raw_inp_load_from_file_default(raw_input_t *input, u8 *fname);
 u8           raw_inp_save_to_file_default(raw_input_t *, u8 *);
 u8           raw_inp_clear_default(raw_input_t *);
 u8 *         raw_inp_get_bytes_default(raw_input_t *);

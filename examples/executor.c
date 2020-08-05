@@ -532,8 +532,10 @@ int main(int argc, char **argv) {
 
   afl_forkserver_t *fsrv = fsrv_init((u8 *)argv[1], (u8 *)argv[3]);
   if (!fsrv) {
+
     fprintf(stderr, "Could not allocate forkserver.");
     return -1;
+
   }
 
   /* Let's now create a simple map-based observation channel and add it to the
