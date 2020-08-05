@@ -90,21 +90,3 @@ void reset_observation_channel_default(executor_t *executor) {
 
 }
 
-// Functions to allocate and deallocate the standard feedback structs
-
-/* This is the primary function for the entire library, for each executor, we
-would pass it to this function which start fuzzing it, something similar to what
-afl_fuzz's main function does.
-This will be the entrypoint of a new thread when it is created (for each
-executor instance).*/
-u8 fuzz_start(executor_t *executor) {
-
-  UNUSED(executor);
-
-  /* TODO: Implementation yet to be done based on design changes. Will be moved
-   * to fuzz_one */
-
-  return 0;
-
-}
-

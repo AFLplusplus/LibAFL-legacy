@@ -8,6 +8,9 @@
 #include "libos.h"
 #include "libfeedback.h"
 #include "libengine.h"
+#include "libmutator.h"
+#include "libfuzzone.h"
+#include "libstage.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -104,8 +107,8 @@ static u8 fsrv_place_inputs(afl_forkserver_t *fsrv, raw_input_t *input);
 static u8 fsrv_start(afl_forkserver_t *fsrv);
 
 /* Functions related to the feedback defined above */
-static float fbck_is_interesting(maximize_map_feedback_t *feedback,
-                                 executor_t *             fsrv);
+static bool fbck_is_interesting(maximize_map_feedback_t *feedback,
+                                executor_t *             fsrv);
 static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
                                                   size_t            size);
 
@@ -348,7 +351,7 @@ static u8 fsrv_start(afl_forkserver_t *fsrv) {
 
   FATAL("Fork server handshake failed");
 
-};
+}
 
 /* Places input in the executor for the target */
 u8 fsrv_place_inputs(afl_forkserver_t *fsrv, raw_input_t *input) {
@@ -466,8 +469,8 @@ static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
 
 /* We'll implement a simple is_interesting function for the feedback, which
  * checks if new tuples have been hit in the map */
-static float fbck_is_interesting(maximize_map_feedback_t *feedback,
-                                 executor_t *             fsrv) {
+static bool fbck_is_interesting(maximize_map_feedback_t *feedback,
+                                executor_t *             fsrv) {
 
   /* First get the observation channel */
 
@@ -475,28 +478,24 @@ static float fbck_is_interesting(maximize_map_feedback_t *feedback,
       fsrv->funcs.get_observation_channels(fsrv, 0);
   // bool found = false;
 
-  float interesting_val = 0.0;
-
   u8 *   trace_bits = obs_channel->shared_map->map;
   size_t map_size = obs_channel->shared_map->map_size;
 
   for (size_t i = 0; i < map_size; ++i) {
 
-    if (trace_bits[i] >= feedback->virgin_bits[i]) {
-
-      interesting_val += (float)(1 / (1 + (int)log2((double)(trace_bits[i]))));
-      feedback->virgin_bits[i] = trace_bits[i];
-      // found = true;
-
-    }
+    if (trace_bits[i] > feedback->virgin_bits[i]) { found = true; }
 
   }
 
-  if (found) { found = found & 1; }
+  found = true;
 
-  interesting_val = interesting_val / (1 + interesting_val);
+  if (found && feedback->base.queue)  {
+    queue_entry_t * new_entry = afl_queue_entry_init(NULL, fsrv->current_input);
+    // An incompatible ptr type warning has been suppresed here. We pass the feedback queue to the add_to_queue rather than the base_queue
+    feedback->base.queue->base.funcs.add_to_queue(feedback->base.queue, new_entry);
+  }
 
-  return interesting_val;
+  return found;
 
 }
 
@@ -518,7 +517,7 @@ int main(int argc, char **argv) {
 
   /* We initialize the forkserver we want to use here. */
   afl_forkserver_t *fsrv = fsrv_init((u8 *)argv[1], (u8 *)argv[3]);
-  fsrv->exec_tmout = 50;
+  fsrv->exec_tmout = 1000;
   fsrv->extra_args = argv;
 
   fsrv->base.funcs.add_observation_channel(fsrv, trace_bits_channel);
@@ -538,6 +537,24 @@ int main(int argc, char **argv) {
   /* Let's build an engine now */
   engine_t *engine = afl_engine_init(NULL, (executor_t *)fsrv, NULL, NULL);
   engine->funcs.add_feedback(engine, (feedback_t *)feedback);
+
+  fuzz_one_t * fuzz_one = afl_fuzz_one_init(NULL, engine);
+  
+  // We also add the fuzzone to the engine here.
+  engine->fuzz_one = fuzz_one;
+
+  scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_init(NULL, 0);
+
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_byte_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          flip_2_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          flip_4_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          random_byte_add_sub_mutation);
+
+  fuzzing_stage_t * stage = afl_fuzz_stage_init(engine);
+  stage->funcs.add_mutator_to_stage(stage, mutators_havoc);
 
   /* Now we can simply load the testcases from the directory given */
   engine->funcs.load_testcases_from_dir(engine, in_dir, NULL);

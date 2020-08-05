@@ -23,6 +23,10 @@
 #include "libstage.h"
 #include "libengine.h"
 #include "libfuzzone.h"
+#include "libmutator.h"
+
+#define UNUSED(x) (void)(x)
+
 
 void _afl_stage_init_(stage_t *stage, engine_t *engine) {
 
@@ -31,6 +35,8 @@ void _afl_stage_init_(stage_t *stage, engine_t *engine) {
   // We also add this stage to the engine's fuzzone
 
   engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage);
+  
+  stage->funcs.iterations = iterations_stage_default;
 
 }
 
@@ -42,11 +48,12 @@ void afl_stage_deinit(stage_t *stage) {
 
 fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 
-  fuzzing_stage_t *fuzz_stage = ck_alloc(sizeof(fuzzing_stage_t));
+  fuzzing_stage_t *fuzz_stage = calloc(sizeof(fuzzing_stage_t), 1);
 
   afl_stage_init(&(fuzz_stage->base), engine);
 
   fuzz_stage->funcs.add_mutator_to_stage = add_mutator_to_stage_default;
+  fuzz_stage->base.funcs.perform = perform_stage_default;
 
   return fuzz_stage;
 
@@ -58,9 +65,39 @@ void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
 
 }
 
-void add_mutator_to_stage_default(fuzzing_stage_t *stage, void *mutator) {
+void add_mutator_to_stage_default(fuzzing_stage_t *stage, mutator_t *mutator) {
 
-  list_append(&(stage->mutators), mutator);
+  stage->mutators[stage->mutators_count] = mutator;
+  stage->mutators_count++;
 
 }
 
+size_t iterations_stage_default(stage_t * stage) {
+
+  UNUSED(stage);
+  return rand_below(128);
+
+}
+
+/* Perform default for fuzzing stage */
+void perform_stage_default(stage_t * stage, raw_input_t * input) {
+
+  // This is to stop from compiler complaining about the incompatible pointer
+  // type for the function ptrs. We need a better solution for this to pass the
+  // scheduled_mutator rather than the mutator as an argument.
+  fuzzing_stage_t * fuzz_stage = (fuzzing_stage_t *)stage;
+
+  size_t num = fuzz_stage->base.funcs.iterations(stage);
+
+  for (size_t i = 0; i < num; ++i) {
+
+    for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
+      mutator_t * mutator = fuzz_stage->mutators[j];
+      mutator->funcs.mutate(mutator, input);
+    }
+
+    stage->engine->funcs.execute(stage->engine, input);
+
+  }
+
+};

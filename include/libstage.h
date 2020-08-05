@@ -23,12 +23,15 @@
 #ifndef STAGE_FILE_INCLUDED
 #define STAGE_FILE_INCLUDED
 
+#define MAX_STAGE_MUTATORS 10
+
 #include "libinput.h"
 #include "list.h"
 
 struct stage_functions {
 
-  void (*perform)(raw_input_t *input, raw_input_t *original);
+  void (*perform)(stage_t *, raw_input_t *input);
+  size_t  (*iterations)(stage_t *);  // A function which tells how many mutated inputs to generate out of a given input
 
 };
 
@@ -39,6 +42,8 @@ struct stage {
 
 };
 
+void perform_stage_default(stage_t *, raw_input_t *);
+size_t iterations_stage_default(stage_t *);
 void _afl_stage_init_(stage_t *, engine_t *);
 void afl_stage_deinit(stage_t *);
 
@@ -73,7 +78,7 @@ typedef struct fuzzing_stage fuzzing_stage_t;
 struct fuzzing_stage_functions {
 
   /* Change the void pointer to a mutator * once it is ready */
-  void (*add_mutator_to_stage)(fuzzing_stage_t *, void *);
+  void (*add_mutator_to_stage)(fuzzing_stage_t *, mutator_t *);
 
 };
 
@@ -81,13 +86,14 @@ struct fuzzing_stage {
 
   stage_t base;  // Standard "inheritence" from stage
 
-  list_t mutators;  // The list of mutator operators that this stage has
+  mutator_t * mutators[MAX_STAGE_MUTATORS];  // The list of mutator operators that this stage has
 
   struct fuzzing_stage_functions funcs;
+  size_t mutators_count;
 
 };
 
-void add_mutator_to_stage_default(fuzzing_stage_t *, void *);
+void add_mutator_to_stage_default(fuzzing_stage_t *, mutator_t *);
 
 fuzzing_stage_t *afl_fuzz_stage_init(engine_t *);
 void             afl_fuzzing_stage_deinit(fuzzing_stage_t *);

@@ -29,21 +29,16 @@
 
 #define ARITH_MAX 35
 
-#define HAVOC_BLK_SMALL 32
+#define HAVOC_BLK_SMALL  32
 #define HAVOC_BLK_MEDIUM 128
-#define HAVOC_BLK_LARGE 1500
-#define HAVOC_BLK_XL 32768
+#define HAVOC_BLK_LARGE  1500
+#define HAVOC_BLK_XL     32768
 
 #define UNUSED(x) (void)(x)
 
 void _afl_mutator_init_(mutator_t *mutator, stage_t *stage) {
 
   mutator->stage = stage;
-
-  mutator->funcs.get_stage = get_mutator_stage_default;
-  mutator->funcs.init = mutator_init_default;
-  mutator->funcs.mutate = mutate_default;
-  mutator->funcs.trim = trim_default;
 
 }
 
@@ -59,53 +54,23 @@ stage_t *get_mutator_stage_default(mutator_t *mutator) {
 
 }
 
-void mutator_init_default(mutator_t *mutator) {
+scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *stage,
+                                                size_t   max_iterations) {
 
-  UNUSED(mutator);
-
-  /* TODO: Implementation */
-  return;
-
-};
-
-size_t trim_default(mutator_t *mutator, u8 *mem, u8 *new_mem) {
-
-  UNUSED(mutator);
-  UNUSED(mem);
-  UNUSED(new_mem);
-
-  /* TODO: Implementation */
-  return 0;
-
-};
-
-size_t mutate_default(mutator_t *mutator, raw_input_t *input, size_t size) {
-
-  UNUSED(mutator);
-  UNUSED(size);
-  UNUSED(input);
-
-  /* TODO: Implementation */
-  return 0;
-
-};
-
-scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *stage) {
-
-  scheduled_mutator_t *sched_mut = ck_alloc(sizeof(scheduled_mutator_t));
+  scheduled_mutator_t *sched_mut = calloc(sizeof(scheduled_mutator_t), 1);
   afl_mutator_init(&(sched_mut->base), stage);
 
+  sched_mut->base.funcs.mutate = mutate_scheduled_mutator_default;
   sched_mut->extra_funcs.add_mutator = add_mutator_default;
   sched_mut->extra_funcs.iterations = iterations_default;
   sched_mut->extra_funcs.schedule = schedule_default;
 
+  sched_mut->max_iterations = (max_iterations > 0) ? max_iterations : 7;
   return sched_mut;
 
 }
 
 void afl_scheduled_mutator_deinit(scheduled_mutator_t *mutator) {
-
-  LIST_FOREACH_CLEAR(&(mutator->mutations), mutator_func_type, {});
 
   free(mutator);
 
@@ -114,29 +79,48 @@ void afl_scheduled_mutator_deinit(scheduled_mutator_t *mutator) {
 void add_mutator_default(scheduled_mutator_t *mutator,
                          mutator_func_type    mutator_func) {
 
-  list_append(&(mutator->mutations), mutator_func);
+  mutator->mutations[mutator->mutators_count] = mutator_func;
+  mutator->mutators_count++;
 
 }
 
 int iterations_default(scheduled_mutator_t *mutator) {
 
-  UNUSED(mutator);
-
-  /* TODO: Implementation */
-  return 0;
+  return 1 << (1 + rand_below(mutator->max_iterations));
 
 };
 
 int schedule_default(scheduled_mutator_t *mutator) {
 
-  UNUSED(mutator);
+  return rand_below(mutator->mutators_count);
 
-  /* TODO: Implementation */
+};
+
+size_t mutate_scheduled_mutator_default(mutator_t *  mutator,
+                                        raw_input_t *input) {
+
+  // This is to stop from compiler complaining about the incompatible pointer
+  // type for the function ptrs. We need a better solution for this to pass the
+  // scheduled_mutator rather than the mutator as an argument.
+  scheduled_mutator_t *scheduled_mutator = (scheduled_mutator_t *)mutator;
+
+  for (int i = 0;
+       i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator); ++i) {
+
+    scheduled_mutator
+        ->mutations[scheduled_mutator->extra_funcs.schedule(scheduled_mutator)](
+            input);
+    
+    SAYF("Iteration done %d times", i);
+
+  }
+
   return 0;
 
 };
 
-/* A few simple mutators that we use over in AFL++  */
+/* A few simple mutators that we use over in AFL++ in the havoc and
+ * deterministic modes*/
 
 static size_t choose_block_len(size_t limit) {
 
@@ -166,16 +150,14 @@ static size_t choose_block_len(size_t limit) {
 
   }
 
-  if (min_value >= limit) min_value = 1;
+  if (min_value >= limit) { min_value = 1; }
 
   return min_value +
          rand_below((max_value < limit ? max_value : limit) - min_value + 1);
 
 }
 
-void flip_bit_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void flip_bit_mutation(raw_input_t *input) {
 
   int bit = (rand()) % (input->len * 8);
 
@@ -183,9 +165,7 @@ void flip_bit_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void flip_2_bits_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
@@ -199,9 +179,7 @@ void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void flip_4_bits_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
@@ -221,9 +199,7 @@ void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-void flip_byte_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void flip_byte_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
@@ -237,9 +213,7 @@ void flip_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void flip_2_bytes_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
@@ -251,9 +225,7 @@ void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void flip_4_bytes_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
@@ -265,9 +237,7 @@ void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void random_byte_add_sub_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
@@ -280,9 +250,7 @@ void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-void random_byte_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void random_byte_mutation(raw_input_t *input) {
 
   size_t size = input->len;
   if (size <= 0) { return; }
@@ -292,9 +260,7 @@ void random_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void delete_bytes_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
@@ -308,9 +274,7 @@ void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
-
-  UNUSED(mutator);
+void clone_bytes_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 

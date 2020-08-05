@@ -31,9 +31,6 @@ void _afl_fuzz_one_init_(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
 
-  // We also add the fuzzone to the engine here.
-  engine->fuzz_one = fuzz_one;
-
   fuzz_one->funcs.add_stage = add_stage_default;
   fuzz_one->funcs.perform = perform_default;
 

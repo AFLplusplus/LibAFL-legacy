@@ -61,6 +61,8 @@ typedef struct stage stage_t;
 
 typedef struct executor executor_t;
 
+typedef struct mutator mutator_t;
+
 // enum to mark common-error (and status) types across the library
 enum common_status_flags { ALL_OK = 0, FILE_OPEN_ERROR = 1 };
 
