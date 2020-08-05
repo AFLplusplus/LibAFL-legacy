@@ -43,9 +43,9 @@ void _afl_executor_init_(executor_t *executor) {
 // Default implementations for executor vtable
 void afl_executor_deinit(executor_t *executor) {
 
-  if (!executor) FATAL("Cannot free a NULL pointer");
+  // if (!executor) ;
 
-  ck_free(executor);
+  free(executor);
 
 }
 

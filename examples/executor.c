@@ -72,21 +72,6 @@ typedef struct afl_forkserver {
 
 } afl_forkserver_t;
 
-/* Get unix time in microseconds */
-#if !defined(__linux__)
-static u64 get_cur_time_us(void) {
-
-  struct timeval  tv;
-  struct timezone tz;
-
-  gettimeofday(&tv, &tz);
-
-  return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
-
-}
-
-#endif
-
 /* We implement a simple map maximising feedback here. */
 typedef struct maximize_map_feedback {
 
@@ -476,7 +461,7 @@ static bool fbck_is_interesting(maximize_map_feedback_t *feedback,
 
   map_based_channel_t *obs_channel =
       fsrv->funcs.get_observation_channels(fsrv, 0);
-  // bool found = false;
+  bool found = false;
 
   u8 *   trace_bits = obs_channel->shared_map->map;
   size_t map_size = obs_channel->shared_map->map_size;
@@ -527,7 +512,7 @@ int main(int argc, char **argv) {
   fsrv->trace_bits = trace_bits_channel->shared_map->map;
 
   /* We create a simple feedback queue here*/
-  feedback_queue_t *queue = afl_feedback_queue_init(NULL, NULL, "fbck queue");
+  feedback_queue_t *queue = afl_feedback_queue_init(NULL, NULL, (u8 *)"fbck queue");
 
   /* Feedback initialization */
   maximize_map_feedback_t *feedback =
@@ -561,11 +546,15 @@ int main(int argc, char **argv) {
 
   OKF("Processed %llu input files.", fsrv->total_execs);
 
-  closedir(dir_in);
+  AFL_ENGINE_DEINIT(engine);
+  afl_map_channel_deinit(trace_bits_channel);
 
-  free(fsrv);
+  AFL_FEEDBACK_QUEUE_DEINIT(queue);
 
   return 0;
 
 }
 
+//  engine->fsrv, fuzzone->stage->mutators, feedback
+//  map_channel->sharedmem
+//  fbck_queue->feedback

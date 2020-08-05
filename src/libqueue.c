@@ -25,6 +25,7 @@
  */
 
 #include "libqueue.h"
+#include "libfeedback.h"
 
 #define UNUSED(x) (void)(x)
 
@@ -181,11 +182,11 @@ feedback_queue_t *_afl_feedback_queue_init_(feedback_queue_t *fbck_queue,
 
 }
 
-void afl_feedback_queue_deinit(feedback_queue_t *feedback) {
+void afl_feedback_queue_deinit(feedback_queue_t *feedback_queue) {
 
-  ck_free(feedback->name);
+  if (feedback_queue->feedback) { AFL_FEEDBACK_DEINIT(feedback_queue->feedback); }
 
-  ck_free(feedback);
+  AFL_BASE_QUEUE_DEINIT((base_queue_t *)feedback_queue);
 
 }
 

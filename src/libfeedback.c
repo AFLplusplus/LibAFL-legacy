@@ -37,9 +37,12 @@ void _afl_feedback_init_(feedback_t *feedback, feedback_queue_t *queue) {
 
 void afl_feedback_deinit(feedback_t *feedback) {
 
-  if (feedback->metadata) ck_free(feedback->metadata);
+  if (feedback->metadata) { free(feedback->metadata); }
 
-  ck_free(feedback);
+  /* Since feedback is freed, we remove it's ptr from the feedback_queue */ 
+  feedback->queue->feedback = NULL;
+
+  free(feedback);
 
 }
 

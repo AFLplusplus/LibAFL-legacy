@@ -106,7 +106,7 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
   shm_str = alloc_printf("%d", shm->shm_id);
   setenv(SHM_ENV_VAR, (char *)shm_str, 1);
 
-  ck_free(shm_str);
+  free(shm_str);
 
   shm->map = shmat(shm->shm_id, NULL, 0);
 

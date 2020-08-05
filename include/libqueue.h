@@ -217,6 +217,8 @@ static inline feedback_queue_t *afl_feedback_queue_init(
 
 }
 
+#define AFL_FEEDBACK_QUEUE_DEINIT(feedback_queue) afl_feedback_queue_deinit(feedback_queue);
+
 typedef struct global_queue global_queue_t;
 
 struct global_queue_functions {

@@ -53,27 +53,27 @@ int add_stage_default(fuzz_one_t *, stage_t *);
 void _afl_fuzz_one_init_(fuzz_one_t *, engine_t *);
 void afl_fuzz_one_deinit(fuzz_one_t *);
 
-static inline fuzz_one_t *afl_fuzz_one_init(fuzz_one_t *fuzzone,
+static inline fuzz_one_t *afl_fuzz_one_init(fuzz_one_t *fuzz_one,
                                             engine_t *  engine) {
 
-  fuzz_one_t *new_fuzzone = fuzzone;
+  fuzz_one_t *new_fuzz_one = fuzz_one;
 
-  if (fuzzone)
-    _afl_fuzz_one_init_(fuzzone, engine);
+  if (fuzz_one)
+    _afl_fuzz_one_init_(fuzz_one, engine);
 
   else {
 
-    new_fuzzone = calloc(1, sizeof(fuzz_one_t));
-    if (!new_fuzzone) return NULL;
-    _afl_fuzz_one_init_(new_fuzzone, engine);
+    new_fuzz_one = calloc(1, sizeof(fuzz_one_t));
+    if (!new_fuzz_one) return NULL;
+    _afl_fuzz_one_init_(new_fuzz_one, engine);
 
   }
 
-  return new_fuzzone;
+  return new_fuzz_one;
 
 }
 
-#define AFL_FUZZ_ONE_DEINIT(fuzzone) afl_fuzz_one_deinit(fuzzone);
+#define AFL_FUZZ_ONE_DEINIT(fuzz_one) afl_fuzz_one_deinit(fuzz_one);
 
 #endif
 

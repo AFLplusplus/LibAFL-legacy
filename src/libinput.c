@@ -69,7 +69,7 @@ raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
 
 u8 raw_inp_deserialize_default(raw_input_t *input, u8 *bytes, size_t len) {
 
-  ck_free(input->bytes);
+  free(input->bytes);
   input->bytes = bytes;
   input->len = len;
 
@@ -120,7 +120,7 @@ u8 raw_inp_save_to_file_default(raw_input_t *input, u8 *fname) {
 
 u8 raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
 
-  ck_free(input->bytes);
+  free(input->bytes);
   input->bytes = new_inp->bytes;
 
   return ALL_OK;

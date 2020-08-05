@@ -42,7 +42,9 @@ void _afl_stage_init_(stage_t *stage, engine_t *engine) {
 
 void afl_stage_deinit(stage_t *stage) {
 
-  ck_free(stage);
+  /* We*/
+
+  free(stage);
 
 }
 
@@ -60,15 +62,26 @@ fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 }
 
 void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
+  
+  /* We free the mutators associated with the stage here */
 
-  ck_free(stage);
+  for (size_t i = 0 ; i < stage->mutators_count; ++i) {
+    
+    AFL_MUTATOR_DEINIT(stage->mutators[i]);
+  }
+
+  free(stage);
 
 }
 
-void add_mutator_to_stage_default(fuzzing_stage_t *stage, mutator_t *mutator) {
+afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage, mutator_t *mutator) {
+
+  if (stage->mutators_count >= MAX_STAGE_MUTATORS)  { return AFL_RET_ARRAY_END; }
 
   stage->mutators[stage->mutators_count] = mutator;
   stage->mutators_count++;
+
+  return AFL_RET_SUCCESS;
 
 }
 

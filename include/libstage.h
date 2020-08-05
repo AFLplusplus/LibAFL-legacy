@@ -66,6 +66,8 @@ static inline stage_t *afl_stage_init(stage_t *stage, engine_t *engine) {
 
 }
 
+#define AFL_STAGE_DEINIT(stage) afl_stage_deinit(stage);
+
 /*
 This structure here represents a single fuzzing stage in  the process. e.g It
 can be used to model a single fuzzing stage in AFL++, like the determinisitc
@@ -78,7 +80,7 @@ typedef struct fuzzing_stage fuzzing_stage_t;
 struct fuzzing_stage_functions {
 
   /* Change the void pointer to a mutator * once it is ready */
-  void (*add_mutator_to_stage)(fuzzing_stage_t *, mutator_t *);
+  afl_ret_t (*add_mutator_to_stage)(fuzzing_stage_t *, mutator_t *);
 
 };
 
@@ -93,7 +95,7 @@ struct fuzzing_stage {
 
 };
 
-void add_mutator_to_stage_default(fuzzing_stage_t *, mutator_t *);
+afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *, mutator_t *);
 
 fuzzing_stage_t *afl_fuzz_stage_init(engine_t *);
 void             afl_fuzzing_stage_deinit(fuzzing_stage_t *);

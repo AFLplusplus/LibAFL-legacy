@@ -86,7 +86,7 @@ void afl_map_channel_deinit(map_based_channel_t *map_channel) {
 
   afl_sharedmem_deinit(map_channel->shared_map);
 
-  free(map_channel);
+  afl_observation_channel_deinit(&(map_channel->base));
 
 }
 

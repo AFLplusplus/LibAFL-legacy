@@ -23,6 +23,7 @@
 #include "libqueue.h"
 #include "libfuzzone.h"
 #include "libengine.h"
+#include "libstage.h"
 #include "list.h"
 
 #define UNUSED(x) (void)(x)
@@ -35,6 +36,16 @@ void _afl_fuzz_one_init_(fuzz_one_t *fuzz_one, engine_t *engine) {
   fuzz_one->funcs.perform = perform_default;
 
 }
+
+void afl_fuzz_one_deinit(fuzz_one_t * fuzz_one) {
+
+  for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
+    AFL_STAGE_DEINIT(fuzz_one->stages[i]);
+  }
+
+  free(fuzz_one);
+
+};
 
 int perform_default(fuzz_one_t *fuzz_one) {
 

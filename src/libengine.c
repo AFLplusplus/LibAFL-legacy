@@ -48,6 +48,18 @@ void _afl_engine_init_(engine_t *engine, executor_t *executor,
 
 void afl_engine_deinit(engine_t *engine) {
 
+  /* Let's free everything associated with the engine here, except the queues, should we leave anything else? */
+
+  AFL_EXECUTOR_DEINIT(engine->executor);
+
+  AFL_FUZZ_ONE_DEINIT(engine->fuzz_one);
+
+  // for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+
+  //   AFL_FEEDBACK_DEINIT(engine->feedbacks[i]);
+
+  // }
+
   free(engine);
 
   /* TODO: Should we free everything else like feedback, etc with engine too */
@@ -96,7 +108,7 @@ int add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
 }
 
-afl_error_t load_testcases_from_dir_default(
+afl_ret_t load_testcases_from_dir_default(
     engine_t *engine, u8 *dirpath, raw_input_t *(*custom_input_init)()) {
 
   DIR *          dir_in;
@@ -104,7 +116,7 @@ afl_error_t load_testcases_from_dir_default(
   u8             infile[PATH_MAX];
 
   raw_input_t *input;
-  size_t       dir_name_size = strlen(dirpath);
+  size_t       dir_name_size = strlen((char *)dirpath);
 
   if (dirpath[dir_name_size - 1] == '/') {
 
@@ -112,7 +124,7 @@ afl_error_t load_testcases_from_dir_default(
 
   }
 
-  if (!(dir_in = opendir(dirpath))) { return AFL_CANNOT_OPEN_DIR; }
+  if (!(dir_in = opendir((char *)dirpath))) { return AFL_RET_FILE_OPEN; }
 
   /* Since, this'll be the first execution, Let's start up the executor here */
 
@@ -150,7 +162,7 @@ afl_error_t load_testcases_from_dir_default(
 
   }
 
-  return AFL_ALL_OK;
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -199,7 +211,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 
     queue_entry_t *entry = afl_queue_entry_init(NULL, input);
 
-    if (!entry) { return AFL_ERROR_ALLOC; }
+    if (!entry) { return AFL_RET_ALLOC; }
 
     global_queue_t *queue = engine->global_queue;
 
