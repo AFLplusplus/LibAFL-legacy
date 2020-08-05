@@ -75,6 +75,7 @@ static u64 get_cur_time_us(void) {
   return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
 
 }
+
 #endif
 
 /* We implement a simple map maximising feedback here. */
@@ -489,7 +490,7 @@ static float fbck_is_interesting(maximize_map_feedback_t *feedback,
 
   map_based_channel_t *obs_channel =
       fsrv->funcs.get_observation_channels(fsrv, 0);
-  //bool found = false;
+  // bool found = false;
 
   float interesting_val = 0.0;
 
@@ -502,7 +503,7 @@ static float fbck_is_interesting(maximize_map_feedback_t *feedback,
 
       interesting_val += (float)(1 / (1 + (int)log2((double)(trace_bits[i]))));
       feedback->virgin_bits[i] = trace_bits[i];
-      //found = true;
+      // found = true;
 
     }
 

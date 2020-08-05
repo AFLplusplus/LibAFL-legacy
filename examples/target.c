@@ -15,12 +15,12 @@ int main() {
   if (input[2] == 'B' || input[2] == 'C') {
 
     puts("1st block hit");
-    //int x = 1;
+    // int x = 1;
 
     if (input[2] == 'C') {
 
       puts("2nd block hit");
-      //int y = 2;
+      // int y = 2;
 
     }
 
