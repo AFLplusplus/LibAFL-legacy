@@ -6,7 +6,7 @@ CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include 
 all: clean target executor
 
 target: ./target.c
-	$(AFL_CC) -g target.c -o target
+	$(AFL_CC) -g target.c -o target $(CFLAGS)
 	mkdir /tmp/inp
 	echo "AAAAAA" > /tmp/inp/a
 	echo "BBBBBB" > /tmp/inp/b

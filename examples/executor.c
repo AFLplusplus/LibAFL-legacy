@@ -26,8 +26,6 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define MAX_PATH_LEN 100
-
 #define SUPER_INTERESTING 0.5
 #define VERY_INTERESTING 0.4
 #define INTERESTING 0.3
@@ -66,7 +64,7 @@ typedef struct afl_forkserver {
 } afl_forkserver_t;
 
 /* Get unix time in microseconds */
-
+#if !defined(__linux__)
 static u64 get_cur_time_us(void) {
 
   struct timeval  tv;
@@ -77,6 +75,7 @@ static u64 get_cur_time_us(void) {
   return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
 
 }
+#endif
 
 /* We implement a simple map maximising feedback here. */
 typedef struct maximize_map_feedback {
@@ -490,7 +489,7 @@ static float fbck_is_interesting(maximize_map_feedback_t *feedback,
 
   map_based_channel_t *obs_channel =
       fsrv->funcs.get_observation_channels(fsrv, 0);
-  bool found = false;
+  //bool found = false;
 
   float interesting_val = 0.0;
 
@@ -503,7 +502,7 @@ static float fbck_is_interesting(maximize_map_feedback_t *feedback,
 
       interesting_val += (float)(1 / (1 + (int)log2((double)(trace_bits[i]))));
       feedback->virgin_bits[i] = trace_bits[i];
-      found = true;
+      //found = true;
 
     }
 
@@ -528,7 +527,7 @@ int main(int argc, char **argv) {
   DIR *          dir_in;
   struct dirent *dir_ent;
   u8 *           in_dir = (u8 *)argv[2];
-  u8             infile[MAX_PATH_LEN] = {0};
+  u8             infile[PATH_MAX] = {0};
 
   afl_forkserver_t *fsrv = fsrv_init((u8 *)argv[1], (u8 *)argv[3]);
 
