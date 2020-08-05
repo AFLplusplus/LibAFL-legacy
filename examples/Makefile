@@ -7,14 +7,20 @@ all: clean target executor
 
 target: ./target.c
 	$(AFL_CC) -g target.c -o target
-	mkdir /tmp/inp
-	echo "AAAAAA" > /tmp/inp/a
-	echo "BBBBBB" > /tmp/inp/b
-	echo "CCCCCC" > /tmp/inp/c
 
 executor: ./executor.c
 	$(CC) executor.c -o executor $(CFLAGS)
 
+test: executor target
+	make -C ..
+	mkdir ./in || true
+	echo "AAAAAA" > ./in/a
+	echo "BBBBBB" > ./in/b
+	echo "CCCCCC" > ./in/c
+	LD_LIBRARY_PATH=.. ./executor ./target ./in ./out
+	rm -rf ./in
+	rm -rf ./out
+
 clean:
 	rm out ./executor ./target ./success 2>/dev/null || true
-	rm -rf /tmp/inp 2>/dev/null	|| true
+	rm -rf ./in 2>/dev/null	|| true

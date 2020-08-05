@@ -28,6 +28,7 @@
 #define INPUT_FILE_INCLUDED
 
 #include "libcommon.h"
+#include "afl-errors.h"
 
 #define DEFAULT_INPUT_LEN 100
 
@@ -40,7 +41,7 @@ struct raw_input_functions {
   raw_input_t *(*copy)(raw_input_t *);
   raw_input_t *(*empty)(raw_input_t *);
   u8 (*restore)(raw_input_t *, raw_input_t *);
-  u8 (*load_from_file)(raw_input_t *, u8 *);
+  afl_ret_t (*load_from_file)(raw_input_t *, u8 *);
   u8 (*save_to_file)(raw_input_t *, u8 *);
   u8 (*clear)(raw_input_t *);
   u8 *(*get_bytes)(raw_input_t *);
@@ -66,7 +67,7 @@ u8 *         raw_inp_serialize_default(raw_input_t *);
 raw_input_t *raw_inp_copy_default(raw_input_t *);
 raw_input_t *raw_inp_empty_default(raw_input_t *);
 u8           raw_inp_restore_default(raw_input_t *, raw_input_t *);
-u8           raw_inp_load_from_file_default(raw_input_t *, u8 *);
+afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, u8 *fname);
 u8           raw_inp_save_to_file_default(raw_input_t *, u8 *);
 u8           raw_inp_clear_default(raw_input_t *);
 u8 *         raw_inp_get_bytes_default(raw_input_t *);
