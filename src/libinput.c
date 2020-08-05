@@ -83,7 +83,7 @@ u8 *raw_inp_get_bytes_default(raw_input_t *input) {
 
 }
 
-u8 raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
+afl_error_t raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
 
   struct stat st;
   s32         fd = open((char *)fname, O_RDONLY);
@@ -94,14 +94,14 @@ u8 raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
 
   input->len = st.st_size;
   input->bytes = malloc(input->len);
+  if (!input->bytes) return { return AFL_ERROR_ALLOC };
 
   ssize_t ret = read(fd, input->bytes, input->len);
+  close(fd);
 
   if (ret < 0 || (size_t)ret != input->len) { return AFL_ERROR_SHORT_READ; }
 
-  close(fd);
-
-  return 0;
+  return AFL_RET_SUCCESS;
 
 }
 

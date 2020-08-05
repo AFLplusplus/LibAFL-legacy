@@ -531,6 +531,10 @@ int main(int argc, char **argv) {
   u8             infile[PATH_MAX] = {0};
 
   afl_forkserver_t *fsrv = fsrv_init((u8 *)argv[1], (u8 *)argv[3]);
+  if (!fsrv) {
+    fprintf(stderr, "Could not allocate forkserver.");
+    return -1;
+  }
 
   /* Let's now create a simple map-based observation channel and add it to the
    * executor */
@@ -579,7 +583,7 @@ int main(int argc, char **argv) {
 
     snprintf((char *)infile, sizeof(infile), "%s/%s", in_dir, dir_ent->d_name);
 
-    if (input->funcs.load_from_file(input, infile) == AFL_ALL_OK) {
+    if (input->funcs.load_from_file(input, infile) == AFL_RET_SUCCESS) {
 
       queue->super.funcs.add_to_queue(queue, queue_entry);
 
@@ -615,6 +619,8 @@ int main(int argc, char **argv) {
   OKF("Processed %llu input files.", fsrv->total_execs);
 
   closedir(dir_in);
+
+  free(fsrv);
 
   return 0;
 

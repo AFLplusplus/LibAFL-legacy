@@ -1,12 +1,12 @@
 AFL_DIR=$(PWD)/../..
 AFL_CC=$(AFL_DIR)/AFLplusplus/afl-clang
 # TODO: Disable/fix -Wincompatible-pointer-types
-CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -laflpp -lm -Wall -Wextra -Werror -Wno-incompatible-pointer-types
+CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -laflpp -lm -Wall -Wextra -Werror -fsanitize=address -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector -Wno-incompatible-pointer-types
 
 all: clean target executor
 
 target: ./target.c
-	$(AFL_CC) -g target.c -o target $(CFLAGS)
+	$(AFL_CC) -g target.c -o target
 	mkdir /tmp/inp
 	echo "AAAAAA" > /tmp/inp/a
 	echo "BBBBBB" > /tmp/inp/b
