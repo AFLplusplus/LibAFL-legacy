@@ -31,7 +31,8 @@
 struct stage_functions {
 
   void (*perform)(stage_t *, raw_input_t *input);
-  size_t  (*iterations)(stage_t *);  // A function which tells how many mutated inputs to generate out of a given input
+  size_t (*iterations)(stage_t *);  // A function which tells how many mutated
+                                    // inputs to generate out of a given input
 
 };
 
@@ -42,10 +43,10 @@ struct stage {
 
 };
 
-void perform_stage_default(stage_t *, raw_input_t *);
+void   perform_stage_default(stage_t *, raw_input_t *);
 size_t iterations_stage_default(stage_t *);
-void _afl_stage_init_(stage_t *, engine_t *);
-void afl_stage_deinit(stage_t *);
+void   _afl_stage_init_(stage_t *, engine_t *);
+void   afl_stage_deinit(stage_t *);
 
 static inline stage_t *afl_stage_init(stage_t *stage, engine_t *engine) {
 
@@ -88,10 +89,11 @@ struct fuzzing_stage {
 
   stage_t base;  // Standard "inheritence" from stage
 
-  mutator_t * mutators[MAX_STAGE_MUTATORS];  // The list of mutator operators that this stage has
+  mutator_t *mutators[MAX_STAGE_MUTATORS];  // The list of mutator operators
+                                            // that this stage has
 
   struct fuzzing_stage_functions funcs;
-  size_t mutators_count;
+  size_t                         mutators_count;
 
 };
 

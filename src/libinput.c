@@ -46,6 +46,14 @@ void _afl_input_init_(raw_input_t *input) {
 
 }
 
+void afl_input_deinit(raw_input_t *input) {
+
+  if (input->bytes) { free(input->bytes); }
+
+  free(input);
+
+}
+
 // default implemenatations for the vtable functions for the raw_input type
 
 u8 raw_inp_clear_default(raw_input_t *input) {

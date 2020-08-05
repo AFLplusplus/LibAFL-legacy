@@ -43,6 +43,23 @@ void _afl_queue_entry_init_(queue_entry_t *entry, raw_input_t *input) {
 
 void afl_queue_entry_deinit(queue_entry_t *entry) {
 
+  /* We remove the element from the linked-list */
+
+  if (entry->next) { entry->next->prev = entry->prev; }
+
+  if (entry->prev) { entry->prev->next = entry->next; }
+
+  /* Clear all the children entries */
+  if (entry->children_num) {
+
+    LIST_FOREACH_CLEAR(&(entry->children), queue_entry_t,
+                       { AFL_QUEUE_ENTRY_DEINIT(el); })
+
+  }
+
+  /* we also clear the input associated with it */
+  AFL_INPUT_DEINIT(entry->input);
+
   free(entry);
 
 }
@@ -101,9 +118,22 @@ void _afl_base_queue_init_(base_queue_t *queue) {
 
 void afl_base_queue_deinit(base_queue_t *queue) {
 
-  free(queue);
-
   /*TODO: Clear the queue entries too here*/
+
+  queue_entry_t *entry = queue->base;
+
+  while (entry) {
+
+    /* Grab the next entry of queue */
+    queue_entry_t *next_entry = entry->next;
+
+    AFL_QUEUE_ENTRY_DEINIT(entry);
+
+    entry = next_entry;
+
+  }
+
+  free(queue);
 
 }
 
@@ -184,7 +214,11 @@ feedback_queue_t *_afl_feedback_queue_init_(feedback_queue_t *fbck_queue,
 
 void afl_feedback_queue_deinit(feedback_queue_t *feedback_queue) {
 
-  if (feedback_queue->feedback) { AFL_FEEDBACK_DEINIT(feedback_queue->feedback); }
+  if (feedback_queue->feedback) {
+
+    AFL_FEEDBACK_DEINIT(feedback_queue->feedback);
+
+  }
 
   AFL_BASE_QUEUE_DEINIT((base_queue_t *)feedback_queue);
 

@@ -111,6 +111,21 @@ static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
 
 }; */
 
+/* Get unix time in microseconds */
+#if !defined(__linux__)
+static u64 get_cur_time_us(void) {
+
+  struct timeval  tv;
+  struct timezone tz;
+
+  gettimeofday(&tv, &tz);
+
+  return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
+
+}
+
+#endif
+
 /* This function uses select calls to wait on a child process for given
  * timeout_ms milliseconds and kills it if it doesn't terminate by that time */
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
@@ -472,12 +487,14 @@ static bool fbck_is_interesting(maximize_map_feedback_t *feedback,
 
   }
 
-  found = true;
+  if (found && feedback->base.queue) {
 
-  if (found && feedback->base.queue)  {
-    queue_entry_t * new_entry = afl_queue_entry_init(NULL, fsrv->current_input);
-    // An incompatible ptr type warning has been suppresed here. We pass the feedback queue to the add_to_queue rather than the base_queue
-    feedback->base.queue->base.funcs.add_to_queue(feedback->base.queue, new_entry);
+    queue_entry_t *new_entry = afl_queue_entry_init(NULL, fsrv->current_input);
+    // An incompatible ptr type warning has been suppresed here. We pass the
+    // feedback queue to the add_to_queue rather than the base_queue
+    feedback->base.queue->base.funcs.add_to_queue(feedback->base.queue,
+                                                  new_entry);
+
   }
 
   return found;
@@ -502,7 +519,7 @@ int main(int argc, char **argv) {
 
   /* We initialize the forkserver we want to use here. */
   afl_forkserver_t *fsrv = fsrv_init((u8 *)argv[1], (u8 *)argv[3]);
-  fsrv->exec_tmout = 1000;
+  fsrv->exec_tmout = 10000;
   fsrv->extra_args = argv;
 
   fsrv->base.funcs.add_observation_channel(fsrv, trace_bits_channel);
@@ -512,7 +529,8 @@ int main(int argc, char **argv) {
   fsrv->trace_bits = trace_bits_channel->shared_map->map;
 
   /* We create a simple feedback queue here*/
-  feedback_queue_t *queue = afl_feedback_queue_init(NULL, NULL, (u8 *)"fbck queue");
+  feedback_queue_t *queue =
+      afl_feedback_queue_init(NULL, NULL, (u8 *)"fbck queue");
 
   /* Feedback initialization */
   maximize_map_feedback_t *feedback =
@@ -523,8 +541,8 @@ int main(int argc, char **argv) {
   engine_t *engine = afl_engine_init(NULL, (executor_t *)fsrv, NULL, NULL);
   engine->funcs.add_feedback(engine, (feedback_t *)feedback);
 
-  fuzz_one_t * fuzz_one = afl_fuzz_one_init(NULL, engine);
-  
+  fuzz_one_t *fuzz_one = afl_fuzz_one_init(NULL, engine);
+
   // We also add the fuzzone to the engine here.
   engine->fuzz_one = fuzz_one;
 
@@ -538,13 +556,21 @@ int main(int argc, char **argv) {
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
                                           random_byte_add_sub_mutation);
 
-  fuzzing_stage_t * stage = afl_fuzz_stage_init(engine);
+  fuzzing_stage_t *stage = afl_fuzz_stage_init(engine);
   stage->funcs.add_mutator_to_stage(stage, mutators_havoc);
 
   /* Now we can simply load the testcases from the directory given */
   engine->funcs.load_testcases_from_dir(engine, in_dir, NULL);
 
   OKF("Processed %llu input files.", fsrv->total_execs);
+
+  /* Let's free everything now. Note that if you've extended any structure,
+   * which now contains pointers to any dynamically allocated region, you have
+   * to free them yourselves, the extended structure itself can be freed using
+   * the deinit functions provided */
+
+  ck_free(feedback->virgin_bits);
+  ck_free(shm_str);
 
   AFL_ENGINE_DEINIT(engine);
   afl_map_channel_deinit(trace_bits_channel);
@@ -554,7 +580,3 @@ int main(int argc, char **argv) {
   return 0;
 
 }
-
-//  engine->fsrv, fuzzone->stage->mutators, feedback
-//  map_channel->sharedmem
-//  fbck_queue->feedback

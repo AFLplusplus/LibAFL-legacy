@@ -99,6 +99,8 @@ static inline raw_input_t *afl_input_init(raw_input_t *input) {
 
 }
 
+#define AFL_INPUT_DEINIT(input) afl_input_deinit(input);
+
 enum input_erros {
 
   INPUT_CLEAR_FAIL = 1,

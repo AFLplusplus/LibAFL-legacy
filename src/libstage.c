@@ -27,7 +27,6 @@
 
 #define UNUSED(x) (void)(x)
 
-
 void _afl_stage_init_(stage_t *stage, engine_t *engine) {
 
   stage->engine = engine;
@@ -35,7 +34,7 @@ void _afl_stage_init_(stage_t *stage, engine_t *engine) {
   // We also add this stage to the engine's fuzzone
 
   engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage);
-  
+
   stage->funcs.iterations = iterations_stage_default;
 
 }
@@ -62,21 +61,23 @@ fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
 }
 
 void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
-  
+
   /* We free the mutators associated with the stage here */
 
-  for (size_t i = 0 ; i < stage->mutators_count; ++i) {
-    
+  for (size_t i = 0; i < stage->mutators_count; ++i) {
+
     AFL_MUTATOR_DEINIT(stage->mutators[i]);
+
   }
 
   free(stage);
 
 }
 
-afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage, mutator_t *mutator) {
+afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage,
+                                       mutator_t *      mutator) {
 
-  if (stage->mutators_count >= MAX_STAGE_MUTATORS)  { return AFL_RET_ARRAY_END; }
+  if (stage->mutators_count >= MAX_STAGE_MUTATORS) { return AFL_RET_ARRAY_END; }
 
   stage->mutators[stage->mutators_count] = mutator;
   stage->mutators_count++;
@@ -85,7 +86,7 @@ afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage, mutator_t *mutato
 
 }
 
-size_t iterations_stage_default(stage_t * stage) {
+size_t iterations_stage_default(stage_t *stage) {
 
   UNUSED(stage);
   return rand_below(128);
@@ -93,20 +94,22 @@ size_t iterations_stage_default(stage_t * stage) {
 }
 
 /* Perform default for fuzzing stage */
-void perform_stage_default(stage_t * stage, raw_input_t * input) {
+void perform_stage_default(stage_t *stage, raw_input_t *input) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
-  fuzzing_stage_t * fuzz_stage = (fuzzing_stage_t *)stage;
+  fuzzing_stage_t *fuzz_stage = (fuzzing_stage_t *)stage;
 
   size_t num = fuzz_stage->base.funcs.iterations(stage);
 
   for (size_t i = 0; i < num; ++i) {
 
     for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
-      mutator_t * mutator = fuzz_stage->mutators[j];
+
+      mutator_t *mutator = fuzz_stage->mutators[j];
       mutator->funcs.mutate(mutator, input);
+
     }
 
     stage->engine->funcs.execute(stage->engine, input);
@@ -114,3 +117,4 @@ void perform_stage_default(stage_t * stage, raw_input_t * input) {
   }
 
 };
+

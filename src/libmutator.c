@@ -29,10 +29,10 @@
 
 #define ARITH_MAX 35
 
-#define HAVOC_BLK_SMALL  32
+#define HAVOC_BLK_SMALL 32
 #define HAVOC_BLK_MEDIUM 128
-#define HAVOC_BLK_LARGE  1500
-#define HAVOC_BLK_XL     32768
+#define HAVOC_BLK_LARGE 1500
+#define HAVOC_BLK_XL 32768
 
 #define UNUSED(x) (void)(x)
 
@@ -110,7 +110,7 @@ size_t mutate_scheduled_mutator_default(mutator_t *  mutator,
     scheduled_mutator
         ->mutations[scheduled_mutator->extra_funcs.schedule(scheduled_mutator)](
             input);
-    
+
     SAYF("Iteration done %d times", i);
 
   }

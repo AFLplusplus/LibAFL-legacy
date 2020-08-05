@@ -67,6 +67,8 @@ struct queue_entry {
   struct queue_entry *parent;
 
   list_t children;
+  size_t children_num;  // Keeps track of the number of child entries for each
+                        // entry
 
   struct queue_entry_functions funcs;
 
@@ -217,7 +219,8 @@ static inline feedback_queue_t *afl_feedback_queue_init(
 
 }
 
-#define AFL_FEEDBACK_QUEUE_DEINIT(feedback_queue) afl_feedback_queue_deinit(feedback_queue);
+#define AFL_FEEDBACK_QUEUE_DEINIT(feedback_queue) \
+  afl_feedback_queue_deinit(feedback_queue);
 
 typedef struct global_queue global_queue_t;
 

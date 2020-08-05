@@ -48,17 +48,18 @@ void _afl_engine_init_(engine_t *engine, executor_t *executor,
 
 void afl_engine_deinit(engine_t *engine) {
 
-  /* Let's free everything associated with the engine here, except the queues, should we leave anything else? */
+  /* Let's free everything associated with the engine here, except the queues,
+   * should we leave anything else? */
 
   AFL_EXECUTOR_DEINIT(engine->executor);
 
   AFL_FUZZ_ONE_DEINIT(engine->fuzz_one);
 
-  // for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
 
-  //   AFL_FEEDBACK_DEINIT(engine->feedbacks[i]);
+    AFL_FEEDBACK_DEINIT(engine->feedbacks[i]);
 
-  // }
+  }
 
   free(engine);
 
@@ -108,8 +109,8 @@ int add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
 }
 
-afl_ret_t load_testcases_from_dir_default(
-    engine_t *engine, u8 *dirpath, raw_input_t *(*custom_input_init)()) {
+afl_ret_t load_testcases_from_dir_default(engine_t *engine, u8 *dirpath,
+                                          raw_input_t *(*custom_input_init)()) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
@@ -161,6 +162,8 @@ afl_ret_t load_testcases_from_dir_default(
     engine->funcs.execute(engine, input);
 
   }
+
+  closedir(dir_in);
 
   return AFL_RET_SUCCESS;
 

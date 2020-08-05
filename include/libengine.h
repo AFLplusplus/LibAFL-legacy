@@ -80,7 +80,7 @@ u64             get_start_time_default(engine_t *);
 void set_fuzz_one_default(engine_t *, fuzz_one_t *);
 int  add_feedback_default(engine_t *, feedback_t *);
 
-u8          execute_default(engine_t *, raw_input_t *);
+u8        execute_default(engine_t *, raw_input_t *);
 afl_ret_t load_testcases_from_dir_default(
     engine_t *, u8 *, raw_input_t *(*custom_input_init)(u8 *buf));
 void load_zero_testcase_default(size_t);

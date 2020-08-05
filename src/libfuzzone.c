@@ -37,10 +37,12 @@ void _afl_fuzz_one_init_(fuzz_one_t *fuzz_one, engine_t *engine) {
 
 }
 
-void afl_fuzz_one_deinit(fuzz_one_t * fuzz_one) {
+void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
   for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
+
     AFL_STAGE_DEINIT(fuzz_one->stages[i]);
+
   }
 
   free(fuzz_one);
