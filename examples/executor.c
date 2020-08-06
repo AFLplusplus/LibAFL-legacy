@@ -550,7 +550,8 @@ int main(int argc, char **argv) {
   fsrv->base.funcs.add_observation_channel(fsrv, trace_bits_channel);
 
   char shm_str[256];
-  snprintf(shm_str, sizeof(shm_str), "%d", trace_bits_channel->shared_map.shm_id);
+  snprintf(shm_str, sizeof(shm_str), "%d",
+           trace_bits_channel->shared_map.shm_id);
   setenv("__AFL_SHM_ID", (char *)shm_str, 1);
   fsrv->trace_bits = trace_bits_channel->shared_map.map;
 

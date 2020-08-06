@@ -102,19 +102,19 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
 
   shm->shm_id = shmget(IPC_PRIVATE, map_size, IPC_CREAT | IPC_EXCL | 0600);
 
-  if (shm->shm_id < 0) { 
-    return NULL;
-  }
+  if (shm->shm_id < 0) { return NULL; }
 
   snprintf(shm_str, sizeof(shm_str), "%d", shm->shm_id);
   setenv(SHM_ENV_VAR, (char *)shm_str, 1);
 
   shm->map = shmat(shm->shm_id, NULL, 0);
 
-  if (shm->map == (void *)-1 || !shm->map) { 
+  if (shm->map == (void *)-1 || !shm->map) {
+
     shmctl(shm->shm_id, IPC_RMID, NULL);
     shm->shm_id = -1;
     return NULL;
+
   }
 
 #endif

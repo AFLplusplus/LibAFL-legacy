@@ -7,7 +7,6 @@
 
 #include "libos.h"
 
-
 #define UNUSED(x) (void)(x)
 
 // Crash related functions
@@ -35,7 +34,7 @@ afl_ret_t dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
 
 void _afl_process_init_(process_t *process) {
 
-  //process->current = return_current_default;
+  // process->current = return_current_default;
   process->fork = do_fork_default;
 
   process->resume = resume_default;
@@ -58,6 +57,7 @@ process_t *return_current_default(process_t *process) {
   return p;
 
 }
+
 #endif
 
 fork_result_t do_fork_default(process_t *process) {

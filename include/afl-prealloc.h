@@ -55,89 +55,87 @@ typedef enum prealloc_status {
    variable initialized with 0 (of any name).
     */
 
-#define PRE_ALLOC(el_ptr, prealloc_buf, prealloc_size, prealloc_counter)       \
-  ({                                                                         \
-                                                                               \
-    if ((prealloc_counter) >= (prealloc_size)) {                               \
-                                                                               \
-      el_ptr = (void *)malloc(sizeof(*el_ptr));                                \
-      if (el_ptr) {  \
-      el_ptr->pre_status = PRE_STATUS_MALLOC;                                  \
-      } \
-                                                                               \
-    } else {                                                                   \
-                                                                               \
-      /* Find one of our preallocated elements */                              \
-      u32 i;                                                                   \
-      for (i = 0; i < (prealloc_size); i++) {                                  \
-                                                                               \
-        el_ptr = &((prealloc_buf)[i]);                                         \
-        if (el_ptr->pre_status == PRE_STATUS_UNUSED) {                         \
-                                                                               \
-          (prealloc_counter)++;                                                \
-          el_ptr->pre_status = PRE_STATUS_USED;                                \
-          break;                                                               \
-                                                                               \
-        }                                                                      \
-                                                                               \
-      }                                                                        \
-                                                                               \
-    }                                                                          \
-                                                                               \
-    el_ptr; \
-                                                                               \
+#define PRE_ALLOC(el_ptr, prealloc_buf, prealloc_size, prealloc_counter) \
+  ({                                                                     \
+                                                                         \
+    if ((prealloc_counter) >= (prealloc_size)) {                         \
+                                                                         \
+      el_ptr = (void *)malloc(sizeof(*el_ptr));                          \
+      if (el_ptr) { el_ptr->pre_status = PRE_STATUS_MALLOC; }            \
+                                                                         \
+    } else {                                                             \
+                                                                         \
+      /* Find one of our preallocated elements */                        \
+      u32 i;                                                             \
+      for (i = 0; i < (prealloc_size); i++) {                            \
+                                                                         \
+        el_ptr = &((prealloc_buf)[i]);                                   \
+        if (el_ptr->pre_status == PRE_STATUS_UNUSED) {                   \
+                                                                         \
+          (prealloc_counter)++;                                          \
+          el_ptr->pre_status = PRE_STATUS_USED;                          \
+          break;                                                         \
+                                                                         \
+        }                                                                \
+                                                                         \
+      }                                                                  \
+                                                                         \
+    }                                                                    \
+                                                                         \
+    el_ptr;                                                              \
+                                                                         \
   })
 
 /* Take a chosen (free) element from the prealloc_buf directly */
 
-#define PRE_ALLOC_FORCE(el_ptr, prealloc_counter)         \
-  do {                                                    \
-                                                          \
-    if ((el_ptr)->pre_status != PRE_STATUS_UNUSED) {      \
-                                                          \
+#define PRE_ALLOC_FORCE(el_ptr, prealloc_counter)              \
+  do {                                                         \
+                                                               \
+    if ((el_ptr)->pre_status != PRE_STATUS_UNUSED) {           \
+                                                               \
       FATAL("BUG: PRE_ALLOC_FORCE element already allocated"); \
-                                                          \
-    }                                                     \
-    (el_ptr)->pre_status = PRE_STATUS_USED;               \
-    (prealloc_counter)++;                                 \
-                                                          \
+                                                               \
+    }                                                          \
+    (el_ptr)->pre_status = PRE_STATUS_USED;                    \
+    (prealloc_counter)++;                                      \
+                                                               \
   } while (0);
 
 /* free an preallocated element */
 
-#define PRE_FREE(el_ptr, prealloc_counter)        \
-  do {                                            \
-                                                  \
-    switch ((el_ptr)->pre_status) {               \
-                                                  \
-      case PRE_STATUS_USED: {                     \
-                                                  \
-        (el_ptr)->pre_status = PRE_STATUS_UNUSED; \
-        (prealloc_counter)--;                     \
-        if ((prealloc_counter) < 0) {             \
-                                                  \
+#define PRE_FREE(el_ptr, prealloc_counter)             \
+  do {                                                 \
+                                                       \
+    switch ((el_ptr)->pre_status) {                    \
+                                                       \
+      case PRE_STATUS_USED: {                          \
+                                                       \
+        (el_ptr)->pre_status = PRE_STATUS_UNUSED;      \
+        (prealloc_counter)--;                          \
+        if ((prealloc_counter) < 0) {                  \
+                                                       \
           FATAL("BUG: Inconsistent data in PRE_FREE"); \
-                                                  \
-        }                                         \
-        break;                                    \
-                                                  \
-      }                                           \
-      case PRE_STATUS_MALLOC: {                   \
-                                                  \
-        (el_ptr)->pre_status = PRE_STATUS_UNUSED; \
-        free((el_ptr));                           \
-        break;                                    \
-                                                  \
-      }                                           \
-      default: {                                  \
-                                                  \
+                                                       \
+        }                                              \
+        break;                                         \
+                                                       \
+      }                                                \
+      case PRE_STATUS_MALLOC: {                        \
+                                                       \
+        (el_ptr)->pre_status = PRE_STATUS_UNUSED;      \
+        free((el_ptr));                                \
+        break;                                         \
+                                                       \
+      }                                                \
+      default: {                                       \
+                                                       \
         FATAL("BUG: Double Free Detected");            \
-        break;                                    \
-                                                  \
-      }                                           \
-                                                  \
-    }                                             \
-                                                  \
+        break;                                         \
+                                                       \
+      }                                                \
+                                                       \
+    }                                                  \
+                                                       \
   } while (0);
 
 #endif
