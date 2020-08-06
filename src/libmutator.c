@@ -24,8 +24,9 @@
 
  */
 
-#include "libmutator.h"
 #include <stdlib.h>
+
+#include "libmutator.h"
 
 #define ARITH_MAX 35
 

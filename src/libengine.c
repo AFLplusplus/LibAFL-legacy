@@ -20,11 +20,12 @@
 
  */
 
+#include <dirent.h>
+#include <time.h>
+
 #include "libengine.h"
 #include "afl-returns.h"
 #include "libfuzzone.h"
-#include <dirent.h>
-#include <time.h>
 
 void _afl_engine_init_(engine_t *engine, executor_t *executor,
                        fuzz_one_t *fuzz_one, global_queue_t *global_queue) {

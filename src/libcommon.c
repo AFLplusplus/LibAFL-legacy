@@ -24,9 +24,9 @@
 
  */
 
-#include "libcommon.h"
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include "libcommon.h"
 
 void afl_sharedmem_deinit(afl_sharedmem_t *shm) {
 
