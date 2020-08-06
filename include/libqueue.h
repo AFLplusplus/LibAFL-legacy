@@ -62,7 +62,7 @@ struct queue_entry {
 
   raw_input_t *       input;
   bool                on_disk;
-  char *                filename;
+  char *              filename;
   struct base_queue * queue;
   struct queue_entry *next;
   struct queue_entry *prev;
@@ -134,7 +134,7 @@ struct base_queue {
   queue_entry_t *base;
   queue_entry_t *current;
   size_t         size;
-  char *           dirpath;
+  char *         dirpath;
   size_t         names_id;
   bool           save_to_files;
 
@@ -150,14 +150,14 @@ struct base_queue {
 void _afl_base_queue_init_(base_queue_t *);
 void afl_base_queue_deinit(base_queue_t *);
 
-void            add_to_queue_default(base_queue_t *, queue_entry_t *);
-queue_entry_t  *get_queue_base_default(base_queue_t *);
-size_t          get_base_queue_size_default(base_queue_t *);
-char *            get_dirpath_default(base_queue_t *);
-size_t          get_names_id_default(base_queue_t *);
-bool            get_save_to_files_default(base_queue_t *);
-void            set_directory_default(base_queue_t *, char *);
-queue_entry_t * get_next_base_queue_default(base_queue_t * queue);
+void           add_to_queue_default(base_queue_t *, queue_entry_t *);
+queue_entry_t *get_queue_base_default(base_queue_t *);
+size_t         get_base_queue_size_default(base_queue_t *);
+char *         get_dirpath_default(base_queue_t *);
+size_t         get_names_id_default(base_queue_t *);
+bool           get_save_to_files_default(base_queue_t *);
+void           set_directory_default(base_queue_t *, char *);
+queue_entry_t *get_next_base_queue_default(base_queue_t *queue);
 
 static inline base_queue_t *afl_base_queue_init(base_queue_t *base_queue) {
 
@@ -189,7 +189,7 @@ typedef struct feedback_queue {
   base_queue_t base;  // Inheritence from base queue
 
   struct feedback *feedback;
-  char *             name;
+  char *           name;
 
 } feedback_queue_t;
 
@@ -238,7 +238,9 @@ struct global_queue_functions {
 struct global_queue {
 
   base_queue_t base;
-  feedback_queue_t *feedback_queues[MAX_FEEDBACK_QUEUES];  // One global queue can have multiple feedback queues
+  feedback_queue_t
+      *feedback_queues[MAX_FEEDBACK_QUEUES];  // One global queue can have
+                                              // multiple feedback queues
 
   size_t feedback_queues_num;
 
@@ -252,8 +254,9 @@ struct global_queue {
 void add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
 int  global_schedule_default(global_queue_t *);
 
-// Function to get next entry from queue, we override the base_queue implementation
-queue_entry_t * get_next_global_queue_default(base_queue_t * queue);
+// Function to get next entry from queue, we override the base_queue
+// implementation
+queue_entry_t *get_next_global_queue_default(base_queue_t *queue);
 
 /* TODO: ADD defualt implementation for the schedule function based on random.
  */

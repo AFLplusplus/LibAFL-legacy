@@ -199,16 +199,16 @@ void set_directory_default(base_queue_t *queue, char *new_dirpath) {
 
 }
 
-queue_entry_t * get_next_base_queue_default(base_queue_t * queue) {
+queue_entry_t *get_next_base_queue_default(base_queue_t *queue) {
 
   if (queue->current) {
 
-    queue_entry_t * current = queue->current;
+    queue_entry_t *current = queue->current;
     queue->current = current->next;
 
     return current;
 
-  } else if(queue->base) {
+  } else if (queue->base) {
 
     // We've just started fuzzing, we start from the base of the queue
     queue->current = queue->base->next;
@@ -218,13 +218,14 @@ queue_entry_t * get_next_base_queue_default(base_queue_t * queue) {
 
     // Empty queue :(
     return NULL;
+
   }
-  
+
 }
 
 feedback_queue_t *_afl_feedback_queue_init_(feedback_queue_t *feedback_queue,
                                             struct feedback * feedback,
-                                            char *              name) {
+                                            char *            name) {
 
   afl_base_queue_init(&(feedback_queue->base));
   feedback_queue->feedback = feedback;
@@ -264,7 +265,9 @@ void afl_global_queue_deinit(global_queue_t *queue) {
   if (queue->feedback_queues_num) {
 
     for (size_t i = 0; i < queue->feedback_queues_num; ++i) {
+
       AFL_FEEDBACK_QUEUE_DEINIT(queue->feedback_queues[i]);
+
     }
 
   }
@@ -276,35 +279,41 @@ void afl_global_queue_deinit(global_queue_t *queue) {
 void add_feedback_queue_default(global_queue_t *  global_queue,
                                 feedback_queue_t *feedback_queue) {
 
-  global_queue->feedback_queues[global_queue->feedback_queues_num] = feedback_queue;
+  global_queue->feedback_queues[global_queue->feedback_queues_num] =
+      feedback_queue;
   global_queue->feedback_queues_num++;
 
 }
 
-queue_entry_t * get_next_global_queue_default(base_queue_t * queue) {
+queue_entry_t *get_next_global_queue_default(base_queue_t *queue) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
-  global_queue_t * global_queue = (global_queue_t *)queue;
+  global_queue_t *global_queue = (global_queue_t *)queue;
 
   int fbck_idx = global_queue->extra_funcs.schedule(global_queue);
 
-  if (fbck_idx != -1) { 
-    feedback_queue_t * feedback_queue = global_queue->feedback_queues[fbck_idx];
-    return feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base)); 
+  if (fbck_idx != -1) {
+
+    feedback_queue_t *feedback_queue = global_queue->feedback_queues[fbck_idx];
+    return feedback_queue->base.funcs.get_next_in_queue(
+        &(feedback_queue->base));
+
   }
 
   else {
+
     // We don't have any feedback queue, so base queue it is.
     return get_next_base_queue_default(queue);
+
   }
 
 }
 
 int global_schedule_default(global_queue_t *queue) {
 
-  return rand_below(queue->feedback_queues_num); 
+  return rand_below(queue->feedback_queues_num);
 
 }
 

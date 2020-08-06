@@ -70,15 +70,19 @@ raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
   if (!copy_inp) { return NULL; }
   copy_inp->bytes = calloc(orig_inp->len, sizeof(u8));
   if (!copy_inp->bytes) {
+
     free(copy_inp);
     return NULL;
+
   }
+
   memcpy(copy_inp->bytes, orig_inp->bytes, orig_inp->len);
   return copy_inp;
 
 }
 
-afl_ret_t raw_inp_deserialize_default(raw_input_t *input, u8 *bytes, size_t len) {
+afl_ret_t raw_inp_deserialize_default(raw_input_t *input, u8 *bytes,
+                                      size_t len) {
 
   free(input->bytes);
   input->bytes = bytes;
@@ -115,6 +119,7 @@ afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, char *fname) {
   return AFL_RET_SUCCESS;
 
 }
+
 afl_ret_t raw_inp_save_to_file_default(raw_input_t *input, char *fname) {
 
   FILE *f = fopen((char *)fname, "w+");

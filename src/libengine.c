@@ -114,7 +114,7 @@ afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
 
   DIR *          dir_in;
   struct dirent *dir_ent;
-  char             infile[PATH_MAX];
+  char           infile[PATH_MAX];
 
   raw_input_t *input;
   size_t       dir_name_size = strlen(dirpath);

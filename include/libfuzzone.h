@@ -41,7 +41,7 @@ struct fuzz_one {
 
   engine_t *engine;
   stage_t * stages[MAX_STAGES];
-  size_t       stages_num;
+  size_t    stages_num;
 
   struct fuzz_one_functions funcs;
 

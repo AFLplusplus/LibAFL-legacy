@@ -13,8 +13,9 @@ typedef enum afl_ret {
 } afl_ret_t;
 
 static inline char *afl_ret_stringify(afl_ret_t afl_ret) {
-  
-  switch(afl_ret) {
+
+  switch (afl_ret) {
+
     case AFL_RET_SUCCESS:
       return "Success";
     case AFL_RET_ALLOC:
@@ -27,8 +28,10 @@ static inline char *afl_ret_stringify(afl_ret_t afl_ret) {
       return "No more elements in array";
     default:
       return "Unknown error. Please report this bug.";
+
   }
 
 }
 
 #endif
+

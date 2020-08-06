@@ -53,16 +53,20 @@ int perform_default(fuzz_one_t *fuzz_one) {
 
   UNUSED(fuzz_one);
 
-  // Fuzzone grabs the current queue entry from global queue and sends it to stage.
-  global_queue_t * global_queue = fuzz_one->engine->funcs.get_queue(fuzz_one->engine);
+  // Fuzzone grabs the current queue entry from global queue and sends it to
+  // stage.
+  global_queue_t *global_queue =
+      fuzz_one->engine->funcs.get_queue(fuzz_one->engine);
 
-  queue_entry_t * queue_entry = global_queue->base.funcs.get_next_in_queue((base_queue_t *)global_queue);
+  queue_entry_t *queue_entry =
+      global_queue->base.funcs.get_next_in_queue((base_queue_t *)global_queue);
 
   /* Fuzz the entry with every stage */
   for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
 
-    stage_t * current_stage = fuzz_one->stages[i];
-    current_stage->funcs.perform(current_stage, queue_entry->funcs.get_input(queue_entry));
+    stage_t *current_stage = fuzz_one->stages[i];
+    current_stage->funcs.perform(current_stage,
+                                 queue_entry->funcs.get_input(queue_entry));
 
   }
 

@@ -62,14 +62,14 @@ void _afl_input_init_(raw_input_t *);
 void afl_input_deinit(raw_input_t *);
 
 // Default implementations of the functions for raw input vtable
-afl_ret_t           raw_inp_deserialize_default(raw_input_t *, u8 *, size_t);
+afl_ret_t    raw_inp_deserialize_default(raw_input_t *, u8 *, size_t);
 u8 *         raw_inp_serialize_default(raw_input_t *);
 raw_input_t *raw_inp_copy_default(raw_input_t *);
 raw_input_t *raw_inp_empty_default(raw_input_t *);
-afl_ret_t           raw_inp_restore_default(raw_input_t *, raw_input_t *);
+afl_ret_t    raw_inp_restore_default(raw_input_t *, raw_input_t *);
 afl_ret_t    raw_inp_load_from_file_default(raw_input_t *input, char *fname);
-afl_ret_t           raw_inp_save_to_file_default(raw_input_t *, char *);
-afl_ret_t           raw_inp_clear_default(raw_input_t *);
+afl_ret_t    raw_inp_save_to_file_default(raw_input_t *, char *);
+afl_ret_t    raw_inp_clear_default(raw_input_t *);
 u8 *         raw_inp_get_bytes_default(raw_input_t *);
 
 // input_clear and empty functions... difference??

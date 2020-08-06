@@ -38,21 +38,21 @@
 /* Initial size used for ck_maybe_grow */
 #define INITIAL_GROWTH_SIZE (64)
 
-  /* User-facing macro to sprintf() to a dynamically allocated buffer.
-  Returns NULL if alloc or snprintf fails. */
-#define alloc_printf(_str...)                        \
-  ({                                                 \
-                                                      \
-    char *_tmp = NULL;                                        \
-    s32 _len = snprintf(NULL, 0, _str);              \
-    if (_len >= 0) { \
-    _tmp = malloc(_len + 1);                       \
-    if (_tmp) { \
-    snprintf((char *)_tmp, _len + 1, _str);          \
-    }\
-    }\
-    _tmp;                                            \
-                                                      \
+/* User-facing macro to sprintf() to a dynamically allocated buffer.
+Returns NULL if alloc or snprintf fails. */
+#define alloc_printf(_str...)                               \
+  ({                                                        \
+                                                            \
+    char *_tmp = NULL;                                      \
+    s32   _len = snprintf(NULL, 0, _str);                   \
+    if (_len >= 0) {                                        \
+                                                            \
+      _tmp = malloc(_len + 1);                              \
+      if (_tmp) { snprintf((char *)_tmp, _len + 1, _str); } \
+                                                            \
+    }                                                       \
+    _tmp;                                                   \
+                                                            \
   })
 
 /* This function calculates the next power of 2 greater or equal its argument.
