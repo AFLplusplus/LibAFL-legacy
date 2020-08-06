@@ -21,7 +21,7 @@
  */
 
 #include "libengine.h"
-#include "afl-errors.h"
+#include "afl-returns.h"
 #include "libfuzzone.h"
 #include <dirent.h>
 #include <time.h>

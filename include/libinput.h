@@ -28,7 +28,7 @@
 #define INPUT_FILE_INCLUDED
 
 #include "libcommon.h"
-#include "afl-errors.h"
+#include "afl-returns.h"
 
 #define DEFAULT_INPUT_LEN 100
 

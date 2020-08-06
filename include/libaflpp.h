@@ -33,7 +33,7 @@
 #include "list.h"
 #include "libos.h"
 #include <types.h>
-#include "afl-errors.h"
+#include "afl-returns.h"
 
 #define MAX_OBS_CHANNELS 5
 

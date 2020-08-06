@@ -23,7 +23,7 @@
 #include "libaflpp.h"
 #include "list.h"
 #include "stdbool.h"
-#include "afl-errors.h"
+#include "afl-returns.h"
 
 #define UNUSED(x) (void)(x)
 

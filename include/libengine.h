@@ -30,7 +30,7 @@
 #include "libqueue.h"
 #include "libaflpp.h"
 #include "libfeedback.h"
-#include "afl-errors.h"
+#include "afl-returns.h"
 
 #define MAX_FEEDBACKS 10
 #define PATH_MAX 100

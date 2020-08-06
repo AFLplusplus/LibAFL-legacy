@@ -28,7 +28,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "libinput.h"
-#include "afl-errors.h"
+#include "afl-returns.h"
 
 #define UNUSED(x) (void)(x)
 
