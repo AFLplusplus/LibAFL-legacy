@@ -220,7 +220,6 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
     if (!fsrv->out_fd) {
 
       afl_executor_deinit(&fsrv->base);
-      free(fsrv);
       return NULL;
 
     }
@@ -234,7 +233,6 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
 
     close(fsrv->out_fd);
     afl_executor_deinit(&fsrv->base);
-    free(fsrv);
     return NULL;
 
   }
@@ -522,6 +520,10 @@ static float fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
     // feedback queue to the add_to_queue rather than the base_queue
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
 
+    // Put the entry in the feedback queue and return 0.0 so that it isn't added
+    // to the global queue too
+    return 0.0;
+
   }
 
   return found ? 1.0 : 0.0;
@@ -560,18 +562,24 @@ int main(int argc, char **argv) {
   fsrv->trace_bits = trace_bits_channel->shared_map.map;
 
   /* We create a simple feedback queue here*/
-  feedback_queue_t *queue =
+  feedback_queue_t *feedback_queue =
       afl_feedback_queue_init(NULL, NULL, (char *)"fbck queue");
-  if (!queue) { FATAL("Error initializing queue"); }
+  if (!feedback_queue) { FATAL("Error initializing global queue"); }
+
+  /* Global queue creation */
+  global_queue_t *global_queue = afl_global_queue_init(NULL);
+  if (!global_queue) { FATAL("Error initializing global queue"); }
+  global_queue->extra_funcs.add_feedback_queue(global_queue, feedback_queue);
 
   /* Feedback initialization */
-  maximize_map_feedback_t *feedback =
-      map_feedback_init(queue, trace_bits_channel->shared_map.map_size);
+  maximize_map_feedback_t *feedback = map_feedback_init(
+      feedback_queue, trace_bits_channel->shared_map.map_size);
   if (!feedback) { FATAL("Error initializing feedback"); }
-  queue->feedback = &feedback->base;
+  feedback_queue->feedback = &feedback->base;
 
   /* Let's build an engine now */
-  engine_t *engine = afl_engine_init(NULL, (executor_t *)fsrv, NULL, NULL);
+  engine_t *engine =
+      afl_engine_init(NULL, (executor_t *)fsrv, NULL, global_queue);
   if (!engine) { FATAL("Error initializing Engine"); }
   engine->funcs.add_feedback(engine, (feedback_t *)feedback);
 
@@ -590,7 +598,7 @@ int main(int argc, char **argv) {
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
                                           flip_4_bytes_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          random_byte_add_sub_mutation);
+                                          delete_bytes_mutation);
 
   fuzzing_stage_t *stage = afl_fuzz_stage_init(engine);
   if (!stage) { FATAL("Error initializing fuzz stage"); }
@@ -606,6 +614,12 @@ int main(int argc, char **argv) {
 
   OKF("Processed %llu input files.", fsrv->total_execs);
 
+  engine->funcs.loop(engine);
+
+  SAYF(
+      "Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n",
+      engine->executions);
+
   /* Let's free everything now. Note that if you've extended any structure,
    * which now contains pointers to any dynamically allocated region, you have
    * to free them yourselves, but the extended structure itself can be de
@@ -618,7 +632,7 @@ int main(int argc, char **argv) {
 
   afl_scheduled_mutator_deinit(mutators_havoc);
 
-  AFL_FEEDBACK_QUEUE_DEINIT(queue);
+  AFL_GLOBAL_QUEUE_DEINIT(global_queue);
 
   return 0;
 

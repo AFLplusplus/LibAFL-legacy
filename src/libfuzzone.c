@@ -49,9 +49,7 @@ void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
 };
 
-int perform_default(fuzz_one_t *fuzz_one) {
-
-  UNUSED(fuzz_one);
+afl_ret_t perform_default(fuzz_one_t *fuzz_one) {
 
   // Fuzzone grabs the current queue entry from global queue and sends it to
   // stage.
@@ -61,28 +59,41 @@ int perform_default(fuzz_one_t *fuzz_one) {
   queue_entry_t *queue_entry =
       global_queue->base.funcs.get_next_in_queue((base_queue_t *)global_queue);
 
+  if (!queue_entry) { return AFL_RET_NULL_QUEUE_ENTRY; }
+
   /* Fuzz the entry with every stage */
   for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
 
-    stage_t *current_stage = fuzz_one->stages[i];
-    current_stage->funcs.perform(current_stage,
-                                 queue_entry->funcs.get_input(queue_entry));
+    stage_t * current_stage = fuzz_one->stages[i];
+    afl_ret_t stage_ret =
+        current_stage->funcs.perform(current_stage, queue_entry->input);
+
+    switch (stage_ret) {
+
+      case AFL_RET_SUCCESS:
+        continue;
+      default:
+        return stage_ret;
+
+    }
 
   }
 
-  return 0;
+  return AFL_RET_SUCCESS;
 
 }
 
-int add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
+afl_ret_t add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
-  if (fuzz_one->stages_num >= MAX_STAGES) return 1;
+  if (!stage || !fuzz_one) { return AFL_RET_NULL_PTR; }
+
+  if (fuzz_one->stages_num >= MAX_STAGES) return AFL_RET_ARRAY_END;
 
   fuzz_one->stages_num++;
 
   fuzz_one->stages[(fuzz_one->stages_num - 1)] = stage;
 
-  return 0;
+  return AFL_RET_SUCCESS;
 
 }
 

@@ -30,7 +30,7 @@
 
 struct stage_functions {
 
-  void (*perform)(stage_t *, raw_input_t *input);
+  afl_ret_t (*perform)(stage_t *, raw_input_t *input);
   size_t (*iterations)(stage_t *);  // A function which tells how many mutated
                                     // inputs to generate out of a given input
 
@@ -43,10 +43,10 @@ struct stage {
 
 };
 
-void   perform_stage_default(stage_t *, raw_input_t *);
-size_t iterations_stage_default(stage_t *);
-void   _afl_stage_init_(stage_t *, engine_t *);
-void   afl_stage_deinit(stage_t *);
+afl_ret_t perform_stage_default(stage_t *, raw_input_t *);
+size_t    iterations_stage_default(stage_t *);
+void      _afl_stage_init_(stage_t *, engine_t *);
+void      afl_stage_deinit(stage_t *);
 
 static inline stage_t *afl_stage_init(stage_t *stage, engine_t *engine) {
 

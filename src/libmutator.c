@@ -112,8 +112,6 @@ size_t mutate_scheduled_mutator_default(mutator_t *  mutator,
         ->mutations[scheduled_mutator->extra_funcs.schedule(scheduled_mutator)](
             input);
 
-    SAYF("Iteration done %d times", i);
-
   }
 
   return 0;
@@ -222,7 +220,8 @@ void flip_2_bytes_mutation(raw_input_t *input) {
 
   int byte = rand_below(size - 1);
 
-  ((u16 *)input->bytes)[byte] ^= 0xffff;
+  input->bytes[byte] ^= 0xff;
+  input->bytes[byte + 1] ^= 0xff;
 
 }
 
@@ -234,7 +233,12 @@ void flip_4_bytes_mutation(raw_input_t *input) {
 
   int byte = rand_below(size - 3);
 
-  ((u32 *)input->bytes)[byte] ^= 0xffffffff;
+  if (byte == -1) { return; }
+
+  input->bytes[byte] ^= 0xff;
+  input->bytes[byte + 1] ^= 0xff;
+  input->bytes[byte + 2] ^= 0xff;
+  input->bytes[byte + 3] ^= 0xff;
 
 }
 

@@ -206,12 +206,15 @@ queue_entry_t *get_next_base_queue_default(base_queue_t *queue) {
     queue_entry_t *current = queue->current;
     queue->current = current->next;
 
+    queue->fuzz_started = true;
+
     return current;
 
-  } else if (queue->base) {
+  } else if (!queue->current && queue->base && !(queue->fuzz_started)) {
 
     // We've just started fuzzing, we start from the base of the queue
     queue->current = queue->base->next;
+    queue->fuzz_started = true;
     return queue->base;
 
   } else {

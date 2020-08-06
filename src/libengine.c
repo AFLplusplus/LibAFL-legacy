@@ -44,6 +44,7 @@ void _afl_engine_init_(engine_t *engine, executor_t *executor,
 
   engine->funcs.execute = execute_default;
   engine->funcs.load_testcases_from_dir = load_testcases_from_dir_default;
+  engine->funcs.loop = loop_default;
 
 }
 
@@ -177,6 +178,8 @@ afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
 
     engine->funcs.execute(engine, input);
 
+    input = NULL;
+
   }
 
   closedir(dir_in);
@@ -238,15 +241,33 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 
   }
 
-  return run_result;
+  // Now based on the return of executor's run target, we basically return an
+  // afl_ret_t type to the callee
+
+  switch (run_result) {
+
+    case NORMAL:
+    case TIMEOUT:
+      return AFL_RET_SUCCESS;
+    default:
+      return AFL_RET_WRITE_TO_CRASH;
+
+  }
 
 }
 
-void loop(engine_t *engine) {
+void loop_default(engine_t *engine) {
 
   while (true) {
 
-    engine->fuzz_one->funcs.perform(engine->fuzz_one);
+    afl_ret_t fuzz_one_ret = engine->fuzz_one->funcs.perform(engine->fuzz_one);
+
+    if (fuzz_one_ret == AFL_RET_WRITE_TO_CRASH ||
+        fuzz_one_ret == AFL_RET_NULL_QUEUE_ENTRY) {
+
+      return;
+
+    }
 
   }
 

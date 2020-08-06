@@ -77,6 +77,8 @@ void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
 afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage,
                                        mutator_t *      mutator) {
 
+  if (!stage && !mutator) { return AFL_RET_NULL_PTR; }
+
   if (stage->mutators_count >= MAX_STAGE_MUTATORS) { return AFL_RET_ARRAY_END; }
 
   stage->mutators[stage->mutators_count] = mutator;
@@ -89,12 +91,12 @@ afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage,
 size_t iterations_stage_default(stage_t *stage) {
 
   UNUSED(stage);
-  return rand_below(128);
+  return (1 + rand_below(128));
 
 }
 
 /* Perform default for fuzzing stage */
-void perform_stage_default(stage_t *stage, raw_input_t *input) {
+afl_ret_t perform_stage_default(stage_t *stage, raw_input_t *input) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
@@ -103,18 +105,35 @@ void perform_stage_default(stage_t *stage, raw_input_t *input) {
 
   size_t num = fuzz_stage->base.funcs.iterations(stage);
 
+  SAYF("Iteration to be done %ld times\n", num);
+
   for (size_t i = 0; i < num; ++i) {
+
+    raw_input_t *copy = input->funcs.copy(input);
 
     for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
 
       mutator_t *mutator = fuzz_stage->mutators[j];
-      mutator->funcs.mutate(mutator, input);
+      mutator->funcs.mutate(mutator, copy);
 
     }
 
-    stage->engine->funcs.execute(stage->engine, input);
+    afl_ret_t ret = stage->engine->funcs.execute(stage->engine, copy);
+
+    switch (ret) {
+
+      case AFL_RET_SUCCESS:
+        continue;
+      // We'll add more cases here based on the type of exit_ret value given by
+      // the executor.Those will be handled in the engine itself.
+      default:
+        return ret;
+
+    }
 
   }
+
+  return AFL_RET_SUCCESS;
 
 };
 

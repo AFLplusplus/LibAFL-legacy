@@ -25,13 +25,13 @@
  */
 
 #ifndef QUEUE_FILE_INCLUDED
-#define QUEUE_FILE_INCLUDED
+  #define QUEUE_FILE_INCLUDED
 
-#define MAX_FEEDBACK_QUEUES 10
+  #define MAX_FEEDBACK_QUEUES 10
 
-#include "libinput.h"
-#include "list.h"
-#include <stdbool.h>
+  #include "libinput.h"
+  #include "list.h"
+  #include <stdbool.h>
 
 /*
 This is the generic interface implementation for the queue and queue entries.
@@ -102,7 +102,8 @@ static inline queue_entry_t *afl_queue_entry_init(queue_entry_t *queue_entry,
 
 }
 
-#define AFL_QUEUE_ENTRY_DEINIT(queue_entry) afl_queue_entry_deinit(queue_entry);
+  #define AFL_QUEUE_ENTRY_DEINIT(queue_entry) \
+    afl_queue_entry_deinit(queue_entry);
 
 // Default implementations for the functions for queue_entry vtable
 raw_input_t *  get_input_default(queue_entry_t *entry);
@@ -131,13 +132,13 @@ struct base_queue_functions {
 
 struct base_queue {
 
-  queue_entry_t *base;
-  queue_entry_t *current;
-  size_t         size;
-  char *         dirpath;
-  size_t         names_id;
-  bool           save_to_files;
-
+  queue_entry_t *             base;
+  queue_entry_t *             current;
+  size_t                      size;
+  char *                      dirpath;
+  size_t                      names_id;
+  bool                        save_to_files;
+  bool                        fuzz_started;
   struct base_queue_functions funcs;
 
   /* TODO: Still need to add shared_mutex (after multithreading), map of
@@ -182,7 +183,7 @@ static inline base_queue_t *afl_base_queue_init(base_queue_t *base_queue) {
 
 }
 
-#define AFL_BASE_QUEUE_DEINIT(base_queue) afl_base_queue_deinit(base_queue);
+  #define AFL_BASE_QUEUE_DEINIT(base_queue) afl_base_queue_deinit(base_queue);
 
 typedef struct feedback_queue {
 
@@ -223,8 +224,8 @@ static inline feedback_queue_t *afl_feedback_queue_init(
 
 }
 
-#define AFL_FEEDBACK_QUEUE_DEINIT(feedback_queue) \
-  afl_feedback_queue_deinit(feedback_queue);
+  #define AFL_FEEDBACK_QUEUE_DEINIT(feedback_queue) \
+    afl_feedback_queue_deinit(feedback_queue);
 
 typedef struct global_queue global_queue_t;
 
@@ -280,6 +281,8 @@ static inline global_queue_t *afl_global_queue_init(
     new_queue = calloc(1, sizeof(global_queue_t));
     if (!new_queue) { return NULL; }
 
+    _afl_global_queue_init_(new_queue);
+
   }
 
   return new_queue;
@@ -287,4 +290,7 @@ static inline global_queue_t *afl_global_queue_init(
 }
 
 #endif
+
+#define AFL_GLOBAL_QUEUE_DEINIT(global_queue) \
+  afl_global_queue_deinit(global_queue)
 
