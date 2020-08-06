@@ -29,10 +29,6 @@
 #include "libfuzzone.h"
 #include "libstage.h"
 
-#undef MAP_SIZE
-#define MAP_SIZE 65536
-#define MAX_PATH_LEN 100
-
 #define SUPER_INTERESTING 0.5
 #define VERY_INTERESTING 0.4
 #define INTERESTING 0.3
