@@ -134,8 +134,10 @@ afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
 
     afl_ret_t ret = engine->executor->funcs.init_cb(engine->executor);
     if (ret != AFL_RET_SUCCESS) {
+
       closedir(dir_in);
       return ret;
+
     }
 
   }
@@ -159,10 +161,13 @@ afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
       input = afl_input_init(NULL);
 
     }
+
     if (!input) {
+
       closedir(dir_in);
       engine->executor->funcs.destroy_cb(engine->executor);
       return AFL_RET_ALLOC;
+
     }
 
     snprintf((char *)infile, sizeof(infile), "%s/%s", dirpath, dir_ent->d_name);

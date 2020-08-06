@@ -92,8 +92,7 @@ static u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
 static afl_ret_t fsrv_start(executor_t *fsrv_executor);
 
 /* Functions related to the feedback defined above */
-static float fbck_is_interesting(feedback_t *feedback,
-                                executor_t *             fsrv);
+static float fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
 static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
                                                   size_t            size);
 
@@ -266,16 +265,12 @@ static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
 
   ACTF("Spinning up the fork server...");
 
-  if (pipe(st_pipe) || pipe(ctl_pipe)) {
-    return AFL_RET_ERRNO;
-  }
+  if (pipe(st_pipe) || pipe(ctl_pipe)) { return AFL_RET_ERRNO; }
 
   fsrv->last_run_timed_out = 0;
   fsrv->fsrv_pid = fork();
 
-  if (fsrv->fsrv_pid < 0) { 
-    return AFL_RET_ERRNO;
-  }
+  if (fsrv->fsrv_pid < 0) { return AFL_RET_ERRNO; }
 
   if (!fsrv->fsrv_pid) {
 
@@ -284,9 +279,7 @@ static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
     setsid();
 
     fsrv->out_fd = open((char *)fsrv->out_file, O_RDONLY | O_CREAT, 0600);
-    if (!fsrv->out_fd) {
-      PFATAL("Could not open outfile in child");
-    }
+    if (!fsrv->out_fd) { PFATAL("Could not open outfile in child"); }
 
     dup2(fsrv->out_fd, 0);
     close(fsrv->out_fd);
@@ -380,6 +373,7 @@ static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
 
 /* Places input in the executor for the target */
 u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input) {
+
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
   ssize_t write_len = write(fsrv->out_fd, input->bytes, input->len);
@@ -506,14 +500,14 @@ static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
 
 /* We'll implement a simple is_interesting function for the feedback, which
  * checks if new tuples have been hit in the map */
-static float fbck_is_interesting(feedback_t *feedback,
-                                executor_t *             fsrv) {
+static float fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
   maximize_map_feedback_t *map_feedback = (maximize_map_feedback_t *)feedback;
 
   /* First get the observation channel */
 
-  map_based_channel_t *obs_channel = (map_based_channel_t *)fsrv->funcs.get_observation_channels(fsrv, 0);
+  map_based_channel_t *obs_channel =
+      (map_based_channel_t *)fsrv->funcs.get_observation_channels(fsrv, 0);
   bool found = false;
 
   u8 *   trace_bits = obs_channel->shared_map.map;
@@ -530,8 +524,7 @@ static float fbck_is_interesting(feedback_t *feedback,
     queue_entry_t *new_entry = afl_queue_entry_init(NULL, fsrv->current_input);
     // An incompatible ptr type warning has been suppresed here. We pass the
     // feedback queue to the add_to_queue rather than the base_queue
-    feedback->queue->base.funcs.add_to_queue(&feedback->queue->base,
-                                                  new_entry);
+    feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
 
   }
 
@@ -561,7 +554,8 @@ int main(int argc, char **argv) {
   fsrv->exec_tmout = 10000;
   fsrv->extra_args = &argv[3];
 
-  fsrv->base.funcs.add_observation_channel(&fsrv->base, &trace_bits_channel->base);
+  fsrv->base.funcs.add_observation_channel(&fsrv->base,
+                                           &trace_bits_channel->base);
 
   char shm_str[256];
   snprintf(shm_str, sizeof(shm_str), "%d",

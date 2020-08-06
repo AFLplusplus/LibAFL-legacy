@@ -32,19 +32,13 @@ static inline char *afl_ret_stringify(afl_ret_t afl_ret) {
     case AFL_RET_BROKEN_TARGET:
       return "Target did not behave as expected";
     case AFL_RET_ALLOC:
-      if (!errno) {
-        return "Allocation failed";
-      }
+      if (!errno) { return "Allocation failed"; }
       /* fall-through */
     case AFL_RET_FILE_OPEN:
-      if (!errno) {
-        return "Error opening file";
-      }
+      if (!errno) { return "Error opening file"; }
       /* fall-through */
     case AFL_RET_SHORT_READ:
-      if (!errno) {
-        return "Got less bytes than expected";
-      }
+      if (!errno) { return "Got less bytes than expected"; }
       /* fall-through */
     case AFL_RET_ERRNO:
       return strerror(errno);
