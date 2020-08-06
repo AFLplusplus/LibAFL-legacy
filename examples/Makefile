@@ -1,8 +1,7 @@
 MAKEFILE_PATH := $(abspath .)
 AFL_DIR:=$(realpath $(MAKEFILE_PATH)/../../)
 AFL_CC:=$(AFL_DIR)/AFLplusplus/afl-clang
-# TODO: Disable/fix -Wincompatible-pointer-types
-CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -fsanitize=address -laflpp -lm -Wall -Wextra -Werror -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector -Wno-incompatible-pointer-types
+CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -fsanitize=address -laflpp -lm -Wall -Wextra -Werror -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
 
 all: clean target executor
 

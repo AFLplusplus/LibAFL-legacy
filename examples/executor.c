@@ -87,12 +87,12 @@ static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 
 /* Functions related to the forkserver defined above */
 static afl_forkserver_t *fsrv_init(char *target_path, char *out_file);
-static exit_type_t       fsrv_run_target(afl_forkserver_t *fsrv);
-static u8 fsrv_place_inputs(afl_forkserver_t *fsrv, raw_input_t *input);
-static afl_ret_t fsrv_start(afl_forkserver_t *fsrv);
+static exit_type_t       fsrv_run_target(executor_t *fsrv_executor);
+static u8 fsrv_place_inputs(executor_t *fsrv_executor, raw_input_t *input);
+static afl_ret_t fsrv_start(executor_t *fsrv_executor);
 
 /* Functions related to the feedback defined above */
-static bool fbck_is_interesting(maximize_map_feedback_t *feedback,
+static float fbck_is_interesting(feedback_t *feedback,
                                 executor_t *             fsrv);
 static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
                                                   size_t            size);
@@ -256,7 +256,9 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
 }
 
 /* This function starts up the forkserver for further process requests */
-static afl_ret_t fsrv_start(afl_forkserver_t *fsrv) {
+static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
+
+  afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
   int st_pipe[2], ctl_pipe[2];
   s32 status;
@@ -377,7 +379,8 @@ static afl_ret_t fsrv_start(afl_forkserver_t *fsrv) {
 }
 
 /* Places input in the executor for the target */
-u8 fsrv_place_inputs(afl_forkserver_t *fsrv, raw_input_t *input) {
+u8 fsrv_place_inputs(executor_t *fsrv_executor, raw_input_t *input) {
+  afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
   ssize_t write_len = write(fsrv->out_fd, input->bytes, input->len);
 
@@ -395,7 +398,9 @@ u8 fsrv_place_inputs(afl_forkserver_t *fsrv, raw_input_t *input) {
 
 /* Execute target application, monitoring for timeouts. Return status
    information. The called program will update afl->fsrv->trace_bits. */
-static exit_type_t fsrv_run_target(afl_forkserver_t *fsrv) {
+static exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
+
+  afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
   s32 res;
   u32 exec_ms;
@@ -481,7 +486,7 @@ static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
   maximize_map_feedback_t *feedback =
       calloc(1, sizeof(maximize_map_feedback_t));
   if (!feedback) { return NULL; }
-  afl_feedback_init(feedback, queue);
+  afl_feedback_init(&feedback->base, queue);
 
   feedback->base.funcs.is_interesting = fbck_is_interesting;
 
@@ -501,13 +506,14 @@ static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
 
 /* We'll implement a simple is_interesting function for the feedback, which
  * checks if new tuples have been hit in the map */
-static bool fbck_is_interesting(maximize_map_feedback_t *feedback,
+static float fbck_is_interesting(feedback_t *feedback,
                                 executor_t *             fsrv) {
+
+  maximize_map_feedback_t *map_feedback = (maximize_map_feedback_t *)feedback;
 
   /* First get the observation channel */
 
-  map_based_channel_t *obs_channel =
-      fsrv->funcs.get_observation_channels(fsrv, 0);
+  map_based_channel_t *obs_channel = (map_based_channel_t *)fsrv->funcs.get_observation_channels(fsrv, 0);
   bool found = false;
 
   u8 *   trace_bits = obs_channel->shared_map.map;
@@ -515,21 +521,21 @@ static bool fbck_is_interesting(maximize_map_feedback_t *feedback,
 
   for (size_t i = 0; i < map_size; ++i) {
 
-    if (trace_bits[i] > feedback->virgin_bits[i]) { found = true; }
+    if (trace_bits[i] > map_feedback->virgin_bits[i]) { found = true; }
 
   }
 
-  if (found && feedback->base.queue) {
+  if (found && feedback->queue) {
 
     queue_entry_t *new_entry = afl_queue_entry_init(NULL, fsrv->current_input);
     // An incompatible ptr type warning has been suppresed here. We pass the
     // feedback queue to the add_to_queue rather than the base_queue
-    feedback->base.queue->base.funcs.add_to_queue(feedback->base.queue,
+    feedback->queue->base.funcs.add_to_queue(&feedback->queue->base,
                                                   new_entry);
 
   }
 
-  return found;
+  return found ? 1.0 : 0.0;
 
 }
 
@@ -555,7 +561,7 @@ int main(int argc, char **argv) {
   fsrv->exec_tmout = 10000;
   fsrv->extra_args = &argv[3];
 
-  fsrv->base.funcs.add_observation_channel(fsrv, trace_bits_channel);
+  fsrv->base.funcs.add_observation_channel(&fsrv->base, &trace_bits_channel->base);
 
   char shm_str[256];
   snprintf(shm_str, sizeof(shm_str), "%d",
@@ -572,7 +578,7 @@ int main(int argc, char **argv) {
   maximize_map_feedback_t *feedback =
       map_feedback_init(queue, trace_bits_channel->shared_map.map_size);
   if (!feedback) { FATAL("Error initializing feedback"); }
-  queue->feedback = feedback;
+  queue->feedback = &feedback->base;
 
   /* Let's build an engine now */
   engine_t *engine = afl_engine_init(NULL, (executor_t *)fsrv, NULL, NULL);
@@ -598,7 +604,7 @@ int main(int argc, char **argv) {
 
   fuzzing_stage_t *stage = afl_fuzz_stage_init(engine);
   if (!stage) { FATAL("Error initializing fuzz stage"); }
-  stage->funcs.add_mutator_to_stage(stage, mutators_havoc);
+  stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
 
   /* Now we can simply load the testcases from the directory given */
   afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, in_dir, NULL);
