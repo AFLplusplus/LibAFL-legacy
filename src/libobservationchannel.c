@@ -73,15 +73,10 @@ map_based_channel_t *afl_map_channel_init(size_t map_size) {
 
   afl_observation_channel_init(&(map_channel->base));
 
-  map_channel->shared_map = calloc(1, sizeof(afl_sharedmem_t));
-  if (!map_channel->shared_map) {
-
+  if (!afl_sharedmem_init(&map_channel->shared_map, map_size)) {
     free(map_channel);
     return NULL;
-
   }
-
-  afl_sharedmem_init(map_channel->shared_map, map_size);
 
   map_channel->extra_funcs.get_map_size = get_map_size_default;
   map_channel->extra_funcs.get_trace_bits = get_trace_bits_default;
@@ -92,23 +87,21 @@ map_based_channel_t *afl_map_channel_init(size_t map_size) {
 
 void afl_map_channel_deinit(map_based_channel_t *map_channel) {
 
-  afl_sharedmem_deinit(map_channel->shared_map);
+  afl_sharedmem_deinit(&map_channel->shared_map);
 
-  free(map_channel->shared_map);
-
-  afl_observation_channel_deinit(&(map_channel->base));
+  afl_observation_channel_deinit(&map_channel->base);
 
 }
 
 u8 *get_trace_bits_default(map_based_channel_t *obs_channel) {
 
-  return obs_channel->shared_map->map;
+  return obs_channel->shared_map.map;
 
 }
 
 size_t get_map_size_default(map_based_channel_t *obs_channel) {
 
-  return obs_channel->shared_map->map_size;
+  return obs_channel->shared_map.map_size;
 
 }
 

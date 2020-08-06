@@ -56,13 +56,14 @@ typedef enum prealloc_status {
     */
 
 #define PRE_ALLOC(el_ptr, prealloc_buf, prealloc_size, prealloc_counter)       \
-  do {                                                                         \
+  ({                                                                         \
                                                                                \
     if ((prealloc_counter) >= (prealloc_size)) {                               \
                                                                                \
       el_ptr = (void *)malloc(sizeof(*el_ptr));                                \
-      if (!el_ptr) { FATAL("error in list.h -> out of memory for element!"); } \
+      if (el_ptr) {  \
       el_ptr->pre_status = PRE_STATUS_MALLOC;                                  \
+      } \
                                                                                \
     } else {                                                                   \
                                                                                \
@@ -83,9 +84,9 @@ typedef enum prealloc_status {
                                                                                \
     }                                                                          \
                                                                                \
-    if (!el_ptr) { FATAL("BUG in list.h -> no element found or allocated!"); } \
+    el_ptr; \
                                                                                \
-  } while (0);
+  })
 
 /* Take a chosen (free) element from the prealloc_buf directly */
 
@@ -94,7 +95,7 @@ typedef enum prealloc_status {
                                                           \
     if ((el_ptr)->pre_status != PRE_STATUS_UNUSED) {      \
                                                           \
-      FATAL("PRE_ALLOC_FORCE element already allocated"); \
+      FATAL("BUG: PRE_ALLOC_FORCE element already allocated"); \
                                                           \
     }                                                     \
     (el_ptr)->pre_status = PRE_STATUS_USED;               \
@@ -115,7 +116,7 @@ typedef enum prealloc_status {
         (prealloc_counter)--;                     \
         if ((prealloc_counter) < 0) {             \
                                                   \
-          FATAL("Inconsistent data in PRE_FREE"); \
+          FATAL("BUG: Inconsistent data in PRE_FREE"); \
                                                   \
         }                                         \
         break;                                    \
@@ -130,7 +131,7 @@ typedef enum prealloc_status {
       }                                           \
       default: {                                  \
                                                   \
-        FATAL("Double Free Detected");            \
+        FATAL("BUG: Double Free Detected");            \
         break;                                    \
                                                   \
       }                                           \

@@ -502,8 +502,8 @@ static bool fbck_is_interesting(maximize_map_feedback_t *feedback,
       fsrv->funcs.get_observation_channels(fsrv, 0);
   bool found = false;
 
-  u8 *   trace_bits = obs_channel->shared_map->map;
-  size_t map_size = obs_channel->shared_map->map_size;
+  u8 *   trace_bits = obs_channel->shared_map.map;
+  size_t map_size = obs_channel->shared_map.map_size;
 
   for (size_t i = 0; i < map_size; ++i) {
 
@@ -531,12 +531,12 @@ int main(int argc, char **argv) {
   if (argc < 3) {
 
     FATAL(
-        "Usage: ./executor /target/path /input/directory "
-        "/out/file/path ");
+        "Usage: ./executor /input/directory "
+        "/out/file/path target [target_args]");
 
   }
 
-  char *in_dir = (char *)argv[2];
+  char *in_dir = argv[2];
 
   /* Let's now create a simple map-based observation channel */
   map_based_channel_t *trace_bits_channel = afl_map_channel_init(MAP_SIZE);
@@ -545,14 +545,14 @@ int main(int argc, char **argv) {
   afl_forkserver_t *fsrv = fsrv_init((char *)argv[1], (char *)argv[3]);
   if (!fsrv) { FATAL("Could not initialize forkserver!"); }
   fsrv->exec_tmout = 10000;
-  fsrv->extra_args = argv;
+  fsrv->extra_args = &argv[3];
 
   fsrv->base.funcs.add_observation_channel(fsrv, trace_bits_channel);
 
-  char *shm_str = alloc_printf("%d", trace_bits_channel->shared_map->shm_id);
-  if (!shm_str) { PFATAL("alloc_printf failed."); }
+  char shm_str[256];
+  snprintf(shm_str, sizeof(shm_str), "%d", trace_bits_channel->shared_map.shm_id);
   setenv("__AFL_SHM_ID", (char *)shm_str, 1);
-  fsrv->trace_bits = trace_bits_channel->shared_map->map;
+  fsrv->trace_bits = trace_bits_channel->shared_map.map;
 
   /* We create a simple feedback queue here*/
   feedback_queue_t *queue =
@@ -561,7 +561,7 @@ int main(int argc, char **argv) {
 
   /* Feedback initialization */
   maximize_map_feedback_t *feedback =
-      map_feedback_init(queue, trace_bits_channel->shared_map->map_size);
+      map_feedback_init(queue, trace_bits_channel->shared_map.map_size);
   if (!feedback) { FATAL("Error initializing feedback"); }
   queue->feedback = feedback;
 
@@ -607,7 +607,6 @@ int main(int argc, char **argv) {
    * initialized using the deinit functions provided */
 
   free(feedback->virgin_bits);
-  free(shm_str);
 
   AFL_ENGINE_DEINIT(engine);
   afl_map_channel_deinit(trace_bits_channel);

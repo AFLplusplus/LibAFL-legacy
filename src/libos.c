@@ -29,11 +29,11 @@ afl_ret_t dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
 
 // Process related functions
 
-static process_t *current_process;
+// static process_t *current_process;
 
 void _afl_process_init_(process_t *process) {
 
-  process->current = return_current_default;
+  //process->current = return_current_default;
   process->fork = do_fork_default;
 
   process->resume = resume_default;
@@ -42,10 +42,12 @@ void _afl_process_init_(process_t *process) {
 
 }
 
+#if 0
 process_t *return_current_default(process_t *process) {
 
   UNUSED(process);
 
+  /* What is this good for? It's racey for sure */
   if (current_process) return current_process;
 
   process_t *p = afl_process_init(NULL, getpid());
@@ -54,6 +56,7 @@ process_t *return_current_default(process_t *process) {
   return p;
 
 }
+#endif
 
 fork_result_t do_fork_default(process_t *process) {
 
