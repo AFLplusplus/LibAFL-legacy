@@ -27,6 +27,8 @@
 #ifndef QUEUE_FILE_INCLUDED
 #define QUEUE_FILE_INCLUDED
 
+#define MAX_FEEDBACK_QUEUES 10
+
 #include "libinput.h"
 #include "list.h"
 #include <stdbool.h>
@@ -130,6 +132,7 @@ struct base_queue_functions {
 struct base_queue {
 
   queue_entry_t *base;
+  queue_entry_t *current;
   size_t         size;
   u8 *           dirpath;
   size_t         names_id;
@@ -147,13 +150,14 @@ struct base_queue {
 void _afl_base_queue_init_(base_queue_t *);
 void afl_base_queue_deinit(base_queue_t *);
 
-void           add_to_queue_default(base_queue_t *, queue_entry_t *);
-queue_entry_t *get_queue_base_default(base_queue_t *);
-size_t         get_base_queue_size_default(base_queue_t *);
-u8 *           get_dirpath_default(base_queue_t *);
-size_t         get_names_id_default(base_queue_t *);
-bool           get_save_to_files_default(base_queue_t *);
-void           set_directory_default(base_queue_t *, u8 *);
+void            add_to_queue_default(base_queue_t *, queue_entry_t *);
+queue_entry_t  *get_queue_base_default(base_queue_t *);
+size_t          get_base_queue_size_default(base_queue_t *);
+u8 *            get_dirpath_default(base_queue_t *);
+size_t          get_names_id_default(base_queue_t *);
+bool            get_save_to_files_default(base_queue_t *);
+void            set_directory_default(base_queue_t *, u8 *);
+queue_entry_t * get_next_base_queue_default(base_queue_t * queue);
 
 static inline base_queue_t *afl_base_queue_init(base_queue_t *base_queue) {
 
@@ -234,7 +238,7 @@ struct global_queue_functions {
 struct global_queue {
 
   base_queue_t base;
-  list_t feedback_queues;  // One global queue can have multiple feedback queues
+  feedback_queue_t *feedback_queues[MAX_FEEDBACK_QUEUES];  // One global queue can have multiple feedback queues
 
   size_t feedback_queues_num;
 
@@ -247,6 +251,9 @@ struct global_queue {
 // Default implementations of global queue vtable functions
 void add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
 int  global_schedule_default(global_queue_t *);
+
+// Function to get next entry from queue, we override the base_queue implementation
+queue_entry_t * get_next_global_queue_default(base_queue_t * queue);
 
 /* TODO: ADD defualt implementation for the schedule function based on random.
  */

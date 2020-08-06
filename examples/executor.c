@@ -566,7 +566,7 @@ int main(int argc, char **argv) {
 
   /* Let's free everything now. Note that if you've extended any structure,
    * which now contains pointers to any dynamically allocated region, you have
-   * to free them yourselves, the extended structure itself can be freed using
+   * to free them yourselves, but the extended structure itself can be de initialized using
    * the deinit functions provided */
 
   ck_free(feedback->virgin_bits);

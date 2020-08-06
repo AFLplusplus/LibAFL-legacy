@@ -120,9 +120,10 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
 
 /* Few helper functions */
 
+// Return random number below limit, if limit <= 0, returns -1
 int rand_below(size_t limit) {
 
-  return rand() % limit;
+  return ( limit > 0 ) ? (int)(rand() % limit) : -1;
 
 }
 
