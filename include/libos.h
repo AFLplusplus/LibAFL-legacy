@@ -21,7 +21,7 @@ typedef enum exit_type {
 
 } exit_type_t;
 
-void dump_crash_to_file(
+afl_ret_t dump_crash_to_file(
     exit_type_t, raw_input_t *);  // This function dumps an input which causes a
                                   // crash in the target to a crash file
 
@@ -63,7 +63,7 @@ static inline process_t *afl_process_init(process_t *process,
 
   else {
 
-    new_process = ck_alloc(sizeof(process_t));
+    new_process = calloc(1, sizeof(process_t));
     _afl_process_init_(new_process);
     new_process->handler_process = (handler_pid);
 

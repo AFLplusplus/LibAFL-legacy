@@ -62,7 +62,7 @@ struct queue_entry {
 
   raw_input_t *       input;
   bool                on_disk;
-  u8 *                filename;
+  char *                filename;
   struct base_queue * queue;
   struct queue_entry *next;
   struct queue_entry *prev;
@@ -121,11 +121,11 @@ struct base_queue_functions {
   queue_entry_t *(*get_next_in_queue)(base_queue_t *);
   queue_entry_t *(*get_queue_base)(base_queue_t *);
   size_t (*get_size)(base_queue_t *);
-  u8 *(*get_dirpath)(base_queue_t *);
+  char *(*get_dirpath)(base_queue_t *);
   size_t (*get_names_id)(base_queue_t *);
   bool (*get_save_to_files)(base_queue_t *);
 
-  void (*set_directory)(base_queue_t *, u8 *);
+  void (*set_directory)(base_queue_t *, char *);
 
 };
 
@@ -134,7 +134,7 @@ struct base_queue {
   queue_entry_t *base;
   queue_entry_t *current;
   size_t         size;
-  u8 *           dirpath;
+  char *           dirpath;
   size_t         names_id;
   bool           save_to_files;
 
@@ -153,10 +153,10 @@ void afl_base_queue_deinit(base_queue_t *);
 void            add_to_queue_default(base_queue_t *, queue_entry_t *);
 queue_entry_t  *get_queue_base_default(base_queue_t *);
 size_t          get_base_queue_size_default(base_queue_t *);
-u8 *            get_dirpath_default(base_queue_t *);
+char *            get_dirpath_default(base_queue_t *);
 size_t          get_names_id_default(base_queue_t *);
 bool            get_save_to_files_default(base_queue_t *);
-void            set_directory_default(base_queue_t *, u8 *);
+void            set_directory_default(base_queue_t *, char *);
 queue_entry_t * get_next_base_queue_default(base_queue_t * queue);
 
 static inline base_queue_t *afl_base_queue_init(base_queue_t *base_queue) {
@@ -189,18 +189,18 @@ typedef struct feedback_queue {
   base_queue_t base;  // Inheritence from base queue
 
   struct feedback *feedback;
-  u8 *             name;
+  char *             name;
 
 } feedback_queue_t;
 
 feedback_queue_t *_afl_feedback_queue_init_(
     feedback_queue_t *, struct feedback *,
-    u8 *);  // "constructor" for the above feedback queue
+    char *);  // "constructor" for the above feedback queue
 
 void afl_feedback_queue_deinit(feedback_queue_t *);
 
 static inline feedback_queue_t *afl_feedback_queue_init(
-    feedback_queue_t *fbck_queue, struct feedback *feedback, u8 *name) {
+    feedback_queue_t *fbck_queue, struct feedback *feedback, char *name) {
 
   feedback_queue_t *new_fbck_queue = fbck_queue;
 

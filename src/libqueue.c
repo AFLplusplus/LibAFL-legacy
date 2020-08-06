@@ -163,7 +163,7 @@ size_t get_base_queue_size_default(base_queue_t *queue) {
 
 }
 
-u8 *get_dirpath_default(base_queue_t *queue) {
+char *get_dirpath_default(base_queue_t *queue) {
 
   return queue->dirpath;
 
@@ -181,7 +181,7 @@ bool get_save_to_files_default(base_queue_t *queue) {
 
 }
 
-void set_directory_default(base_queue_t *queue, u8 *new_dirpath) {
+void set_directory_default(base_queue_t *queue, char *new_dirpath) {
 
   if (new_dirpath) {
 
@@ -189,7 +189,7 @@ void set_directory_default(base_queue_t *queue, u8 *new_dirpath) {
 
   } else {
 
-    queue->dirpath = (u8 *)"";  // We are unsetting the directory path
+    queue->dirpath = (char *)"";  // We are unsetting the directory path
 
   }
 
@@ -224,12 +224,12 @@ queue_entry_t * get_next_base_queue_default(base_queue_t * queue) {
 
 feedback_queue_t *_afl_feedback_queue_init_(feedback_queue_t *feedback_queue,
                                             struct feedback * feedback,
-                                            u8 *              name) {
+                                            char *              name) {
 
   afl_base_queue_init(&(feedback_queue->base));
   feedback_queue->feedback = feedback;
 
-  if (!name) name = (u8 *)"";
+  if (!name) name = (char *)"";
 
   feedback_queue->name = name;
 

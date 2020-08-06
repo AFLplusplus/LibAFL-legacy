@@ -33,7 +33,6 @@
 #include "afl-returns.h"
 
 #define MAX_FEEDBACKS 10
-#define PATH_MAX 100
 
 struct engine_functions {
 
@@ -47,7 +46,7 @@ struct engine_functions {
 
   u8 (*execute)(engine_t *, raw_input_t *);
   afl_ret_t (*load_testcases_from_dir)(
-      engine_t *, u8 *, raw_input_t *(*custom_input_init)(u8 *buf));
+      engine_t *, char *, raw_input_t *(*custom_input_init)(u8 *buf));
   void (*load_zero_testcase)(size_t);
 
   void (*loop)();  // Not sure about this functions usa-case. Was in FFF though.
@@ -82,7 +81,7 @@ int  add_feedback_default(engine_t *, feedback_t *);
 
 u8        execute_default(engine_t *, raw_input_t *);
 afl_ret_t load_testcases_from_dir_default(
-    engine_t *, u8 *, raw_input_t *(*custom_input_init)(u8 *buf));
+    engine_t *, char *, raw_input_t *(*custom_input_init)(u8 *buf));
 void load_zero_testcase_default(size_t);
 
 void loop_default();  // Not sure about this functions use-case. Was in FFF

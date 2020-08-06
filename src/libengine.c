@@ -109,15 +109,15 @@ int add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
 }
 
-afl_ret_t load_testcases_from_dir_default(engine_t *engine, u8 *dirpath,
+afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
                                           raw_input_t *(*custom_input_init)()) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
-  u8             infile[PATH_MAX];
+  char             infile[PATH_MAX];
 
   raw_input_t *input;
-  size_t       dir_name_size = strlen((char *)dirpath);
+  size_t       dir_name_size = strlen(dirpath);
 
   if (dirpath[dir_name_size - 1] == '/') {
 
@@ -125,7 +125,7 @@ afl_ret_t load_testcases_from_dir_default(engine_t *engine, u8 *dirpath,
 
   }
 
-  if (!(dir_in = opendir((char *)dirpath))) { return AFL_RET_FILE_OPEN; }
+  if (!(dir_in = opendir(dirpath))) { return AFL_RET_FILE_OPEN; }
 
   /* Since, this'll be the first execution, Let's start up the executor here */
 

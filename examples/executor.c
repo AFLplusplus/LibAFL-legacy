@@ -1,16 +1,5 @@
 #define AFL_MAIN
 
-#include "config.h"
-#include "types.h"
-#include "debug.h"
-#include "alloc-inl.h"
-#include "libaflpp.h"
-#include "libos.h"
-#include "libfeedback.h"
-#include "libengine.h"
-#include "libmutator.h"
-#include "libfuzzone.h"
-#include "libstage.h"
 
 #include <stdio.h>
 #include <unistd.h>
@@ -28,6 +17,18 @@
 #endif
 #include <sys/stat.h>
 #include <sys/types.h>
+
+#include "config.h"
+#include "types.h"
+#include "debug.h"
+#include "alloc-inl.h"
+#include "libaflpp.h"
+#include "libos.h"
+#include "libfeedback.h"
+#include "libengine.h"
+#include "libmutator.h"
+#include "libfuzzone.h"
+#include "libstage.h"
 
 #undef MAP_SIZE
 #define MAP_SIZE 65536
@@ -61,10 +62,10 @@ typedef struct afl_forkserver {
 
   u64 total_execs;                 /* How often fsrv_run_target was called  */
 
-  u8 *out_file,                         /* File to fuzz, if any             */
+  char *out_file,                         /* File to fuzz, if any             */
       *target_path;                     /* Path of the target               */
 
-  u8 **extra_args;
+  char **extra_args;
 
   u32 last_run_timed_out;               /* Traced process timed out?        */
 
@@ -86,7 +87,7 @@ typedef struct maximize_map_feedback {
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 
 /* Functions related to the forkserver defined above */
-static afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file);
+static afl_forkserver_t *fsrv_init(char *target_path, char *out_file);
 static exit_type_t       fsrv_run_target(afl_forkserver_t *fsrv);
 static u8 fsrv_place_inputs(afl_forkserver_t *fsrv, raw_input_t *input);
 static u8 fsrv_start(afl_forkserver_t *fsrv);
@@ -194,15 +195,18 @@ restart_select:
 }
 
 /* Function to simple initialize the forkserver */
-afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file) {
+afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
 
-  afl_forkserver_t *fsrv = ck_alloc(
-      sizeof(afl_forkserver_t));  // We use ck_alloc here since it's an example
-                                  // and FATAL won't be an issue
+  afl_forkserver_t *fsrv = calloc(1,
+      sizeof(afl_forkserver_t));  
+  if (!fsrv) {
+    return NULL;
+  }
 
   if (!afl_executor_init(&(fsrv->base))) {
 
-    FATAL("SOMETHING WRONG WHILE INITIALIZING THE BASE EXECUTOR");
+    free(fsrv);
+    return NULL;
 
   }
 
@@ -222,12 +226,23 @@ afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file) {
   } else {
 
     fsrv->out_fd = open((char *)fsrv->out_file, O_WRONLY | O_CREAT, 0600);
+    if (!fsrv->out_fd) {
+      afl_executor_deinit(&fsrv->base);
+      free(fsrv);
+      return NULL;
+    }
 
   }
 
   fsrv->out_dir_fd = -1;
 
   fsrv->dev_null_fd = open("/dev/null", O_WRONLY);
+  if (!fsrv->dev_null_fd) {
+    close(fsrv->out_fd);
+    afl_executor_deinit(&fsrv->base);
+    free(fsrv);
+    return NULL;
+  }
 
   /* Settings */
   fsrv->use_stdin = 1;
@@ -455,12 +470,17 @@ static exit_type_t fsrv_run_target(afl_forkserver_t *fsrv) {
 static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
                                                   size_t            size) {
 
-  maximize_map_feedback_t *feedback = ck_alloc(sizeof(maximize_map_feedback_t));
+  maximize_map_feedback_t *feedback = calloc(1, sizeof(maximize_map_feedback_t));
+  if (!feedback) { return NULL; }
   afl_feedback_init(feedback, queue);
 
   feedback->base.funcs.is_interesting = fbck_is_interesting;
 
-  feedback->virgin_bits = ck_alloc(size);
+  feedback->virgin_bits = calloc(1, size);
+  if (!feedback->virgin_bits) { 
+    free(feedback);
+    return NULL; 
+  }
   feedback->size = size;
 
   return feedback;
@@ -512,41 +532,62 @@ int main(int argc, char **argv) {
 
   }
 
-  u8 *in_dir = (u8 *)argv[2];
+  char *in_dir = (char *)argv[2];
 
   /* Let's now create a simple map-based observation channel */
   map_based_channel_t *trace_bits_channel = afl_map_channel_init(MAP_SIZE);
 
   /* We initialize the forkserver we want to use here. */
-  afl_forkserver_t *fsrv = fsrv_init((u8 *)argv[1], (u8 *)argv[3]);
+  afl_forkserver_t *fsrv = fsrv_init((char *)argv[1], (char *)argv[3]);
+  if (!fsrv) {
+    FATAL("Could not initialize forkserver!");
+  }
   fsrv->exec_tmout = 10000;
   fsrv->extra_args = argv;
 
   fsrv->base.funcs.add_observation_channel(fsrv, trace_bits_channel);
 
-  u8 *shm_str = alloc_printf("%d", trace_bits_channel->shared_map->shm_id);
+  char *shm_str = alloc_printf("%d", trace_bits_channel->shared_map->shm_id);
+  if (!shm_str) {
+    PFATAL("alloc_printf failed.");
+  }
   setenv("__AFL_SHM_ID", (char *)shm_str, 1);
   fsrv->trace_bits = trace_bits_channel->shared_map->map;
 
   /* We create a simple feedback queue here*/
   feedback_queue_t *queue =
-      afl_feedback_queue_init(NULL, NULL, (u8 *)"fbck queue");
+      afl_feedback_queue_init(NULL, NULL, (char *)"fbck queue");
+  if (!queue) {
+    FATAL("Error initializing queue");
+  }
 
   /* Feedback initialization */
   maximize_map_feedback_t *feedback =
       map_feedback_init(queue, trace_bits_channel->shared_map->map_size);
+  if (!feedback) {
+    FATAL("Error initializing feedback");
+  }
   queue->feedback = feedback;
 
   /* Let's build an engine now */
   engine_t *engine = afl_engine_init(NULL, (executor_t *)fsrv, NULL, NULL);
+  if (!engine) {
+    FATAL("Error initializing Engine");
+  }
   engine->funcs.add_feedback(engine, (feedback_t *)feedback);
 
   fuzz_one_t *fuzz_one = afl_fuzz_one_init(NULL, engine);
+  if (!fuzz_one) {
+    FATAL("Error initializing fuzz_one");
+  }
 
   // We also add the fuzzone to the engine here.
   engine->fuzz_one = fuzz_one;
 
   scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_init(NULL, 0);
+  if (!mutators_havoc) {
+    FATAL("Error initializing Mutators");
+  }
 
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_byte_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
@@ -557,10 +598,16 @@ int main(int argc, char **argv) {
                                           random_byte_add_sub_mutation);
 
   fuzzing_stage_t *stage = afl_fuzz_stage_init(engine);
+  if (!stage) {
+    FATAL("Error initializing fuzz stage");
+  }
   stage->funcs.add_mutator_to_stage(stage, mutators_havoc);
 
   /* Now we can simply load the testcases from the directory given */
-  engine->funcs.load_testcases_from_dir(engine, in_dir, NULL);
+  afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, in_dir, NULL);
+  if (ret != AFL_RET_SUCCESS) {
+    PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret));
+  }
 
   OKF("Processed %llu input files.", fsrv->total_execs);
 
@@ -569,8 +616,8 @@ int main(int argc, char **argv) {
    * to free them yourselves, but the extended structure itself can be de initialized using
    * the deinit functions provided */
 
-  ck_free(feedback->virgin_bits);
-  ck_free(shm_str);
+  free(feedback->virgin_bits);
+  free(shm_str);
 
   AFL_ENGINE_DEINIT(engine);
   afl_map_channel_deinit(trace_bits_channel);

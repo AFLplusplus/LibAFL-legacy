@@ -56,32 +56,35 @@ void afl_input_deinit(raw_input_t *input) {
 
 // default implemenatations for the vtable functions for the raw_input type
 
-u8 raw_inp_clear_default(raw_input_t *input) {
+afl_ret_t raw_inp_clear_default(raw_input_t *input) {
 
-  void *s = memset(input->bytes, 0x0, input->len);
+  memset(input->bytes, 0x0, input->len);
 
-  if (s != (void *)input) return INPUT_CLEAR_FAIL;
-
-  return ALL_OK;
+  return AFL_RET_SUCCESS;
 
 }
 
 raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
 
   raw_input_t *copy_inp = afl_input_init(NULL);
-  copy_inp->bytes = ck_alloc(orig_inp->len);
+  if (!copy_inp) { return NULL; }
+  copy_inp->bytes = calloc(orig_inp->len, sizeof(u8));
+  if (!copy_inp->bytes) {
+    free(copy_inp);
+    return NULL;
+  }
   memcpy(copy_inp->bytes, orig_inp->bytes, orig_inp->len);
   return copy_inp;
 
 }
 
-u8 raw_inp_deserialize_default(raw_input_t *input, u8 *bytes, size_t len) {
+afl_ret_t raw_inp_deserialize_default(raw_input_t *input, u8 *bytes, size_t len) {
 
   free(input->bytes);
   input->bytes = bytes;
   input->len = len;
 
-  return ALL_OK;
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -91,7 +94,7 @@ u8 *raw_inp_get_bytes_default(raw_input_t *input) {
 
 }
 
-afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
+afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, char *fname) {
 
   struct stat st;
   s32         fd = open((char *)fname, O_RDONLY);
@@ -112,26 +115,25 @@ afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
   return AFL_RET_SUCCESS;
 
 }
-
-u8 raw_inp_save_to_file_default(raw_input_t *input, u8 *fname) {
+afl_ret_t raw_inp_save_to_file_default(raw_input_t *input, char *fname) {
 
   FILE *f = fopen((char *)fname, "w+");
 
-  if (!f) return FILE_OPEN_ERROR;
+  if (!f) { return AFL_RET_FILE_OPEN; }
 
   fwrite(input->bytes, 1, input->len, f);
 
   fclose(f);
-  return ALL_OK;
+  return AFL_RET_SUCCESS;
 
 }
 
-u8 raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
+afl_ret_t raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
 
   free(input->bytes);
   input->bytes = new_inp->bytes;
 
-  return ALL_OK;
+  return AFL_RET_SUCCESS;
 
 }
 

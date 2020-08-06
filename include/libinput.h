@@ -36,14 +36,14 @@ typedef struct raw_input raw_input_t;
 
 struct raw_input_functions {
 
-  u8 (*deserialize)(raw_input_t *, u8 *, size_t);
+  afl_ret_t (*deserialize)(raw_input_t *, u8 *, size_t);
   u8 *(*serialize)(raw_input_t *);
   raw_input_t *(*copy)(raw_input_t *);
   raw_input_t *(*empty)(raw_input_t *);
-  u8 (*restore)(raw_input_t *, raw_input_t *);
-  afl_ret_t (*load_from_file)(raw_input_t *, u8 *);
-  u8 (*save_to_file)(raw_input_t *, u8 *);
-  u8 (*clear)(raw_input_t *);
+  afl_ret_t (*restore)(raw_input_t *, raw_input_t *);
+  afl_ret_t (*load_from_file)(raw_input_t *, char *);
+  afl_ret_t (*save_to_file)(raw_input_t *, char *);
+  afl_ret_t (*clear)(raw_input_t *);
   u8 *(*get_bytes)(raw_input_t *);
 
 };
@@ -62,14 +62,14 @@ void _afl_input_init_(raw_input_t *);
 void afl_input_deinit(raw_input_t *);
 
 // Default implementations of the functions for raw input vtable
-u8           raw_inp_deserialize_default(raw_input_t *, u8 *, size_t);
+afl_ret_t           raw_inp_deserialize_default(raw_input_t *, u8 *, size_t);
 u8 *         raw_inp_serialize_default(raw_input_t *);
 raw_input_t *raw_inp_copy_default(raw_input_t *);
 raw_input_t *raw_inp_empty_default(raw_input_t *);
-u8           raw_inp_restore_default(raw_input_t *, raw_input_t *);
-afl_ret_t    raw_inp_load_from_file_default(raw_input_t *input, u8 *fname);
-u8           raw_inp_save_to_file_default(raw_input_t *, u8 *);
-u8           raw_inp_clear_default(raw_input_t *);
+afl_ret_t           raw_inp_restore_default(raw_input_t *, raw_input_t *);
+afl_ret_t    raw_inp_load_from_file_default(raw_input_t *input, char *fname);
+afl_ret_t           raw_inp_save_to_file_default(raw_input_t *, char *);
+afl_ret_t           raw_inp_clear_default(raw_input_t *);
 u8 *         raw_inp_get_bytes_default(raw_input_t *);
 
 // input_clear and empty functions... difference??
@@ -100,12 +100,6 @@ static inline raw_input_t *afl_input_init(raw_input_t *input) {
 }
 
 #define AFL_INPUT_DEINIT(input) afl_input_deinit(input);
-
-enum input_erros {
-
-  INPUT_CLEAR_FAIL = 1,
-
-};
 
 #endif
 

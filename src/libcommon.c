@@ -97,7 +97,7 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
   if (shm->map == -1 || !shm->map) PFATAL("mmap() failed");
 
 #else
-  u8 *shm_str;
+  char *shm_str;
 
   shm->shm_id = shmget(IPC_PRIVATE, map_size, IPC_CREAT | IPC_EXCL | 0600);
 
