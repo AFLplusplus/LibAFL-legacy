@@ -88,7 +88,7 @@ static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 /* Functions related to the forkserver defined above */
 static afl_forkserver_t *fsrv_init(char *target_path, char *out_file);
 static exit_type_t       fsrv_run_target(executor_t *fsrv_executor);
-static u8 fsrv_place_inputs(executor_t *fsrv_executor, raw_input_t *input);
+static u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
 static afl_ret_t fsrv_start(executor_t *fsrv_executor);
 
 /* Functions related to the feedback defined above */
@@ -208,7 +208,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
 
   /* defining standard functions for the forkserver vtable */
   fsrv->base.funcs.init_cb = fsrv_start;
-  fsrv->base.funcs.place_inputs_cb = fsrv_place_inputs;
+  fsrv->base.funcs.place_input_cb = fsrv_place_input;
   fsrv->base.funcs.run_target_cb = fsrv_run_target;
 
   fsrv->target_path = target_path;
@@ -379,7 +379,7 @@ static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
 }
 
 /* Places input in the executor for the target */
-u8 fsrv_place_inputs(executor_t *fsrv_executor, raw_input_t *input) {
+u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input) {
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
   ssize_t write_len = write(fsrv->out_fd, input->bytes, input->len);

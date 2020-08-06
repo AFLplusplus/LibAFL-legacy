@@ -63,35 +63,6 @@ typedef struct executor executor_t;
 
 typedef struct mutator mutator_t;
 
-#define IS_SAME_TYPE(x, type) _Generic(x, (type *) : true, default : false)
-
-#define IS_DERIVED_TYPE(x, type) \
-  _Generic(x->base, (type *) : true, default : false)
-
-// Calling the functions in a "vtable" for a struct like this.  We pss a pointer
-// to the "object here"
-/* What can we do in case of an incompatible type here? since, this is a macro,
- * not sure about this.  */
-#define GENERIC_VTABLE_CALL(struct_instance, struct_type, function_name, ...) \
-  do {                                                                        \
-                                                                              \
-    if (IS_SAME_TYPE(x, struct_type *)) {                                     \
-                                                                              \
-      struct_instance->functions->function_name(struct_instance,              \
-                                                ##__VA_ARGS__);               \
-      return 0;                                                               \
-                                                                              \
-    } else if (IS_DERIVED_TYPE(struct_instance, struct_type)) {               \
-                                                                              \
-      (struct_type *)parent_class = &(struct_instance->base);                 \
-      parent_class->functions->function_name(parent_class, ##__VA_ARGS__);    \
-                                                                              \
-    } else {                                                                  \
-                                                                              \
-    }                                                                         \
-                                                                              \
-  } while (0)
-
 void * insert_substring(void *buf, size_t len, void *token, size_t token_len,
                         size_t offset);
 int    rand_below(size_t limit);

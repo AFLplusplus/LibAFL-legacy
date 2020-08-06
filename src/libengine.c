@@ -186,7 +186,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 
   executor->funcs.reset_observation_channels(executor);
 
-  executor->funcs.place_inputs_cb(executor, input);
+  executor->funcs.place_input_cb(executor, input);
 
   if (engine->start_time == 0) { engine->start_time = time(NULL); }
 

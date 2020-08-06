@@ -51,7 +51,7 @@ struct executor_functions {
 
   exit_type_t (*run_target_cb)(
       executor_t *);  // Similar to afl_fsrv_run_target we have in afl
-  u8 (*place_inputs_cb)(
+  u8 (*place_input_cb)(
       executor_t *,
       raw_input_t *);  // similar to the write_to_testcase function in afl.
 
