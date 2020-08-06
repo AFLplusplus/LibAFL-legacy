@@ -89,7 +89,7 @@ static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 static afl_forkserver_t *fsrv_init(char *target_path, char *out_file);
 static exit_type_t       fsrv_run_target(afl_forkserver_t *fsrv);
 static u8 fsrv_place_inputs(afl_forkserver_t *fsrv, raw_input_t *input);
-static u8 fsrv_start(afl_forkserver_t *fsrv);
+static afl_ret_t fsrv_start(afl_forkserver_t *fsrv);
 
 /* Functions related to the feedback defined above */
 static bool fbck_is_interesting(maximize_map_feedback_t *feedback,
@@ -256,7 +256,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
 }
 
 /* This function starts up the forkserver for further process requests */
-static u8 fsrv_start(afl_forkserver_t *fsrv) {
+static afl_ret_t fsrv_start(afl_forkserver_t *fsrv) {
 
   int st_pipe[2], ctl_pipe[2];
   s32 status;
@@ -264,12 +264,16 @@ static u8 fsrv_start(afl_forkserver_t *fsrv) {
 
   ACTF("Spinning up the fork server...");
 
-  if (pipe(st_pipe) || pipe(ctl_pipe)) { PFATAL("pipe() failed"); }
+  if (pipe(st_pipe) || pipe(ctl_pipe)) {
+    return AFL_RET_ERRNO;
+  }
 
   fsrv->last_run_timed_out = 0;
   fsrv->fsrv_pid = fork();
 
-  if (fsrv->fsrv_pid < 0) { PFATAL("fork() failed"); }
+  if (fsrv->fsrv_pid < 0) { 
+    return AFL_RET_ERRNO;
+  }
 
   if (!fsrv->fsrv_pid) {
 
@@ -278,6 +282,9 @@ static u8 fsrv_start(afl_forkserver_t *fsrv) {
     setsid();
 
     fsrv->out_fd = open((char *)fsrv->out_file, O_RDONLY | O_CREAT, 0600);
+    if (!fsrv->out_fd) {
+      PFATAL("Could not open outfile in child");
+    }
 
     dup2(fsrv->out_fd, 0);
     close(fsrv->out_fd);
@@ -295,7 +302,7 @@ static u8 fsrv_start(afl_forkserver_t *fsrv) {
     close(st_pipe[0]);
     close(st_pipe[1]);
 
-    execv((char *)fsrv->target_path, fsrv->extra_args);
+    execv(fsrv->target_path, fsrv->extra_args);
 
     /* Use a distinctive bitmap signature to tell the parent about execv()
        falling through. */
@@ -353,18 +360,19 @@ static u8 fsrv_start(afl_forkserver_t *fsrv) {
   if (rlen == 4) {
 
     OKF("All right - fork server is up.");
-
-    return 0;
+    return AFL_RET_SUCCESS;
 
   }
 
   if (fsrv->trace_bits == (u8 *)0xdeadbeef) {
 
-    FATAL("Unable to execute target application ('%s')", fsrv->extra_args[0]);
+    WARNF("Unable to execute target application ('%s')", fsrv->extra_args[0]);
+    return AFL_RET_EXEC_ERROR;
 
   }
 
-  FATAL("Fork server handshake failed");
+  WARNF("Fork server handshake failed");
+  return AFL_RET_BROKEN_TARGET;
 
 }
 
@@ -536,13 +544,13 @@ int main(int argc, char **argv) {
 
   }
 
-  char *in_dir = argv[2];
+  char *in_dir = argv[1];
 
   /* Let's now create a simple map-based observation channel */
   map_based_channel_t *trace_bits_channel = afl_map_channel_init(MAP_SIZE);
 
   /* We initialize the forkserver we want to use here. */
-  afl_forkserver_t *fsrv = fsrv_init((char *)argv[1], (char *)argv[3]);
+  afl_forkserver_t *fsrv = fsrv_init(argv[3], argv[2]);
   if (!fsrv) { FATAL("Could not initialize forkserver!"); }
   fsrv->exec_tmout = 10000;
   fsrv->extra_args = &argv[3];
@@ -611,6 +619,8 @@ int main(int argc, char **argv) {
 
   AFL_ENGINE_DEINIT(engine);
   afl_map_channel_deinit(trace_bits_channel);
+
+  afl_scheduled_mutator_deinit(mutators_havoc);
 
   AFL_FEEDBACK_QUEUE_DEINIT(queue);
 

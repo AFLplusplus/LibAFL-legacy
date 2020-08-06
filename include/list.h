@@ -105,7 +105,7 @@ static inline afl_ret_t list_append(list_t *list, void *el) {
     list_t *   li = (list);                                        \
     element_t *head = get_head((li));                              \
     element_t *el_box = (head)->next;                              \
-    if (!el_box) FATAL("foreach over uninitialized list");         \
+    if (!el_box) FATAL("BUG: foreach over uninitialized list");    \
     while (el_box != head) {                                       \
                                                                    \
       __attribute__((unused)) type *el = (type *)((el_box)->data); \
@@ -161,7 +161,7 @@ static inline void list_remove(list_t *list, void *remove_me) {
 
   });
 
-  FATAL("List item to be removed not in list");
+  FATAL("BUG: List item to be removed not in list");
 
 }
 

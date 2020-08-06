@@ -125,7 +125,7 @@ exit_type_t wait_default(process_t *process, bool untraced) {
 
   else {
 
-    FATAL("Currently Unhandled");
+    FATAL("BUG: Currently Unhandled");
 
   }
 

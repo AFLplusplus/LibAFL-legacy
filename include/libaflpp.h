@@ -46,7 +46,7 @@ it. See the example forksever executor that we have in examples/
 
 struct executor_functions {
 
-  u8 (*init_cb)(executor_t *);     // can be NULL
+  afl_ret_t (*init_cb)(executor_t *);     // can be NULL
   u8 (*destroy_cb)(executor_t *);  // can be NULL
 
   exit_type_t (*run_target_cb)(
