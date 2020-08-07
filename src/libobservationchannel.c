@@ -26,11 +26,9 @@
 
 #include "libobservationchannel.h"
 
-#define UNUSED(x) (void)(x)
-
 void _afl_observation_channel_init_(observation_channel_t *channel) {
 
-  UNUSED(channel);
+  (void)channel;
 
 }
 
@@ -42,7 +40,8 @@ void afl_observation_channel_deinit(observation_channel_t *channel) {
 
 void flush_default(observation_channel_t *channel) {
 
-  UNUSED(channel);
+  (void)channel;
+
   /* TODO: Implementation */
   return;
 
@@ -50,7 +49,7 @@ void flush_default(observation_channel_t *channel) {
 
 void reset_default(observation_channel_t *channel) {
 
-  UNUSED(channel);
+  (void)channel;
 
   /* TODO: Implementation */
   return;
@@ -59,7 +58,7 @@ void reset_default(observation_channel_t *channel) {
 
 void post_exec(observation_channel_t *channel) {
 
-  UNUSED(channel);
+  (void)channel;
 
   /* TODO: Implementation */
   return;

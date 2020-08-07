@@ -25,8 +25,6 @@
 #include "libfuzzone.h"
 #include "libmutator.h"
 
-#define UNUSED(x) (void)(x)
-
 void _afl_stage_init_(stage_t *stage, engine_t *engine) {
 
   stage->engine = engine;
@@ -90,7 +88,7 @@ afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage,
 
 size_t iterations_stage_default(stage_t *stage) {
 
-  UNUSED(stage);
+  (void)stage;
   return (1 + rand_below(128));
 
 }

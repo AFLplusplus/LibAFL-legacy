@@ -28,8 +28,6 @@
 #include "libfeedback.h"
 #include "libengine.h"
 
-#define UNUSED(x) (void)(x)
-
 // We start with the implementation of queue_entry functions here.
 void _afl_queue_entry_init_(queue_entry_t *entry, raw_input_t *input) {
 

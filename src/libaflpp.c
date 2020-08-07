@@ -25,8 +25,6 @@
 #include "stdbool.h"
 #include "afl-returns.h"
 
-#define UNUSED(x) (void)(x)
-
 void _afl_executor_init_(executor_t *executor) {
 
   executor->current_input = NULL;

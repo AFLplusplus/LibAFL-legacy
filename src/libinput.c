@@ -31,8 +31,6 @@
 #include "libinput.h"
 #include "afl-returns.h"
 
-#define UNUSED(x) (void)(x)
-
 void _afl_input_init_(raw_input_t *input) {
 
   input->funcs.clear = raw_inp_clear_default;
@@ -145,7 +143,7 @@ afl_ret_t raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
 
 raw_input_t *raw_inp_empty_default(raw_input_t *input) {
 
-  UNUSED(input);
+  (void)input;
 
   /* TODO: Implementation */
   return NULL;
@@ -154,7 +152,7 @@ raw_input_t *raw_inp_empty_default(raw_input_t *input) {
 
 u8 *raw_inp_serialize_default(raw_input_t *input) {
 
-  UNUSED(input);
+  (void)input;
 
   /* TODO: Implementation */
   return NULL;

@@ -35,8 +35,6 @@
 #define HAVOC_BLK_LARGE 1500
 #define HAVOC_BLK_XL 32768
 
-#define UNUSED(x) (void)(x)
-
 void _afl_mutator_init_(mutator_t *mutator, stage_t *stage) {
 
   mutator->stage = stage;

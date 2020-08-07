@@ -7,12 +7,8 @@
 
 #include "libos.h"
 
-#define UNUSED(x) (void)(x)
-
 // Crash related functions
 afl_ret_t dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
-
-  UNUSED(exit_type);
 
   char filename[128];
 
@@ -46,7 +42,7 @@ void _afl_process_init_(process_t *process) {
 #if 0
 process_t *return_current_default(process_t *process) {
 
-  UNUSED(process);
+  (void)process;
 
   /* What is this good for? It's racey for sure */
   if (current_process) return current_process;
