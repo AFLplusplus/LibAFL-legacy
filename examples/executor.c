@@ -194,7 +194,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
   afl_forkserver_t *fsrv = calloc(1, sizeof(afl_forkserver_t));
   if (!fsrv) { return NULL; }
 
-  if (!afl_executor_init(&(fsrv->base))) {
+  if (afl_executor_init(&(fsrv->base))) {
 
     free(fsrv);
     return NULL;
@@ -515,7 +515,7 @@ static float fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
   if (found && feedback->queue) {
 
-    queue_entry_t *new_entry = afl_queue_entry_init(NULL, fsrv->current_input);
+    queue_entry_t *new_entry = afl_queue_entry_create(fsrv->current_input);
     // An incompatible ptr type warning has been suppresed here. We pass the
     // feedback queue to the add_to_queue rather than the base_queue
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
@@ -544,7 +544,7 @@ int main(int argc, char **argv) {
   char *in_dir = argv[1];
 
   /* Let's now create a simple map-based observation channel */
-  map_based_channel_t *trace_bits_channel = afl_map_channel_init(MAP_SIZE);
+  map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE);
 
   /* We initialize the forkserver we want to use here. */
   afl_forkserver_t *fsrv = fsrv_init(argv[3], argv[2]);
@@ -563,11 +563,11 @@ int main(int argc, char **argv) {
 
   /* We create a simple feedback queue here*/
   feedback_queue_t *feedback_queue =
-      afl_feedback_queue_init(NULL, NULL, (char *)"fbck queue");
-  if (!feedback_queue) { FATAL("Error initializing global queue"); }
+      afl_feedback_queue_create(NULL, (char *)"fbck queue");
+  if (!feedback_queue) { FATAL("Error initializing feedback queue"); }
 
   /* Global queue creation */
-  global_queue_t *global_queue = afl_global_queue_init(NULL);
+  global_queue_t *global_queue = afl_global_queue_create(NULL);
   if (!global_queue) { FATAL("Error initializing global queue"); }
   global_queue->extra_funcs.add_feedback_queue(global_queue, feedback_queue);
 
@@ -578,18 +578,17 @@ int main(int argc, char **argv) {
   feedback_queue->feedback = &feedback->base;
 
   /* Let's build an engine now */
-  engine_t *engine =
-      afl_engine_init(NULL, (executor_t *)fsrv, NULL, global_queue);
+  engine_t *engine = afl_engine_create((executor_t *)fsrv, NULL, global_queue);
   if (!engine) { FATAL("Error initializing Engine"); }
   engine->funcs.add_feedback(engine, (feedback_t *)feedback);
 
-  fuzz_one_t *fuzz_one = afl_fuzz_one_init(NULL, engine);
+  fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
   // We also add the fuzzone to the engine here.
   engine->fuzz_one = fuzz_one;
 
-  scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_init(NULL, 0);
+  scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_create(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_byte_mutation);
@@ -600,8 +599,8 @@ int main(int argc, char **argv) {
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
                                           delete_bytes_mutation);
 
-  fuzzing_stage_t *stage = afl_fuzz_stage_init(engine);
-  if (!stage) { FATAL("Error initializing fuzz stage"); }
+  fuzzing_stage_t *stage = afl_fuzz_stage_create(engine);
+  if (!stage) { FATAL("Error creating fuzzing stage"); }
   stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
 
   /* Now we can simply load the testcases from the directory given */
@@ -629,9 +628,9 @@ int main(int argc, char **argv) {
 
   afl_engine_deinit(engine);
   afl_map_channel_deinit(trace_bits_channel);
+  afl_executor_delete(&fsrv->base);
 
-  afl_scheduled_mutator_deinit(mutators_havoc);
-
+  afl_scheduled_mutator_delete(mutators_havoc);
   afl_global_queue_deinit(global_queue);
 
   return 0;

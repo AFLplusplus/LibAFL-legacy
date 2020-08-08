@@ -87,28 +87,31 @@ void load_zero_testcase_default(size_t);
 afl_ret_t loop_default(engine_t *);  // Not sure about this functions use-case.
                                      // Was in FFF though.
 
-void _afl_engine_init_internal(engine_t *, executor_t *, fuzz_one_t *,
-                               global_queue_t *);
-void afl_engine_deinit();
+afl_ret_t afl_engine_init(engine_t *, executor_t *, fuzz_one_t *,
+                          global_queue_t *);
+void      afl_engine_deinit(engine_t *);
 
-static inline engine_t *afl_engine_init(engine_t *engine, executor_t *executor,
-                                        fuzz_one_t *    fuzz_one,
-                                        global_queue_t *global_queue) {
+static inline engine_t *afl_engine_create(executor_t *    executor,
+                                          fuzz_one_t *    fuzz_one,
+                                          global_queue_t *global_queue) {
 
-  engine_t *new_engine = engine;
+  engine_t *engine = calloc(1, sizeof(engine_t));
+  if (!engine) return NULL;
+  if (afl_engine_init(engine, executor, fuzz_one, global_queue) !=
+      AFL_RET_SUCCESS) {
 
-  if (engine)
-    _afl_engine_init_internal(engine, executor, fuzz_one, global_queue);
-
-  else {
-
-    new_engine = calloc(1, sizeof(engine_t));
-    if (!new_engine) return NULL;
-    _afl_engine_init_internal(new_engine, executor, fuzz_one, global_queue);
+    return NULL;
 
   }
 
-  return new_engine;
+  return engine;
+
+}
+
+static inline void afl_engine_delete(engine_t *engine) {
+
+  afl_engine_deinit(engine);
+  free(engine);
 
 }
 

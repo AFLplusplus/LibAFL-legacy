@@ -32,7 +32,7 @@
 #include "libinput.h"
 #include "afl-returns.h"
 
-void _afl_input_init_internal(raw_input_t *input) {
+afl_ret_t afl_input_init(raw_input_t *input) {
 
   input->funcs.clear = raw_inp_clear_default;
   input->funcs.copy = raw_inp_copy_default;
@@ -43,13 +43,16 @@ void _afl_input_init_internal(raw_input_t *input) {
   input->funcs.save_to_file = raw_inp_save_to_file_default;
   input->funcs.serialize = raw_inp_serialize_default;
 
+  return AFL_RET_SUCCESS;
+
 }
 
 void afl_input_deinit(raw_input_t *input) {
 
   if (input->bytes) { free(input->bytes); }
 
-  free(input);
+  input->bytes = NULL;
+  input->len = 0;
 
   return;
 
@@ -67,7 +70,7 @@ void raw_inp_clear_default(raw_input_t *input) {
 
 raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
 
-  raw_input_t *copy_inp = afl_input_init(NULL);
+  raw_input_t *copy_inp = afl_input_create();
   if (!copy_inp) { return NULL; }
   copy_inp->bytes = calloc(orig_inp->len, sizeof(u8));
   if (!copy_inp->bytes) {

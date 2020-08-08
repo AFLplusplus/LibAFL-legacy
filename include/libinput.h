@@ -57,8 +57,8 @@ struct raw_input {
 
 };
 
-void _afl_input_init_internal(raw_input_t *input);
-void afl_input_deinit(raw_input_t *input);
+afl_ret_t afl_input_init(raw_input_t *input);
+void      afl_input_deinit(raw_input_t *input);
 
 // Default implementations of the functions for raw input vtable
 
@@ -73,26 +73,24 @@ afl_ret_t raw_inp_save_to_file_default(raw_input_t *this_input, char *fname);
 void      raw_inp_clear_default(raw_input_t *this_input);
 u8 *      raw_inp_get_bytes_default(raw_input_t *this_input);
 
-static inline raw_input_t *afl_input_init(raw_input_t *input) {
+/* Function to create and destroy a new input, allocates memory and initializes
+  it. In destroy, it first deinitializes the struct and then frees it. */
 
-  raw_input_t *new_input = input;
+static inline raw_input_t *afl_input_create() {
 
-  if (input) {
+  raw_input_t *input = calloc(1, sizeof(raw_input_t));
+  if (!input) { return NULL; }
 
-    _afl_input_init_internal(input);
+  if (afl_input_init(input) != AFL_RET_SUCCESS) { return NULL; }
 
-  }
+  return input;
 
-  else {
+}
 
-    new_input = calloc(1, sizeof(raw_input_t));
-    if (!new_input) return NULL;
+static inline void afl_input_destroy(raw_input_t *input) {
 
-    _afl_input_init_internal(new_input);
-
-  }
-
-  return new_input;
+  afl_input_deinit(input);
+  free(input);
 
 }
 

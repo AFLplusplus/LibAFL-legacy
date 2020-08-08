@@ -25,16 +25,19 @@
  */
 
 #include "libobservationchannel.h"
+#include "afl-returns.h"
 
-void _afl_observation_channel_init_internal(observation_channel_t *channel) {
+afl_ret_t afl_observation_channel_init(observation_channel_t *channel) {
 
   (void)channel;
+
+  return AFL_RET_SUCCESS;
 
 }
 
 void afl_observation_channel_deinit(observation_channel_t *channel) {
 
-  free(channel);
+  (void)channel;
 
 }
 
@@ -65,24 +68,21 @@ void post_exec(observation_channel_t *channel) {
 
 }
 
-map_based_channel_t *afl_map_channel_init(size_t map_size) {
-
-  map_based_channel_t *map_channel = calloc(1, sizeof(map_based_channel_t));
-  if (!map_channel) { return NULL; }
+afl_ret_t afl_map_channel_init(map_based_channel_t *map_channel,
+                               size_t               map_size) {
 
   afl_observation_channel_init(&(map_channel->base));
 
   if (!afl_sharedmem_init(&map_channel->shared_map, map_size)) {
 
-    free(map_channel);
-    return NULL;
+    return AFL_RET_ERROR_INITIALIZE;
 
   }
 
   map_channel->extra_funcs.get_map_size = get_map_size_default;
   map_channel->extra_funcs.get_trace_bits = get_trace_bits_default;
 
-  return map_channel;
+  return AFL_RET_SUCCESS;
 
 }
 

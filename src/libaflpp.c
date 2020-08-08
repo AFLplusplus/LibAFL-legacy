@@ -25,7 +25,7 @@
 #include "stdbool.h"
 #include "afl-returns.h"
 
-void _afl_executor_init_internal(executor_t *executor) {
+afl_ret_t afl_executor_init(executor_t *executor) {
 
   executor->current_input = NULL;
 
@@ -36,14 +36,22 @@ void _afl_executor_init_internal(executor_t *executor) {
   executor->funcs.reset_observation_channels =
       reset_observation_channel_default;
 
+  return AFL_RET_SUCCESS;
+
 }
 
 // Default implementations for executor vtable
 void afl_executor_deinit(executor_t *executor) {
 
-  // if (!executor) ;
+  executor->current_input = NULL;
 
-  free(executor);
+  for (size_t i = 0; i < executor->observors_num; ++i) {
+
+    afl_observation_channel_deinit(executor->observors[i]);
+
+  }
+
+  executor->observors_num = 0;
 
 }
 

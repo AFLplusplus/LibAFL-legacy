@@ -29,7 +29,7 @@
 #include "libengine.h"
 
 // We start with the implementation of queue_entry functions here.
-void _afl_queue_entry_init_internal(queue_entry_t *entry, raw_input_t *input) {
+afl_ret_t afl_queue_entry_init(queue_entry_t *entry, raw_input_t *input) {
 
   entry->input = input;
 
@@ -37,6 +37,8 @@ void _afl_queue_entry_init_internal(queue_entry_t *entry, raw_input_t *input) {
   entry->funcs.get_next = get_next_default;
   entry->funcs.get_prev = get_prev_default;
   entry->funcs.get_parent = get_parent_default;
+
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -48,7 +50,13 @@ void afl_queue_entry_deinit(queue_entry_t *entry) {
 
   if (entry->prev) { entry->prev->next = entry->next; }
 
-  /* Clear all the children entries */
+  entry->next = NULL;
+  entry->prev = NULL;
+  entry->queue = NULL;
+  entry->parent = NULL;
+  entry->filename = NULL;
+
+  /* Clear all the children entries?? */
   if (entry->children_num) {
 
     LIST_FOREACH_CLEAR(&(entry->children), queue_entry_t,
@@ -56,10 +64,9 @@ void afl_queue_entry_deinit(queue_entry_t *entry) {
 
   }
 
-  /* we also clear the input associated with it */
-  afl_input_deinit(entry->input);
-
-  free(entry);
+  /* we also delete the input associated with it */
+  afl_input_destroy(entry->input);
+  entry->input = NULL;
 
 }
 
@@ -90,7 +97,7 @@ queue_entry_t *get_parent_default(queue_entry_t *entry) {
 
 // We implement the queue based functions now.
 
-void _afl_base_queue_init_internal(base_queue_t *queue) {
+afl_ret_t afl_base_queue_init(base_queue_t *queue) {
 
   queue->save_to_files = false;
 
@@ -102,6 +109,8 @@ void _afl_base_queue_init_internal(base_queue_t *queue) {
   queue->funcs.get_save_to_files = get_save_to_files_default;
   queue->funcs.set_directory = set_directory_default;
   queue->funcs.get_next_in_queue = get_next_base_queue_default;
+
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -116,13 +125,19 @@ void afl_base_queue_deinit(base_queue_t *queue) {
     /* Grab the next entry of queue */
     queue_entry_t *next_entry = entry->next;
 
-    afl_queue_entry_deinit(entry);
+    /* We destroy the queue, since none of the entries have references anywhere
+     * else anyways */
+    afl_queue_entry_delete(entry);
 
     entry = next_entry;
 
   }
 
-  free(queue);
+  queue->base = NULL;
+  queue->current = NULL;
+  queue->size = 0;
+  queue->dirpath = NULL;
+  queue->fuzz_started = false;
 
 }
 
@@ -213,17 +228,17 @@ queue_entry_t *get_next_base_queue_default(base_queue_t *queue) {
 
 }
 
-feedback_queue_t *_afl_feedback_queue_init_internal(
-    feedback_queue_t *feedback_queue, struct feedback *feedback, char *name) {
+afl_ret_t afl_feedback_queue_init(feedback_queue_t *feedback_queue,
+                                  struct feedback *feedback, char *name) {
 
   afl_base_queue_init(&(feedback_queue->base));
   feedback_queue->feedback = feedback;
 
-  if (!name) name = (char *)"";
+  if (!name) { name = (char *)""; }
 
   feedback_queue->name = name;
 
-  return feedback_queue;
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -231,15 +246,17 @@ void afl_feedback_queue_deinit(feedback_queue_t *feedback_queue) {
 
   if (feedback_queue->feedback) {
 
-    afl_feedback_deinit(feedback_queue->feedback);
+    feedback_queue->feedback->queue = NULL;
+    feedback_queue->feedback = NULL;
 
   }
 
   afl_base_queue_deinit(&feedback_queue->base);
+  feedback_queue->name = NULL;
 
 }
 
-void _afl_global_queue_init_internal(global_queue_t *global_queue) {
+afl_ret_t afl_global_queue_init(global_queue_t *global_queue) {
 
   afl_base_queue_init(&(global_queue->base));
 
@@ -247,21 +264,21 @@ void _afl_global_queue_init_internal(global_queue_t *global_queue) {
   global_queue->extra_funcs.schedule = global_schedule_default;
   global_queue->base.funcs.get_next_in_queue = get_next_global_queue_default;
 
+  return AFL_RET_SUCCESS;
+
 }
 
-void afl_global_queue_deinit(global_queue_t *queue) {
+void afl_global_queue_deinit(global_queue_t *global_queue) {
 
-  if (queue->feedback_queues_num) {
+  /* Should we also deinit the feedback queues?? */
 
-    for (size_t i = 0; i < queue->feedback_queues_num; ++i) {
+  for (size_t i = 0; i < global_queue->feedback_queues_num; ++i) {
 
-      afl_feedback_queue_deinit(queue->feedback_queues[i]);
-
-    }
+    global_queue->feedback_queues[i] = NULL;
 
   }
 
-  free(queue);
+  global_queue->feedback_queues_num = 0;
 
 }
 

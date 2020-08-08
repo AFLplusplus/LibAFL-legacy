@@ -26,24 +26,28 @@
 
 #include "libfeedback.h"
 
-void _afl_feedback_init_internal(feedback_t *      feedback,
-                                 feedback_queue_t *queue) {
+afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue) {
 
   feedback->queue = queue;
 
   feedback->funcs.set_feedback_queue = set_feedback_queue_default;
   feedback->funcs.get_feedback_queue = get_feedback_queue_default;
 
+  return AFL_RET_SUCCESS;
+
 }
 
 void afl_feedback_deinit(feedback_t *feedback) {
 
-  if (feedback->metadata) { free(feedback->metadata); }
+  if (feedback->metadata) {
+
+    free(feedback->metadata);
+    feedback->metadata = NULL;
+
+  }
 
   /* Since feedback is freed, we remove it's ptr from the feedback_queue */
   feedback->queue->feedback = NULL;
-
-  free(feedback);
 
 }
 

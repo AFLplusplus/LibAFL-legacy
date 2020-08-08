@@ -28,9 +28,8 @@
 #include "libfuzzone.h"
 #include "libos.h"
 
-void _afl_engine_init_internal(engine_t *engine, executor_t *executor,
-                               fuzz_one_t *    fuzz_one,
-                               global_queue_t *global_queue) {
+afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
+                          fuzz_one_t *fuzz_one, global_queue_t *global_queue) {
 
   engine->executor = executor;
   engine->fuzz_one = fuzz_one;
@@ -48,6 +47,8 @@ void _afl_engine_init_internal(engine_t *engine, executor_t *executor,
   engine->funcs.load_testcases_from_dir = load_testcases_from_dir_default;
   engine->funcs.loop = loop_default;
 
+  return AFL_RET_SUCCESS;
+
 }
 
 void afl_engine_deinit(engine_t *engine) {
@@ -64,10 +65,6 @@ void afl_engine_deinit(engine_t *engine) {
     afl_feedback_deinit(engine->feedbacks[i]);
 
   }
-
-  free(engine);
-
-  /* TODO: Should we free everything else like feedback, etc with engine too */
 
 }
 
@@ -161,7 +158,7 @@ afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
 
     else {
 
-      input = afl_input_init(NULL);
+      input = afl_input_create();
 
     }
 
@@ -233,7 +230,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
    * the queue */
   if (add_to_queue && engine->global_queue) {
 
-    queue_entry_t *entry = afl_queue_entry_init(NULL, input);
+    queue_entry_t *entry = afl_queue_entry_create(input);
 
     if (!entry) { return AFL_RET_ALLOC; }
 

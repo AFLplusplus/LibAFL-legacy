@@ -28,6 +28,7 @@
 #define LIBOBSERVATIONCHANNEL_H
 
 #include "libcommon.h"
+#include "afl-returns.h"
 
 typedef struct observation_channel observation_channel_t;
 
@@ -56,26 +57,33 @@ void post_exec(observation_channel_t *);
 // Functions to initialize and deinitialize the generic observation channel. P.S
 // You probably will need to extend it the way we've done below.
 
-void _afl_observation_channel_init_internal(observation_channel_t *);
-void afl_observation_channel_deinit(observation_channel_t *);
+afl_ret_t afl_observation_channel_init(observation_channel_t *);
+void      afl_observation_channel_deinit(observation_channel_t *);
 
-static inline observation_channel_t *afl_observation_channel_init(
-    observation_channel_t *obs_channel) {
+/* Function to create and destroy a new observation channel, allocates memory
+  and initializes it. In destroy, it first deinitializes the struct and then
+  frees it. */
+static inline observation_channel_t *afl_observation_channel_create() {
 
-  observation_channel_t *new_obs_channel = obs_channel;
+  observation_channel_t *new_obs_channel =
+      calloc(1, sizeof(observation_channel_t));
+  if (!new_obs_channel) return NULL;
+  if (afl_observation_channel_init(new_obs_channel) != AFL_RET_SUCCESS) {
 
-  if (obs_channel)
-    _afl_observation_channel_init_internal(obs_channel);
+    return NULL;
 
-  else {
-
-    new_obs_channel = calloc(1, sizeof(observation_channel_t));
-    if (!new_obs_channel) return NULL;
-    _afl_observation_channel_init_internal(new_obs_channel);
-
-  }
+  };
 
   return new_obs_channel;
+
+}
+
+static inline void afl_observation_channel_delete(
+    observation_channel_t *observation_channel) {
+
+  afl_observation_channel_deinit(observation_channel);
+
+  free(observation_channel);
 
 }
 
@@ -103,8 +111,31 @@ size_t get_map_size_default(map_based_channel_t *obs_channel);
 
 // Functions to initialize and delete a map based observation channel
 
-map_based_channel_t *afl_map_channel_init(size_t);
-void                 afl_map_channel_deinit(map_based_channel_t *);
+afl_ret_t afl_map_channel_init(map_based_channel_t *, size_t);
+void      afl_map_channel_deinit(map_based_channel_t *);
+
+static inline map_based_channel_t *afl_map_channel_create(size_t map_size) {
+
+  map_based_channel_t *map_channel = calloc(1, sizeof(map_based_channel_t));
+  if (!map_channel) { return NULL; }
+
+  if (afl_map_channel_init(map_channel, map_size) == AFL_RET_ERROR_INITIALIZE) {
+
+    return NULL;
+
+  }
+
+  return map_channel;
+
+}
+
+static inline void afl_map_channel_delete(map_based_channel_t *map_channel) {
+
+  afl_map_channel_deinit(map_channel);
+
+  free(map_channel);
+
+}
 
 #endif
 

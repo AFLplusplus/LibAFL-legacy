@@ -61,28 +61,26 @@ void     mutator_init_default(mutator_t *);
 size_t   trim_default(mutator_t *, u8 *, u8 *);
 stage_t *get_mutator_stage_default(mutator_t *);
 
-void _afl_mutator_init_internal(mutator_t *, stage_t *);
-void afl_mutator_deinit(mutator_t *);
+afl_ret_t afl_mutator_init(mutator_t *, stage_t *);
+void      afl_mutator_deinit(mutator_t *);
 
 // A simple scheduled mutator based on the above mutator. Will act something
 // similar to the havoc stage
 
-static inline mutator_t *afl_mutator_init(mutator_t *mutator, stage_t *stage) {
+static inline mutator_t *afl_mutator_create(stage_t *stage) {
 
-  mutator_t *new_mutator = mutator;
+  mutator_t *mutator = calloc(1, sizeof(mutator_t));
+  if (!mutator) return NULL;
+  if (afl_mutator_init(mutator, stage) == AFL_RET_SUCCESS) { return NULL; }
 
-  if (mutator)
-    _afl_mutator_init_internal(mutator, stage);
+  return mutator;
 
-  else {
+}
 
-    new_mutator = calloc(1, sizeof(mutator_t));
-    if (!new_mutator) return NULL;
-    _afl_mutator_init_internal(new_mutator, stage);
+static inline void afl_mutator_delete(mutator_t *mutator) {
 
-  }
-
-  return new_mutator;
+  afl_mutator_deinit(mutator);
+  free(mutator);
 
 }
 
@@ -117,8 +115,32 @@ void   add_mutator_default(scheduled_mutator_t *, mutator_func_type);
 int    schedule_default(scheduled_mutator_t *);
 size_t mutate_scheduled_mutator_default(mutator_t *, raw_input_t *);
 
-scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *, size_t);
-void                 afl_scheduled_mutator_deinit(scheduled_mutator_t *);
+afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *, stage_t *, size_t);
+void      afl_scheduled_mutator_deinit(scheduled_mutator_t *);
+
+static inline scheduled_mutator_t *afl_scheduled_mutator_create(
+    stage_t *stage, size_t max_iterations) {
+
+  scheduled_mutator_t *sched_mut = calloc(1, sizeof(scheduled_mutator_t));
+
+  if (afl_scheduled_mutator_init(sched_mut, stage, max_iterations) !=
+      AFL_RET_SUCCESS) {
+
+    return NULL;
+
+  }
+
+  return sched_mut;
+
+}
+
+static inline void afl_scheduled_mutator_delete(
+    scheduled_mutator_t *sched_mut) {
+
+  afl_scheduled_mutator_deinit(sched_mut);
+  free(sched_mut);
+
+}
 
 void flip_bit_mutation(raw_input_t *input);
 void flip_2_bits_mutation(raw_input_t *input);

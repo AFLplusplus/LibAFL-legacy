@@ -64,26 +64,23 @@ void              set_feedback_queue_default(feedback_t *, feedback_queue_t *);
 feedback_queue_t *get_feedback_queue_default(feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
-void afl_feedback_deinit(feedback_t *);
-void _afl_feedback_init_internal(feedback_t *, feedback_queue_t *);
+void      afl_feedback_deinit(feedback_t *);
+afl_ret_t afl_feedback_init(feedback_t *, feedback_queue_t *);
 
-static inline feedback_t *afl_feedback_init(feedback_t *      feedback,
-                                            feedback_queue_t *queue) {
+static inline feedback_t *afl_feedback_create(feedback_queue_t *queue) {
 
-  feedback_t *new_feedback = feedback;
+  feedback_t *feedback = calloc(1, sizeof(feedback_t));
+  if (!feedback) return NULL;
+  if (afl_feedback_init(feedback, queue) != AFL_RET_SUCCESS) { return NULL; }
 
-  if (feedback)
-    _afl_feedback_init_internal(feedback, queue);
+  return feedback;
 
-  else {
+}
 
-    new_feedback = calloc(1, sizeof(feedback_t));
-    if (!new_feedback) return NULL;
-    _afl_feedback_init_internal(new_feedback, queue);
+static inline void afl_feedback_delete(feedback_t *feedback) {
 
-  }
-
-  return new_feedback;
+  afl_feedback_deinit(feedback);
+  free(feedback);
 
 }
 

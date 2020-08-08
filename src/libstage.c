@@ -25,7 +25,7 @@
 #include "libfuzzone.h"
 #include "libmutator.h"
 
-void _afl_stage_init_internal(stage_t *stage, engine_t *engine) {
+afl_ret_t afl_stage_init(stage_t *stage, engine_t *engine) {
 
   stage->engine = engine;
 
@@ -35,40 +35,42 @@ void _afl_stage_init_internal(stage_t *stage, engine_t *engine) {
 
   stage->funcs.iterations = iterations_stage_default;
 
+  return AFL_RET_SUCCESS;
+
 }
 
 void afl_stage_deinit(stage_t *stage) {
 
-  /* We*/
-
-  free(stage);
+  stage->engine = NULL;
 
 }
 
-fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
+afl_ret_t afl_fuzz_stage_init(fuzzing_stage_t *fuzz_stage, engine_t *engine) {
 
-  fuzzing_stage_t *fuzz_stage = calloc(sizeof(fuzzing_stage_t), 1);
+  if (afl_stage_init(&(fuzz_stage->base), engine) != AFL_RET_SUCCESS) {
 
-  afl_stage_init(&(fuzz_stage->base), engine);
+    return AFL_RET_ERROR_INITIALIZE;
+
+  }
 
   fuzz_stage->funcs.add_mutator_to_stage = add_mutator_to_stage_default;
   fuzz_stage->base.funcs.perform = perform_stage_default;
 
-  return fuzz_stage;
+  return AFL_RET_SUCCESS;
 
 }
 
-void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
+void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
 
-  /* We free the mutators associated with the stage here */
+  /* We deinitialize the mutators associated with the stage here */
 
-  for (size_t i = 0; i < stage->mutators_count; ++i) {
+  afl_stage_deinit(&(fuzz_stage->base));
 
-    afl_mutator_deinit(stage->mutators[i]);
+  for (size_t i = 0; i < fuzz_stage->mutators_count; ++i) {
+
+    afl_mutator_deinit(fuzz_stage->mutators[i]);
 
   }
-
-  free(stage);
 
 }
 

@@ -35,15 +35,17 @@
 #define HAVOC_BLK_LARGE 1500
 #define HAVOC_BLK_XL 32768
 
-void _afl_mutator_init_internal(mutator_t *mutator, stage_t *stage) {
+afl_ret_t afl_mutator_init(mutator_t *mutator, stage_t *stage) {
 
   mutator->stage = stage;
+
+  return AFL_RET_SUCCESS;
 
 }
 
 void afl_mutator_deinit(mutator_t *mutator) {
 
-  free(mutator);
+  mutator->stage = NULL;
 
 }
 
@@ -53,11 +55,14 @@ stage_t *get_mutator_stage_default(mutator_t *mutator) {
 
 }
 
-scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *stage,
-                                                size_t   max_iterations) {
+afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *sched_mut,
+                                     stage_t *stage, size_t max_iterations) {
 
-  scheduled_mutator_t *sched_mut = calloc(sizeof(scheduled_mutator_t), 1);
-  afl_mutator_init(&(sched_mut->base), stage);
+  if (afl_mutator_init(&(sched_mut->base), stage) != AFL_RET_SUCCESS) {
+
+    return AFL_RET_ERROR_INITIALIZE;
+
+  }
 
   sched_mut->base.funcs.mutate = mutate_scheduled_mutator_default;
   sched_mut->extra_funcs.add_mutator = add_mutator_default;
@@ -65,13 +70,22 @@ scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *stage,
   sched_mut->extra_funcs.schedule = schedule_default;
 
   sched_mut->max_iterations = (max_iterations > 0) ? max_iterations : 7;
-  return sched_mut;
+  return AFL_RET_SUCCESS;
 
 }
 
-void afl_scheduled_mutator_deinit(scheduled_mutator_t *mutator) {
+void afl_scheduled_mutator_deinit(scheduled_mutator_t *sched_mut) {
 
-  free(mutator);
+  afl_mutator_deinit(&(sched_mut->base));
+  sched_mut->max_iterations = 0;
+
+  for (size_t i = 0; i < sched_mut->mutators_count; ++i) {
+
+    sched_mut->mutations[i] = NULL;
+
+  }
+
+  sched_mut->mutators_count = 0;
 
 }
 
