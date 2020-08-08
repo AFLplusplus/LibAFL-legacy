@@ -627,12 +627,12 @@ int main(int argc, char **argv) {
 
   free(feedback->virgin_bits);
 
-  AFL_ENGINE_DEINIT(engine);
+  afl_engine_deinit(engine);
   afl_map_channel_deinit(trace_bits_channel);
 
   afl_scheduled_mutator_deinit(mutators_havoc);
 
-  AFL_GLOBAL_QUEUE_DEINIT(global_queue);
+  afl_global_queue_deinit(global_queue);
 
   return 0;
 

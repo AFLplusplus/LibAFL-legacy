@@ -102,9 +102,6 @@ static inline queue_entry_t *afl_queue_entry_init(queue_entry_t *queue_entry,
 
 }
 
-  #define AFL_QUEUE_ENTRY_DEINIT(queue_entry) \
-    afl_queue_entry_deinit(queue_entry);
-
 // Default implementations for the functions for queue_entry vtable
 raw_input_t *  get_input_default(queue_entry_t *entry);
 queue_entry_t *get_next_default(queue_entry_t *entry);
@@ -183,8 +180,6 @@ static inline base_queue_t *afl_base_queue_init(base_queue_t *base_queue) {
 
 }
 
-  #define AFL_BASE_QUEUE_DEINIT(base_queue) afl_base_queue_deinit(base_queue);
-
 typedef struct feedback_queue {
 
   base_queue_t base;  // Inheritence from base queue
@@ -223,9 +218,6 @@ static inline feedback_queue_t *afl_feedback_queue_init(
   return new_fbck_queue;
 
 }
-
-  #define AFL_FEEDBACK_QUEUE_DEINIT(feedback_queue) \
-    afl_feedback_queue_deinit(feedback_queue);
 
 typedef struct global_queue global_queue_t;
 
@@ -290,7 +282,3 @@ static inline global_queue_t *afl_global_queue_init(
 }
 
 #endif
-
-#define AFL_GLOBAL_QUEUE_DEINIT(global_queue) \
-  afl_global_queue_deinit(global_queue)
-

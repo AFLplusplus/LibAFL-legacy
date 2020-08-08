@@ -52,12 +52,12 @@ void afl_queue_entry_deinit(queue_entry_t *entry) {
   if (entry->children_num) {
 
     LIST_FOREACH_CLEAR(&(entry->children), queue_entry_t,
-                       { AFL_QUEUE_ENTRY_DEINIT(el); })
+                       { afl_queue_entry_deinit(el); })
 
   }
 
   /* we also clear the input associated with it */
-  AFL_INPUT_DEINIT(entry->input);
+  afl_input_deinit(entry->input);
 
   free(entry);
 
@@ -127,7 +127,7 @@ void afl_base_queue_deinit(base_queue_t *queue) {
     /* Grab the next entry of queue */
     queue_entry_t *next_entry = entry->next;
 
-    AFL_QUEUE_ENTRY_DEINIT(entry);
+    afl_queue_entry_deinit(entry);
 
     entry = next_entry;
 
@@ -243,11 +243,11 @@ void afl_feedback_queue_deinit(feedback_queue_t *feedback_queue) {
 
   if (feedback_queue->feedback) {
 
-    AFL_FEEDBACK_DEINIT(feedback_queue->feedback);
+    afl_feedback_deinit(feedback_queue->feedback);
 
   }
 
-  AFL_BASE_QUEUE_DEINIT((base_queue_t *)feedback_queue);
+  afl_base_queue_deinit(&feedback_queue->base);
 
 }
 
@@ -267,7 +267,7 @@ void afl_global_queue_deinit(global_queue_t *queue) {
 
     for (size_t i = 0; i < queue->feedback_queues_num; ++i) {
 
-      AFL_FEEDBACK_QUEUE_DEINIT(queue->feedback_queues[i]);
+      afl_feedback_queue_deinit(queue->feedback_queues[i]);
 
     }
 

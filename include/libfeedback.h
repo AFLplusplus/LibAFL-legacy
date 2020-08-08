@@ -87,8 +87,6 @@ static inline feedback_t *afl_feedback_init(feedback_t *      feedback,
 
 }
 
-#define AFL_FEEDBACK_DEINIT(fbck) afl_feedback_deinit(fbck);
-
 /* TODO: Add MaximizeMapFeedback implementation */
 
 #endif

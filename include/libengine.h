@@ -92,8 +92,6 @@ void _afl_engine_init_internal(engine_t *, executor_t *, fuzz_one_t *,
                        global_queue_t *);
 void afl_engine_deinit();
 
-#define AFL_ENGINE_DEINIT(engine) afl_engine_deinit(engine);
-
 static inline engine_t *afl_engine_init(engine_t *engine, executor_t *executor,
                                         fuzz_one_t *    fuzz_one,
                                         global_queue_t *global_queue) {

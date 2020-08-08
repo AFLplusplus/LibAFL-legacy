@@ -86,8 +86,6 @@ static inline mutator_t *afl_mutator_init(mutator_t *mutator, stage_t *stage) {
 
 }
 
-#define AFL_MUTATOR_DEINIT(mutator) afl_mutator_deinit(mutator);
-
 typedef void (*mutator_func_type)(raw_input_t *);
 
 typedef struct scheduled_mutator scheduled_mutator_t;

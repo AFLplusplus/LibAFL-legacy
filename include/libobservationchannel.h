@@ -79,9 +79,6 @@ static inline observation_channel_t *afl_observation_channel_init(
 
 }
 
-#define AFL_OBSERVATION_CHANNEL_DEINIT(obs_channel) \
-  afl_observation_channel_deinit(obs_channel);
-
 typedef struct map_based_channel map_based_channel_t;
 
 struct map_based_channel_functions {

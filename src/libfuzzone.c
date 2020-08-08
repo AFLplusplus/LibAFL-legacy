@@ -39,7 +39,7 @@ void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
   for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
 
-    AFL_STAGE_DEINIT(fuzz_one->stages[i]);
+    afl_stage_deinit(fuzz_one->stages[i]);
 
   }
 

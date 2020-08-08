@@ -64,7 +64,7 @@ void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
 
   for (size_t i = 0; i < stage->mutators_count; ++i) {
 
-    AFL_MUTATOR_DEINIT(stage->mutators[i]);
+    afl_mutator_deinit(stage->mutators[i]);
 
   }
 

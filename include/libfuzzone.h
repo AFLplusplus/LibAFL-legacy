@@ -73,7 +73,5 @@ static inline fuzz_one_t *afl_fuzz_one_init(fuzz_one_t *fuzz_one,
 
 }
 
-#define AFL_FUZZ_ONE_DEINIT(fuzz_one) afl_fuzz_one_deinit(fuzz_one);
-
 #endif
 

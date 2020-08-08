@@ -67,8 +67,6 @@ static inline stage_t *afl_stage_init(stage_t *stage, engine_t *engine) {
 
 }
 
-#define AFL_STAGE_DEINIT(stage) afl_stage_deinit(stage);
-
 /*
 This structure here represents a single fuzzing stage in  the process. e.g It
 can be used to model a single fuzzing stage in AFL++, like the determinisitc

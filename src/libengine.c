@@ -53,13 +53,13 @@ void afl_engine_deinit(engine_t *engine) {
   /* Let's free everything associated with the engine here, except the queues,
    * should we leave anything else? */
 
-  AFL_EXECUTOR_DEINIT(engine->executor);
+  afl_executor_deinit(engine->executor);
 
-  AFL_FUZZ_ONE_DEINIT(engine->fuzz_one);
+  afl_fuzz_one_deinit(engine->fuzz_one);
 
   for (size_t i = 0; i < engine->feedbacks_num; ++i) {
 
-    AFL_FEEDBACK_DEINIT(engine->feedbacks[i]);
+    afl_feedback_deinit(engine->feedbacks[i]);
 
   }
 

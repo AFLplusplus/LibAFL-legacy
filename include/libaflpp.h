@@ -119,8 +119,6 @@ static inline executor_t *afl_executor_init(executor_t *executor) {
 
 }
 
-#define AFL_EXECUTOR_DEINIT(executor) afl_executor_deinit(executor);
-
 enum {
 
   AFL_PLACE_INPUT_MISSING = 1  // 1
