@@ -103,8 +103,6 @@ afl_ret_t perform_stage_default(stage_t *stage, raw_input_t *input) {
 
   size_t num = fuzz_stage->base.funcs.iterations(stage);
 
-  SAYF("Iteration to be done %ld times\n", num);
-
   for (size_t i = 0; i < num; ++i) {
 
     raw_input_t *copy = input->funcs.copy(input);

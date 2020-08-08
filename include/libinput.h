@@ -36,15 +36,15 @@ typedef struct raw_input raw_input_t;
 
 struct raw_input_functions {
 
-  afl_ret_t (*deserialize)(raw_input_t *, u8 *, size_t);
-  u8 *(*serialize)(raw_input_t *);
-  raw_input_t *(*copy)(raw_input_t *);
+  void (*deserialize)(raw_input_t *this_input, u8 *bytes, size_t len);
+  u8 *(*serialize)(raw_input_t *this_input);
+  raw_input_t *(*copy)(raw_input_t *this_input);
   raw_input_t *(*empty)(raw_input_t *);
-  afl_ret_t (*restore)(raw_input_t *, raw_input_t *);
-  afl_ret_t (*load_from_file)(raw_input_t *, char *);
-  afl_ret_t (*save_to_file)(raw_input_t *, char *);
-  afl_ret_t (*clear)(raw_input_t *);
-  u8 *(*get_bytes)(raw_input_t *);
+  void (*restore)(raw_input_t *this_input, raw_input_t *input);
+  afl_ret_t (*load_from_file)(raw_input_t *this_input, char *fname);
+  afl_ret_t (*save_to_file)(raw_input_t *this_input, char *fname);
+  void (*clear)(raw_input_t *this_input);
+  u8 *(*get_bytes)(raw_input_t *this_input);
 
 };
 
@@ -58,23 +58,22 @@ struct raw_input {
 
 };
 
-void _afl_input_init_internal(raw_input_t *);
-void afl_input_deinit(raw_input_t *);
+void _afl_input_init_internal(raw_input_t *input);
+void afl_input_deinit(raw_input_t *input);
 
 // Default implementations of the functions for raw input vtable
-afl_ret_t    raw_inp_deserialize_default(raw_input_t *, u8 *, size_t);
-u8 *         raw_inp_serialize_default(raw_input_t *);
-raw_input_t *raw_inp_copy_default(raw_input_t *);
-raw_input_t *raw_inp_empty_default(raw_input_t *);
-afl_ret_t    raw_inp_restore_default(raw_input_t *, raw_input_t *);
-afl_ret_t    raw_inp_load_from_file_default(raw_input_t *input, char *fname);
-afl_ret_t    raw_inp_save_to_file_default(raw_input_t *, char *);
-afl_ret_t    raw_inp_clear_default(raw_input_t *);
-u8 *         raw_inp_get_bytes_default(raw_input_t *);
 
-// input_clear and empty functions... difference??
-// serializing and deserializing would be done on the basis of some structure
-// right??
+void         raw_inp_deserialize_default(raw_input_t *this_input, u8 *bytes,
+                                         size_t len);
+u8 *         raw_inp_serialize_default(raw_input_t *this_input);
+raw_input_t *raw_inp_copy_default(raw_input_t *this_input);
+raw_input_t *raw_inp_empty_default(raw_input_t *this_input);
+void      raw_inp_restore_default(raw_input_t *this_input, raw_input_t *input);
+afl_ret_t raw_inp_load_from_file_default(raw_input_t *this_inputinput,
+                                         char *       fname);
+afl_ret_t raw_inp_save_to_file_default(raw_input_t *this_input, char *fname);
+void      raw_inp_clear_default(raw_input_t *this_input);
+u8 *      raw_inp_get_bytes_default(raw_input_t *this_input);
 
 static inline raw_input_t *afl_input_init(raw_input_t *input) {
 

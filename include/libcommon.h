@@ -46,10 +46,10 @@ typedef struct afl_sharedmem {
 
 } afl_sharedmem_t;
 
-// Functions to create Shared memory region, for feedback and opening inputs and
-// stuff.
-u8 * afl_sharedmem_init(afl_sharedmem_t *, size_t);
-void afl_sharedmem_deinit(afl_sharedmem_t *);
+// Functions to create Shared memory region, for observation channels and
+// opening inputs and stuff.
+u8 * afl_sharedmem_init(afl_sharedmem_t *sharedmem, size_t map_size);
+void afl_sharedmem_deinit(afl_sharedmem_t *sharedmem);
 
 // We're declaring a few structs here which have an interdependency between them
 
@@ -63,12 +63,17 @@ typedef struct executor executor_t;
 
 typedef struct mutator mutator_t;
 
-void * insert_substring(void *buf, size_t len, void *token, size_t token_len,
-                        size_t offset);
+void *insert_substring(
+    void *buf, size_t len, void *token, size_t token_len,
+    size_t offset);  // Returns new buf containing the substring token
 int    rand_below(size_t limit);
-size_t erase_bytes(void *buf, size_t len, size_t offset, size_t remove_len);
-void * insert_bytes(void *buf, size_t len, u8 byte, size_t insert_len,
-                    size_t offset);
+size_t erase_bytes(
+    void *buf, size_t len, size_t offset,
+    size_t remove_len);  // Erases remove_len number of bytes from offset
+void *insert_bytes(void *buf, size_t len, u8 byte,
+                   size_t insert_len,  // Inserts a certain length of a byte
+                                       // value (byte) at offset in buf
+                   size_t offset);
 
 #endif
 

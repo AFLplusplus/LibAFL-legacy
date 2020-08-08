@@ -8,9 +8,10 @@ typedef enum afl_ret {
 
   AFL_RET_SUCCESS,
   AFL_RET_ALLOC,
-  AFL_RET_FILE_OPEN,
+  AFL_RET_FILE_OPEN_ERROR,
   AFL_RET_FILE_SIZE,
   AFL_RET_SHORT_READ,
+  AFL_RET_SHORT_WRITE,
   AFL_RET_ARRAY_END,
   AFL_RET_EXEC_ERROR,
   AFL_RET_BROKEN_TARGET,
@@ -18,6 +19,7 @@ typedef enum afl_ret {
   AFL_RET_ERRNO,
   AFL_RET_NULL_QUEUE_ENTRY,
   AFL_RET_WRITE_TO_CRASH,
+  AFL_RET_QUEUE_ENDS
 
 } afl_ret_t;
 
@@ -37,7 +39,7 @@ static inline char *afl_ret_stringify(afl_ret_t afl_ret) {
     case AFL_RET_ALLOC:
       if (!errno) { return "Allocation failed"; }
       /* fall-through */
-    case AFL_RET_FILE_OPEN:
+    case AFL_RET_FILE_OPEN_ERROR:
       if (!errno) { return "Error opening file"; }
       /* fall-through */
     case AFL_RET_SHORT_READ:

@@ -26,6 +26,7 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "libinput.h"
@@ -51,15 +52,17 @@ void afl_input_deinit(raw_input_t *input) {
 
   free(input);
 
+  return;
+
 }
 
 // default implemenatations for the vtable functions for the raw_input type
 
-afl_ret_t raw_inp_clear_default(raw_input_t *input) {
+void raw_inp_clear_default(raw_input_t *input) {
 
   memset(input->bytes, 0x0, input->len);
 
-  return AFL_RET_SUCCESS;
+  return;
 
 }
 
@@ -80,14 +83,13 @@ raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
 
 }
 
-afl_ret_t raw_inp_deserialize_default(raw_input_t *input, u8 *bytes,
-                                      size_t len) {
+void raw_inp_deserialize_default(raw_input_t *input, u8 *bytes, size_t len) {
 
-  free(input->bytes);
+  if (input->bytes) free(input->bytes);
   input->bytes = bytes;
   input->len = len;
 
-  return AFL_RET_SUCCESS;
+  return;
 
 }
 
@@ -100,9 +102,9 @@ u8 *raw_inp_get_bytes_default(raw_input_t *input) {
 afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, char *fname) {
 
   struct stat st;
-  s32         fd = open((char *)fname, O_RDONLY);
+  s32         fd = open(fname, O_RDONLY);
 
-  if (fd < 0) { return AFL_RET_FILE_OPEN; }
+  if (fd < 0) { return AFL_RET_FILE_OPEN_ERROR; }
 
   if (fstat(fd, &st) || !st.st_size) { return AFL_RET_FILE_SIZE; }
 
@@ -121,41 +123,32 @@ afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, char *fname) {
 
 afl_ret_t raw_inp_save_to_file_default(raw_input_t *input, char *fname) {
 
-  FILE *f = fopen((char *)fname, "w+");
+  s32 fd = open(fname, O_RDWR | O_CREAT | O_EXCL, 0600);
 
-  if (!f) { return AFL_RET_FILE_OPEN; }
+  if (fd < 0) { return AFL_RET_FILE_OPEN_ERROR; }
 
-  fwrite(input->bytes, 1, input->len, f);
+  ssize_t write_len = write(fd, input->bytes, input->len);
 
-  fclose(f);
+  if (write_len < (ssize_t)input->len) { return AFL_RET_SHORT_WRITE; }
+
+  close(fd);
+
   return AFL_RET_SUCCESS;
 
 }
 
-afl_ret_t raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
+void raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
 
-  free(input->bytes);
   input->bytes = new_inp->bytes;
 
-  return AFL_RET_SUCCESS;
-
-}
-
-raw_input_t *raw_inp_empty_default(raw_input_t *input) {
-
-  (void)input;
-
-  /* TODO: Implementation */
-  return NULL;
+  return;
 
 }
 
 u8 *raw_inp_serialize_default(raw_input_t *input) {
 
-  (void)input;
-
-  /* TODO: Implementation */
-  return NULL;
+  // Very stripped down implementation, actually depends on user alot.
+  return input->bytes;
 
 }
 

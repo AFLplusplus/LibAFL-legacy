@@ -26,6 +26,7 @@
 #include "libengine.h"
 #include "afl-returns.h"
 #include "libfuzzone.h"
+#include "libos.h"
 
 void _afl_engine_init_internal(engine_t *engine, executor_t *executor,
                                fuzz_one_t *    fuzz_one,
@@ -128,7 +129,7 @@ afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
 
   }
 
-  if (!(dir_in = opendir(dirpath))) { return AFL_RET_FILE_OPEN; }
+  if (!(dir_in = opendir(dirpath))) { return AFL_RET_FILE_OPEN_ERROR; }
 
   /* Since, this'll be the first execution, Let's start up the executor here */
 
@@ -257,16 +258,33 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 
 }
 
-void loop_default(engine_t *engine) {
+afl_ret_t loop_default(engine_t *engine) {
 
   while (true) {
 
+    afl_ret_t crash_write_return;
+
     afl_ret_t fuzz_one_ret = engine->fuzz_one->funcs.perform(engine->fuzz_one);
 
-    if (fuzz_one_ret == AFL_RET_WRITE_TO_CRASH ||
-        fuzz_one_ret == AFL_RET_NULL_QUEUE_ENTRY) {
+    switch (fuzz_one_ret) {
 
-      return;
+      case AFL_RET_WRITE_TO_CRASH:
+
+        crash_write_return =
+            dump_crash_to_file(engine->executor->current_input);
+        if (crash_write_return == AFL_RET_FILE_OPEN_ERROR) {
+
+          return AFL_RET_FILE_OPEN_ERROR;
+
+        }
+
+        break;
+
+      case AFL_RET_NULL_QUEUE_ENTRY:
+        return fuzz_one_ret;
+
+      default:
+        continue;
 
     }
 

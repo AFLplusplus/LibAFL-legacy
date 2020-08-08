@@ -8,7 +8,7 @@
 #include "libos.h"
 
 // Crash related functions
-afl_ret_t dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
+afl_ret_t dump_crash_to_file(raw_input_t *data) {
 
   (void)exit_type;
 
@@ -18,7 +18,7 @@ afl_ret_t dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
   snprintf(filename, sizeof(filename) - 1, "crashes-%x", rand_below(0xFFFF));
 
   FILE *f = fopen(filename, "w+");
-  if (!f) { return AFL_RET_FILE_OPEN; }
+  if (!f) { return AFL_RET_FILE_OPEN_ERROR; }
   fwrite(data->bytes, 1, data->len, f);
 
   fclose(f);

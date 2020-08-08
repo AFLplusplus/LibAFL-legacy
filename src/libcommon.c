@@ -141,7 +141,7 @@ void *insert_substring(void *buf, size_t len, void *token, size_t token_len,
 
   memcpy(new_buf + offset, token, token_len);
 
-  memcpy(new_buf + offset + token_len, buf + offset + token_len, len - offset);
+  memcpy(new_buf + offset + token_len, buf + offset, len - offset);
 
   return new_buf;
 
@@ -156,8 +156,7 @@ void *insert_bytes(void *buf, size_t len, u8 byte, size_t insert_len,
 
   memset(new_buf + offset, byte, insert_len);
 
-  memcpy(new_buf + offset + insert_len, buf + offset + insert_len,
-         len - offset);
+  memcpy(new_buf + offset + insert_len, buf + offset, len - offset);
 
   return new_buf;
 
