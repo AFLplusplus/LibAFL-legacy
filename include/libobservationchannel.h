@@ -56,7 +56,7 @@ void post_exec(observation_channel_t *);
 // Functions to initialize and deinitialize the generic observation channel. P.S
 // You probably will need to extend it the way we've done below.
 
-void _afl_observation_channel_init_(observation_channel_t *);
+void _afl_observation_channel_init_internal(observation_channel_t *);
 void afl_observation_channel_deinit(observation_channel_t *);
 
 static inline observation_channel_t *afl_observation_channel_init(
@@ -65,13 +65,13 @@ static inline observation_channel_t *afl_observation_channel_init(
   observation_channel_t *new_obs_channel = obs_channel;
 
   if (obs_channel)
-    _afl_observation_channel_init_(obs_channel);
+    _afl_observation_channel_init_internal(obs_channel);
 
   else {
 
     new_obs_channel = calloc(1, sizeof(observation_channel_t));
     if (!new_obs_channel) return NULL;
-    _afl_observation_channel_init_(new_obs_channel);
+    _afl_observation_channel_init_internal(new_obs_channel);
 
   }
 

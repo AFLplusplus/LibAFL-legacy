@@ -50,7 +50,7 @@ struct fuzz_one {
 afl_ret_t perform_default(fuzz_one_t *);
 afl_ret_t add_stage_default(fuzz_one_t *, stage_t *);
 
-void _afl_fuzz_one_init_(fuzz_one_t *, engine_t *);
+void _afl_fuzz_one_init_internal(fuzz_one_t *, engine_t *);
 void afl_fuzz_one_deinit(fuzz_one_t *);
 
 static inline fuzz_one_t *afl_fuzz_one_init(fuzz_one_t *fuzz_one,
@@ -59,13 +59,13 @@ static inline fuzz_one_t *afl_fuzz_one_init(fuzz_one_t *fuzz_one,
   fuzz_one_t *new_fuzz_one = fuzz_one;
 
   if (fuzz_one)
-    _afl_fuzz_one_init_(fuzz_one, engine);
+    _afl_fuzz_one_init_internal(fuzz_one, engine);
 
   else {
 
     new_fuzz_one = calloc(1, sizeof(fuzz_one_t));
     if (!new_fuzz_one) return NULL;
-    _afl_fuzz_one_init_(new_fuzz_one, engine);
+    _afl_fuzz_one_init_internal(new_fuzz_one, engine);
 
   }
 

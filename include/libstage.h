@@ -45,7 +45,7 @@ struct stage {
 
 afl_ret_t perform_stage_default(stage_t *, raw_input_t *);
 size_t    iterations_stage_default(stage_t *);
-void      _afl_stage_init_(stage_t *, engine_t *);
+void      _afl_stage_init_internal(stage_t *, engine_t *);
 void      afl_stage_deinit(stage_t *);
 
 static inline stage_t *afl_stage_init(stage_t *stage, engine_t *engine) {
@@ -53,13 +53,13 @@ static inline stage_t *afl_stage_init(stage_t *stage, engine_t *engine) {
   stage_t *new_stage = NULL;
 
   if (stage)
-    _afl_stage_init_(stage, engine);
+    _afl_stage_init_internal(stage, engine);
 
   else {
 
     new_stage = calloc(1, sizeof(stage_t));
     if (!new_stage) { return NULL; }
-    _afl_stage_init_(new_stage, engine);
+    _afl_stage_init_internal(new_stage, engine);
 
   }
 

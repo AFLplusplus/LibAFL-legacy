@@ -58,7 +58,7 @@ struct raw_input {
 
 };
 
-void _afl_input_init_(raw_input_t *);
+void _afl_input_init_internal(raw_input_t *);
 void afl_input_deinit(raw_input_t *);
 
 // Default implementations of the functions for raw input vtable
@@ -82,7 +82,7 @@ static inline raw_input_t *afl_input_init(raw_input_t *input) {
 
   if (input) {
 
-    _afl_input_init_(input);
+    _afl_input_init_internal(input);
 
   }
 
@@ -91,7 +91,7 @@ static inline raw_input_t *afl_input_init(raw_input_t *input) {
     new_input = calloc(1, sizeof(raw_input_t));
     if (!new_input) return NULL;
 
-    _afl_input_init_(new_input);
+    _afl_input_init_internal(new_input);
 
   }
 

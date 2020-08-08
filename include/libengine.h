@@ -88,7 +88,7 @@ void load_zero_testcase_default(size_t);
 void loop_default(engine_t *);  // Not sure about this functions use-case. Was
                                 // in FFF though.
 
-void _afl_engine_init_(engine_t *, executor_t *, fuzz_one_t *,
+void _afl_engine_init_internal(engine_t *, executor_t *, fuzz_one_t *,
                        global_queue_t *);
 void afl_engine_deinit();
 
@@ -101,13 +101,13 @@ static inline engine_t *afl_engine_init(engine_t *engine, executor_t *executor,
   engine_t *new_engine = engine;
 
   if (engine)
-    _afl_engine_init_(engine, executor, fuzz_one, global_queue);
+    _afl_engine_init_internal(engine, executor, fuzz_one, global_queue);
 
   else {
 
     new_engine = calloc(1, sizeof(engine_t));
     if (!new_engine) return NULL;
-    _afl_engine_init_(new_engine, executor, fuzz_one, global_queue);
+    _afl_engine_init_internal(new_engine, executor, fuzz_one, global_queue);
 
   }
 

@@ -31,7 +31,7 @@
 #include "libinput.h"
 #include "afl-returns.h"
 
-void _afl_input_init_(raw_input_t *input) {
+void _afl_input_init_internal(raw_input_t *input) {
 
   input->funcs.clear = raw_inp_clear_default;
   input->funcs.copy = raw_inp_copy_default;

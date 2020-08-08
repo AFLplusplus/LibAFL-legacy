@@ -29,7 +29,7 @@
 #include "libengine.h"
 
 // We start with the implementation of queue_entry functions here.
-void _afl_queue_entry_init_(queue_entry_t *entry, raw_input_t *input) {
+void _afl_queue_entry_init_internal(queue_entry_t *entry, raw_input_t *input) {
 
   entry->input = input;
 
@@ -101,7 +101,7 @@ queue_entry_t *get_parent_default(queue_entry_t *entry) {
 
 // We implement the queue based functions now.
 
-void _afl_base_queue_init_(base_queue_t *queue) {
+void _afl_base_queue_init_internal(base_queue_t *queue) {
 
   queue->save_to_files = false;
 
@@ -224,7 +224,7 @@ queue_entry_t *get_next_base_queue_default(base_queue_t *queue) {
 
 }
 
-feedback_queue_t *_afl_feedback_queue_init_(feedback_queue_t *feedback_queue,
+feedback_queue_t *_afl_feedback_queue_init_internal(feedback_queue_t *feedback_queue,
                                             struct feedback * feedback,
                                             char *            name) {
 
@@ -251,7 +251,7 @@ void afl_feedback_queue_deinit(feedback_queue_t *feedback_queue) {
 
 }
 
-void _afl_global_queue_init_(global_queue_t *global_queue) {
+void _afl_global_queue_init_internal(global_queue_t *global_queue) {
 
   afl_base_queue_init(&(global_queue->base));
 

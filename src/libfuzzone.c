@@ -26,7 +26,7 @@
 #include "libstage.h"
 #include "list.h"
 
-void _afl_fuzz_one_init_(fuzz_one_t *fuzz_one, engine_t *engine) {
+void _afl_fuzz_one_init_internal(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
 

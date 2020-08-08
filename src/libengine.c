@@ -27,7 +27,7 @@
 #include "afl-returns.h"
 #include "libfuzzone.h"
 
-void _afl_engine_init_(engine_t *engine, executor_t *executor,
+void _afl_engine_init_internal(engine_t *engine, executor_t *executor,
                        fuzz_one_t *fuzz_one, global_queue_t *global_queue) {
 
   engine->executor = executor;

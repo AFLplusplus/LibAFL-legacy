@@ -26,7 +26,7 @@
 
 #include "libobservationchannel.h"
 
-void _afl_observation_channel_init_(observation_channel_t *channel) {
+void _afl_observation_channel_init_internal(observation_channel_t *channel) {
 
   (void)channel;
 

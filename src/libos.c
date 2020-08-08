@@ -30,7 +30,7 @@ afl_ret_t dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
 
 // static process_t *current_process;
 
-void _afl_process_init_(process_t *process) {
+void _afl_process_init_internal(process_t *process) {
 
   // process->current = return_current_default;
   process->fork = do_fork_default;

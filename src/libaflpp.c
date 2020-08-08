@@ -25,7 +25,7 @@
 #include "stdbool.h"
 #include "afl-returns.h"
 
-void _afl_executor_init_(executor_t *executor) {
+void _afl_executor_init_internal(executor_t *executor) {
 
   executor->current_input = NULL;
 

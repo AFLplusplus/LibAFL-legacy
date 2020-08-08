@@ -61,7 +61,7 @@ void     mutator_init_default(mutator_t *);
 size_t   trim_default(mutator_t *, u8 *, u8 *);
 stage_t *get_mutator_stage_default(mutator_t *);
 
-void _afl_mutator_init_(mutator_t *, stage_t *);
+void _afl_mutator_init_internal(mutator_t *, stage_t *);
 void afl_mutator_deinit(mutator_t *);
 
 // A simple scheduled mutator based on the above mutator. Will act something
@@ -72,13 +72,13 @@ static inline mutator_t *afl_mutator_init(mutator_t *mutator, stage_t *stage) {
   mutator_t *new_mutator = mutator;
 
   if (mutator)
-    _afl_mutator_init_(mutator, stage);
+    _afl_mutator_init_internal(mutator, stage);
 
   else {
 
     new_mutator = calloc(1, sizeof(mutator_t));
     if (!new_mutator) return NULL;
-    _afl_mutator_init_(new_mutator, stage);
+    _afl_mutator_init_internal(new_mutator, stage);
 
   }
 

@@ -35,7 +35,7 @@
 #define HAVOC_BLK_LARGE 1500
 #define HAVOC_BLK_XL 32768
 
-void _afl_mutator_init_(mutator_t *mutator, stage_t *stage) {
+void _afl_mutator_init_internal(mutator_t *mutator, stage_t *stage) {
 
   mutator->stage = stage;
 

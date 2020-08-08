@@ -88,7 +88,7 @@ struct executor {
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-void _afl_executor_init_(executor_t *);
+void _afl_executor_init_internal(executor_t *);
 void afl_executor_deinit(executor_t *);
 u8   add_observation_channel_default(executor_t *, observation_channel_t *);
 observation_channel_t *get_observation_channels_default(executor_t *, size_t);
@@ -105,13 +105,13 @@ static inline executor_t *afl_executor_init(executor_t *executor) {
   executor_t *new_executor = executor;
 
   if (executor)
-    _afl_executor_init_(executor);
+    _afl_executor_init_internal(executor);
 
   else {
 
     new_executor = calloc(1, sizeof(executor_t));
     if (!new_executor) return NULL;
-    _afl_executor_init_(new_executor);
+    _afl_executor_init_internal(new_executor);
 
   }
 

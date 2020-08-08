@@ -25,7 +25,7 @@
 #include "libfuzzone.h"
 #include "libmutator.h"
 
-void _afl_stage_init_(stage_t *stage, engine_t *engine) {
+void _afl_stage_init_internal(stage_t *stage, engine_t *engine) {
 
   stage->engine = engine;
 
