@@ -24,14 +24,14 @@
 
  */
 
-#ifndef QUEUE_FILE_INCLUDED
-  #define QUEUE_FILE_INCLUDED
+#ifndef LIBQUEUE_H
+#define LIBQUEUE_H
 
-  #define MAX_FEEDBACK_QUEUES 10
+#define MAX_FEEDBACK_QUEUES 10
 
-  #include "libinput.h"
-  #include "list.h"
-  #include <stdbool.h>
+#include "libinput.h"
+#include "list.h"
+#include <stdbool.h>
 
 /*
 This is the generic interface implementation for the queue and queue entries.

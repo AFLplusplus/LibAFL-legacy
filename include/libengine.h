@@ -23,8 +23,8 @@
 
  */
 
-#ifndef ENGINE_FILE_INCLUDED
-#define ENGINE_FILE_INCLUDED
+#ifndef LIBENGINE_H 
+#define LIBENGINE_H
 
 #include "libcommon.h"
 #include "libqueue.h"

@@ -24,8 +24,8 @@
 
  */
 
-#ifndef FEEDBACK_FILE_INCLUDED
-#define FEEDBACK_FILE_INCLUDED
+#ifndef LIBFEEDBACK_H
+#define LIBFEEDBACK_H
 
 #include "libqueue.h"
 

@@ -24,8 +24,8 @@
 
  */
 
-#ifndef COMMON_FILE_INCLUDED
-#define COMMON_FILE_INCLUDED
+#ifndef LIBCOMMON_H
+#define LIBCOMMON_H
 
 #include "types.h"
 #include "alloc-inl.h"

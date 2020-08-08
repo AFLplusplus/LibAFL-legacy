@@ -24,8 +24,8 @@
 
  */
 
-#ifndef INPUT_FILE_INCLUDED
-#define INPUT_FILE_INCLUDED
+#ifndef LIBINPUT_H
+#define LIBINPUT_H
 
 #include "libcommon.h"
 #include "afl-returns.h"

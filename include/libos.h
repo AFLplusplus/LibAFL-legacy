@@ -1,5 +1,5 @@
-#ifndef OS_FILE_INCLUDED
-#define OS_FILE_INCLUDED
+#ifndef LIBOS_H
+#define LIBOS_H
 
 #include "libcommon.h"
 #include "libinput.h"

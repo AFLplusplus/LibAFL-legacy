@@ -24,8 +24,8 @@
 
  */
 
-#ifndef AFL_FILE_INCLUDED
-#define AFL_FILE_INCLUDED
+#ifndef LIBAFLPP_H
+#define LIBAFLPP_H
 
 #include "libcommon.h"
 #include "libobservationchannel.h"

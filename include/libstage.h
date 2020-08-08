@@ -20,8 +20,8 @@
 
  */
 
-#ifndef STAGE_FILE_INCLUDED
-#define STAGE_FILE_INCLUDED
+#ifndef LIBSTAGE_H
+#define LIBSTAGE_H
 
 #define MAX_STAGE_MUTATORS 10
 

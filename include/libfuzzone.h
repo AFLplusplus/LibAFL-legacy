@@ -22,8 +22,8 @@
 
  */
 
-#ifndef FUZZONE_FILE_INCLUDED
-#define FUZZONE_FILE_INCLUDED
+#ifndef LIBFUZZONE_H
+#define LIBFUZZONE_H
 
 #include "libcommon.h"
 #include "list.h"
