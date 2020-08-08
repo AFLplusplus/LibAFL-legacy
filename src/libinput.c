@@ -37,7 +37,6 @@ void _afl_input_init_internal(raw_input_t *input) {
   input->funcs.clear = raw_inp_clear_default;
   input->funcs.copy = raw_inp_copy_default;
   input->funcs.deserialize = raw_inp_deserialize_default;
-  input->funcs.empty = raw_inp_empty_default;
   input->funcs.get_bytes = raw_inp_get_bytes_default;
   input->funcs.load_from_file = raw_inp_load_from_file_default;
   input->funcs.restore = raw_inp_restore_default;

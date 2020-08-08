@@ -39,7 +39,6 @@ struct raw_input_functions {
   void (*deserialize)(raw_input_t *this_input, u8 *bytes, size_t len);
   u8 *(*serialize)(raw_input_t *this_input);
   raw_input_t *(*copy)(raw_input_t *this_input);
-  raw_input_t *(*empty)(raw_input_t *);
   void (*restore)(raw_input_t *this_input, raw_input_t *input);
   afl_ret_t (*load_from_file)(raw_input_t *this_input, char *fname);
   afl_ret_t (*save_to_file)(raw_input_t *this_input, char *fname);
@@ -67,7 +66,6 @@ void         raw_inp_deserialize_default(raw_input_t *this_input, u8 *bytes,
                                          size_t len);
 u8 *         raw_inp_serialize_default(raw_input_t *this_input);
 raw_input_t *raw_inp_copy_default(raw_input_t *this_input);
-raw_input_t *raw_inp_empty_default(raw_input_t *this_input);
 void      raw_inp_restore_default(raw_input_t *this_input, raw_input_t *input);
 afl_ret_t raw_inp_load_from_file_default(raw_input_t *this_inputinput,
                                          char *       fname);

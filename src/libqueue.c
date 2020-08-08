@@ -66,17 +66,6 @@ void afl_queue_entry_deinit(queue_entry_t *entry) {
 // Default implementations for the queue entry vtable functions
 raw_input_t *get_input_default(queue_entry_t *entry) {
 
-  if (entry->on_disk) {
-
-    raw_input_t *load = entry->input->funcs.empty(entry->input);
-
-    if (!load->funcs.load_from_file(load, entry->filename))
-      return load;
-    else
-      return NULL;
-
-  }
-
   return entry->input;
 
 }
