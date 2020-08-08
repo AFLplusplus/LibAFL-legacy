@@ -21,7 +21,7 @@
 
  */
 
-#ifndef LIBMUTATOR_H 
+#ifndef LIBMUTATOR_H
 #define LIBMUTATOR_H
 
 #define MAX_MUTATORS_COUNT 10

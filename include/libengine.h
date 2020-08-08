@@ -23,7 +23,7 @@
 
  */
 
-#ifndef LIBENGINE_H 
+#ifndef LIBENGINE_H
 #define LIBENGINE_H
 
 #include "libcommon.h"
@@ -89,7 +89,7 @@ void loop_default(engine_t *);  // Not sure about this functions use-case. Was
                                 // in FFF though.
 
 void _afl_engine_init_internal(engine_t *, executor_t *, fuzz_one_t *,
-                       global_queue_t *);
+                               global_queue_t *);
 void afl_engine_deinit();
 
 static inline engine_t *afl_engine_init(engine_t *engine, executor_t *executor,

@@ -224,9 +224,8 @@ queue_entry_t *get_next_base_queue_default(base_queue_t *queue) {
 
 }
 
-feedback_queue_t *_afl_feedback_queue_init_internal(feedback_queue_t *feedback_queue,
-                                            struct feedback * feedback,
-                                            char *            name) {
+feedback_queue_t *_afl_feedback_queue_init_internal(
+    feedback_queue_t *feedback_queue, struct feedback *feedback, char *name) {
 
   afl_base_queue_init(&(feedback_queue->base));
   feedback_queue->feedback = feedback;

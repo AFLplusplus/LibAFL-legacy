@@ -282,3 +282,4 @@ static inline global_queue_t *afl_global_queue_init(
 }
 
 #endif
+
