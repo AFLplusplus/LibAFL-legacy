@@ -10,6 +10,8 @@
 // Crash related functions
 afl_ret_t dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
 
+  (void)exit_type;
+
   char filename[128];
 
   /* TODO: This filename should be replaced by "crashes-SHA_OF_BYTES" later */
