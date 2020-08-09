@@ -87,7 +87,7 @@ static inline raw_input_t *afl_input_create() {
 
 }
 
-static inline void afl_input_destroy(raw_input_t *input) {
+static inline void afl_input_delete(raw_input_t *input) {
 
   afl_input_deinit(input);
   free(input);

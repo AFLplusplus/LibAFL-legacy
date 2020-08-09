@@ -65,7 +65,7 @@ void afl_queue_entry_deinit(queue_entry_t *entry) {
   }
 
   /* we also delete the input associated with it */
-  afl_input_destroy(entry->input);
+  afl_input_delete(entry->input);
   entry->input = NULL;
 
 }
@@ -244,12 +244,7 @@ afl_ret_t afl_feedback_queue_init(feedback_queue_t *feedback_queue,
 
 void afl_feedback_queue_deinit(feedback_queue_t *feedback_queue) {
 
-  if (feedback_queue->feedback) {
-
-    feedback_queue->feedback->queue = NULL;
-    feedback_queue->feedback = NULL;
-
-  }
+  feedback_queue->feedback = NULL;
 
   afl_base_queue_deinit(&feedback_queue->base);
   feedback_queue->name = NULL;

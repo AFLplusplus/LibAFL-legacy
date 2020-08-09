@@ -46,7 +46,8 @@ void afl_feedback_deinit(feedback_t *feedback) {
 
   }
 
-  /* Since feedback is freed, we remove it's ptr from the feedback_queue */
+  /* Since feedback is deinitialized, we remove it's ptr from the feedback_queue
+   */
   feedback->queue->feedback = NULL;
 
 }

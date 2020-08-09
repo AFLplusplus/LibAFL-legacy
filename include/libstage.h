@@ -108,10 +108,10 @@ static inline fuzzing_stage_t *afl_fuzz_stage_create(engine_t *engine) {
 
 }
 
-static inline void afl_fuzz_stage_delete(stage_t *stage) {
+static inline void afl_fuzz_stage_delete(fuzzing_stage_t *fuzz_stage) {
 
-  afl_stage_deinit(stage);
-  free(stage);
+  afl_stage_deinit(&fuzz_stage->base);
+  free(fuzz_stage);
 
 }
 

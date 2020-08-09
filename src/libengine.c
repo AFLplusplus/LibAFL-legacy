@@ -56,15 +56,16 @@ void afl_engine_deinit(engine_t *engine) {
   /* Let's free everything associated with the engine here, except the queues,
    * should we leave anything else? */
 
-  afl_executor_deinit(engine->executor);
-
-  afl_fuzz_one_deinit(engine->fuzz_one);
+  engine->fuzz_one = NULL;
+  engine->executor = NULL;
 
   for (size_t i = 0; i < engine->feedbacks_num; ++i) {
 
     afl_feedback_deinit(engine->feedbacks[i]);
 
   }
+
+  engine->executions = 0;
 
 }
 
@@ -230,7 +231,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
    * the queue */
   if (add_to_queue && engine->global_queue) {
 
-    queue_entry_t *entry = afl_queue_entry_create(input);
+    queue_entry_t *entry = afl_queue_entry_create(input->funcs.copy(input));
 
     if (!entry) { return AFL_RET_ALLOC; }
 
@@ -239,6 +240,11 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
     queue->base.funcs.add_to_queue((base_queue_t *)queue, entry);
 
   }
+
+  /* We delete the input now. It is assumed that the iput sent to fuzz was a
+     copy of the original one from queue.
+     If it had to be added to the queue, a copy of it has been added, */
+  afl_input_delete(input);
 
   // Now based on the return of executor's run target, we basically return an
   // afl_ret_t type to the callee

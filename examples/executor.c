@@ -515,7 +515,9 @@ static float fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
   if (found && feedback->queue) {
 
-    queue_entry_t *new_entry = afl_queue_entry_create(fsrv->current_input);
+    raw_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
+
+    queue_entry_t *new_entry = afl_queue_entry_create(input);
     // An incompatible ptr type warning has been suppresed here. We pass the
     // feedback queue to the add_to_queue rather than the base_queue
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
@@ -625,13 +627,17 @@ int main(int argc, char **argv) {
    * initialized using the deinit functions provided */
 
   free(feedback->virgin_bits);
+  afl_fuzz_one_delete(fuzz_one);
+  afl_fuzz_stage_delete(stage);
 
-  afl_engine_deinit(engine);
-  afl_map_channel_deinit(trace_bits_channel);
+  afl_engine_delete(engine);
+  afl_map_channel_delete(trace_bits_channel);
   afl_executor_delete(&fsrv->base);
 
   afl_scheduled_mutator_delete(mutators_havoc);
-  afl_global_queue_deinit(global_queue);
+  afl_global_queue_delete(global_queue);
+  afl_feedback_delete(&feedback->base);
+  afl_feedback_queue_delete(feedback_queue);
 
   return 0;
 
