@@ -267,6 +267,8 @@ void afl_global_queue_deinit(global_queue_t *global_queue) {
 
   /* Should we also deinit the feedback queues?? */
 
+  afl_base_queue_deinit(&global_queue->base);
+
   for (size_t i = 0; i < global_queue->feedback_queues_num; ++i) {
 
     global_queue->feedback_queues[i] = NULL;

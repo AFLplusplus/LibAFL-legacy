@@ -38,14 +38,13 @@ void afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
 void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
   /* Also remove the fuzz one from engine */
-  fuzz_one->engine->fuzz_one = NULL;
   fuzz_one->engine = NULL;
 
   /* TODO: Should we deinitialize the stages or just remove the reference of
    * fuzzone from them? */
   for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
 
-    afl_stage_deinit(fuzz_one->stages[i]);
+    fuzz_one->stages[i] = NULL;
 
   }
 

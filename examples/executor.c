@@ -624,21 +624,18 @@ int main(int argc, char **argv) {
   /* Let's free everything now. Note that if you've extended any structure,
    * which now contains pointers to any dynamically allocated region, you have
    * to free them yourselves, but the extended structure itself can be de
-   * initialized using the deinit functions provided */
+   * initialized using the deleted functions provided */
 
-  free(feedback->virgin_bits);
-  afl_fuzz_one_delete(fuzz_one);
-  afl_fuzz_stage_delete(stage);
-
-  afl_engine_delete(engine);
-  afl_map_channel_delete(trace_bits_channel);
   afl_executor_delete(&fsrv->base);
-
+  afl_map_channel_delete(trace_bits_channel);
   afl_scheduled_mutator_delete(mutators_havoc);
-  afl_global_queue_delete(global_queue);
+  afl_fuzz_stage_delete(stage);
+  afl_fuzz_one_delete(fuzz_one);
+  free(feedback->virgin_bits);
   afl_feedback_delete(&feedback->base);
   afl_feedback_queue_delete(feedback_queue);
-
+  afl_global_queue_delete(global_queue);
+  afl_engine_delete(engine);
   return 0;
 
 }

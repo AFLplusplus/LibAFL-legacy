@@ -58,13 +58,17 @@ void afl_engine_deinit(engine_t *engine) {
 
   engine->fuzz_one = NULL;
   engine->executor = NULL;
+  engine->global_queue = NULL;
 
   for (size_t i = 0; i < engine->feedbacks_num; ++i) {
 
-    afl_feedback_deinit(engine->feedbacks[i]);
+    engine->feedbacks[i] = NULL;
 
   }
 
+  engine->start_time = 0;
+  engine->current_feedback_queue = NULL;
+  engine->feedbacks_num = 0;
   engine->executions = 0;
 
 }

@@ -48,7 +48,7 @@ void afl_feedback_deinit(feedback_t *feedback) {
 
   /* Since feedback is deinitialized, we remove it's ptr from the feedback_queue
    */
-  feedback->queue->feedback = NULL;
+  feedback->queue = NULL;
 
 }
 
