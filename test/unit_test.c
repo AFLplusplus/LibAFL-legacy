@@ -56,7 +56,7 @@ static void test_insert_substring(void **state) {
   const char *test_string = "This is a test_token string";
 
   u8 s[100];
-  memcpy(s, "This is a string", 17);
+  strcpy((char *)s, "This is a string");
 
   u8 *new_string =
       insert_substring(s, strlen((char *)s), test_token, strlen(test_token), 10);
@@ -69,8 +69,9 @@ static void test_insert_substring(void **state) {
 static void test_insert_bytes(void **state) {
 
   (void)state;
+
   u8 s[100];
-  memcpy(s, "This is a string", 17);
+  strcpy((char *)s, "This is a string");
 
   u8          test_byte = 0x41;
   const char *test_string = "This is a AAAAAAAstring";
