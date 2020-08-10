@@ -55,7 +55,8 @@ typedef enum prealloc_status {
    variable initialized with 0 (of any name).
     */
 
-#define PRE_ALLOC(el_ptr, prealloc_buf, prealloc_size, prealloc_counter) do { \
+#define PRE_ALLOC(el_ptr, prealloc_buf, prealloc_size, prealloc_counter) \
+  do {                                                                   \
                                                                          \
     if ((prealloc_counter) >= (prealloc_size)) {                         \
                                                                          \
