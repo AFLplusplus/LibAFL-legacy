@@ -55,11 +55,11 @@ static void test_insert_substring(void **state) {
   char *      test_token = "test_token ";
   const char *test_string = "This is a test_token string";
 
-  char s[100];
+  u8 s[100];
   memcpy(s, "This is a string", 17);
 
-  char *new_string =
-      insert_substring(s, strlen(s), test_token, strlen(test_token), 10);
+  u8 *new_string =
+      insert_substring(s, strlen((char *)s), test_token, strlen(test_token), 10);
 
   assert_string_equal(new_string, test_string);
   free(new_string);
@@ -69,13 +69,13 @@ static void test_insert_substring(void **state) {
 static void test_insert_bytes(void **state) {
 
   (void)state;
-  char s[100];
+  u8 s[100];
   memcpy(s, "This is a string", 17);
 
   u8          test_byte = 0x41;
   const char *test_string = "This is a AAAAAAAstring";
 
-  char *new_string = insert_bytes(s, strlen(s), test_byte, 7, 10);
+  u8 *new_string = insert_bytes(s, strlen((char *)s), test_byte, 7, 10);
 
   assert_string_equal(new_string, test_string);
   free(new_string);
@@ -85,12 +85,12 @@ static void test_insert_bytes(void **state) {
 static void test_erase_bytes(void **state) {
 
   (void)state;
-  char s[100];
-  memcpy(s, "This is a string", 17);
+  u8 s[100];
+  strcpy((char *)s, "This is a string");
 
   const char *test_string = "This string";
 
-  erase_bytes(s, strlen(s), 5, 5);
+  erase_bytes(s, strlen((char *)s), 5, 5);
 
   assert_string_equal(s, test_string);
 
@@ -131,7 +131,7 @@ void test_input_save_to_file(void ** state) {
     char * fname = "test_output_file";
     char *test_string = "This is a test string";
 
-    char read_string[100];
+    u8 read_string[100];
 
     /* Create an input now and test it */
     raw_input_t input;
