@@ -28,9 +28,13 @@ int main() {
 
   }
 
+  /*
   int fd = open("./success", O_RDWR | O_CREAT, 0600);
 
   write(fd, input, 50);
+
+  close(fd)
+  */
 
   exit(0);
 
