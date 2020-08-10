@@ -6,6 +6,7 @@ all:	libaflpp.so
 clean:
 	rm ./src/*.o || true
 	rm ./*.so || true
+	rm example-fuzzer
 
 # Compiling the common lib file
 libcommon.o: ./src/libcommon.c ./include/libcommon.h
@@ -61,6 +62,11 @@ libaflpp.o: ./src/libaflpp.c ./include/libaflpp.h ./src/libobservationchannel.o 
 
 libaflpp.so: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
 	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
+
+example-fuzzer: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
+	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o ./examples/executor.c -o example-fuzzer $(CFLAGS)
+
+
 
 code-format:
 	./.custom-format.py -i src/*.c
