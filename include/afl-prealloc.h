@@ -56,7 +56,7 @@ typedef enum prealloc_status {
     */
 
 #define PRE_ALLOC(el_ptr, prealloc_buf, prealloc_size, prealloc_counter) \
-  do {                                                                   \
+  ({                                                                     \
                                                                          \
     if ((prealloc_counter) >= (prealloc_size)) {                         \
                                                                          \
@@ -82,7 +82,9 @@ typedef enum prealloc_status {
                                                                          \
     }                                                                    \
                                                                          \
-  } while (0);
+    el_ptr;                                                              \
+                                                                         \
+  })
 
 /* Take a chosen (free) element from the prealloc_buf directly */
 

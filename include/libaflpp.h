@@ -101,8 +101,13 @@ void                   reset_observation_channel_default(executor_t *);
 static inline executor_t *afl_executor_create() {
 
   executor_t *new_executor = calloc(1, sizeof(executor_t));
-  if (!new_executor) return NULL;
-  if (afl_executor_init(new_executor) != AFL_RET_SUCCESS) { return NULL; }
+  if (!new_executor) { return NULL; }
+  if (afl_executor_init(new_executor) != AFL_RET_SUCCESS) {
+
+    free(new_executor);
+    return NULL;
+
+  }
 
   return new_executor;
 
