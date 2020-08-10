@@ -81,7 +81,10 @@ static inline raw_input_t *afl_input_create() {
   raw_input_t *input = calloc(1, sizeof(raw_input_t));
   if (!input) { return NULL; }
 
-  if (afl_input_init(input) != AFL_RET_SUCCESS) { return NULL; }
+  if (afl_input_init(input) != AFL_RET_SUCCESS) { 
+    free(input);
+    
+    return NULL; }
 
   return input;
 

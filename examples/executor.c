@@ -220,6 +220,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
     if (!fsrv->out_fd) {
 
       afl_executor_deinit(&fsrv->base);
+      free(fsrv);
       return NULL;
 
     }
@@ -233,6 +234,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
 
     close(fsrv->out_fd);
     afl_executor_deinit(&fsrv->base);
+    free(fsrv);
     return NULL;
 
   }

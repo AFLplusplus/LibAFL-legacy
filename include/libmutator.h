@@ -71,7 +71,9 @@ static inline mutator_t *afl_mutator_create(stage_t *stage) {
 
   mutator_t *mutator = calloc(1, sizeof(mutator_t));
   if (!mutator) return NULL;
-  if (afl_mutator_init(mutator, stage) == AFL_RET_SUCCESS) { return NULL; }
+  if (afl_mutator_init(mutator, stage) == AFL_RET_SUCCESS) { 
+    free(mutator);
+    return NULL; }
 
   return mutator;
 

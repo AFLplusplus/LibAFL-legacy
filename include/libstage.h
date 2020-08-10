@@ -52,7 +52,9 @@ static inline stage_t *afl_stage_create(engine_t *engine) {
 
   stage_t *stage = calloc(1, sizeof(stage_t));
   if (!stage) { return NULL; }
-  if (afl_stage_init(stage, engine) != AFL_RET_SUCCESS) { return NULL; }
+  if (afl_stage_init(stage, engine) != AFL_RET_SUCCESS) { 
+    free(stage);
+    return NULL; }
 
   return stage;
 
@@ -102,7 +104,9 @@ static inline fuzzing_stage_t *afl_fuzz_stage_create(engine_t *engine) {
 
   fuzzing_stage_t *stage = calloc(1, sizeof(fuzzing_stage_t));
   if (!stage) { return NULL; }
-  if (afl_fuzz_stage_init(stage, engine) != AFL_RET_SUCCESS) { return NULL; }
+  if (afl_fuzz_stage_init(stage, engine) != AFL_RET_SUCCESS) { 
+    free(stage);
+    return NULL; }
 
   return stage;
 

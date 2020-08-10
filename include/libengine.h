@@ -100,6 +100,7 @@ static inline engine_t *afl_engine_create(executor_t *    executor,
   if (afl_engine_init(engine, executor, fuzz_one, global_queue) !=
       AFL_RET_SUCCESS) {
 
+    free(engine);
     return NULL;
 
   }
