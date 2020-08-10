@@ -28,11 +28,6 @@
 #include "types.h"
 #include "config.h"
 
-/* __FUNCTION__ is non-iso */
-#ifdef __func__
-  #define __FUNCTION__ __func__
-#endif
-
 /*******************
  * Terminal colors *
  *******************/
@@ -223,15 +218,15 @@
 
 /* Die with a verbose non-OS fatal error message. */
 
-#define FATAL(x...)                                                          \
-  do {                                                                       \
-                                                                             \
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD                                \
-         "\n[-] PROGRAM ABORT : " cRST   x);                                   \
-    SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __FUNCTION__, \
-         __FILE__, __LINE__);                                                \
-    exit(1);                                                                 \
-                                                                             \
+#define FATAL(x...)                                                      \
+  do {                                                                   \
+                                                                         \
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD                            \
+         "\n[-] PROGRAM ABORT : " cRST   x);                               \
+    SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __func__, \
+         __FILE__, __LINE__);                                            \
+    exit(1);                                                             \
+                                                                         \
   } while (0)
 
 /* Die by calling abort() to provide a core dump. */

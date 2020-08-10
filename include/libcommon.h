@@ -64,13 +64,13 @@ typedef struct executor executor_t;
 typedef struct mutator mutator_t;
 
 void *insert_substring(
-    void *buf, size_t len, void *token, size_t token_len,
+    u8 *buf, size_t len, void *token, size_t token_len,
     size_t offset);  // Returns new buf containing the substring token
 int    rand_below(size_t limit);
 size_t erase_bytes(
-    void *buf, size_t len, size_t offset,
+    u8 *buf, size_t len, size_t offset,
     size_t remove_len);  // Erases remove_len number of bytes from offset
-void *insert_bytes(void *buf, size_t len, u8 byte,
+void *insert_bytes(u8 *buf, size_t len, u8 byte,
                    size_t insert_len,  // Inserts a certain length of a byte
                                        // value (byte) at offset in buf
                    size_t offset);

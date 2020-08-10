@@ -85,6 +85,7 @@ static inline queue_entry_t *afl_queue_entry_create(raw_input_t *input) {
   if (!queue_entry) { return NULL; }
   if (afl_queue_entry_init(queue_entry, input) != AFL_RET_SUCCESS) {
 
+    free(queue_entry);
     return NULL;
 
   }
@@ -160,7 +161,12 @@ static inline base_queue_t *afl_base_queue_create() {
   base_queue_t *base_queue = calloc(1, sizeof(base_queue_t));
   if (!base_queue) { return NULL; }
 
-  if (afl_base_queue_init(base_queue) != AFL_RET_SUCCESS) { return NULL; }
+  if (afl_base_queue_init(base_queue) != AFL_RET_SUCCESS) {
+
+    free(base_queue);
+    return NULL;
+
+  }
 
   return base_queue;
 
@@ -198,6 +204,7 @@ static inline feedback_queue_t *afl_feedback_queue_create(
   if (afl_feedback_queue_init(feedback_queue, feedback, name) !=
       AFL_RET_SUCCESS) {
 
+    free(feedback_queue);
     return NULL;
 
   }
@@ -257,7 +264,12 @@ static inline global_queue_t *afl_global_queue_create() {
   global_queue_t *global_queue = calloc(1, sizeof(global_queue_t));
   if (!global_queue) { return NULL; }
 
-  if (afl_global_queue_init(global_queue) != AFL_RET_SUCCESS) { return NULL; }
+  if (afl_global_queue_init(global_queue) != AFL_RET_SUCCESS) {
+
+    free(global_queue);
+    return NULL;
+
+  }
 
   return global_queue;
 

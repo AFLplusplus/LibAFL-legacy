@@ -26,12 +26,14 @@
 #include "libstage.h"
 #include "list.h"
 
-void afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
+afl_ret_t afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
 
   fuzz_one->funcs.add_stage = add_stage_default;
   fuzz_one->funcs.perform = perform_default;
+
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -50,7 +52,7 @@ void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
   fuzz_one->stages_num = 0;
 
-};
+}
 
 afl_ret_t perform_default(fuzz_one_t *fuzz_one) {
 

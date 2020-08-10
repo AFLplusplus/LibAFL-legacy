@@ -77,7 +77,7 @@ void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
 afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage,
                                        mutator_t *      mutator) {
 
-  if (!stage && !mutator) { return AFL_RET_NULL_PTR; }
+  if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
   if (stage->mutators_count >= MAX_STAGE_MUTATORS) { return AFL_RET_ARRAY_END; }
 
@@ -133,5 +133,5 @@ afl_ret_t perform_stage_default(stage_t *stage, raw_input_t *input) {
 
   return AFL_RET_SUCCESS;
 
-};
+}
 

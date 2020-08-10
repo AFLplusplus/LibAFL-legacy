@@ -70,6 +70,7 @@ static inline observation_channel_t *afl_observation_channel_create() {
   if (!new_obs_channel) return NULL;
   if (afl_observation_channel_init(new_obs_channel) != AFL_RET_SUCCESS) {
 
+    free(new_obs_channel);
     return NULL;
 
   };
@@ -121,6 +122,7 @@ static inline map_based_channel_t *afl_map_channel_create(size_t map_size) {
 
   if (afl_map_channel_init(map_channel, map_size) == AFL_RET_ERROR_INITIALIZE) {
 
+    free(map_channel);
     return NULL;
 
   }

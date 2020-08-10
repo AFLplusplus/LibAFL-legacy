@@ -75,7 +75,7 @@ raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
   copy_inp->bytes = calloc(orig_inp->len, sizeof(u8));
   if (!copy_inp->bytes) {
 
-    free(copy_inp);
+    afl_input_delete(copy_inp);
     return NULL;
 
   }
