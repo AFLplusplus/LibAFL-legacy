@@ -132,10 +132,10 @@ int rand_below(size_t limit) {
 
 }
 
-void *insert_substring(void *buf, size_t len, void *token, size_t token_len,
+void *insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
                        size_t offset) {
 
-  void *new_buf = maybe_grow(&buf, &len, len + token_len);
+  u8 *new_buf = maybe_grow(&buf, &len, len + token_len);
 
   memcpy(new_buf, buf, offset);
 
@@ -147,10 +147,10 @@ void *insert_substring(void *buf, size_t len, void *token, size_t token_len,
 
 }
 
-void *insert_bytes(void *buf, size_t len, u8 byte, size_t insert_len,
+void *insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len,
                    size_t offset) {
 
-  void *new_buf = maybe_grow(&buf, &len, len + insert_len);
+  u8 *new_buf = maybe_grow(&buf, &len, len + insert_len);
 
   memcpy(new_buf, buf, offset);
 
@@ -162,7 +162,7 @@ void *insert_bytes(void *buf, size_t len, u8 byte, size_t insert_len,
 
 }
 
-size_t erase_bytes(void *buf, size_t len, size_t offset, size_t remove_len) {
+size_t erase_bytes(u8 *buf, size_t len, size_t offset, size_t remove_len) {
 
   memcpy(buf + offset, buf + offset + remove_len, len - offset - remove_len);
   memset(buf + len - remove_len, 0x0, remove_len);

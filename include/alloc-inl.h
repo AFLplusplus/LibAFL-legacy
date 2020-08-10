@@ -83,7 +83,7 @@ static inline size_t next_pow2(size_t in) {
  Will return NULL and free *buf if size_needed is <1 or realloc failed.
  @return For convenience, this function returns *buf.
  */
-static inline void *maybe_grow(void **buf, size_t *size, size_t size_needed) {
+static inline void *maybe_grow(u8 **buf, size_t *size, size_t size_needed) {
 
   /* No need to realloc */
   if (likely(size_needed && *size >= size_needed)) { return *buf; }

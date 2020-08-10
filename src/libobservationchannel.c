@@ -48,7 +48,7 @@ void flush_default(observation_channel_t *channel) {
   /* TODO: Implementation */
   return;
 
-};
+}
 
 void reset_default(observation_channel_t *channel) {
 

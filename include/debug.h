@@ -29,8 +29,12 @@
 #include "config.h"
 
 /* __FUNCTION__ is non-iso */
-#ifdef __func__
-  #define __FUNCTION__ __func__
+#ifndef __FUNCTION__
+  #ifdef __func__
+    #define __FUNCTION__ __func__
+  #else
+    #define __FUNCTION__ "unknown_func"
+  #endif
 #endif
 
 /*******************

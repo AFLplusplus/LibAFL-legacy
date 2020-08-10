@@ -133,5 +133,5 @@ afl_ret_t perform_stage_default(stage_t *stage, raw_input_t *input) {
 
   return AFL_RET_SUCCESS;
 
-};
+}
 

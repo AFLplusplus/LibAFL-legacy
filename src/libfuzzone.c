@@ -50,7 +50,7 @@ void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
   fuzz_one->stages_num = 0;
 
-};
+}
 
 afl_ret_t perform_default(fuzz_one_t *fuzz_one) {
 

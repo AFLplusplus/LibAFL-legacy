@@ -101,13 +101,13 @@ int iterations_default(scheduled_mutator_t *mutator) {
 
   return 1 << (1 + rand_below(mutator->max_iterations));
 
-};
+}
 
 int schedule_default(scheduled_mutator_t *mutator) {
 
   return rand_below(mutator->mutators_count);
 
-};
+}
 
 size_t mutate_scheduled_mutator_default(mutator_t *  mutator,
                                         raw_input_t *input) {
@@ -128,7 +128,7 @@ size_t mutate_scheduled_mutator_default(mutator_t *  mutator,
 
   return 0;
 
-};
+}
 
 /* A few simple mutators that we use over in AFL++ in the havoc and
  * deterministic modes*/
