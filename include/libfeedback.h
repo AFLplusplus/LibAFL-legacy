@@ -72,8 +72,10 @@ static inline feedback_t *afl_feedback_create(feedback_queue_t *queue) {
   feedback_t *feedback = calloc(1, sizeof(feedback_t));
   if (!feedback) return NULL;
   if (afl_feedback_init(feedback, queue) != AFL_RET_SUCCESS) {
+
     free(feedback);
     return NULL;
+
   }
 
   return feedback;

@@ -71,9 +71,12 @@ static inline mutator_t *afl_mutator_create(stage_t *stage) {
 
   mutator_t *mutator = calloc(1, sizeof(mutator_t));
   if (!mutator) return NULL;
-  if (afl_mutator_init(mutator, stage) == AFL_RET_SUCCESS) { 
+  if (afl_mutator_init(mutator, stage) == AFL_RET_SUCCESS) {
+
     free(mutator);
-    return NULL; }
+    return NULL;
+
+  }
 
   return mutator;
 
@@ -128,6 +131,7 @@ static inline scheduled_mutator_t *afl_scheduled_mutator_create(
   if (afl_scheduled_mutator_init(sched_mut, stage, max_iterations) !=
       AFL_RET_SUCCESS) {
 
+    free(sched_mut);
     return NULL;
 
   }

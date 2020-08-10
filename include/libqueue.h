@@ -161,10 +161,12 @@ static inline base_queue_t *afl_base_queue_create() {
   base_queue_t *base_queue = calloc(1, sizeof(base_queue_t));
   if (!base_queue) { return NULL; }
 
-  if (afl_base_queue_init(base_queue) != AFL_RET_SUCCESS) { 
-    
+  if (afl_base_queue_init(base_queue) != AFL_RET_SUCCESS) {
+
     free(base_queue);
-    return NULL; }
+    return NULL;
+
+  }
 
   return base_queue;
 
@@ -262,10 +264,12 @@ static inline global_queue_t *afl_global_queue_create() {
   global_queue_t *global_queue = calloc(1, sizeof(global_queue_t));
   if (!global_queue) { return NULL; }
 
-  if (afl_global_queue_init(global_queue) != AFL_RET_SUCCESS) { 
-    
+  if (afl_global_queue_init(global_queue) != AFL_RET_SUCCESS) {
+
     free(global_queue);
-    return NULL; }
+    return NULL;
+
+  }
 
   return global_queue;
 
