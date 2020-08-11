@@ -63,6 +63,7 @@ void afl_input_deinit(raw_input_t *input) {
 void raw_inp_clear_default(raw_input_t *input) {
 
   memset(input->bytes, 0x0, input->len);
+  input->len = 0;
 
   return;
 
@@ -111,7 +112,7 @@ afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, char *fname) {
   if (fstat(fd, &st) || !st.st_size) { return AFL_RET_FILE_SIZE; }
 
   input->len = st.st_size;
-  input->bytes = malloc(input->len);
+  input->bytes = calloc(input->len + 1, 1);
   if (!input->bytes) { return AFL_RET_ALLOC; }
 
   ssize_t ret = read(fd, input->bytes, input->len);

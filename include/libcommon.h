@@ -71,9 +71,9 @@ size_t erase_bytes(
     u8 *buf, size_t len, size_t offset,
     size_t remove_len);  // Erases remove_len number of bytes from offset
 u8 *insert_bytes(u8 *buf, size_t len, u8 byte,
-                   size_t insert_len,  // Inserts a certain length of a byte
-                                       // value (byte) at offset in buf
-                   size_t offset);
+                 size_t insert_len,  // Inserts a certain length of a byte
+                                     // value (byte) at offset in buf
+                 size_t offset);
 
 #endif
 

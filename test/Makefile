@@ -12,6 +12,7 @@ unit_test:	unit_test.o
 	$(CC) ./unit_test.c -o ./unit_test -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS)
 
 test: unit_test
+	make -C ..
 	LD_LIBRARY_PATH=.. ./unit_test
 
 clean:
