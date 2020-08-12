@@ -367,6 +367,89 @@ void test_basic_mutator_functions(void ** state){
   afl_input_deinit(&input);
 }
 
+/* Unittests for queue and queue entry based stuff */
+
+#include "libqueue.h"
+
+void test_queue_set_directory(void ** state) {
+
+  base_queue_t queue;
+  afl_base_queue_init(&queue);
+
+  /* Testing for an empty dirpath */
+  queue.funcs.set_directory(&queue, NULL);
+  
+  assert_string_equal(queue.dirpath, "");
+
+  /* Testing for normal directory */
+  char  * new_dirpath = "/some/dir";
+  queue.funcs.set_directory(&queue, new_dirpath);
+
+  assert_string_equal(queue.dirpath, new_dirpath);
+
+}
+
+void test_base_queue_get_next(void ** state) {
+
+  (void)  state;
+
+  base_queue_t queue;
+  afl_base_queue_init(&queue);
+
+  /* When queue is empty we should get NULL */
+  assert_null(queue.funcs.get_next_in_queue(&queue));
+
+  queue_entry_t first_entry;
+  afl_queue_entry_init(&first_entry, NULL);
+
+  queue.funcs.add_to_queue(&queue, &first_entry);
+
+  queue_entry_t second_entry;
+  afl_queue_entry_init(&second_entry, NULL);
+
+  queue.funcs.add_to_queue(&queue, &second_entry);
+
+  /* Let's tell the queue with two entries now */
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue), &second_entry);
+
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue), &first_entry);
+
+  assert_int_equal(queue.size, 2);
+
+}
+
+void test_global_queue_get_next(void ** state) {
+
+  (void)  state;
+
+  global_queue_t global_queue;
+  afl_global_queue_init(&global_queue);
+
+  queue_entry_t first_entry;
+  afl_queue_entry_init(&first_entry, NULL);
+
+  global_queue.base.funcs.add_to_queue(&global_queue.base, &first_entry);
+
+  /* Since this global queue doesn't have any feedback queue, we should get the queue entry we just added*/
+
+  assert_ptr_equal(global_queue.base.funcs.get_next_in_queue(&global_queue.base), &first_entry);
+
+  /* We add a feedback queue with an entry and check if the queue returns that */
+
+  feedback_queue_t feedback_queue;
+  afl_feedback_queue_init(&feedback_queue, NULL, NULL);
+
+  queue_entry_t second_entry;
+  afl_queue_entry_init(&second_entry, NULL);
+
+  feedback_queue.base.funcs.add_to_queue(&feedback_queue.base, &second_entry);
+
+  global_queue.extra_funcs.add_feedback_queue(&global_queue, &feedback_queue);
+
+  assert_ptr_equal(global_queue.base.funcs.get_next_in_queue(&global_queue.base), &second_entry);
+
+}
+
 int main(int argc, char **argv) {
 
   const struct CMUnitTest tests[] = {
@@ -382,6 +465,10 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_engine_load_testcase_from_dir_default),
       
       cmocka_unit_test(test_basic_mutator_functions),
+
+      cmocka_unit_test(test_queue_set_directory),
+      cmocka_unit_test(test_base_queue_get_next),
+      cmocka_unit_test(test_global_queue_get_next),
   };
 
   // return cmocka_run_group_tests (tests, setup, teardown);
