@@ -101,6 +101,26 @@ static void test_erase_bytes(void **state) {
 
 #include "libinput.h"
 
+void test_input_copy(void ** state) {
+
+  raw_input_t input;
+  afl_input_init(&input);
+
+  u8 s[100] = {0};
+  memcpy(s, "AAAAAAAAAAAAA", 13);
+
+  input.bytes = s;
+  input.len = 14;
+
+  raw_input_t * copy = input.funcs.copy(&input);
+
+  assert_string_equal(copy->bytes, input.bytes);
+  assert_int_equal(input.len, copy->len);
+
+  afl_input_delete(copy);
+
+}
+
 void test_input_load_from_file(void **state) {
 
   (void)state;
@@ -354,9 +374,13 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_insert_substring),
       cmocka_unit_test(test_insert_bytes),
       cmocka_unit_test(test_erase_bytes),
+
       cmocka_unit_test(test_input_load_from_file),
       cmocka_unit_test(test_input_save_to_file),
+      cmocka_unit_test(test_input_copy),
+      
       cmocka_unit_test(test_engine_load_testcase_from_dir_default),
+      
       cmocka_unit_test(test_basic_mutator_functions),
   };
 

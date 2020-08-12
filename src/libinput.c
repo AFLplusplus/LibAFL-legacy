@@ -85,6 +85,7 @@ raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
   }
 
   memcpy(copy_inp->bytes, orig_inp->bytes, orig_inp->len);
+  copy_inp->len = orig_inp->len;
   return copy_inp;
 
 }
