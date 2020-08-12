@@ -301,32 +301,30 @@ void clone_bytes_mutation(raw_input_t *input) {
   size_t clone_from, clone_to, clone_len;
 
   clone_to = rand_below(size);
-  
-  u8 * current_bytes = input->bytes;
+
+  u8 *current_bytes = input->bytes;
 
   if (actually_clone) {
 
     clone_len = choose_block_len(size);
     clone_from = rand_below(size - clone_len + 1);
 
-
     input->bytes = insert_substring(
         input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
     input->len += clone_len;
-
 
   } else {
 
     clone_len = choose_block_len(HAVOC_BLK_XL);
 
-    input->bytes = insert_bytes(input->bytes, size, rand_below(255), clone_len, clone_to);
+    input->bytes =
+        insert_bytes(input->bytes, size, rand_below(255), clone_len, clone_to);
 
     input->len += clone_len;
 
   }
 
   free(current_bytes);
-
 
 }
 

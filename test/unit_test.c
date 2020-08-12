@@ -101,7 +101,7 @@ static void test_erase_bytes(void **state) {
 
 #include "libinput.h"
 
-void test_input_copy(void ** state) {
+void test_input_copy(void **state) {
 
   raw_input_t input;
   afl_input_init(&input);
@@ -112,7 +112,7 @@ void test_input_copy(void ** state) {
   input.bytes = s;
   input.len = 14;
 
-  raw_input_t * copy = input.funcs.copy(&input);
+  raw_input_t *copy = input.funcs.copy(&input);
 
   assert_string_equal(copy->bytes, input.bytes);
   assert_int_equal(input.len, copy->len);
@@ -291,16 +291,16 @@ void test_engine_load_testcase_from_dir_default(void **state) {
 #include "libmutator.h"
 #include <time.h>
 
-void test_basic_mutator_functions(void ** state){
+void test_basic_mutator_functions(void **state) {
 
-  (void)  state;
+  (void)state;
 
   /* First let's create a basic inputs */
-  raw_input_t input;
-  raw_input_t * copy = NULL;
+  raw_input_t  input;
+  raw_input_t *copy = NULL;
   afl_input_init(&input);
 
-  char * test_string = "AAAAAAAAAAAAA";
+  char *test_string = "AAAAAAAAAAAAA";
   input.bytes = calloc(strlen(test_string), 1);
   memcpy(input.bytes, test_string, strlen(test_string));
   input.len = 13;
@@ -309,7 +309,7 @@ void test_basic_mutator_functions(void ** state){
 
   /* We test the different mutation functions now */
   flip_bit_mutation(&input);
-  assert_string_not_equal(input.bytes, test_string );
+  assert_string_not_equal(input.bytes, test_string);
 
   copy = input.funcs.copy(&input);
 
@@ -352,46 +352,47 @@ void test_basic_mutator_functions(void ** state){
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
-  
+
   copy = input.funcs.copy(&input);
   delete_bytes_mutation(&input);
   assert_string_not_equal(input.bytes, copy->bytes);
 
   afl_input_delete(copy);
-  
+
   copy = input.funcs.copy(&input);
   clone_bytes_mutation(&input);
   assert_string_not_equal(input.bytes, copy->bytes);
 
   afl_input_delete(copy);
   afl_input_deinit(&input);
+
 }
 
 /* Unittests for queue and queue entry based stuff */
 
 #include "libqueue.h"
 
-void test_queue_set_directory(void ** state) {
+void test_queue_set_directory(void **state) {
 
   base_queue_t queue;
   afl_base_queue_init(&queue);
 
   /* Testing for an empty dirpath */
   queue.funcs.set_directory(&queue, NULL);
-  
+
   assert_string_equal(queue.dirpath, "");
 
   /* Testing for normal directory */
-  char  * new_dirpath = "/some/dir";
+  char *new_dirpath = "/some/dir";
   queue.funcs.set_directory(&queue, new_dirpath);
 
   assert_string_equal(queue.dirpath, new_dirpath);
 
 }
 
-void test_base_queue_get_next(void ** state) {
+void test_base_queue_get_next(void **state) {
 
-  (void)  state;
+  (void)state;
 
   base_queue_t queue;
   afl_base_queue_init(&queue);
@@ -418,9 +419,9 @@ void test_base_queue_get_next(void ** state) {
 
 }
 
-void test_global_queue_get_next(void ** state) {
+void test_global_queue_get_next(void **state) {
 
-  (void)  state;
+  (void)state;
 
   global_queue_t global_queue;
   afl_global_queue_init(&global_queue);
@@ -430,11 +431,15 @@ void test_global_queue_get_next(void ** state) {
 
   global_queue.base.funcs.add_to_queue(&global_queue.base, &first_entry);
 
-  /* Since this global queue doesn't have any feedback queue, we should get the queue entry we just added*/
+  /* Since this global queue doesn't have any feedback queue, we should get the
+   * queue entry we just added*/
 
-  assert_ptr_equal(global_queue.base.funcs.get_next_in_queue(&global_queue.base), &first_entry);
+  assert_ptr_equal(
+      global_queue.base.funcs.get_next_in_queue(&global_queue.base),
+      &first_entry);
 
-  /* We add a feedback queue with an entry and check if the queue returns that */
+  /* We add a feedback queue with an entry and check if the queue returns that
+   */
 
   feedback_queue_t feedback_queue;
   afl_feedback_queue_init(&feedback_queue, NULL, NULL);
@@ -446,7 +451,9 @@ void test_global_queue_get_next(void ** state) {
 
   global_queue.extra_funcs.add_feedback_queue(&global_queue, &feedback_queue);
 
-  assert_ptr_equal(global_queue.base.funcs.get_next_in_queue(&global_queue.base), &second_entry);
+  assert_ptr_equal(
+      global_queue.base.funcs.get_next_in_queue(&global_queue.base),
+      &second_entry);
 
 }
 
@@ -461,14 +468,15 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_input_load_from_file),
       cmocka_unit_test(test_input_save_to_file),
       cmocka_unit_test(test_input_copy),
-      
+
       cmocka_unit_test(test_engine_load_testcase_from_dir_default),
-      
+
       cmocka_unit_test(test_basic_mutator_functions),
 
       cmocka_unit_test(test_queue_set_directory),
       cmocka_unit_test(test_base_queue_get_next),
       cmocka_unit_test(test_global_queue_get_next),
+
   };
 
   // return cmocka_run_group_tests (tests, setup, teardown);
