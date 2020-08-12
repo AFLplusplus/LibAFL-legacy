@@ -266,6 +266,87 @@ void test_engine_load_testcase_from_dir_default(void **state) {
 
 }
 
+/* Unittests for the basic mutators and mutator functions we added */
+
+#include "libmutator.h"
+#include <time.h>
+
+void test_basic_mutator_functions(void ** state){
+
+  (void)  state;
+
+  /* First let's create a basic inputs */
+  raw_input_t input;
+  raw_input_t * copy = NULL;
+  afl_input_init(&input);
+
+  char * test_string = "AAAAAAAAAAAAA";
+  input.bytes = calloc(strlen(test_string), 1);
+  memcpy(input.bytes, test_string, strlen(test_string));
+  input.len = 13;
+
+  srand(time(NULL));
+
+  /* We test the different mutation functions now */
+  flip_bit_mutation(&input);
+  assert_string_not_equal(input.bytes, test_string );
+
+  copy = input.funcs.copy(&input);
+
+  flip_2_bits_mutation(&input);
+  assert_string_not_equal(input.bytes, copy->bytes);
+  afl_input_delete(copy);
+
+  copy = input.funcs.copy(&input);
+  flip_4_bits_mutation(&input);
+  assert_memory_not_equal(input.bytes, copy->bytes, input.len);
+
+  afl_input_delete(copy);
+
+  copy = input.funcs.copy(&input);
+  flip_byte_mutation(&input);
+  assert_memory_not_equal(input.bytes, copy->bytes, input.len);
+
+  afl_input_delete(copy);
+
+  copy = input.funcs.copy(&input);
+  flip_2_bytes_mutation(&input);
+  assert_memory_not_equal(input.bytes, copy->bytes, input.len);
+
+  afl_input_delete(copy);
+
+  copy = input.funcs.copy(&input);
+  flip_4_bytes_mutation(&input);
+  assert_memory_not_equal(input.bytes, copy->bytes, input.len);
+
+  afl_input_delete(copy);
+
+  copy = input.funcs.copy(&input);
+  random_byte_add_sub_mutation(&input);
+  assert_memory_not_equal(input.bytes, copy->bytes, input.len);
+
+  afl_input_delete(copy);
+
+  copy = input.funcs.copy(&input);
+  random_byte_mutation(&input);
+  assert_memory_not_equal(input.bytes, copy->bytes, input.len);
+
+  afl_input_delete(copy);
+  
+  copy = input.funcs.copy(&input);
+  delete_bytes_mutation(&input);
+  assert_string_not_equal(input.bytes, copy->bytes);
+
+  afl_input_delete(copy);
+  
+  copy = input.funcs.copy(&input);
+  clone_bytes_mutation(&input);
+  assert_string_not_equal(input.bytes, copy->bytes);
+
+  afl_input_delete(copy);
+  afl_input_deinit(&input);
+}
+
 int main(int argc, char **argv) {
 
   const struct CMUnitTest tests[] = {
@@ -276,7 +357,7 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_input_load_from_file),
       cmocka_unit_test(test_input_save_to_file),
       cmocka_unit_test(test_engine_load_testcase_from_dir_default),
-
+      cmocka_unit_test(test_basic_mutator_functions),
   };
 
   // return cmocka_run_group_tests (tests, setup, teardown);

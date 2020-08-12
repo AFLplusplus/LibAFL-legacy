@@ -43,6 +43,9 @@ afl_ret_t afl_input_init(raw_input_t *input) {
   input->funcs.save_to_file = raw_inp_save_to_file_default;
   input->funcs.serialize = raw_inp_serialize_default;
 
+  input->bytes = 0x0;
+  input->len = 0x0;
+
   return AFL_RET_SUCCESS;
 
 }
@@ -73,7 +76,7 @@ raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
 
   raw_input_t *copy_inp = afl_input_create();
   if (!copy_inp) { return NULL; }
-  copy_inp->bytes = calloc(orig_inp->len, sizeof(u8));
+  copy_inp->bytes = calloc(orig_inp->len + 1, sizeof(u8));
   if (!copy_inp->bytes) {
 
     afl_input_delete(copy_inp);
