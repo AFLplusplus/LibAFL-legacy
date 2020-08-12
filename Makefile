@@ -60,7 +60,10 @@ libos.o: ./src/libos.c ./include/libos.h ./src/libcommon.o ./src/libinput.o
 libaflpp.o: ./src/libaflpp.c ./include/libaflpp.h ./src/libobservationchannel.o ./src/libinput.observation
 	$(CC) ./src/libaflpp.c -o libaflpp.so $(CFLAGS)
 
-libaflpp.so: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
+ipc.o: ./src/os/posix/ipc.o
+	$(CC) ./src/os/posix/ipc.c -o ipc.o $(CFLAGS)
+
+libaflpp.so: ./src/os/posix/ipc.o ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
 	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
 
 example-fuzzer: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
