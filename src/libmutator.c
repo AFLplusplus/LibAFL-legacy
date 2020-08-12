@@ -24,8 +24,9 @@
 
  */
 
-#include "libmutator.h"
 #include <stdlib.h>
+
+#include "libmutator.h"
 
 #define ARITH_MAX 35
 
@@ -34,21 +35,17 @@
 #define HAVOC_BLK_LARGE 1500
 #define HAVOC_BLK_XL 32768
 
-
-void _afl_mutator_init_(mutator_t *mutator, stage_t *stage) {
+afl_ret_t afl_mutator_init(mutator_t *mutator, stage_t *stage) {
 
   mutator->stage = stage;
 
-  mutator->funcs.get_stage = get_mutator_stage_default;
-  mutator->funcs.init = mutator_init_default;
-  mutator->funcs.mutate = mutate_default;
-  mutator->funcs.trim = trim_default;
+  return AFL_RET_SUCCESS;
 
 }
 
 void afl_mutator_deinit(mutator_t *mutator) {
 
-  free(mutator);
+  mutator->stage = NULL;
 
 }
 
@@ -58,75 +55,89 @@ stage_t *get_mutator_stage_default(mutator_t *mutator) {
 
 }
 
-void mutator_init_default(mutator_t *mutator) {
+afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *sched_mut,
+                                     stage_t *stage, size_t max_iterations) {
 
-  /* TODO: Implementation */
-  return;
+  if (afl_mutator_init(&(sched_mut->base), stage) != AFL_RET_SUCCESS) {
 
-};
+    return AFL_RET_ERROR_INITIALIZE;
 
-size_t trim_default(mutator_t *mutator, u8 *mem, u8 *new_mem) {
+  }
 
-  /* TODO: Implementation */
-  return 0;
-
-};
-
-size_t mutate_default(mutator_t *mutator, raw_input_t *input, size_t size) {
-
-  /* TODO: Implementation */
-  return 0;
-
-};
-
-scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *stage) {
-
-  scheduled_mutator_t *sched_mut = ck_alloc(sizeof(scheduled_mutator_t));
-  afl_mutator_init(&(sched_mut->super), stage);
-
+  sched_mut->base.funcs.mutate = mutate_scheduled_mutator_default;
   sched_mut->extra_funcs.add_mutator = add_mutator_default;
   sched_mut->extra_funcs.iterations = iterations_default;
   sched_mut->extra_funcs.schedule = schedule_default;
 
-  return sched_mut;
+  sched_mut->max_iterations = (max_iterations > 0) ? max_iterations : 7;
+  return AFL_RET_SUCCESS;
 
 }
 
-void afl_scheduled_mutator_deinit(scheduled_mutator_t *mutator) {
+void afl_scheduled_mutator_deinit(scheduled_mutator_t *sched_mut) {
 
-  LIST_FOREACH_CLEAR(&(mutator->mutations), mutator_func_type, {});
+  afl_mutator_deinit(&(sched_mut->base));
+  sched_mut->max_iterations = 0;
 
-  free(mutator);
+  for (size_t i = 0; i < sched_mut->mutators_count; ++i) {
+
+    sched_mut->mutations[i] = NULL;
+
+  }
+
+  sched_mut->mutators_count = 0;
 
 }
 
 void add_mutator_default(scheduled_mutator_t *mutator,
                          mutator_func_type    mutator_func) {
 
-  list_append(&(mutator->mutations), mutator_func);
+  mutator->mutations[mutator->mutators_count] = mutator_func;
+  mutator->mutators_count++;
 
 }
 
 int iterations_default(scheduled_mutator_t *mutator) {
 
-  /* TODO: Implementation */
-  return 0;
+  return 1 << (1 + rand_below(mutator->max_iterations));
 
-};
+}
 
 int schedule_default(scheduled_mutator_t *mutator) {
 
-  /* TODO: Implementation */
+  return rand_below(mutator->mutators_count);
+
+}
+
+size_t mutate_scheduled_mutator_default(mutator_t *  mutator,
+                                        raw_input_t *input) {
+
+  // This is to stop from compiler complaining about the incompatible pointer
+  // type for the function ptrs. We need a better solution for this to pass the
+  // scheduled_mutator rather than the mutator as an argument.
+  scheduled_mutator_t *scheduled_mutator = (scheduled_mutator_t *)mutator;
+
+  for (int i = 0;
+       i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator); ++i) {
+
+    scheduled_mutator
+        ->mutations[scheduled_mutator->extra_funcs.schedule(scheduled_mutator)](
+            input);
+
+  }
+
   return 0;
 
-};
+}
 
-/* A few simple mutators that we use over in AFL++  */
+/* A few simple mutators that we use over in AFL++ in the havoc and
+ * deterministic modes*/
 
 static size_t choose_block_len(size_t limit) {
 
   size_t min_value, max_value;
   switch (rand_below(3)) {
+
     case 0:
       min_value = 1;
       max_value = HAVOC_BLK_SMALL;
@@ -137,70 +148,75 @@ static size_t choose_block_len(size_t limit) {
       break;
     default:
       if (rand_below(10)) {
+
         min_value = HAVOC_BLK_MEDIUM;
         max_value = HAVOC_BLK_LARGE;
+
       } else {
+
         min_value = HAVOC_BLK_LARGE;
         max_value = HAVOC_BLK_XL;
+
       }
+
   }
 
-  if (min_value >= limit) min_value = 1;
+  if (min_value >= limit) { min_value = 1; }
 
-  return min_value + rand_below((max_value < limit ? max_value : limit) - min_value + 1);
-
-}
-
-
-
-void flip_bit_mutation(mutator_t * mutator, raw_input_t * input) {
-
-  int bit = (rand())%(input->len*8);
-
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8)); 
+  return min_value +
+         rand_below((max_value < limit ? max_value : limit) - min_value + 1);
 
 }
 
-void flip_2_bits_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_bit_mutation(raw_input_t *input) {
+
+  int bit = (rand()) % (input->len * 8);
+
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
+
+}
+
+void flip_2_bits_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
-  int bit = (rand())%(size<<3);
+  int bit = (rand()) % (size << 3);
 
-  if ((size<<3) - bit > 2)  { return; }
+  if ((size << 3) - bit > 2) { return; }
 
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
   bit++;
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
 
 }
 
-void flip_4_bits_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_4_bits_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
-  if (size <= 0)  { return; }
+  if (size <= 0) { return; }
 
-  int bit = (rand())%(size<<3);
+  int bit = (rand()) % (size << 3);
 
-  if ((size<<3) - bit > 4)  { return; }
+  if ((size << 3) - bit > 4) { return; }
 
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
   bit++;
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
   bit++;
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
   bit++;
-  input->bytes[bit>>3] ^= (1<<((bit - 1)%8));
+  input->bytes[bit >> 3] ^= (1 << ((bit - 1) % 8));
+
 }
 
-void flip_byte_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_byte_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
-  if (size <= 0)  { return; }
+  if (size <= 0) { return; }
 
-  int byte = rand()%size;
+  int byte = rand() % size;
 
   input->bytes[byte] ^= 0xff;
 
@@ -208,35 +224,41 @@ void flip_byte_mutation(mutator_t * mutator, raw_input_t * input) {
 
 }
 
-void flip_2_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_2_bytes_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
-  if (size < 2)  { return; }
+  if (size < 2) { return; }
 
   int byte = rand_below(size - 1);
 
-  ((u16 *)input->bytes)[byte] ^= 0xffff;
-
+  input->bytes[byte] ^= 0xff;
+  input->bytes[byte + 1] ^= 0xff;
 
 }
 
-void flip_4_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
+void flip_4_bytes_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
-  if (size < 4)  { return; }
+  if (size < 4) { return; }
 
   int byte = rand_below(size - 3);
 
-  ((u32 *)input->bytes)[byte] ^= 0xffffffff;
+  if (byte == -1) { return; }
+
+  input->bytes[byte] ^= 0xff;
+  input->bytes[byte + 1] ^= 0xff;
+  input->bytes[byte + 2] ^= 0xff;
+  input->bytes[byte + 3] ^= 0xff;
 
 }
 
-void random_byte_add_sub_mutation(mutator_t * mutator, raw_input_t * input) {
+void random_byte_add_sub_mutation(raw_input_t *input) {
+
   size_t size = input->len;
 
-  if (size <= 0)  { return; }
+  if (size <= 0) { return; }
 
   size_t idx = rand_below(size);
 
@@ -245,17 +267,17 @@ void random_byte_add_sub_mutation(mutator_t * mutator, raw_input_t * input) {
 
 }
 
-void random_byte_mutation(mutator_t * mutator, raw_input_t * input) {
+void random_byte_mutation(raw_input_t *input) {
 
   size_t size = input->len;
-  if (size <= 0)  { return; }
+  if (size <= 0) { return; }
 
   int idx = rand_below(size);
   input->bytes[idx] ^= 1 + rand_below(255);
-  
+
 }
 
-void delete_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
+void delete_bytes_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
@@ -263,17 +285,17 @@ void delete_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
 
   size_t del_len = choose_block_len(size - 1);
   size_t del_from = rand_below(size - del_len + 1);
-  
+
   /* We delete the bytes and then update the new input length*/
   input->len = erase_bytes(input->bytes, size, del_from, del_len);
 
 }
 
-void clone_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
+void clone_bytes_mutation(raw_input_t *input) {
 
   size_t size = input->len;
 
-  if ( !size )  { return; }
+  if (!size) { return; }
   int actually_clone = rand_below(4);
 
   size_t clone_from, clone_to, clone_len;
@@ -285,17 +307,17 @@ void clone_bytes_mutation(mutator_t * mutator, raw_input_t * input) {
     clone_len = choose_block_len(size);
     clone_from = rand_below(size - clone_len + 1);
 
-    input->bytes = insert_substring(input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
+    input->bytes = insert_substring(
+        input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
     input->len += clone_len;
 
-  }
-  else {
+  } else {
+
     clone_len = choose_block_len(HAVOC_BLK_XL);
 
-    clone_from = 0;
     insert_bytes(input->bytes, size, rand_below(255), clone_len, clone_to);
 
-    input->len += clone_len; 
+    input->len += clone_len;
 
   }
 

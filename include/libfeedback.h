@@ -24,8 +24,8 @@
 
  */
 
-#ifndef FEEDBACK_FILE_INCLUDED
-#define FEEDBACK_FILE_INCLUDED
+#ifndef LIBFEEDBACK_H
+#define LIBFEEDBACK_H
 
 #include "libqueue.h"
 
@@ -64,29 +64,30 @@ void              set_feedback_queue_default(feedback_t *, feedback_queue_t *);
 feedback_queue_t *get_feedback_queue_default(feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
-void afl_feedback_deinit(feedback_t *);
-void _afl_feedback_init_(feedback_t *, feedback_queue_t *);
+void      afl_feedback_deinit(feedback_t *);
+afl_ret_t afl_feedback_init(feedback_t *, feedback_queue_t *);
 
-static inline feedback_t *afl_feedback_init(feedback_t *feedback, feedback_queue_t * queue) {
+static inline feedback_t *afl_feedback_create(feedback_queue_t *queue) {
 
-  feedback_t *new_feedback = feedback;
+  feedback_t *feedback = calloc(1, sizeof(feedback_t));
+  if (!feedback) return NULL;
+  if (afl_feedback_init(feedback, queue) != AFL_RET_SUCCESS) {
 
-  if (feedback)
-    _afl_feedback_init_(feedback, queue);
-
-  else {
-
-    new_feedback = calloc(1, sizeof(feedback_t));
-    if (!new_feedback) return NULL;
-    _afl_feedback_init_(new_feedback, queue);
+    free(feedback);
+    return NULL;
 
   }
 
-  return new_feedback;
+  return feedback;
 
 }
 
-#define AFL_FEEDBACK_DEINIT(fbck) afl_feedback_deinit(fbck);
+static inline void afl_feedback_delete(feedback_t *feedback) {
+
+  afl_feedback_deinit(feedback);
+  free(feedback);
+
+}
 
 /* TODO: Add MaximizeMapFeedback implementation */
 

@@ -21,8 +21,10 @@
 
  */
 
-#ifndef MUTATOR_FILE_INCLUDED
-#define MUTATOR_FILE_INCLUDED
+#ifndef LIBMUTATOR_H
+#define LIBMUTATOR_H
+
+#define MAX_MUTATORS_COUNT 10
 
 #include "libinput.h"
 #include "list.h"
@@ -41,7 +43,7 @@ struct mutator_functions {
   size_t (*trim)(mutator_t *, u8 *,
                  u8 *);  // The params here are in_buf and out_buf.
 
-  size_t (*mutate)(mutator_t *, raw_input_t *, size_t);  // Mutate function
+  size_t (*mutate)(mutator_t *, raw_input_t *);  // Mutate function
 
   stage_t *(*get_stage)(mutator_t *);
 
@@ -57,37 +59,37 @@ struct mutator {
 
 void     mutator_init_default(mutator_t *);
 size_t   trim_default(mutator_t *, u8 *, u8 *);
-size_t   mutate_default(mutator_t *, raw_input_t *, size_t);
 stage_t *get_mutator_stage_default(mutator_t *);
 
-void _afl_mutator_init_(mutator_t *, stage_t *);
-void afl_mutator_deinit(mutator_t *);
+afl_ret_t afl_mutator_init(mutator_t *, stage_t *);
+void      afl_mutator_deinit(mutator_t *);
 
 // A simple scheduled mutator based on the above mutator. Will act something
 // similar to the havoc stage
 
-static inline mutator_t *afl_mutator_init(mutator_t *mutator, stage_t *stage) {
+static inline mutator_t *afl_mutator_create(stage_t *stage) {
 
-  mutator_t *new_mutator = mutator;
+  mutator_t *mutator = calloc(1, sizeof(mutator_t));
+  if (!mutator) return NULL;
+  if (afl_mutator_init(mutator, stage) == AFL_RET_SUCCESS) {
 
-  if (mutator)
-    _afl_mutator_init_(mutator, stage);
-
-  else {
-
-    new_mutator = calloc(1, sizeof(mutator_t));
-    if (!new_mutator) return NULL;
-    _afl_mutator_init_(new_mutator, stage);
+    free(mutator);
+    return NULL;
 
   }
 
-  return new_mutator;
+  return mutator;
 
 }
 
-#define AFL_MUTATOR_DEINIT(mutator) afl_mutator_deinit(mutator);
+static inline void afl_mutator_delete(mutator_t *mutator) {
 
-typedef void (*mutator_func_type)(mutator_t *, raw_input_t *);
+  afl_mutator_deinit(mutator);
+  free(mutator);
+
+}
+
+typedef void (*mutator_func_type)(raw_input_t *);
 
 typedef struct scheduled_mutator scheduled_mutator_t;
 
@@ -101,21 +103,61 @@ struct scheduled_mutator_functions {
 
 struct scheduled_mutator {
 
-  mutator_t super;
-  list_t    mutations;
-
+  mutator_t base;
+  mutator_func_type
+      mutations[MAX_MUTATORS_COUNT];  // A ptr to an array of mutation operator
+                                      // functions
+  size_t                             mutators_count;
   struct scheduled_mutator_functions extra_funcs;
+  size_t                             max_iterations;
 
 };
 
 /* TODO add implementation for the _schedule_ and _iterations_ functions, need a
  * random list element pop type implementation for this */
-int  iterations_default(scheduled_mutator_t *);
-void add_mutator_default(scheduled_mutator_t *, mutator_func_type);
-int  schedule_default(scheduled_mutator_t *);
+int    iterations_default(scheduled_mutator_t *);
+void   add_mutator_default(scheduled_mutator_t *, mutator_func_type);
+int    schedule_default(scheduled_mutator_t *);
+size_t mutate_scheduled_mutator_default(mutator_t *, raw_input_t *);
 
-scheduled_mutator_t *afl_scheduled_mutator_init(stage_t *);
-void                 afl_scheduled_mutator_deinit(scheduled_mutator_t *);
+afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *, stage_t *, size_t);
+void      afl_scheduled_mutator_deinit(scheduled_mutator_t *);
+
+static inline scheduled_mutator_t *afl_scheduled_mutator_create(
+    stage_t *stage, size_t max_iterations) {
+
+  scheduled_mutator_t *sched_mut = calloc(1, sizeof(scheduled_mutator_t));
+
+  if (afl_scheduled_mutator_init(sched_mut, stage, max_iterations) !=
+      AFL_RET_SUCCESS) {
+
+    free(sched_mut);
+    return NULL;
+
+  }
+
+  return sched_mut;
+
+}
+
+static inline void afl_scheduled_mutator_delete(
+    scheduled_mutator_t *sched_mut) {
+
+  afl_scheduled_mutator_deinit(sched_mut);
+  free(sched_mut);
+
+}
+
+void flip_bit_mutation(raw_input_t *input);
+void flip_2_bits_mutation(raw_input_t *input);
+void flip_4_bits_mutation(raw_input_t *input);
+void flip_byte_mutation(raw_input_t *input);
+void flip_2_bytes_mutation(raw_input_t *input);
+void flip_4_bytes_mutation(raw_input_t *input);
+void random_byte_add_sub_mutation(raw_input_t *input);
+void random_byte_mutation(raw_input_t *input);
+void delete_bytes_mutation(raw_input_t *input);
+void clone_bytes_mutation(raw_input_t *input);
 
 #endif
 

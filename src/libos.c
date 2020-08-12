@@ -1,4 +1,3 @@
-#include "libos.h"
 #include <signal.h>
 #include <assert.h>
 #include <types.h>
@@ -6,28 +5,32 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+#include "libos.h"
+
 // Crash related functions
-void dump_crash_to_file(exit_type_t exit_type, raw_input_t *data) {
+afl_ret_t dump_crash_to_file(raw_input_t *data) {
 
-  char *filename = ck_alloc(100);
+  char filename[128];
 
-  /* This filename will be replaced by "crashes-SHA_OF_BYTES" later */
-  snprintf(filename, 100, "crashes-%d", rand());
+  /* TODO: This filename should be replaced by "crashes-SHA_OF_BYTES" later */
+  snprintf(filename, sizeof(filename) - 1, "crashes-%x", rand_below(0xFFFF));
 
   FILE *f = fopen(filename, "w+");
+  if (!f) { return AFL_RET_FILE_OPEN_ERROR; }
   fwrite(data->bytes, 1, data->len, f);
 
   fclose(f);
+  return AFL_RET_SUCCESS;
 
 }
 
 // Process related functions
 
-static process_t *current_process;
+// static process_t *current_process;
 
-void _afl_process_init_(process_t *process) {
+void _afl_process_init_internal(process_t *process) {
 
-  process->current = return_current_default;
+  // process->current = return_current_default;
   process->fork = do_fork_default;
 
   process->resume = resume_default;
@@ -36,8 +39,12 @@ void _afl_process_init_(process_t *process) {
 
 }
 
+#if 0
 process_t *return_current_default(process_t *process) {
 
+  (void)process;
+
+  /* What is this good for? It's racey for sure */
   if (current_process) return current_process;
 
   process_t *p = afl_process_init(NULL, getpid());
@@ -46,6 +53,8 @@ process_t *return_current_default(process_t *process) {
   return p;
 
 }
+
+#endif
 
 fork_result_t do_fork_default(process_t *process) {
 
@@ -76,8 +85,8 @@ void resume_default(process_t *process) {
 exit_type_t wait_default(process_t *process, bool untraced) {
 
   int status = 0;
-  if (waitpid((process->handler_process), &status,
-              untraced ? WUNTRACED : 0) < 0)
+  if (waitpid((process->handler_process), &status, untraced ? WUNTRACED : 0) <
+      0)
     return -1;  // Waitpid fails here, how should we handle this?
 
   if (WIFEXITED(status)) return NORMAL;
@@ -112,7 +121,7 @@ exit_type_t wait_default(process_t *process, bool untraced) {
 
   else {
 
-    FATAL("Currently Unhandled");
+    FATAL("BUG: Currently Unhandled");
 
   }
 

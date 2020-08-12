@@ -22,8 +22,8 @@
 
  */
 
-#ifndef FUZZONE_FILE_INCLUDED
-#define FUZZONE_FILE_INCLUDED
+#ifndef LIBFUZZONE_H
+#define LIBFUZZONE_H
 
 #include "libcommon.h"
 #include "list.h"
@@ -32,8 +32,8 @@
 
 struct fuzz_one_functions {
 
-  int (*perform)(fuzz_one_t *);
-  int (*add_stage)(fuzz_one_t *, stage_t *);
+  afl_ret_t (*perform)(fuzz_one_t *);
+  afl_ret_t (*add_stage)(fuzz_one_t *, stage_t *);
 
 };
 
@@ -41,39 +41,40 @@ struct fuzz_one {
 
   engine_t *engine;
   stage_t * stages[MAX_STAGES];
-  u64       stages_num;
+  size_t    stages_num;
 
   struct fuzz_one_functions funcs;
 
 };
 
-int perform_default(fuzz_one_t *);
-int add_stage_default(fuzz_one_t *, stage_t *);
+afl_ret_t perform_default(fuzz_one_t *);
+afl_ret_t add_stage_default(fuzz_one_t *, stage_t *);
 
-void _afl_fuzz_one_init_(fuzz_one_t *, engine_t *);
-void afl_fuzz_one_deinit(fuzz_one_t *);
+afl_ret_t afl_fuzz_one_init(fuzz_one_t *, engine_t *);
+void      afl_fuzz_one_deinit(fuzz_one_t *);
 
-static inline fuzz_one_t *afl_fuzz_one_init(fuzz_one_t *fuzzone,
-                                            engine_t *  engine) {
+static inline fuzz_one_t *afl_fuzz_one_create(engine_t *engine) {
 
-  fuzz_one_t *new_fuzzone = fuzzone;
+  fuzz_one_t *fuzz_one = calloc(1, sizeof(fuzz_one_t));
+  if (!fuzz_one) { return NULL; }
+  if (afl_fuzz_one_init(fuzz_one, engine) != AFL_RET_SUCCESS) {
 
-  if (fuzzone)
-    _afl_fuzz_one_init_(fuzzone, engine);
+    free(fuzz_one);
+    return NULL;
 
-  else {
+  };
 
-    new_fuzzone = calloc(1, sizeof(fuzz_one_t));
-    if (!new_fuzzone) return NULL;
-    _afl_fuzz_one_init_(new_fuzzone, engine);
-
-  }
-
-  return new_fuzzone;
+  return fuzz_one;
 
 }
 
-#define AFL_FUZZ_ONE_DEINIT(fuzzone) afl_fuzz_one_deinit(fuzzone);
+static inline void afl_fuzz_one_delete(fuzz_one_t *fuzz_one) {
+
+  afl_fuzz_one_deinit(fuzz_one);
+
+  free(fuzz_one);
+
+}
 
 #endif
 

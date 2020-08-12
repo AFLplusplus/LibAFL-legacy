@@ -67,7 +67,7 @@ static inline void list_free_el(list_t *list, element_t *el) {
 
 }
 
-static inline void list_append(list_t *list, void *el) {
+static inline afl_ret_t list_append(list_t *list, void *el) {
 
   element_t *head = get_head(list);
   if (!head->next) {
@@ -83,12 +83,13 @@ static inline void list_append(list_t *list, void *el) {
   element_t *el_box = NULL;
   PRE_ALLOC(el_box, list->element_prealloc_buf, LIST_PREALLOC_SIZE,
             list->element_prealloc_count);
-  if (!el_box) { FATAL("failed to allocate list element"); }
+  if (!el_box) { return AFL_RET_ALLOC; }
   el_box->data = el;
   el_box->next = head;
   el_box->prev = head->prev;
   head->prev->next = el_box;
   head->prev = el_box;
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -104,7 +105,7 @@ static inline void list_append(list_t *list, void *el) {
     list_t *   li = (list);                                        \
     element_t *head = get_head((li));                              \
     element_t *el_box = (head)->next;                              \
-    if (!el_box) FATAL("foreach over uninitialized list");         \
+    if (!el_box) FATAL("BUG: foreach over uninitialized list");    \
     while (el_box != head) {                                       \
                                                                    \
       __attribute__((unused)) type *el = (type *)((el_box)->data); \
@@ -160,7 +161,7 @@ static inline void list_remove(list_t *list, void *remove_me) {
 
   });
 
-  FATAL("List item to be removed not in list");
+  FATAL("BUG: List item to be removed not in list");
 
 }
 

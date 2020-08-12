@@ -23,13 +23,14 @@
 
  */
 
-#ifndef ENGINE_FILE_INCLUDED
-#define ENGINE_FILE_INCLUDED
+#ifndef LIBENGINE_H
+#define LIBENGINE_H
 
 #include "libcommon.h"
 #include "libqueue.h"
 #include "libaflpp.h"
 #include "libfeedback.h"
+#include "afl-returns.h"
 
 #define MAX_FEEDBACKS 10
 
@@ -41,14 +42,14 @@ struct engine_functions {
   u64 (*get_start_time)(engine_t *);
 
   void (*set_fuzz_one)(engine_t *, fuzz_one_t *);
-  void (*increase_execs)(engine_t *);
   int (*add_feedback)(engine_t *, feedback_t *);
 
-  void (*execute)(engine_t *, raw_input_t *);
-  void (*load_testcases_from_dir)(engine_t *, u8 *);
+  u8 (*execute)(engine_t *, raw_input_t *);
+  afl_ret_t (*load_testcases_from_dir)(
+      engine_t *, char *, raw_input_t *(*custom_input_init)(u8 *buf));
   void (*load_zero_testcase)(size_t);
 
-  void (*loop)();  // Not sure about this functions usa-case. Was in FFF though.
+  afl_ret_t (*loop)(engine_t *);
 
 };
 
@@ -76,37 +77,42 @@ u64             get_execs_defualt(engine_t *);
 u64             get_start_time_default(engine_t *);
 
 void set_fuzz_one_default(engine_t *, fuzz_one_t *);
-void increase_execs_default(engine_t *);
 int  add_feedback_default(engine_t *, feedback_t *);
 
-void execute_default(engine_t *, raw_input_t *);
-void load_testcases_from_dir_default(engine_t *, u8 *);
+u8        execute_default(engine_t *, raw_input_t *);
+afl_ret_t load_testcases_from_dir_default(
+    engine_t *, char *, raw_input_t *(*custom_input_init)(u8 *buf));
 void load_zero_testcase_default(size_t);
 
-void loop_default();  // Not sure about this functions use-case. Was in FFF
-                      // though.
+afl_ret_t loop_default(engine_t *);  // Not sure about this functions use-case.
+                                     // Was in FFF though.
 
-void _afl_engine_init_(engine_t *);
-void afl_engine_deinit();
+afl_ret_t afl_engine_init(engine_t *, executor_t *, fuzz_one_t *,
+                          global_queue_t *);
+void      afl_engine_deinit(engine_t *);
 
-#define AFL_ENGINE_DEINIT(engine) afl_engine_deinit(engine);
+static inline engine_t *afl_engine_create(executor_t *    executor,
+                                          fuzz_one_t *    fuzz_one,
+                                          global_queue_t *global_queue) {
 
-static inline engine_t *afl_engine_init(engine_t *engine) {
+  engine_t *engine = calloc(1, sizeof(engine_t));
+  if (!engine) return NULL;
+  if (afl_engine_init(engine, executor, fuzz_one, global_queue) !=
+      AFL_RET_SUCCESS) {
 
-  engine_t *new_engine = engine;
-
-  if (engine)
-    _afl_engine_init_(engine);
-
-  else {
-
-    new_engine = calloc(1, sizeof(engine_t));
-    if (!new_engine) return NULL;
-    _afl_engine_init_(new_engine);
+    free(engine);
+    return NULL;
 
   }
 
-  return new_engine;
+  return engine;
+
+}
+
+static inline void afl_engine_delete(engine_t *engine) {
+
+  afl_engine_deinit(engine);
+  free(engine);
 
 }
 

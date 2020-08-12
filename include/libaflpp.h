@@ -24,15 +24,16 @@
 
  */
 
-#ifndef AFL_FILE_INCLUDED
-#define AFL_FILE_INCLUDED
+#ifndef LIBAFLPP_H
+#define LIBAFLPP_H
 
 #include "libcommon.h"
 #include "libobservationchannel.h"
 #include "libinput.h"
 #include "list.h"
+#include "libos.h"
 #include <types.h>
-#include "afl-errors.h"
+#include "afl-returns.h"
 
 #define MAX_OBS_CHANNELS 5
 
@@ -45,15 +46,16 @@ it. See the example forksever executor that we have in examples/
 
 struct executor_functions {
 
-  u8 (*init_cb)(executor_t *, void *);  // can be NULL
-  u8 (*destroy_cb)(executor_t *);       // can be NULL
+  afl_ret_t (*init_cb)(executor_t *);  // can be NULL
+  u8 (*destroy_cb)(executor_t *);      // can be NULL
 
-  u8 (*run_target_cb)(executor_t *, u32,
-                      void *);  // Similar to afl_fsrv_run_target we have in afl
-  u8 (*place_inputs_cb)(
-      executor_t *, raw_input_t *);  // similar to the write_to_testcase function in afl.
+  exit_type_t (*run_target_cb)(
+      executor_t *);  // Similar to afl_fsrv_run_target we have in afl
+  u8 (*place_input_cb)(
+      executor_t *,
+      raw_input_t *);  // similar to the write_to_testcase function in afl.
 
-  observation_channel_t * (*get_observation_channels)(
+  observation_channel_t *(*get_observation_channels)(
       executor_t *, size_t);  // Getter function for observation channels list
 
   u8 (*add_observation_channel)(
@@ -63,14 +65,18 @@ struct executor_functions {
   raw_input_t *(*get_current_input)(
       executor_t *);  // Getter function for the current input
 
+  void (*reset_observation_channels)(
+      executor_t *);  // Reset the observation channels
+
 };
 
 // This is like the generic vtable for the executor.
 
 struct executor {
 
-  observation_channel_t * observors[MAX_OBS_CHANNELS];  // This will be swapped for the observation channel once
-                     // its ready
+  observation_channel_t
+      *observors[MAX_OBS_CHANNELS];  // This will be swapped for the observation
+                                     // channel once its ready
 
   u32 observors_num;
 
@@ -82,29 +88,24 @@ struct executor {
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
-void   _afl_executor_init_(executor_t *);
-void   afl_executor_deinit(executor_t *);
-u8     add_observation_channel_default(executor_t *, observation_channel_t *);
-observation_channel_t * get_observation_channels_default(executor_t *, size_t);
-raw_input_t *get_current_input_default(executor_t *);
+afl_ret_t afl_executor_init(executor_t *);
+void      afl_executor_deinit(executor_t *);
+u8 add_observation_channel_default(executor_t *, observation_channel_t *);
+observation_channel_t *get_observation_channels_default(executor_t *, size_t);
+raw_input_t *          get_current_input_default(executor_t *);
+void                   reset_observation_channel_default(executor_t *);
 
-// Function used to initialize an executor, pass a NULL ptr if you want a new
-// base executor, pass the base executor if you already have inherited it and
-// allocated mem for it. Returns the initialized executor on success, and NULL
-// on error.
+// Function used to create an executor, we alloc the memory ourselves and
+// initialize the executor
 
-static inline executor_t *afl_executor_init(executor_t *executor) {
+static inline executor_t *afl_executor_create() {
 
-  executor_t *new_executor = executor;
+  executor_t *new_executor = calloc(1, sizeof(executor_t));
+  if (!new_executor) { return NULL; }
+  if (afl_executor_init(new_executor) != AFL_RET_SUCCESS) {
 
-  if (executor)
-    _afl_executor_init_(executor);
-
-  else {
-
-    new_executor = calloc(1, sizeof(executor_t));
-    if (!new_executor) return NULL;
-    _afl_executor_init_(new_executor);
+    free(new_executor);
+    return NULL;
 
   }
 
@@ -112,20 +113,12 @@ static inline executor_t *afl_executor_init(executor_t *executor) {
 
 }
 
-#define AFL_EXECUTOR_DEINIT(executor) afl_executor_deinit(executor);
+static inline void afl_executor_delete(executor_t *executor) {
 
-/*
-The generic interface for the feedback for the observation channel, this channel
-is queue specifc.
-*/
+  afl_executor_deinit(executor);
+  free(executor);
 
-u8 fuzz_start(executor_t *);
-
-enum {
-
-  AFL_PLACE_INPUT_MISSING = 1  // 1
-
-};
+}
 
 #endif
 

@@ -26,52 +26,72 @@
 
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
-#include "libinput.h"
-#include "afl-errors.h"
 
-void _afl_input_init_(raw_input_t *input) {
+#include "libinput.h"
+#include "afl-returns.h"
+
+afl_ret_t afl_input_init(raw_input_t *input) {
 
   input->funcs.clear = raw_inp_clear_default;
   input->funcs.copy = raw_inp_copy_default;
   input->funcs.deserialize = raw_inp_deserialize_default;
-  input->funcs.empty = raw_inp_empty_default;
   input->funcs.get_bytes = raw_inp_get_bytes_default;
   input->funcs.load_from_file = raw_inp_load_from_file_default;
   input->funcs.restore = raw_inp_restore_default;
   input->funcs.save_to_file = raw_inp_save_to_file_default;
   input->funcs.serialize = raw_inp_serialize_default;
 
+  return AFL_RET_SUCCESS;
+
+}
+
+void afl_input_deinit(raw_input_t *input) {
+
+  if (input->bytes) { free(input->bytes); }
+
+  input->bytes = NULL;
+  input->len = 0;
+
+  return;
+
 }
 
 // default implemenatations for the vtable functions for the raw_input type
 
-u8 raw_inp_clear_default(raw_input_t *input) {
+void raw_inp_clear_default(raw_input_t *input) {
 
-  void *s = memset(input->bytes, 0x0, input->len);
+  memset(input->bytes, 0x0, input->len);
 
-  if (s != (void *)input) return INPUT_CLEAR_FAIL;
-
-  return ALL_OK;
+  return;
 
 }
 
 raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
 
-  raw_input_t *copy_inp = afl_input_init(NULL);
-  copy_inp->bytes = ck_alloc(orig_inp->len);
+  raw_input_t *copy_inp = afl_input_create();
+  if (!copy_inp) { return NULL; }
+  copy_inp->bytes = calloc(orig_inp->len, sizeof(u8));
+  if (!copy_inp->bytes) {
+
+    afl_input_delete(copy_inp);
+    return NULL;
+
+  }
+
   memcpy(copy_inp->bytes, orig_inp->bytes, orig_inp->len);
   return copy_inp;
 
 }
 
-u8 raw_inp_deserialize_default(raw_input_t *input, u8 *bytes, size_t len) {
+void raw_inp_deserialize_default(raw_input_t *input, u8 *bytes, size_t len) {
 
-  ck_free(input->bytes);
+  if (input->bytes) free(input->bytes);
   input->bytes = bytes;
   input->len = len;
 
-  return ALL_OK;
+  return;
 
 }
 
@@ -81,66 +101,56 @@ u8 *raw_inp_get_bytes_default(raw_input_t *input) {
 
 }
 
-u8 raw_inp_load_from_file_default(raw_input_t *input, u8 *fname) {
-
+afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, char *fname) {
 
   struct stat st;
-  s32         fd = open((char *)fname, O_RDONLY);
+  s32         fd = open(fname, O_RDONLY);
 
-  if (fd < 0) { return AFL_ERROR_FILE_OPEN; }
+  if (fd < 0) { return AFL_RET_FILE_OPEN_ERROR; }
 
-  if (fstat(fd, &st) || !st.st_size) {
-
-    return AFL_ERROR_FILE_SIZE;
-
-  }
+  if (fstat(fd, &st) || !st.st_size) { return AFL_RET_FILE_SIZE; }
 
   input->len = st.st_size;
   input->bytes = malloc(input->len);
+  if (!input->bytes) { return AFL_RET_ALLOC; }
 
-  int ret = read(fd, input->bytes, input->len);
+  ssize_t ret = read(fd, input->bytes, input->len);
+  close(fd);
 
-  if (ret != input->len)  { return AFL_ERROR_SHORT_READ; }
+  if (ret < 0 || (size_t)ret != input->len) { return AFL_RET_SHORT_READ; }
+
+  return AFL_RET_SUCCESS;
+
+}
+
+afl_ret_t raw_inp_save_to_file_default(raw_input_t *input, char *fname) {
+
+  s32 fd = open(fname, O_RDWR | O_CREAT | O_EXCL, 0600);
+
+  if (fd < 0) { return AFL_RET_FILE_OPEN_ERROR; }
+
+  ssize_t write_len = write(fd, input->bytes, input->len);
+
+  if (write_len < (ssize_t)input->len) { return AFL_RET_SHORT_WRITE; }
 
   close(fd);
 
-  return 0;
+  return AFL_RET_SUCCESS;
 
 }
 
-u8 raw_inp_save_to_file_default(raw_input_t *input, u8 *fname) {
+void raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
 
-  FILE *f = fopen((char *)fname, "w+");
-
-  if (!f) return FILE_OPEN_ERROR;
-
-  fwrite(input->bytes, 1, input->len, f);
-
-  fclose(f);
-  return ALL_OK;
-
-}
-
-u8 raw_inp_restore_default(raw_input_t *input, raw_input_t *new_inp) {
-
-  ck_free(input->bytes);
   input->bytes = new_inp->bytes;
 
-  return ALL_OK;
-
-}
-
-raw_input_t *raw_inp_empty_default(raw_input_t *input) {
-
-  /* TODO: Implementation */
-  return NULL;
+  return;
 
 }
 
 u8 *raw_inp_serialize_default(raw_input_t *input) {
 
-  /* TODO: Implementation */
-  return NULL;
+  // Very stripped down implementation, actually depends on user alot.
+  return input->bytes;
 
 }
 

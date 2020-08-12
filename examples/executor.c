@@ -1,20 +1,13 @@
 #define AFL_MAIN
 
-#include "config.h"
-#include "types.h"
-#include "debug.h"
-#include "alloc-inl.h"
-#include "libaflpp.h"
-#include "libobservationchannel.h"
-#include "libos.h"
-#include "libqueue.h"
-
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
 #include <dirent.h>
+#include <time.h>
 #include <fcntl.h>
+#include <math.h>
 
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -24,21 +17,35 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
-#define MAP_SIZE 65536
-#define MAX_PATH_LEN 100
+#include "config.h"
+#include "types.h"
+#include "debug.h"
+#include "alloc-inl.h"
+#include "libaflpp.h"
+#include "libos.h"
+#include "libfeedback.h"
+#include "libengine.h"
+#include "libmutator.h"
+#include "libfuzzone.h"
+#include "libstage.h"
 
+#define SUPER_INTERESTING 0.5
+#define VERY_INTERESTING 0.4
+#define INTERESTING 0.3
+
+/* We are defining our own executor, a forkserver */
 typedef struct afl_forkserver {
 
-  executor_t super;                      /* executer struct to inherit from */
+  executor_t base;                       /* executer struct to inherit from */
 
-  u8 *trace_bits;
-      /* SHM with instrumentation bitmap  */
-  u8 use_stdin;                         /* use stdin for sending data       */
+  u8 *trace_bits;                       /* SHM with instrumentation bitmap  */
+  u8  use_stdin;                        /* use stdin for sending data       */
 
   s32 fsrv_pid,                         /* PID of the fork server           */
       child_pid,                        /* PID of the fuzzed program        */
       child_status,                     /* waitpid result for the child     */
-      out_dir_fd;                       /* FD of the lock file              */
+      out_dir_fd,                       /* FD of the lock file              */
+      dev_null_fd;
 
   s32 out_fd,                           /* Persistent fd for fsrv->out_file */
 
@@ -48,10 +55,12 @@ typedef struct afl_forkserver {
   u32 exec_tmout;                       /* Configurable exec timeout (ms)   */
   u32 map_size;                         /* map size used by the target      */
 
-  u64 total_execs;                      /* How often run_target was called  */
+  u64 total_execs;                 /* How often fsrv_run_target was called  */
 
-  u8 *out_file,                         /* File to fuzz, if any             */
+  char *out_file,                       /* File to fuzz, if any             */
       *target_path;                     /* Path of the target               */
+
+  char **extra_args;
 
   u32 last_run_timed_out;               /* Traced process timed out?        */
 
@@ -59,17 +68,61 @@ typedef struct afl_forkserver {
 
 } afl_forkserver_t;
 
-static u8 *file_data_read;  // When we read an input file, it goes here
-static u32 in_len;          // File Input length
+/* We implement a simple map maximising feedback here. */
+typedef struct maximize_map_feedback {
 
-static u32 read_file(u8 *in_file);
+  feedback_t base;
+
+  u8 *   virgin_bits;
+  size_t size;
+
+} maximize_map_feedback_t;
+
+/* Helper functions here */
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 
-static afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file);
-static exit_type_t       run_target(afl_forkserver_t *fsrv, u32 timeout);
-static u8 place_inputs(afl_forkserver_t *fsrv,raw_input_t * input);
-static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args);
+/* Functions related to the forkserver defined above */
+static afl_forkserver_t *fsrv_init(char *target_path, char *out_file);
+static exit_type_t       fsrv_run_target(executor_t *fsrv_executor);
+static u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
+static afl_ret_t fsrv_start(executor_t *fsrv_executor);
 
+/* Functions related to the feedback defined above */
+static float fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
+static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
+                                                  size_t            size);
+
+/* static const u8 count_class_binary[256] = {
+
+    [0] = 0,
+    [1] = 1,
+    [2] = 2,
+    [3] = 4,
+    [4 ... 7] = 8,
+    [8 ... 15] = 16,
+    [16 ... 31] = 32,
+    [32 ... 127] = 64,
+    [128 ... 255] = 128
+
+}; */
+
+/* Get unix time in microseconds */
+#if !defined(__linux__)
+static u64 get_cur_time_us(void) {
+
+  struct timeval  tv;
+  struct timezone tz;
+
+  gettimeofday(&tv, &tz);
+
+  return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
+
+}
+
+#endif
+
+/* This function uses select calls to wait on a child process for given
+ * timeout_ms milliseconds and kills it if it doesn't terminate by that time */
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
 
   fd_set readfds;
@@ -135,48 +188,23 @@ restart_select:
 
 }
 
-/* This function simply reads data from a file and stores it in file_data_read,
- * length in in_len*/
-static u32 read_file(u8 *in_file) {
+/* Function to simple initialize the forkserver */
+afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
 
-  struct stat st;
-  s32         fd = open(in_file, O_RDONLY);
+  afl_forkserver_t *fsrv = calloc(1, sizeof(afl_forkserver_t));
+  if (!fsrv) { return NULL; }
 
-  if (fd < 0) { WARNF("Unable to open '%s'", in_file); }
+  if (afl_executor_init(&(fsrv->base))) {
 
-  if (fstat(fd, &st) || !st.st_size) {
-
-    WARNF("Zero-sized input file '%s'.", in_file);
-
-  }
-
-  in_len = st.st_size;
-  file_data_read = ck_alloc_nozero(in_len);
-
-  ck_read(fd, file_data_read, in_len, in_file);
-
-  close(fd);
-
-  return in_len;
-
-}
-
-afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file) {
-
-  afl_forkserver_t *fsrv = ck_alloc(
-      sizeof(afl_forkserver_t));  // We use ck_alloc here since it's an example
-                                  // and FATAL won't be an issue
-
-  if (!afl_executor_init(&(fsrv->super))) {
-
-    FATAL("SOMETHING WRONG WHILE INITIALIZING THE BASE EXECUTOR");
+    free(fsrv);
+    return NULL;
 
   }
 
   /* defining standard functions for the forkserver vtable */
-  fsrv->super.funcs.init_cb = fsrv_start;
-  fsrv->super.funcs.place_inputs_cb = place_inputs;
-  fsrv->super.funcs.run_target_cb = run_target;
+  fsrv->base.funcs.init_cb = fsrv_start;
+  fsrv->base.funcs.place_input_cb = fsrv_place_input;
+  fsrv->base.funcs.run_target_cb = fsrv_run_target;
 
   fsrv->target_path = target_path;
   fsrv->out_file = out_file;
@@ -188,11 +216,28 @@ afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file) {
 
   } else {
 
-    fsrv->out_fd = open(fsrv->out_file, O_WRONLY | O_CREAT, 0600);
+    fsrv->out_fd = open((char *)fsrv->out_file, O_WRONLY | O_CREAT, 0600);
+    if (!fsrv->out_fd) {
+
+      afl_executor_deinit(&fsrv->base);
+      free(fsrv);
+      return NULL;
+
+    }
 
   }
 
   fsrv->out_dir_fd = -1;
+
+  fsrv->dev_null_fd = open("/dev/null", O_WRONLY);
+  if (!fsrv->dev_null_fd) {
+
+    close(fsrv->out_fd);
+    afl_executor_deinit(&fsrv->base);
+    free(fsrv);
+    return NULL;
+
+  }
 
   /* Settings */
   fsrv->use_stdin = 1;
@@ -205,7 +250,10 @@ afl_forkserver_t *fsrv_init(u8 *target_path, u8 *out_file) {
 
 }
 
-static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
+/* This function starts up the forkserver for further process requests */
+static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
+
+  afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
   int st_pipe[2], ctl_pipe[2];
   s32 status;
@@ -213,12 +261,12 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
 
   ACTF("Spinning up the fork server...");
 
-  if (pipe(st_pipe) || pipe(ctl_pipe)) { PFATAL("pipe() failed"); }
+  if (pipe(st_pipe) || pipe(ctl_pipe)) { return AFL_RET_ERRNO; }
 
   fsrv->last_run_timed_out = 0;
   fsrv->fsrv_pid = fork();
 
-  if (fsrv->fsrv_pid < 0) { PFATAL("fork() failed"); }
+  if (fsrv->fsrv_pid < 0) { return AFL_RET_ERRNO; }
 
   if (!fsrv->fsrv_pid) {
 
@@ -226,10 +274,14 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
 
     setsid();
 
-    fsrv->out_fd = open(fsrv->out_file, O_RDONLY | O_CREAT, 0600);
+    fsrv->out_fd = open((char *)fsrv->out_file, O_RDONLY | O_CREAT, 0600);
+    if (!fsrv->out_fd) { PFATAL("Could not open outfile in child"); }
 
     dup2(fsrv->out_fd, 0);
     close(fsrv->out_fd);
+
+    dup2(fsrv->dev_null_fd, 1);
+    dup2(fsrv->dev_null_fd, 2);
 
     /* Set up control and status pipes, close the unneeded original fds. */
 
@@ -241,7 +293,7 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
     close(st_pipe[0]);
     close(st_pipe[1]);
 
-    execv(fsrv->target_path, extra_args);
+    execv(fsrv->target_path, fsrv->extra_args);
 
     /* Use a distinctive bitmap signature to tell the parent about execv()
        falling through. */
@@ -299,26 +351,36 @@ static u8 fsrv_start(afl_forkserver_t *fsrv, char **extra_args) {
   if (rlen == 4) {
 
     OKF("All right - fork server is up.");
-
-    return 0;
+    return AFL_RET_SUCCESS;
 
   }
 
   if (fsrv->trace_bits == (u8 *)0xdeadbeef) {
 
-    FATAL("Unable to execute target application ('%s')", extra_args[0]);
+    WARNF("Unable to execute target application ('%s')", fsrv->extra_args[0]);
+    return AFL_RET_EXEC_ERROR;
 
   }
 
-  FATAL("Fork server handshake failed");
+  WARNF("Fork server handshake failed");
+  return AFL_RET_BROKEN_TARGET;
 
-};
+}
 
-u8 place_inputs(afl_forkserver_t *fsrv, raw_input_t * input) {
+/* Places input in the executor for the target */
+u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input) {
 
-  int write_len = write(fsrv->out_fd, input->bytes, input->len);
+  afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
-  if (write_len != input->len) { FATAL("Short Write"); }
+  ssize_t write_len = write(fsrv->out_fd, input->bytes, input->len);
+
+  if (write_len < 0 || (size_t)write_len != input->len) {
+
+    FATAL("Short Write");
+
+  }
+
+  fsrv->base.current_input = input;
 
   return write_len;
 
@@ -326,8 +388,9 @@ u8 place_inputs(afl_forkserver_t *fsrv, raw_input_t * input) {
 
 /* Execute target application, monitoring for timeouts. Return status
    information. The called program will update afl->fsrv->trace_bits. */
+static exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
 
-static exit_type_t run_target(afl_forkserver_t *fsrv, u32 timeout) {
+  afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
   s32 res;
   u32 exec_ms;
@@ -360,12 +423,10 @@ static exit_type_t run_target(afl_forkserver_t *fsrv, u32 timeout) {
 
   if (fsrv->child_pid <= 0) { FATAL("Fork server is misbehaving (OOM?)"); }
 
-  exec_ms = read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, timeout);
+  exec_ms =
+      read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, fsrv->exec_tmout);
 
-  SAYF("Child pid %d Exec ms %d Timeout %d\n", fsrv->child_pid, exec_ms,
-       timeout);
-
-  if (exec_ms > timeout) {
+  if (exec_ms > fsrv->exec_tmout) {
 
     /* If there was no response from forkserver after timeout seconds,
     we kill the child. The forkserver should inform us afterwards */
@@ -408,92 +469,175 @@ static exit_type_t run_target(afl_forkserver_t *fsrv, u32 timeout) {
 
 }
 
+/* Init function for the feedback */
+static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
+                                                  size_t            size) {
+
+  maximize_map_feedback_t *feedback =
+      calloc(1, sizeof(maximize_map_feedback_t));
+  if (!feedback) { return NULL; }
+  afl_feedback_init(&feedback->base, queue);
+
+  feedback->base.funcs.is_interesting = fbck_is_interesting;
+
+  feedback->virgin_bits = calloc(1, size);
+  if (!feedback->virgin_bits) {
+
+    free(feedback);
+    return NULL;
+
+  }
+
+  feedback->size = size;
+
+  return feedback;
+
+}
+
+/* We'll implement a simple is_interesting function for the feedback, which
+ * checks if new tuples have been hit in the map */
+static float fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
+
+  maximize_map_feedback_t *map_feedback = (maximize_map_feedback_t *)feedback;
+
+  /* First get the observation channel */
+
+  map_based_channel_t *obs_channel =
+      (map_based_channel_t *)fsrv->funcs.get_observation_channels(fsrv, 0);
+  bool found = false;
+
+  u8 *   trace_bits = obs_channel->shared_map.map;
+  size_t map_size = obs_channel->shared_map.map_size;
+
+  for (size_t i = 0; i < map_size; ++i) {
+
+    if (trace_bits[i] > map_feedback->virgin_bits[i]) { found = true; }
+
+  }
+
+  if (found && feedback->queue) {
+
+    raw_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
+
+    queue_entry_t *new_entry = afl_queue_entry_create(input);
+    // An incompatible ptr type warning has been suppresed here. We pass the
+    // feedback queue to the add_to_queue rather than the base_queue
+    feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
+
+    // Put the entry in the feedback queue and return 0.0 so that it isn't added
+    // to the global queue too
+    return 0.0;
+
+  }
+
+  return found ? 1.0 : 0.0;
+
+}
+
+/* Main entry point function */
 int main(int argc, char **argv) {
 
   if (argc < 3) {
 
     FATAL(
-        "Usage: ./executor /target/path /input/directory "
-        "/out/file/path ");
+        "Usage: ./executor /input/directory "
+        "/out/file/path target [target_args]");
 
   }
 
-  DIR *          dir_in;
-  struct dirent *dir_ent;
-  u8 *           in_dir = argv[2];
-  u8             infile[MAX_PATH_LEN] = {0};
+  char *in_dir = argv[1];
 
-  afl_forkserver_t *fsrv = fsrv_init(argv[1], argv[3]);
+  /* Let's now create a simple map-based observation channel */
+  map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE);
 
-  /* Let's now create a simple map-based observation channel and add it to the
-   * executor */
+  /* We initialize the forkserver we want to use here. */
+  afl_forkserver_t *fsrv = fsrv_init(argv[3], argv[2]);
+  if (!fsrv) { FATAL("Could not initialize forkserver!"); }
+  fsrv->exec_tmout = 10000;
+  fsrv->extra_args = &argv[3];
 
-  map_based_channel_t *trace_bits_channel = afl_map_channel_init(MAP_SIZE);
-  fsrv->super.funcs.add_observation_channel(fsrv, trace_bits_channel);
+  fsrv->base.funcs.add_observation_channel(&fsrv->base,
+                                           &trace_bits_channel->base);
 
-  /* for the fsrv to work, we also need a set __AFL_SHM_FD env variable */
-  u8 *shm_str = alloc_printf("%d", trace_bits_channel->shared_map->shm_id);
-  setenv("__AFL_SHM_ID", shm_str, 1);
+  char shm_str[256];
+  snprintf(shm_str, sizeof(shm_str), "%d",
+           trace_bits_channel->shared_map.shm_id);
+  setenv("__AFL_SHM_ID", (char *)shm_str, 1);
+  fsrv->trace_bits = trace_bits_channel->shared_map.map;
 
-  fsrv->trace_bits = trace_bits_channel->shared_map->map;
+  /* We create a simple feedback queue here*/
+  feedback_queue_t *feedback_queue =
+      afl_feedback_queue_create(NULL, (char *)"fbck queue");
+  if (!feedback_queue) { FATAL("Error initializing feedback queue"); }
 
-  fsrv->super.funcs.init_cb(fsrv, argv);
+  /* Global queue creation */
+  global_queue_t *global_queue = afl_global_queue_create(NULL);
+  if (!global_queue) { FATAL("Error initializing global queue"); }
+  global_queue->extra_funcs.add_feedback_queue(global_queue, feedback_queue);
 
-  /* Let's create a simple feedback queue now which we'll use to get feedback from the obs channel given*/
+  /* Feedback initialization */
+  maximize_map_feedback_t *feedback = map_feedback_init(
+      feedback_queue, trace_bits_channel->shared_map.map_size);
+  if (!feedback) { FATAL("Error initializing feedback"); }
+  feedback_queue->feedback = &feedback->base;
 
-  feedback_queue_t * queue = afl_feedback_queue_init(NULL, NULL, NULL); // We are initializing a new queue for which feedback will be added later.
+  /* Let's build an engine now */
+  engine_t *engine = afl_engine_create((executor_t *)fsrv, NULL, global_queue);
+  if (!engine) { FATAL("Error initializing Engine"); }
+  engine->funcs.add_feedback(engine, (feedback_t *)feedback);
 
-  if (!(dir_in = opendir(in_dir))) {
+  fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
+  if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
-    PFATAL("cannot open directory %s", in_dir);
+  // We also add the fuzzone to the engine here.
+  engine->fuzz_one = fuzz_one;
 
-  }
+  scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_create(NULL, 8);
+  if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
-  raw_input_t * input;
-  fsrv->super.current_input = input;
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_byte_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          flip_2_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          flip_4_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          delete_bytes_mutation);
 
-  queue_entry_t * queue_entry;
+  fuzzing_stage_t *stage = afl_fuzz_stage_create(engine);
+  if (!stage) { FATAL("Error creating fuzzing stage"); }
+  stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
 
-  while ((dir_ent = readdir(dir_in))) {
+  /* Now we can simply load the testcases from the directory given */
+  afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, in_dir, NULL);
+  if (ret != AFL_RET_SUCCESS) {
 
-    if (dir_ent->d_name[0] == '.') {
-
-      continue;  // skip anything that starts with '.'
-
-    }
-
-    input = afl_input_init(NULL);
-
-    queue_entry = afl_queue_entry_init(NULL, input);
-
-    snprintf(infile, sizeof(infile), "%s/%s", in_dir, dir_ent->d_name);
-
-    if (input->funcs.load_from_file(input, infile) == AFL_ALL_OK ) {
-
-      queue->super.funcs.add_to_queue(queue, queue_entry);
-
-    }
-
-  }
-
-  /* Now that the queue is ready, we take each entry from the queue and send it to the target. */
-
-  queue_entry_t * current_entry = queue->super.funcs.get_queue_base(queue);
-
-  while(current_entry) {
-
-    fsrv->super.funcs.place_inputs_cb(fsrv, current_entry->input);
-
-    fsrv->super.funcs.run_target_cb(fsrv, 1000, NULL);
-
-    current_entry = current_entry->next;
+    PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret));
 
   }
 
   OKF("Processed %llu input files.", fsrv->total_execs);
 
-  closedir(dir_in);
+  engine->funcs.loop(engine);
 
+  SAYF(
+      "Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n",
+      engine->executions);
+
+  /* Let's free everything now. Note that if you've extended any structure,
+   * which now contains pointers to any dynamically allocated region, you have
+   * to free them yourselves, but the extended structure itself can be de
+   * initialized using the deleted functions provided */
+
+  afl_executor_delete(&fsrv->base);
+  afl_map_channel_delete(trace_bits_channel);
+  afl_scheduled_mutator_delete(mutators_havoc);
+  afl_fuzz_stage_delete(stage);
+  afl_fuzz_one_delete(fuzz_one);
+  free(feedback->virgin_bits);
+  afl_feedback_delete(&feedback->base);
+  afl_feedback_queue_delete(feedback_queue);
+  afl_global_queue_delete(global_queue);
+  afl_engine_delete(engine);
   return 0;
 
 }

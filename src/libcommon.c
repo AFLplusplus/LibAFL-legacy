@@ -24,9 +24,9 @@
 
  */
 
-#include "libcommon.h"
 #include <sys/ipc.h>
 #include <sys/shm.h>
+#include "libcommon.h"
 
 void afl_sharedmem_deinit(afl_sharedmem_t *shm) {
 
@@ -74,43 +74,48 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
   /* create the shared memory segment as if it was a file */
   shm->g_shm_fd =
       shm_open(shm->g_shm_file_path, O_CREAT | O_RDWR | O_EXCL, 0600);
-  if (shm->g_shm_fd == -1) { PFATAL("shm_open() failed"); }
+  if (shm->g_shm_fd == -1) { return NULL; }
 
   /* configure the size of the shared memory segment */
   if (ftruncate(shm->g_shm_fd, map_size)) {
 
-    PFATAL("setup_shm(): ftruncate() failed");
+    clos(shm->g_shm_fd);
+    shm_unlink(shm->g_shm_file_path);
+    return NULL;
 
   }
 
   /* map the shared memory segment to the address space of the process */
   shm->map =
       mmap(0, map_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm->g_shm_fd, 0);
-  if (shm->map == MAP_FAILED) {
+  if (shm->map == MAP_FAILED || shm->map == -1 || !shm->map) {
 
     close(shm->g_shm_fd);
+    shm_unlink(shm->g_shm_file_path);
     shm->g_shm_fd = -1;
-    PFATAL("mmap() failed");
+    return NULL;
 
   }
 
-  if (shm->map == -1 || !shm->map) PFATAL("mmap() failed");
-
 #else
-  u8 *shm_str;
+  char shm_str[256];
 
   shm->shm_id = shmget(IPC_PRIVATE, map_size, IPC_CREAT | IPC_EXCL | 0600);
 
-  if (shm->shm_id < 0) { PFATAL("shmget() failed"); }
+  if (shm->shm_id < 0) { return NULL; }
 
-  shm_str = alloc_printf("%d", shm->shm_id);
+  snprintf(shm_str, sizeof(shm_str), "%d", shm->shm_id);
   setenv(SHM_ENV_VAR, (char *)shm_str, 1);
-
-  ck_free(shm_str);
 
   shm->map = shmat(shm->shm_id, NULL, 0);
 
-  if (shm->map == (void *)-1 || !shm->map) { PFATAL("shmat() failed"); }
+  if (shm->map == (void *)-1 || !shm->map) {
+
+    shmctl(shm->shm_id, IPC_RMID, NULL);
+    shm->shm_id = -1;
+    return NULL;
+
+  }
 
 #endif
 
@@ -120,41 +125,44 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
 
 /* Few helper functions */
 
+// Return random number below limit, if limit <= 0, returns -1
 int rand_below(size_t limit) {
 
-  return rand()%limit;
+  return (limit > 0) ? (int)(rand() % limit) : -1;
 
 }
 
-void * insert_substring(void * buf, size_t len, void * token, size_t token_len, size_t offset) {
+void *insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
+                       size_t offset) {
 
-  void * new_buf = maybe_grow(&buf, &len, len + token_len);
+  u8 *new_buf = maybe_grow(&buf, &len, len + token_len);
 
   memcpy(new_buf, buf, offset);
 
   memcpy(new_buf + offset, token, token_len);
 
-  memcpy(new_buf + offset + token_len, buf + offset + token_len, len - offset);
+  memcpy(new_buf + offset + token_len, buf + offset, len - offset);
 
   return new_buf;
 
 }
 
-void * insert_bytes(void * buf, size_t len, u8 byte, size_t insert_len, size_t offset) {
+void *insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len,
+                   size_t offset) {
 
-  void * new_buf = maybe_grow(&buf, &len, len + insert_len);
+  u8 *new_buf = maybe_grow(&buf, &len, len + insert_len);
 
   memcpy(new_buf, buf, offset);
 
   memset(new_buf + offset, byte, insert_len);
 
-  memcpy(new_buf + offset + insert_len, buf + offset + insert_len, len - offset);
+  memcpy(new_buf + offset + insert_len, buf + offset, len - offset);
 
   return new_buf;
 
 }
 
-size_t erase_bytes(void * buf, size_t len, size_t offset, size_t remove_len) {
+size_t erase_bytes(u8 *buf, size_t len, size_t offset, size_t remove_len) {
 
   memcpy(buf + offset, buf + offset + remove_len, len - offset - remove_len);
   memset(buf + len - remove_len, 0x0, remove_len);

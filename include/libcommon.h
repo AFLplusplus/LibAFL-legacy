@@ -24,8 +24,8 @@
 
  */
 
-#ifndef COMMON_FILE_INCLUDED
-#define COMMON_FILE_INCLUDED
+#ifndef LIBCOMMON_H
+#define LIBCOMMON_H
 
 #include "types.h"
 #include "alloc-inl.h"
@@ -46,10 +46,10 @@ typedef struct afl_sharedmem {
 
 } afl_sharedmem_t;
 
-// Functions to create Shared memory region, for feedback and opening inputs and
-// stuff.
-u8 * afl_sharedmem_init(afl_sharedmem_t *, size_t);
-void afl_sharedmem_deinit(afl_sharedmem_t *);
+// Functions to create Shared memory region, for observation channels and
+// opening inputs and stuff.
+u8 * afl_sharedmem_init(afl_sharedmem_t *sharedmem, size_t map_size);
+void afl_sharedmem_deinit(afl_sharedmem_t *sharedmem);
 
 // We're declaring a few structs here which have an interdependency between them
 
@@ -61,42 +61,19 @@ typedef struct stage stage_t;
 
 typedef struct executor executor_t;
 
-// enum to mark common-error (and status) types across the library
-enum common_status_flags { ALL_OK = 0, FILE_OPEN_ERROR = 1 };
+typedef struct mutator mutator_t;
 
-#define IS_SAME_TYPE(x, type) _Generic(x, (type *) : true, default : false)
-
-#define IS_DERIVED_TYPE(x, type) \
-  _Generic(x->super, (type *) : true, default : false)
-
-// Calling the functions in a "vtable" for a struct like this.  We pss a pointer
-// to the "object here"
-/* What can we do in case of an incompatible type here? since, this is a macro,
- * not sure about this.  */
-#define GENERIC_VTABLE_CALL(struct_instance, struct_type, function_name, ...) \
-  do {                                                                        \
-                                                                              \
-    if (IS_SAME_TYPE(x, struct_type *)) {                                     \
-                                                                              \
-      struct_instance->functions->function_name(struct_instance,              \
-                                                ##__VA_ARGS__);               \
-      return 0;                                                               \
-                                                                              \
-    } else if (IS_DERIVED_TYPE(struct_instance, struct_type)) {               \
-                                                                              \
-      (struct_type *)parent_class = &(struct_instance->super);                \
-      parent_class->functions->function_name(parent_class, ##__VA_ARGS__);    \
-                                                                              \
-    } else {                                                                  \
-                                                                              \
-    }                                                                         \
-                                                                              \
-  } while (0)
+void *insert_substring(
+    u8 *buf, size_t len, void *token, size_t token_len,
+    size_t offset);  // Returns new buf containing the substring token
+int    rand_below(size_t limit);
+size_t erase_bytes(
+    u8 *buf, size_t len, size_t offset,
+    size_t remove_len);  // Erases remove_len number of bytes from offset
+void *insert_bytes(u8 *buf, size_t len, u8 byte,
+                   size_t insert_len,  // Inserts a certain length of a byte
+                                       // value (byte) at offset in buf
+                   size_t offset);
 
 #endif
 
-
-void * insert_substring(void * buf, size_t len, void * token, size_t token_len, size_t offset);
-int rand_below(size_t limit);
-size_t erase_bytes(void * buf, size_t len, size_t offset, size_t remove_len);
-void * insert_bytes(void * buf, size_t len, u8 byte, size_t insert_len, size_t offset);

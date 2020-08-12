@@ -20,15 +20,19 @@
 
  */
 
-#ifndef STAGE_FILE_INCLUDED
-#define STAGE_FILE_INCLUDED
+#ifndef LIBSTAGE_H
+#define LIBSTAGE_H
+
+#define MAX_STAGE_MUTATORS 10
 
 #include "libinput.h"
 #include "list.h"
 
 struct stage_functions {
 
-  void (*perform)(raw_input_t *input, raw_input_t *original);
+  afl_ret_t (*perform)(stage_t *, raw_input_t *input);
+  size_t (*iterations)(stage_t *);  // A function which tells how many mutated
+                                    // inputs to generate out of a given input
 
 };
 
@@ -39,25 +43,30 @@ struct stage {
 
 };
 
-void _afl_stage_init_(stage_t *, engine_t *);
-void afl_stage_deinit(stage_t *);
+afl_ret_t perform_stage_default(stage_t *, raw_input_t *);
+size_t    iterations_stage_default(stage_t *);
+afl_ret_t afl_stage_init(stage_t *, engine_t *);
+void      afl_stage_deinit(stage_t *);
 
-static inline stage_t *afl_stage_init(stage_t *stage, engine_t *engine) {
+static inline stage_t *afl_stage_create(engine_t *engine) {
 
-  stage_t *new_stage = NULL;
+  stage_t *stage = calloc(1, sizeof(stage_t));
+  if (!stage) { return NULL; }
+  if (afl_stage_init(stage, engine) != AFL_RET_SUCCESS) {
 
-  if (stage)
-    _afl_stage_init_(stage, engine);
-
-  else {
-
-    new_stage = calloc(1, sizeof(stage_t));
-    if (!new_stage) { return NULL; }
-    _afl_stage_init_(new_stage, engine);
+    free(stage);
+    return NULL;
 
   }
 
-  return new_stage;
+  return stage;
+
+}
+
+static inline void afl_stage_delete(stage_t *stage) {
+
+  afl_stage_deinit(stage);
+  free(stage);
 
 }
 
@@ -73,24 +82,48 @@ typedef struct fuzzing_stage fuzzing_stage_t;
 struct fuzzing_stage_functions {
 
   /* Change the void pointer to a mutator * once it is ready */
-  void (*add_mutator_to_stage)(fuzzing_stage_t *, void *);
+  afl_ret_t (*add_mutator_to_stage)(fuzzing_stage_t *, mutator_t *);
 
 };
 
 struct fuzzing_stage {
 
-  stage_t super;  // Standard "inheritence" from stage
+  stage_t base;  // Standard "inheritence" from stage
 
-  list_t mutators;  // The list of mutator operators that this stage has
+  mutator_t *mutators[MAX_STAGE_MUTATORS];  // The list of mutator operators
+                                            // that this stage has
 
   struct fuzzing_stage_functions funcs;
+  size_t                         mutators_count;
 
 };
 
-void add_mutator_to_stage_default(fuzzing_stage_t *, void *);
+afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *, mutator_t *);
 
-fuzzing_stage_t *afl_fuzz_stage_init(engine_t *);
-void             afl_fuzzing_stage_deinit(fuzzing_stage_t *);
+afl_ret_t afl_fuzz_stage_init(fuzzing_stage_t *, engine_t *);
+void      afl_fuzzing_stage_deinit(fuzzing_stage_t *);
+
+static inline fuzzing_stage_t *afl_fuzz_stage_create(engine_t *engine) {
+
+  fuzzing_stage_t *stage = calloc(1, sizeof(fuzzing_stage_t));
+  if (!stage) { return NULL; }
+  if (afl_fuzz_stage_init(stage, engine) != AFL_RET_SUCCESS) {
+
+    free(stage);
+    return NULL;
+
+  }
+
+  return stage;
+
+}
+
+static inline void afl_fuzz_stage_delete(fuzzing_stage_t *fuzz_stage) {
+
+  afl_stage_deinit(&fuzz_stage->base);
+  free(fuzz_stage);
+
+}
 
 #endif
 

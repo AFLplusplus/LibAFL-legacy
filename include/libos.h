@@ -1,3 +1,6 @@
+#ifndef LIBOS_H
+#define LIBOS_H
+
 #include "libcommon.h"
 #include "libinput.h"
 
@@ -18,9 +21,9 @@ typedef enum exit_type {
 
 } exit_type_t;
 
-void dump_crash_to_file(
-    exit_type_t, raw_input_t *);  // This function dumps an input which causes a
-                                  // crash in the target to a crash file
+afl_ret_t dump_crash_to_file(
+    raw_input_t *);  // This function dumps an input which causes a
+                     // crash in the target to a crash file
 
 /* TODO: Add implementations for installing crash handlers */
 typedef void (*crash_handler_function)(exit_type_t type, void *data);
@@ -43,7 +46,7 @@ typedef struct process {
 
 } process_t;
 
-void _afl_process_init_(process_t *);
+void _afl_process_init_internal(process_t *);
 
 static inline process_t *afl_process_init(process_t *process,
                                           pid_t      handler_pid) {
@@ -52,7 +55,7 @@ static inline process_t *afl_process_init(process_t *process,
 
   if (process) {
 
-    _afl_process_init_(process);
+    _afl_process_init_internal(process);
     process->handler_process = handler_pid;
     return process;
 
@@ -60,8 +63,8 @@ static inline process_t *afl_process_init(process_t *process,
 
   else {
 
-    new_process = ck_alloc(sizeof(process_t));
-    _afl_process_init_(new_process);
+    new_process = calloc(1, sizeof(process_t));
+    _afl_process_init_internal(new_process);
     new_process->handler_process = (handler_pid);
 
   }
@@ -75,4 +78,6 @@ fork_result_t do_fork_default(process_t *);
 void          suspend_default(process_t *);
 void          resume_default(process_t *);
 exit_type_t   wait_default(process_t *, bool);
+
+#endif
 

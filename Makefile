@@ -1,12 +1,12 @@
-CC=gcc
-CFLAGS=-g -O0 -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Werror
-LDFLAGS=-shared
+CFLAGS+=-g -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Wextra -Werror -Wno-variadic-macros -fsanitize=address -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
+LDFLAGS+=-shared
 
 all:	libaflpp.so
 
 clean:
 	rm ./src/*.o || true
 	rm ./*.so || true
+	rm example-fuzzer
 
 # Compiling the common lib file
 libcommon.o: ./src/libcommon.c ./include/libcommon.h
@@ -63,8 +63,12 @@ libaflpp.o: ./src/libaflpp.c ./include/libaflpp.h ./src/libobservationchannel.o 
 libaflpp.so: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
 	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
 
+example-fuzzer: ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o
+	$(CC) ./src/libaflpp.o ./src/libengine.o ./src/libstage.o ./src/libfuzzone.o ./src/libfeedback.o ./src/libmutator.o ./src/libqueue.o ./src/libobservationchannel.o ./src/libinput.o ./src/libcommon.o ./src/libos.o ./examples/executor.c -o example-fuzzer $(CFLAGS)
+
+
+
 code-format:
 	./.custom-format.py -i src/*.c
 	./.custom-format.py -i include/*.h
 	./.custom-format.py -i examples/*.c
-	./.custom-format.py -i examples/*.h

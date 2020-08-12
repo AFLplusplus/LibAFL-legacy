@@ -25,25 +25,34 @@
  */
 
 #include "libobservationchannel.h"
+#include "afl-returns.h"
 
-void _afl_observation_channel_init_(observation_channel_t *channel) {
+afl_ret_t afl_observation_channel_init(observation_channel_t *channel) {
+
+  (void)channel;
+
+  return AFL_RET_SUCCESS;
 
 }
 
 void afl_observation_channel_deinit(observation_channel_t *channel) {
 
-  free(channel);
+  (void)channel;
 
 }
 
 void flush_default(observation_channel_t *channel) {
 
+  (void)channel;
+
   /* TODO: Implementation */
   return;
 
-};
+}
 
 void reset_default(observation_channel_t *channel) {
+
+  (void)channel;
 
   /* TODO: Implementation */
   return;
@@ -52,44 +61,48 @@ void reset_default(observation_channel_t *channel) {
 
 void post_exec(observation_channel_t *channel) {
 
+  (void)channel;
+
   /* TODO: Implementation */
   return;
 
 }
 
-map_based_channel_t *afl_map_channel_init(size_t map_size) {
+afl_ret_t afl_map_channel_init(map_based_channel_t *map_channel,
+                               size_t               map_size) {
 
-  map_based_channel_t *map_channel = ck_alloc(sizeof(map_based_channel_t));
+  afl_observation_channel_init(&(map_channel->base));
 
-  afl_observation_channel_init(&(map_channel->super));
+  if (!afl_sharedmem_init(&map_channel->shared_map, map_size)) {
 
-  map_channel->shared_map = ck_alloc(sizeof(afl_sharedmem_t));
-  afl_sharedmem_init(map_channel->shared_map, map_size);
+    return AFL_RET_ERROR_INITIALIZE;
+
+  }
 
   map_channel->extra_funcs.get_map_size = get_map_size_default;
   map_channel->extra_funcs.get_trace_bits = get_trace_bits_default;
 
-  return map_channel;
+  return AFL_RET_SUCCESS;
 
 }
 
 void afl_map_channel_deinit(map_based_channel_t *map_channel) {
 
-  afl_sharedmem_deinit(map_channel->shared_map);
+  afl_sharedmem_deinit(&map_channel->shared_map);
 
-  free(map_channel);
+  afl_observation_channel_deinit(&map_channel->base);
 
 }
 
 u8 *get_trace_bits_default(map_based_channel_t *obs_channel) {
 
-  return obs_channel->shared_map->map;
+  return obs_channel->shared_map.map;
 
 }
 
 size_t get_map_size_default(map_based_channel_t *obs_channel) {
 
-  return obs_channel->shared_map->map_size;
+  return obs_channel->shared_map.map_size;
 
 }
 

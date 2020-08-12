@@ -24,8 +24,10 @@
 
  */
 
-#ifndef QUEUE_FILE_INCLUDED
-#define QUEUE_FILE_INCLUDED
+#ifndef LIBQUEUE_H
+#define LIBQUEUE_H
+
+#define MAX_FEEDBACK_QUEUES 10
 
 #include "libinput.h"
 #include "list.h"
@@ -60,44 +62,44 @@ struct queue_entry {
 
   raw_input_t *       input;
   bool                on_disk;
-  u8 *                filename;
+  char *              filename;
   struct base_queue * queue;
   struct queue_entry *next;
   struct queue_entry *prev;
   struct queue_entry *parent;
 
   list_t children;
+  size_t children_num;  // Keeps track of the number of child entries for each
+                        // entry
 
   struct queue_entry_functions funcs;
 
 };
 
-void _afl_queue_entry_init_(queue_entry_t *, raw_input_t *);
-void afl_queue_entry_deinit(queue_entry_t *);
+afl_ret_t afl_queue_entry_init(queue_entry_t *, raw_input_t *);
+void      afl_queue_entry_deinit(queue_entry_t *);
 
-static inline queue_entry_t *afl_queue_entry_init(queue_entry_t *queue_entry, raw_input_t *input) {
+static inline queue_entry_t *afl_queue_entry_create(raw_input_t *input) {
 
-  queue_entry_t *new_queue_entry = queue_entry;
+  queue_entry_t *queue_entry = calloc(1, sizeof(queue_entry_t));
+  if (!queue_entry) { return NULL; }
+  if (afl_queue_entry_init(queue_entry, input) != AFL_RET_SUCCESS) {
 
-  if (queue_entry) {
-
-    _afl_queue_entry_init_(queue_entry, input);
-
-  }
-
-  else {
-
-    new_queue_entry = calloc(1, sizeof(queue_entry_t));
-    if (!new_queue_entry) { return NULL; }
-    _afl_queue_entry_init_(new_queue_entry, input);
+    free(queue_entry);
+    return NULL;
 
   }
 
-  return new_queue_entry;
+  return queue_entry;
 
 }
 
-#define AFL_QUEUE_ENTRY_DEINIT(queue_entry) afl_queue_entry_deinit(queue_entry);
+static inline void afl_queue_entry_delete(queue_entry_t *queue_entry) {
+
+  afl_queue_entry_deinit(queue_entry);
+  free(queue_entry);
+
+}
 
 // Default implementations for the functions for queue_entry vtable
 raw_input_t *  get_input_default(queue_entry_t *entry);
@@ -116,22 +118,23 @@ struct base_queue_functions {
   queue_entry_t *(*get_next_in_queue)(base_queue_t *);
   queue_entry_t *(*get_queue_base)(base_queue_t *);
   size_t (*get_size)(base_queue_t *);
-  u8 *(*get_dirpath)(base_queue_t *);
+  char *(*get_dirpath)(base_queue_t *);
   size_t (*get_names_id)(base_queue_t *);
   bool (*get_save_to_files)(base_queue_t *);
 
-  void (*set_directory)(base_queue_t *, u8 *);
+  void (*set_directory)(base_queue_t *, char *);
 
 };
 
 struct base_queue {
 
-  queue_entry_t *base;
-  size_t         size;
-  u8 *           dirpath;
-  size_t         names_id;
-  bool           save_to_files;
-
+  queue_entry_t *             base;
+  queue_entry_t *             current;
+  size_t                      size;
+  char *                      dirpath;
+  size_t                      names_id;
+  bool                        save_to_files;
+  bool                        fuzz_started;
   struct base_queue_functions funcs;
 
   /* TODO: Still need to add shared_mutex (after multithreading), map of
@@ -141,78 +144,80 @@ struct base_queue {
 
 /* TODO: Add the base  */
 
-void _afl_base_queue_init_(base_queue_t *);
-void afl_base_queue_deinit(base_queue_t *);
+afl_ret_t afl_base_queue_init(base_queue_t *);
+void      afl_base_queue_deinit(base_queue_t *);
 
 void           add_to_queue_default(base_queue_t *, queue_entry_t *);
 queue_entry_t *get_queue_base_default(base_queue_t *);
 size_t         get_base_queue_size_default(base_queue_t *);
-u8 *           get_dirpath_default(base_queue_t *);
+char *         get_dirpath_default(base_queue_t *);
 size_t         get_names_id_default(base_queue_t *);
 bool           get_save_to_files_default(base_queue_t *);
-void           set_directory_default(base_queue_t *, u8 *);
+void           set_directory_default(base_queue_t *, char *);
+queue_entry_t *get_next_base_queue_default(base_queue_t *queue);
 
-static inline base_queue_t *afl_base_queue_init(base_queue_t *base_queue) {
+static inline base_queue_t *afl_base_queue_create() {
 
-  base_queue_t *new_base_queue = base_queue;
+  base_queue_t *base_queue = calloc(1, sizeof(base_queue_t));
+  if (!base_queue) { return NULL; }
 
-  if (base_queue) {
+  if (afl_base_queue_init(base_queue) != AFL_RET_SUCCESS) {
 
-    _afl_base_queue_init_(base_queue);
-
-  }
-
-  else {
-
-    new_base_queue = calloc(1, sizeof(base_queue_t));
-    if (!new_base_queue) { return NULL; }
-
-    _afl_base_queue_init_(new_base_queue);
+    free(base_queue);
+    return NULL;
 
   }
 
-  return new_base_queue;
+  return base_queue;
 
 }
 
-#define AFL_BASE_QUEUE_DEINIT(base_queue) afl_base_queue_deinit(base_queue);
+static inline void afl_base_queue_delete(base_queue_t *base_queue) {
+
+  afl_base_queue_deinit(base_queue);
+
+  free(base_queue);
+
+}
 
 typedef struct feedback_queue {
 
-  base_queue_t super;  // Inheritence from base queue
+  base_queue_t base;  // Inheritence from base queue
 
   struct feedback *feedback;
-  u8 *             name;
+  char *           name;
 
 } feedback_queue_t;
 
-feedback_queue_t *_afl_feedback_queue_init_( feedback_queue_t *,
-    struct feedback *, u8 *);  // "constructor" for the above feedback queue
+afl_ret_t afl_feedback_queue_init(
+    feedback_queue_t *, struct feedback *,
+    char *);  // "constructor" for the above feedback queue
 
 void afl_feedback_queue_deinit(feedback_queue_t *);
 
+static inline feedback_queue_t *afl_feedback_queue_create(
+    struct feedback *feedback, char *name) {
 
-static inline feedback_queue_t *afl_feedback_queue_init(feedback_queue_t *fbck_queue, struct feedback *feedback, u8 *name) {
-  
+  feedback_queue_t *feedback_queue = calloc(1, sizeof(feedback_queue_t));
+  if (!feedback_queue) { return NULL; }
 
-  feedback_queue_t *new_fbck_queue = fbck_queue;
+  if (afl_feedback_queue_init(feedback_queue, feedback, name) !=
+      AFL_RET_SUCCESS) {
 
-  if (fbck_queue) {
-
-    _afl_feedback_queue_init_(fbck_queue, feedback, name);
-
-  }
-
-  else {
-
-    new_fbck_queue = calloc(1, sizeof(feedback_queue_t));
-    if (!new_fbck_queue) { return NULL; }
-
-    _afl_feedback_queue_init_(new_fbck_queue, feedback, name);
+    free(feedback_queue);
+    return NULL;
 
   }
 
-  return new_fbck_queue;
+  return feedback_queue;
+
+}
+
+static inline void afl_feedback_queue_delete(feedback_queue_t *feedback_queue) {
+
+  afl_feedback_queue_deinit(feedback_queue);
+
+  free(feedback_queue);
 
 }
 
@@ -227,8 +232,10 @@ struct global_queue_functions {
 
 struct global_queue {
 
-  base_queue_t super;
-  list_t feedback_queues;  // One global queue can have multiple feedback queues
+  base_queue_t base;
+  feedback_queue_t
+      *feedback_queues[MAX_FEEDBACK_QUEUES];  // One global queue can have
+                                              // multiple feedback queues
 
   size_t feedback_queues_num;
 
@@ -242,31 +249,37 @@ struct global_queue {
 void add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
 int  global_schedule_default(global_queue_t *);
 
+// Function to get next entry from queue, we override the base_queue
+// implementation
+queue_entry_t *get_next_global_queue_default(base_queue_t *queue);
+
 /* TODO: ADD defualt implementation for the schedule function based on random.
  */
 
-void _afl_global_queue_init_(global_queue_t *);
-void afl_global_queue_deinit(global_queue_t *);
+afl_ret_t afl_global_queue_init(global_queue_t *);
+void      afl_global_queue_deinit(global_queue_t *);
 
-static inline global_queue_t *afl_global_queue_init(
-    global_queue_t *global_queue) {
+static inline global_queue_t *afl_global_queue_create() {
 
-  global_queue_t *new_queue = global_queue;
+  global_queue_t *global_queue = calloc(1, sizeof(global_queue_t));
+  if (!global_queue) { return NULL; }
 
-  if (global_queue) {
+  if (afl_global_queue_init(global_queue) != AFL_RET_SUCCESS) {
 
-    _afl_global_queue_init_(global_queue);
-
-  }
-
-  else {
-
-    new_queue = calloc(1, sizeof(global_queue_t));
-    if (!new_queue) { return NULL; }
+    free(global_queue);
+    return NULL;
 
   }
 
-  return new_queue;
+  return global_queue;
+
+}
+
+static inline void afl_global_queue_delete(global_queue_t *global_queue) {
+
+  afl_global_queue_deinit(global_queue);
+
+  free(global_queue);
 
 }
 

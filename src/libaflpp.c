@@ -23,9 +23,9 @@
 #include "libaflpp.h"
 #include "list.h"
 #include "stdbool.h"
-#include "afl-errors.h"
+#include "afl-returns.h"
 
-void _afl_executor_init_(executor_t *executor) {
+afl_ret_t afl_executor_init(executor_t *executor) {
 
   executor->current_input = NULL;
 
@@ -33,30 +33,41 @@ void _afl_executor_init_(executor_t *executor) {
   executor->funcs.add_observation_channel = add_observation_channel_default;
   executor->funcs.get_observation_channels = get_observation_channels_default;
   executor->funcs.get_current_input = get_current_input_default;
+  executor->funcs.reset_observation_channels =
+      reset_observation_channel_default;
+
+  return AFL_RET_SUCCESS;
 
 }
 
 // Default implementations for executor vtable
 void afl_executor_deinit(executor_t *executor) {
 
-  if (!executor) FATAL("Cannot free a NULL pointer");
+  executor->current_input = NULL;
 
-  ck_free(executor);
+  for (size_t i = 0; i < executor->observors_num; ++i) {
+
+    afl_observation_channel_deinit(executor->observors[i]);
+
+  }
+
+  executor->observors_num = 0;
 
 }
 
 u8 add_observation_channel_default(executor_t *           executor,
                                    observation_channel_t *obs_channel) {
-  
+
   executor->observors[executor->observors_num] = obs_channel;
 
   executor->observors_num++;
-  
+
   return 0;
 
 }
 
-observation_channel_t * get_observation_channels_default(executor_t *executor, size_t idx) {
+observation_channel_t *get_observation_channels_default(executor_t *executor,
+                                                        size_t      idx) {
 
   if (executor->observors_num <= idx) { return NULL; }
 
@@ -70,18 +81,18 @@ raw_input_t *get_current_input_default(executor_t *executor) {
 
 }
 
-// Functions to allocate and deallocate the standard feedback structs
+void reset_observation_channel_default(executor_t *executor) {
 
-/* This is the primary function for the entire library, for each executor, we
-would pass it to this function which start fuzzing it, something similar to what
-afl_fuzz's main function does.
-This will be the entrypoint of a new thread when it is created (for each
-executor instance).*/
-u8 fuzz_start(executor_t *executor) {
+  for (size_t i = 0; i < executor->observors_num; ++i) {
 
-  /* TODO: Implementation yet to be done based on design changes. Will be moved
-   * to fuzz_one */
-  return 0;
+    observation_channel_t *obs_channel = executor->observors[i];
+    if (obs_channel->funcs.post_exec) {
+
+      obs_channel->funcs.post_exec(executor->observors[i]);
+
+    }
+
+  }
 
 }
 

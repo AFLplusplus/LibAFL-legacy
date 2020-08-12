@@ -23,8 +23,9 @@
 #include "libstage.h"
 #include "libengine.h"
 #include "libfuzzone.h"
+#include "libmutator.h"
 
-void _afl_stage_init_(stage_t *stage, engine_t *engine) {
+afl_ret_t afl_stage_init(stage_t *stage, engine_t *engine) {
 
   stage->engine = engine;
 
@@ -32,35 +33,105 @@ void _afl_stage_init_(stage_t *stage, engine_t *engine) {
 
   engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage);
 
+  stage->funcs.iterations = iterations_stage_default;
+
+  return AFL_RET_SUCCESS;
+
 }
 
 void afl_stage_deinit(stage_t *stage) {
 
-  ck_free(stage);
+  stage->engine = NULL;
 
 }
 
-fuzzing_stage_t *afl_fuzz_stage_init(engine_t *engine) {
+afl_ret_t afl_fuzz_stage_init(fuzzing_stage_t *fuzz_stage, engine_t *engine) {
 
-  fuzzing_stage_t *fuzz_stage = ck_alloc(sizeof(fuzzing_stage_t));
+  if (afl_stage_init(&(fuzz_stage->base), engine) != AFL_RET_SUCCESS) {
 
-  afl_stage_init(&(fuzz_stage->super), engine);
+    return AFL_RET_ERROR_INITIALIZE;
+
+  }
 
   fuzz_stage->funcs.add_mutator_to_stage = add_mutator_to_stage_default;
+  fuzz_stage->base.funcs.perform = perform_stage_default;
 
-  return fuzz_stage;
-
-}
-
-void afl_fuzz_stage_deinit(fuzzing_stage_t *stage) {
-
-  ck_free(stage);
+  return AFL_RET_SUCCESS;
 
 }
 
-void add_mutator_to_stage_default(fuzzing_stage_t *stage, void *mutator) {
+void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
 
-  list_append(&(stage->mutators), mutator);
+  /* We deinitialize the mutators associated with the stage here */
+
+  afl_stage_deinit(&(fuzz_stage->base));
+
+  for (size_t i = 0; i < fuzz_stage->mutators_count; ++i) {
+
+    afl_mutator_deinit(fuzz_stage->mutators[i]);
+
+  }
+
+}
+
+afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage,
+                                       mutator_t *      mutator) {
+
+  if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
+
+  if (stage->mutators_count >= MAX_STAGE_MUTATORS) { return AFL_RET_ARRAY_END; }
+
+  stage->mutators[stage->mutators_count] = mutator;
+  stage->mutators_count++;
+
+  return AFL_RET_SUCCESS;
+
+}
+
+size_t iterations_stage_default(stage_t *stage) {
+
+  (void)stage;
+  return (1 + rand_below(128));
+
+}
+
+/* Perform default for fuzzing stage */
+afl_ret_t perform_stage_default(stage_t *stage, raw_input_t *input) {
+
+  // This is to stop from compiler complaining about the incompatible pointer
+  // type for the function ptrs. We need a better solution for this to pass the
+  // scheduled_mutator rather than the mutator as an argument.
+  fuzzing_stage_t *fuzz_stage = (fuzzing_stage_t *)stage;
+
+  size_t num = fuzz_stage->base.funcs.iterations(stage);
+
+  for (size_t i = 0; i < num; ++i) {
+
+    raw_input_t *copy = input->funcs.copy(input);
+
+    for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
+
+      mutator_t *mutator = fuzz_stage->mutators[j];
+      mutator->funcs.mutate(mutator, copy);
+
+    }
+
+    afl_ret_t ret = stage->engine->funcs.execute(stage->engine, copy);
+
+    switch (ret) {
+
+      case AFL_RET_SUCCESS:
+        continue;
+      // We'll add more cases here based on the type of exit_ret value given by
+      // the executor.Those will be handled in the engine itself.
+      default:
+        return ret;
+
+    }
+
+  }
+
+  return AFL_RET_SUCCESS;
 
 }
 
