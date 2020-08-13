@@ -185,8 +185,15 @@ afl_ret_t load_testcases_from_dir_default(
     /* TODO: Error handling? */
     input->funcs.load_from_file(input, infile);
 
-    engine->funcs.execute(engine, input);
+    afl_ret_t run_result = engine->funcs.execute(engine, input->funcs.copy(input));
+    
+    if (run_result == AFL_RET_WRITE_TO_CRASH) { 
+      SAYF("Crashing input found in initial corpus\n");
+      dump_crash_to_file(input);
+    
+    }
 
+    afl_input_delete(input);
     input = NULL;
 
   }
@@ -219,7 +226,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
     observation_channel_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) {
 
-      obs_channel->funcs.post_exec(executor->observors[i]);
+      obs_channel->funcs.post_exec(executor->observors[i], engine);
 
     }
 
@@ -274,21 +281,17 @@ afl_ret_t loop_default(engine_t *engine) {
 
   while (true) {
 
-    afl_ret_t crash_write_return;
-
     afl_ret_t fuzz_one_ret = engine->fuzz_one->funcs.perform(engine->fuzz_one);
 
     switch (fuzz_one_ret) {
 
       case AFL_RET_WRITE_TO_CRASH:
 
-        crash_write_return =
-            dump_crash_to_file(engine->executor->current_input);
-        if (crash_write_return == AFL_RET_FILE_OPEN_ERROR) {
+        // crash_write_return =
+            // dump_crash_to_file(engine->executor->current_input);
 
-          return AFL_RET_FILE_OPEN_ERROR;
+        return AFL_RET_WRITE_TO_CRASH;
 
-        }
 
         break;
 

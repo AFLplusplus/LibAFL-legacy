@@ -92,7 +92,7 @@ void reset_observation_channel_default(executor_t *executor) {
     observation_channel_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) {
 
-      obs_channel->funcs.post_exec(executor->observors[i]);
+      obs_channel->funcs.reset(executor->observors[i]);
 
     }
 

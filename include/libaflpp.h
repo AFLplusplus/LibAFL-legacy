@@ -84,6 +84,7 @@ struct executor {
 
   struct executor_functions funcs;  // afl executor_ops;
 
+
 };
 
 list_t afl_executor_list;  // We'll be maintaining a list of executors.

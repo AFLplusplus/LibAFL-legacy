@@ -17,24 +17,15 @@ int main() {
   if (input[2] == 'B' || input[2] == 'C') {
 
     puts("1st block hit");
-    // int x = 1;
 
     if (input[2] == 'C') {
 
       puts("2nd block hit");
-      // int y = 2;
+       *(volatile int *)(NULL) = 0x0;  // Crash
 
     }
 
   }
-
-  /*
-  int fd = open("./success", O_RDWR | O_CREAT, 0600);
-
-  write(fd, input, 50);
-
-  close(fd)
-  */
 
   exit(0);
 
