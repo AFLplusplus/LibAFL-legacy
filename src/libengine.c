@@ -185,12 +185,14 @@ afl_ret_t load_testcases_from_dir_default(
     /* TODO: Error handling? */
     input->funcs.load_from_file(input, infile);
 
-    afl_ret_t run_result = engine->funcs.execute(engine, input->funcs.copy(input));
-    
-    if (run_result == AFL_RET_WRITE_TO_CRASH) { 
+    afl_ret_t run_result =
+        engine->funcs.execute(engine, input->funcs.copy(input));
+
+    if (run_result == AFL_RET_WRITE_TO_CRASH) {
+
       SAYF("Crashing input found in initial corpus\n");
       dump_crash_to_file(input);
-    
+
     }
 
     afl_input_delete(input);
@@ -288,10 +290,9 @@ afl_ret_t loop_default(engine_t *engine) {
       case AFL_RET_WRITE_TO_CRASH:
 
         // crash_write_return =
-            // dump_crash_to_file(engine->executor->current_input);
+        // dump_crash_to_file(engine->executor->current_input);
 
         return AFL_RET_WRITE_TO_CRASH;
-
 
         break;
 

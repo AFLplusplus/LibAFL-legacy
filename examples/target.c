@@ -21,7 +21,7 @@ int main() {
     if (input[2] == 'C') {
 
       puts("2nd block hit");
-       *(volatile int *)(NULL) = 0x0;  // Crash
+      *(volatile int *)(NULL) = 0x0;  // Crash
 
     }
 

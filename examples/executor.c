@@ -78,7 +78,6 @@ typedef struct maximize_map_feedback {
 
 } maximize_map_feedback_t;
 
-
 typedef struct timeout_obs_channel {
 
   observation_channel_t base;
@@ -87,7 +86,6 @@ typedef struct timeout_obs_channel {
   u32 avg_exec_time;
 
 } timeout_obs_channel_t;
-
 
 /* Helper functions here */
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
@@ -99,7 +97,8 @@ static u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
 static afl_ret_t fsrv_start(executor_t *fsrv_executor);
 
 /* Functions related to the feedback defined above */
-static float coverage_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
+static float coverage_fbck_is_interesting(feedback_t *feedback,
+                                          executor_t *fsrv);
 static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
                                                   size_t            size);
 
@@ -437,8 +436,10 @@ static exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
   exec_ms =
       read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, fsrv->exec_tmout);
 
-  /* Update the timeout observation channel */  
-  timeout_obs_channel_t * timeout_channel = (timeout_obs_channel_t *)fsrv->base.funcs.get_observation_channels(&fsrv->base, 1);
+  /* Update the timeout observation channel */
+  timeout_obs_channel_t *timeout_channel =
+      (timeout_obs_channel_t *)fsrv->base.funcs.get_observation_channels(
+          &fsrv->base, 1);
   timeout_channel->last_run_time = exec_ms;
 
   if (exec_ms > fsrv->exec_tmout) {
@@ -509,25 +510,29 @@ static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
 
 }
 
-void timeout_channel_reset(observation_channel_t * obs_channel) {
+void timeout_channel_reset(observation_channel_t *obs_channel) {
 
-  timeout_obs_channel_t * timeout_channel = (timeout_obs_channel_t *)obs_channel;
+  timeout_obs_channel_t *timeout_channel = (timeout_obs_channel_t *)obs_channel;
 
   timeout_channel->last_run_time = 0;
 
 }
 
-void timeout_channel_post_exec(observation_channel_t * obs_channel, engine_t * engine) {
+void timeout_channel_post_exec(observation_channel_t *obs_channel,
+                               engine_t *             engine) {
 
-  timeout_obs_channel_t * timeout_channel = (timeout_obs_channel_t *)obs_channel;
+  timeout_obs_channel_t *timeout_channel = (timeout_obs_channel_t *)obs_channel;
 
-  timeout_channel->avg_exec_time = (timeout_channel->avg_exec_time + timeout_channel->last_run_time)/(engine->executions);
+  timeout_channel->avg_exec_time =
+      (timeout_channel->avg_exec_time + timeout_channel->last_run_time) /
+      (engine->executions);
 
 }
 
 /* We'll implement a simple is_interesting function for the feedback, which
  * checks if new tuples have been hit in the map */
-static float coverage_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
+static float coverage_fbck_is_interesting(feedback_t *feedback,
+                                          executor_t *fsrv) {
 
   maximize_map_feedback_t *map_feedback = (maximize_map_feedback_t *)feedback;
 
@@ -567,29 +572,39 @@ static float coverage_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv
 
 /* Another feedback based on the exec time */
 
-static float timeout_fbck_is_interesting(feedback_t * feedback, executor_t * executor) {
+static float timeout_fbck_is_interesting(feedback_t *feedback,
+                                         executor_t *executor) {
 
-  afl_forkserver_t * fsrv = (afl_forkserver_t *)executor;
-  u32 exec_timeout =  fsrv->exec_tmout;
+  afl_forkserver_t *fsrv = (afl_forkserver_t *)executor;
+  u32               exec_timeout = fsrv->exec_tmout;
 
-  timeout_obs_channel_t * timeout_channel = (timeout_obs_channel_t *)fsrv->base.funcs.get_observation_channels(&fsrv->base, 1);
+  timeout_obs_channel_t *timeout_channel =
+      (timeout_obs_channel_t *)fsrv->base.funcs.get_observation_channels(
+          &fsrv->base, 1);
 
   u32 last_run_time = timeout_channel->last_run_time;
 
   if (last_run_time == exec_timeout) {
 
-    queue_entry_t *new_entry = afl_queue_entry_create(fsrv->base.current_input->funcs.copy(fsrv->base.current_input));
+    queue_entry_t *new_entry = afl_queue_entry_create(
+        fsrv->base.current_input->funcs.copy(fsrv->base.current_input));
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
     return 0.0;
 
-  } else if (last_run_time > (exec_timeout + timeout_channel->avg_exec_time)/ 2 ) {
+  } else if (last_run_time >
+
+             (exec_timeout + timeout_channel->avg_exec_time) / 2) {
 
     /* The run is good enough for the global queue */
     return 1.0;
 
   }
 
-  else { return 0.0; } 
+  else {
+
+    return 0.0;
+
+  }
 
 }
 
@@ -610,12 +625,12 @@ int main(int argc, char **argv) {
   map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE);
 
   /* Another timing based observation channel */
-  timeout_obs_channel_t *timeout_channel = calloc(1, sizeof(timeout_obs_channel_t));
+  timeout_obs_channel_t *timeout_channel =
+      calloc(1, sizeof(timeout_obs_channel_t));
   if (!timeout_channel) { FATAL("Error initializing observation channel"); }
   afl_observation_channel_init(&timeout_channel->base);
   timeout_channel->base.funcs.post_exec = timeout_channel_post_exec;
   timeout_channel->base.funcs.reset = timeout_channel_reset;
-
 
   /* We initialize the forkserver we want to use here. */
   afl_forkserver_t *fsrv = fsrv_init(argv[3], argv[2]);
@@ -639,15 +654,17 @@ int main(int argc, char **argv) {
   if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
 
   /* Another feedback queue for timeout entries here */
-  feedback_queue_t *timeout_feedback_queue = 
-    afl_feedback_queue_create(NULL, "Timeout feedback queue");
-  if (!timeout_feedback_queue)  { FATAL("Error initializing feedback queue"); }
+  feedback_queue_t *timeout_feedback_queue =
+      afl_feedback_queue_create(NULL, "Timeout feedback queue");
+  if (!timeout_feedback_queue) { FATAL("Error initializing feedback queue"); }
 
   /* Global queue creation */
   global_queue_t *global_queue = afl_global_queue_create(NULL);
   if (!global_queue) { FATAL("Error initializing global queue"); }
-  global_queue->extra_funcs.add_feedback_queue(global_queue, coverage_feedback_queue);
-  global_queue->extra_funcs.add_feedback_queue(global_queue, timeout_feedback_queue);
+  global_queue->extra_funcs.add_feedback_queue(global_queue,
+                                               coverage_feedback_queue);
+  global_queue->extra_funcs.add_feedback_queue(global_queue,
+                                               timeout_feedback_queue);
 
   /* Coverage Feedback initialization */
   maximize_map_feedback_t *coverage_feedback = map_feedback_init(
@@ -656,8 +673,8 @@ int main(int argc, char **argv) {
   coverage_feedback_queue->feedback = &coverage_feedback->base;
 
   /* Timeout Feedback initialization */
-  feedback_t * timeout_feedback = afl_feedback_create(timeout_feedback_queue);
-  if (!timeout_feedback)  { FATAL("Error initializing feedback"); }
+  feedback_t *timeout_feedback = afl_feedback_create(timeout_feedback_queue);
+  if (!timeout_feedback) { FATAL("Error initializing feedback"); }
   timeout_feedback_queue->feedback = timeout_feedback;
   timeout_feedback->funcs.is_interesting = timeout_fbck_is_interesting;
 
