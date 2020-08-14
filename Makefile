@@ -72,3 +72,4 @@ code-format:
 	./.custom-format.py -i src/*.c
 	./.custom-format.py -i include/*.h
 	./.custom-format.py -i examples/*.c
+	./.custom-format.py -i test/*.c

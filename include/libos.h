@@ -5,6 +5,7 @@
 #include "libinput.h"
 
 #include <stdbool.h>
+#include <sys/types.h>
 // This has a few parts, the first deals with crashe handling.
 typedef enum exit_type {
 

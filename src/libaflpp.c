@@ -30,6 +30,10 @@ afl_ret_t afl_executor_init(executor_t *executor) {
   executor->current_input = NULL;
 
   // Default implementations of the functions
+  executor->funcs.init_cb = NULL;
+  executor->funcs.destroy_cb = NULL;
+  executor->funcs.place_input_cb = NULL;
+  executor->funcs.run_target_cb = NULL;
   executor->funcs.add_observation_channel = add_observation_channel_default;
   executor->funcs.get_observation_channels = get_observation_channels_default;
   executor->funcs.get_current_input = get_current_input_default;

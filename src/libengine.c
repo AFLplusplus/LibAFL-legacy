@@ -115,8 +115,8 @@ int add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
 }
 
-afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
-                                          raw_input_t *(*custom_input_init)()) {
+afl_ret_t load_testcases_from_dir_default(
+    engine_t *engine, char *dirpath, raw_input_t *(*custom_input_create)()) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
@@ -155,9 +155,9 @@ afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
 
     }
 
-    if (custom_input_init) {
+    if (custom_input_create) {
 
-      input = custom_input_init();
+      input = custom_input_create();
 
     }
 
@@ -170,7 +170,12 @@ afl_ret_t load_testcases_from_dir_default(engine_t *engine, char *dirpath,
     if (!input) {
 
       closedir(dir_in);
-      engine->executor->funcs.destroy_cb(engine->executor);
+      if (engine->executor->funcs.destroy_cb) {
+
+        engine->executor->funcs.destroy_cb(engine->executor);
+
+      };
+
       return AFL_RET_ALLOC;
 
     }

@@ -43,6 +43,9 @@ afl_ret_t afl_input_init(raw_input_t *input) {
   input->funcs.save_to_file = raw_inp_save_to_file_default;
   input->funcs.serialize = raw_inp_serialize_default;
 
+  input->bytes = 0x0;
+  input->len = 0x0;
+
   return AFL_RET_SUCCESS;
 
 }
@@ -63,6 +66,7 @@ void afl_input_deinit(raw_input_t *input) {
 void raw_inp_clear_default(raw_input_t *input) {
 
   memset(input->bytes, 0x0, input->len);
+  input->len = 0;
 
   return;
 
@@ -72,7 +76,7 @@ raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
 
   raw_input_t *copy_inp = afl_input_create();
   if (!copy_inp) { return NULL; }
-  copy_inp->bytes = calloc(orig_inp->len, sizeof(u8));
+  copy_inp->bytes = calloc(orig_inp->len + 1, sizeof(u8));
   if (!copy_inp->bytes) {
 
     afl_input_delete(copy_inp);
@@ -81,6 +85,7 @@ raw_input_t *raw_inp_copy_default(raw_input_t *orig_inp) {
   }
 
   memcpy(copy_inp->bytes, orig_inp->bytes, orig_inp->len);
+  copy_inp->len = orig_inp->len;
   return copy_inp;
 
 }
@@ -111,7 +116,7 @@ afl_ret_t raw_inp_load_from_file_default(raw_input_t *input, char *fname) {
   if (fstat(fd, &st) || !st.st_size) { return AFL_RET_FILE_SIZE; }
 
   input->len = st.st_size;
-  input->bytes = malloc(input->len);
+  input->bytes = calloc(input->len + 1, 1);
   if (!input->bytes) { return AFL_RET_ALLOC; }
 
   ssize_t ret = read(fd, input->bytes, input->len);

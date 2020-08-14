@@ -135,28 +135,30 @@ int rand_below(size_t limit) {
 void *insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
                        size_t offset) {
 
-  u8 *new_buf = maybe_grow(&buf, &len, len + token_len);
+  void *new_buf = calloc(len + token_len + 1, 1);
+  memmove(new_buf, buf, offset);
 
-  memcpy(new_buf, buf, offset);
+  memmove(new_buf + offset, token, token_len);
 
-  memcpy(new_buf + offset, token, token_len);
-
-  memcpy(new_buf + offset + token_len, buf + offset, len - offset);
+  memmove(new_buf + offset + token_len, buf + offset, len - offset);
 
   return new_buf;
 
 }
 
-void *insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len,
-                   size_t offset) {
+/* This function inserts given number of bytes at a certain offset in a string
+  and returns a ptr to the newly allocated memory. NOTE: You have to free the
+  original memory(if malloced) yourself*/
+u8 *insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len,
+                 size_t offset) {
 
-  u8 *new_buf = maybe_grow(&buf, &len, len + insert_len);
+  u8 *new_buf = calloc(len + insert_len + 1, 1);
 
-  memcpy(new_buf, buf, offset);
+  memmove(new_buf, buf, offset);
 
   memset(new_buf + offset, byte, insert_len);
 
-  memcpy(new_buf + offset + insert_len, buf + offset, len - offset);
+  memmove(new_buf + offset + insert_len, buf + offset, len - offset);
 
   return new_buf;
 
@@ -164,7 +166,7 @@ void *insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len,
 
 size_t erase_bytes(u8 *buf, size_t len, size_t offset, size_t remove_len) {
 
-  memcpy(buf + offset, buf + offset + remove_len, len - offset - remove_len);
+  memmove(buf + offset, buf + offset + remove_len, len - offset - remove_len);
   memset(buf + len - remove_len, 0x0, remove_len);
 
   size_t new_size = len - remove_len;

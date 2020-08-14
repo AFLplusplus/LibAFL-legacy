@@ -80,9 +80,9 @@ void set_fuzz_one_default(engine_t *, fuzz_one_t *);
 int  add_feedback_default(engine_t *, feedback_t *);
 
 u8        execute_default(engine_t *, raw_input_t *);
-afl_ret_t load_testcases_from_dir_default(
-    engine_t *, char *, raw_input_t *(*custom_input_init)(u8 *buf));
-void load_zero_testcase_default(size_t);
+afl_ret_t load_testcases_from_dir_default(engine_t *, char *,
+                                          raw_input_t *(*custom_input_init)());
+void      load_zero_testcase_default(size_t);
 
 afl_ret_t loop_default(engine_t *);  // Not sure about this functions use-case.
                                      // Was in FFF though.

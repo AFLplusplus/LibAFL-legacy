@@ -100,6 +100,11 @@ queue_entry_t *get_parent_default(queue_entry_t *entry) {
 afl_ret_t afl_base_queue_init(base_queue_t *queue) {
 
   queue->save_to_files = false;
+  queue->dirpath = NULL;
+  queue->fuzz_started = false;
+  queue->size = 0;
+  queue->base = NULL;
+  queue->current = NULL;
 
   queue->funcs.add_to_queue = add_to_queue_default;
   queue->funcs.get_queue_base = get_queue_base_default;
@@ -197,7 +202,7 @@ void set_directory_default(base_queue_t *queue, char *new_dirpath) {
 
   queue->save_to_files = true;
   // If the dirpath is empty, we make the save_to_files bool as false
-  if (!strcmp((char *)queue->dirpath, "")) queue->save_to_files = false;
+  if (!strcmp(queue->dirpath, "")) queue->save_to_files = false;
 
 }
 
@@ -254,6 +259,8 @@ void afl_feedback_queue_deinit(feedback_queue_t *feedback_queue) {
 afl_ret_t afl_global_queue_init(global_queue_t *global_queue) {
 
   afl_base_queue_init(&(global_queue->base));
+
+  global_queue->feedback_queues_num = 0;
 
   global_queue->extra_funcs.add_feedback_queue = add_feedback_queue_default;
   global_queue->extra_funcs.schedule = global_schedule_default;
