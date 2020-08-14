@@ -201,7 +201,6 @@ afl_ret_t load_testcases_from_dir_default(
     if (run_result == AFL_RET_WRITE_TO_CRASH) {
 
       SAYF("Crashing input found in initial corpus\n");
-      dump_crash_to_file(input);
 
     }
 
@@ -253,6 +252,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
     case TIMEOUT:
       return AFL_RET_SUCCESS;
     default:
+      dump_crash_to_file(executor->current_input);  // Crash written
       return AFL_RET_WRITE_TO_CRASH;
 
   }
