@@ -18,7 +18,7 @@ test: executor target
 	echo "BBBBBB" > ./in/b
 	echo "CCCCCC" > ./in/c
 	LD_LIBRARY_PATH=.. ./executor ./in ./out ./target
-	# rm -rf ./in
+	rm -rf ./in
 	rm -rf ./out
 	rm -rf ./crashes-* 2>/dev/null || trues
 
