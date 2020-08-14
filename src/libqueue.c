@@ -149,11 +149,17 @@ void afl_base_queue_deinit(base_queue_t *queue) {
 /* *** Possible error cases here? *** */
 void add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
-  entry->next = queue->base;
-  /*TODO: Need to add mutex stuff here. */
-  if (queue->base) queue->base->prev = entry;
+  /* Add entry to the end of the queue */
 
-  queue->base = entry;
+  if (!queue->size) {
+    queue->base = queue->end = entry;
+  } else {
+    queue->end->next = entry;
+    entry->prev = queue->end;
+    queue->end = entry;
+  }
+  /*TODO: Need to add mutex stuff here. */
+
   queue->size++;
 
 }
@@ -307,14 +313,26 @@ queue_entry_t *get_next_global_queue_default(base_queue_t *queue) {
   if (fbck_idx != -1) {
 
     feedback_queue_t *feedback_queue = global_queue->feedback_queues[fbck_idx];
-    return feedback_queue->base.funcs.get_next_in_queue(
-        &(feedback_queue->base));
+    queue_entry_t *   next_entry =
+        feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base));
+
+    if (next_entry) {
+
+      return next_entry;
+
+    }
+
+    else {
+
+      return get_next_base_queue_default(queue);
+
+    }
 
   }
 
   else {
 
-    // We don't have any feedback queue, so base queue it is.
+    // We don't have any more entries feedback queue, so base queue it is.
     return get_next_base_queue_default(queue);
 
   }

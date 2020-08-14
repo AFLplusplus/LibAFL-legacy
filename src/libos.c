@@ -6,6 +6,7 @@
 #include <sys/wait.h>
 
 #include "libos.h"
+#include "xxh3.h"
 
 // Crash related functions
 afl_ret_t dump_crash_to_file(raw_input_t *data) {
@@ -13,7 +14,9 @@ afl_ret_t dump_crash_to_file(raw_input_t *data) {
   char filename[128];
 
   /* TODO: This filename should be replaced by "crashes-SHA_OF_BYTES" later */
-  snprintf(filename, sizeof(filename) - 1, "crashes-%x", rand_below(0xFFFF));
+
+  u64 input_data_checksum = XXH64(data->bytes, data->len, rand_below(0xFFFF));
+  snprintf(filename, sizeof(filename) - 1, "crashes-%llx", input_data_checksum);
 
   FILE *f = fopen(filename, "w+");
   if (!f) { return AFL_RET_FILE_OPEN_ERROR; }

@@ -130,6 +130,7 @@ struct base_queue {
 
   queue_entry_t *             base;
   queue_entry_t *             current;
+  queue_entry_t *             end;
   size_t                      size;
   char *                      dirpath;
   size_t                      names_id;

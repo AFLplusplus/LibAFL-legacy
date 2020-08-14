@@ -38,7 +38,7 @@ struct observation_channel_functions {
 
   void (*flush)(observation_channel_t *);
   void (*reset)(observation_channel_t *);
-  void (*post_exec)(observation_channel_t *);
+  void (*post_exec)(observation_channel_t *, engine_t *);
 
 };
 
