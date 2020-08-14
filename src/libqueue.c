@@ -221,21 +221,21 @@ queue_entry_t *get_next_base_queue_default(base_queue_t *queue) {
 
     queue->fuzz_started = true;
 
+    if (current == queue->end) { queue->current = queue->base; } // We start from the queue base again
+
     return current;
 
-  } else if (!queue->current && queue->base && !(queue->fuzz_started)) {
+  } else if (queue->base) {
 
     // We've just started fuzzing, we start from the base of the queue
     queue->current = queue->base->next;
     queue->fuzz_started = true;
     return queue->base;
 
-  } else {
-
-    // Empty queue :(
-    return NULL;
-
   }
+
+  // Queue empty :(
+  return NULL;
 
 }
 

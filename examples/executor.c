@@ -700,6 +700,18 @@ int main(int argc, char **argv) {
                                           flip_4_bytes_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
                                           delete_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          clone_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          flip_bit_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          flip_2_bits_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          flip_4_bits_mutation);                                          
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          random_byte_add_sub_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
+                                          random_byte_mutation);                                          
 
   fuzzing_stage_t *stage = afl_fuzz_stage_create(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }

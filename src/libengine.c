@@ -186,7 +186,17 @@ afl_ret_t load_testcases_from_dir_default(
     input->funcs.load_from_file(input, infile);
 
     afl_ret_t run_result =
-        engine->funcs.execute(engine, input->funcs.copy(input));
+        engine->funcs.execute(engine, input);
+    
+    /* We add the corpus to the queue initially for all the feedback queues */
+
+    for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+
+      queue_entry_t *entry = afl_queue_entry_create(input->funcs.copy(input));
+
+      engine->feedbacks[i]->queue->base.funcs.add_to_queue(&engine->feedbacks[i]->queue->base, entry);
+
+    }
 
     if (run_result == AFL_RET_WRITE_TO_CRASH) {
 
@@ -234,36 +244,6 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 
   }
 
-  /* Let's collect some feedback on the input now */
-
-  bool add_to_queue = false;
-
-  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
-
-    add_to_queue = add_to_queue || engine->feedbacks[i]->funcs.is_interesting(
-                                       engine->feedbacks[i], executor);
-
-  }
-
-  /* If the input is interesting and there is a global queue add the input to
-   * the queue */
-  if (add_to_queue && engine->global_queue) {
-
-    queue_entry_t *entry = afl_queue_entry_create(input->funcs.copy(input));
-
-    if (!entry) { return AFL_RET_ALLOC; }
-
-    global_queue_t *queue = engine->global_queue;
-
-    queue->base.funcs.add_to_queue((base_queue_t *)queue, entry);
-
-  }
-
-  /* We delete the input now. It is assumed that the iput sent to fuzz was a
-     copy of the original one from queue.
-     If it had to be added to the queue, a copy of it has been added, */
-  afl_input_delete(input);
-
   // Now based on the return of executor's run target, we basically return an
   // afl_ret_t type to the callee
 
@@ -287,14 +267,14 @@ afl_ret_t loop_default(engine_t *engine) {
 
     switch (fuzz_one_ret) {
 
-      case AFL_RET_WRITE_TO_CRASH:
+      // case AFL_RET_WRITE_TO_CRASH:
 
-        // crash_write_return =
-        // dump_crash_to_file(engine->executor->current_input);
+      //   // crash_write_return =
+      //   // dump_crash_to_file(engine->executor->current_input);
 
-        return AFL_RET_WRITE_TO_CRASH;
+      //   return AFL_RET_WRITE_TO_CRASH;
 
-        break;
+      //   break;
 
       case AFL_RET_NULL_QUEUE_ENTRY:
         return fuzz_one_ret;
