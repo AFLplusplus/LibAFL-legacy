@@ -149,11 +149,17 @@ void afl_base_queue_deinit(base_queue_t *queue) {
 /* *** Possible error cases here? *** */
 void add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
-  entry->next = queue->base;
-  /*TODO: Need to add mutex stuff here. */
-  if (queue->base) queue->base->prev = entry;
+  /* Add entry to the end of the queue */
 
-  queue->base = entry;
+  if (!queue->size) {
+    queue->base = queue->end = entry;
+  } else {
+    queue->end->next = entry;
+    entry->prev = queue->end;
+    queue->end = entry;
+  }
+  /*TODO: Need to add mutex stuff here. */
+
   queue->size++;
 
 }
@@ -305,8 +311,6 @@ queue_entry_t *get_next_global_queue_default(base_queue_t *queue) {
   int fbck_idx = global_queue->extra_funcs.schedule(global_queue);
 
   if (fbck_idx != -1) {
-
-    SAYF("IDX: %d\n", fbck_idx);
 
     feedback_queue_t *feedback_queue = global_queue->feedback_queues[fbck_idx];
     queue_entry_t *   next_entry =
