@@ -802,15 +802,22 @@ int main(int argc, char **argv) {
   int s = pthread_create(&t1, NULL, thread_run_instance, thread_args);
   if (!s) { OKF("Thread created with thread id %lu", t1); }
 
-  engine_instance = initialize_engine_instance(target_path, out_file, NULL);
+  engine_t * engine_instance_two = initialize_engine_instance(target_path, out_file, NULL);
   thread_args = calloc(1, sizeof(thread_instance_args_t));
-  thread_args->engine = engine_instance;
+  thread_args->engine = engine_instance_two;
   thread_args->in_dir = in_dir;
   pthread_t t2;
   s = pthread_create(&t2, NULL, thread_run_instance, thread_args);
   if (!s) { OKF("Thread created with thread id %lu", t2); }
 
-  pthread_join(t1, NULL);
-  pthread_join(t2, NULL);
+
+  while(true) {
+    sleep(1);
+    u64 execs = engine_instance->executions + engine_instance_two->executions;
+    u64 crashes = engine_instance->crashes + engine_instance_two->crashes;
+    printf("Execs: %llu\tCrashes: %llu\r", execs, crashes);
+    fflush(0);
+  }
+
 }
 

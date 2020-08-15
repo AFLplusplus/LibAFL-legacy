@@ -63,7 +63,7 @@ struct engine {
       *feedbacks[MAX_FEEDBACKS];  // We're keeping a pointer of feedbacks here
                                   // to save memory, consideting the original
                                   // feedback would already be allocated
-  u64 executions, start_time, feedbacks_num;
+  u64 executions, start_time, crashes, feedbacks_num;
   int id;
 
   struct engine_functions funcs;

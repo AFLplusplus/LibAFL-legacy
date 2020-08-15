@@ -251,10 +251,11 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
     case NORMAL:
     case TIMEOUT:
       return AFL_RET_SUCCESS;
-    default:
+    default: {
+      engine->crashes++;
       dump_crash_to_file(executor->current_input);  // Crash written
       return AFL_RET_WRITE_TO_CRASH;
-
+    }
   }
 
 }
