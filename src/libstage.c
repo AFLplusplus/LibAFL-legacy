@@ -117,19 +117,20 @@ afl_ret_t perform_stage_default(stage_t *stage, raw_input_t *input) {
     }
 
     afl_ret_t ret = stage->engine->funcs.execute(stage->engine, copy);
-      /* Let's collect some feedback on the input now */
+    /* Let's collect some feedback on the input now */
 
     bool add_to_queue = false;
 
     for (size_t i = 0; i < stage->engine->feedbacks_num; ++i) {
 
-      add_to_queue = add_to_queue || stage->engine->feedbacks[i]->funcs.is_interesting(
-                                        stage->engine->feedbacks[i], stage->engine->executor);
+      add_to_queue = add_to_queue ||
+                     stage->engine->feedbacks[i]->funcs.is_interesting(
+                         stage->engine->feedbacks[i], stage->engine->executor);
 
     }
 
     /* If the input is interesting and there is a global queue add the input to
-    * the queue */
+     * the queue */
     if (add_to_queue && stage->engine->global_queue) {
 
       queue_entry_t *entry = afl_queue_entry_create(copy->funcs.copy(copy));

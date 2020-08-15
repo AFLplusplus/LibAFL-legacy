@@ -90,8 +90,10 @@ typedef struct timeout_obs_channel {
 } timeout_obs_channel_t;
 
 typedef struct thread_instance_args {
-  engine_t * engine;
-  char *in_dir;
+
+  engine_t *engine;
+  char *    in_dir;
+
 } thread_instance_args_t;
 
 /* Helper functions here */
@@ -615,7 +617,8 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
 
 }
 
-engine_t * initialize_engine_instance(char * target_path, char * out_file, char **extra_args) {
+engine_t *initialize_engine_instance(char *target_path, char *out_file,
+                                     char **extra_args) {
 
   /* Let's now create a simple map-based observation channel */
   map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE);
@@ -629,8 +632,8 @@ engine_t * initialize_engine_instance(char * target_path, char * out_file, char 
   timeout_channel->base.funcs.reset = timeout_channel_reset;
 
   /* We initialize the forkserver we want to use here. */
-  (void)  out_file;
-  char * output_file = calloc(50, 1);
+  (void)out_file;
+  char *output_file = calloc(50, 1);
   snprintf(output_file, 50, "out-%d", rand_below(0xFFFFFFFF));
   afl_forkserver_t *fsrv = fsrv_init(target_path, output_file);
   if (!fsrv) { FATAL("Could not initialize forkserver!"); }
@@ -682,6 +685,7 @@ engine_t * initialize_engine_instance(char * target_path, char * out_file, char 
   if (!engine) { FATAL("Error initializing Engine"); }
   engine->funcs.add_feedback(engine, (feedback_t *)coverage_feedback);
   engine->funcs.add_feedback(engine, timeout_feedback);
+  engine->funcs.set_global_queue(engine, global_queue);
 
   fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
@@ -699,18 +703,13 @@ engine_t * initialize_engine_instance(char * target_path, char * out_file, char 
                                           flip_4_bytes_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
                                           delete_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          clone_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          flip_bit_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          flip_2_bits_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          flip_4_bits_mutation);                                          
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, clone_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_bit_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_2_bits_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_4_bits_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
                                           random_byte_add_sub_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          random_byte_mutation);                                          
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_mutation);
 
   fuzzing_stage_t *stage = afl_fuzz_stage_create(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }
@@ -720,20 +719,25 @@ engine_t * initialize_engine_instance(char * target_path, char * out_file, char 
 
 }
 
-void * thread_run_instance(void * thread_args) {
+void *thread_run_instance(void *thread_args) {
 
-  thread_instance_args_t * thread_instance_args = (thread_instance_args_t *)thread_args;
+  thread_instance_args_t *thread_instance_args =
+      (thread_instance_args_t *)thread_args;
 
-  engine_t * engine = (engine_t *)thread_instance_args->engine;
+  engine_t *engine = (engine_t *)thread_instance_args->engine;
 
-  afl_forkserver_t * fsrv = (afl_forkserver_t *)engine->executor;
-  map_based_channel_t * trace_bits_channel = (map_based_channel_t *)fsrv->base.observors[0];
-  timeout_obs_channel_t * timeout_channel = (timeout_obs_channel_t *)fsrv->base.observors[1];
+  afl_forkserver_t *   fsrv = (afl_forkserver_t *)engine->executor;
+  map_based_channel_t *trace_bits_channel =
+      (map_based_channel_t *)fsrv->base.observors[0];
+  timeout_obs_channel_t *timeout_channel =
+      (timeout_obs_channel_t *)fsrv->base.observors[1];
 
-  fuzzing_stage_t * stage = (fuzzing_stage_t *)engine->fuzz_one->stages[0];
-  scheduled_mutator_t * mutators_havoc = (scheduled_mutator_t *)stage->mutators[0];
+  fuzzing_stage_t *    stage = (fuzzing_stage_t *)engine->fuzz_one->stages[0];
+  scheduled_mutator_t *mutators_havoc =
+      (scheduled_mutator_t *)stage->mutators[0];
 
-  maximize_map_feedback_t * coverage_feedback = (maximize_map_feedback_t *)(engine->feedbacks[0]);
+  maximize_map_feedback_t *coverage_feedback =
+      (maximize_map_feedback_t *)(engine->feedbacks[0]);
 
   /* Seeding the random generator */
   pthread_t self_id = pthread_self();
@@ -743,7 +747,8 @@ void * thread_run_instance(void * thread_args) {
   /* Let's reduce the timeout initially to fill the queue */
   fsrv->exec_tmout = 20;
   /* Now we can simply load the testcases from the directory given */
-  afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, thread_instance_args->in_dir, NULL);
+  afl_ret_t ret = engine->funcs.load_testcases_from_dir(
+      engine, thread_instance_args->in_dir, NULL);
   if (ret != AFL_RET_SUCCESS) {
 
     PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret));
@@ -771,16 +776,22 @@ void * thread_run_instance(void * thread_args) {
   afl_fuzz_one_delete(engine->fuzz_one);
   free(coverage_feedback->virgin_bits);
   for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+
     afl_feedback_delete((feedback_t *)engine->feedbacks[i]);
+
   }
+
   for (size_t i = 0; i < engine->global_queue->feedback_queues_num; ++i) {
+
     afl_feedback_queue_delete(engine->global_queue->feedback_queues[i]);
+
   }
+
   afl_global_queue_delete(engine->global_queue);
   afl_engine_delete(engine);
   return 0;
-}
 
+}
 
 /* Main entry point function */
 int main(int argc, char **argv) {
@@ -797,45 +808,52 @@ int main(int argc, char **argv) {
   char *target_path = argv[3];
   char *out_file = argv[2];
 
-  engine_t * engine_instance = initialize_engine_instance(target_path, out_file, NULL);
-  thread_instance_args_t * thread_args = calloc(1, sizeof(thread_instance_args_t));
-  thread_args->engine = engine_instance;
-  thread_args->in_dir = in_dir;
-  pthread_t t1;
-  int s = pthread_create(&t1, NULL, thread_run_instance, thread_args);
-  if (!s) { 
-    OKF("Thread created with thread id %lu", t1);
-    if (register_fuzz_worker(engine_instance) != AFL_RET_SUCCESS) { FATAL("Error registering fuzzing instance"); } 
-  } else {
+  for (size_t i = 0; i < 4; ++i) {
 
-    FATAL("Error creating thread");
+    engine_t *engine_instance =
+        initialize_engine_instance(target_path, out_file, NULL);
+    thread_instance_args_t *thread_args =
+        calloc(1, sizeof(thread_instance_args_t));
+    thread_args->engine = engine_instance;
+    thread_args->in_dir = in_dir;
+    pthread_t t1;
+    int       s = pthread_create(&t1, NULL, thread_run_instance, thread_args);
+    if (!s) {
 
-  }
+      OKF("Thread created with thread id %lu", t1);
+      if (register_fuzz_worker(engine_instance) != AFL_RET_SUCCESS) {
 
-  engine_t * engine_instance_two = initialize_engine_instance(target_path, out_file, NULL);
-  thread_args = calloc(1, sizeof(thread_instance_args_t));
-  thread_args->engine = engine_instance_two;
-  thread_args->in_dir = in_dir;
-  pthread_t t2;
-  s = pthread_create(&t2, NULL, thread_run_instance, thread_args);
-  if (!s) { 
-    OKF("Thread created with thread id %lu", t2);
-    if (register_fuzz_worker(engine_instance_two) != AFL_RET_SUCCESS) { FATAL("Error registering fuzzing instance"); } 
-  } else {
+        FATAL("Error registering fuzzing instance");
 
-    FATAL("Error creating thread");
+      }
+
+    } else {
+
+      FATAL("Error creating thread");
+
+    }
 
   }
 
   u64 time_elapsed = 1;
 
-  while(true) {
+  while (true) {
+
     sleep(1);
-    u64 execs = engine_instance->executions + engine_instance_two->executions;
-    u64 crashes = engine_instance->crashes + engine_instance_two->crashes;
-    printf("Execs: %llu\tCrashes: %llu\tExecs per second: %llu\r", execs, crashes, execs/time_elapsed);
+    u64 execs = 0;
+    u64 crashes = 0;
+    for (size_t i = 0; i < fuzz_workers_count; ++i) {
+
+      execs += registered_fuzz_workers[i]->executions;
+      crashes += registered_fuzz_workers[i]->crashes;
+
+    }
+
+    SAYF("Execs: %llu\tCrashes: %llu\tExecs per second: %llu\r", execs, crashes,
+         execs / time_elapsed);
     time_elapsed++;
     fflush(0);
+
   }
 
 }

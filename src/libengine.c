@@ -42,10 +42,12 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
 
   engine->funcs.set_fuzz_one = set_fuzz_one_default;
   engine->funcs.add_feedback = add_feedback_default;
+  engine->funcs.set_global_queue = set_global_queue_default;
 
   engine->funcs.execute = execute_default;
   engine->funcs.load_testcases_from_dir = load_testcases_from_dir_default;
   engine->funcs.loop = loop_default;
+  engine->id = rand_below(0xFFFFFFFF);
 
   return AFL_RET_SUCCESS;
 
@@ -100,6 +102,24 @@ u64 get_start_time_default(engine_t *engine) {
 void set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
   engine->fuzz_one = fuzz_one;
+
+}
+
+void set_global_queue_default(engine_t *engine, global_queue_t *global_queue) {
+
+  engine->global_queue = global_queue;
+
+  if (global_queue) {
+
+    global_queue->base.engine_id = engine->id;
+
+    for (size_t i = 0; i < global_queue->feedback_queues_num; ++i) {
+
+      global_queue->feedback_queues[i]->base.engine_id = engine->id;
+
+    }
+
+  }
 
 }
 
@@ -185,16 +205,16 @@ afl_ret_t load_testcases_from_dir_default(
     /* TODO: Error handling? */
     input->funcs.load_from_file(input, infile);
 
-    afl_ret_t run_result =
-        engine->funcs.execute(engine, input);
-    
+    afl_ret_t run_result = engine->funcs.execute(engine, input);
+
     /* We add the corpus to the queue initially for all the feedback queues */
 
     for (size_t i = 0; i < engine->feedbacks_num; ++i) {
 
       queue_entry_t *entry = afl_queue_entry_create(input->funcs.copy(input));
 
-      engine->feedbacks[i]->queue->base.funcs.add_to_queue(&engine->feedbacks[i]->queue->base, entry);
+      engine->feedbacks[i]->queue->base.funcs.add_to_queue(
+          &engine->feedbacks[i]->queue->base, entry);
 
     }
 
@@ -252,10 +272,13 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
     case TIMEOUT:
       return AFL_RET_SUCCESS;
     default: {
+
       engine->crashes++;
       dump_crash_to_file(executor->current_input);  // Crash written
       return AFL_RET_WRITE_TO_CRASH;
+
     }
+
   }
 
 }
@@ -268,14 +291,14 @@ afl_ret_t loop_default(engine_t *engine) {
 
     switch (fuzz_one_ret) {
 
-      // case AFL_RET_WRITE_TO_CRASH:
+        // case AFL_RET_WRITE_TO_CRASH:
 
-      //   // crash_write_return =
-      //   // dump_crash_to_file(engine->executor->current_input);
+        //   // crash_write_return =
+        //   // dump_crash_to_file(engine->executor->current_input);
 
-      //   return AFL_RET_WRITE_TO_CRASH;
+        //   return AFL_RET_WRITE_TO_CRASH;
 
-      //   break;
+        //   break;
 
       case AFL_RET_NULL_QUEUE_ENTRY:
         return fuzz_one_ret;

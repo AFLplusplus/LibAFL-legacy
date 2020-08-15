@@ -56,16 +56,15 @@ void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
 afl_ret_t perform_default(fuzz_one_t *fuzz_one) {
 
-  // Fuzzone grabs the current queue entry from one of many global queues and sends it to
-  // stage.
-  
-  if (!fuzz_workers_count) {
-    return AFL_RET_NO_FUZZ_WORKERS;
-  }
-  global_queue_t * global_queue = registered_fuzz_workers[rand_below(fuzz_workers_count)]->global_queue;
+  // Fuzzone grabs the current queue entry from one of many global queues and
+  // sends it to stage.
 
-  queue_entry_t *queue_entry =
-      global_queue->base.funcs.get_next_in_queue((base_queue_t *)global_queue);
+  if (!fuzz_workers_count) { return AFL_RET_NO_FUZZ_WORKERS; }
+  global_queue_t *global_queue =
+      registered_fuzz_workers[rand_below(fuzz_workers_count)]->global_queue;
+
+  queue_entry_t *queue_entry = global_queue->base.funcs.get_next_in_queue(
+      (base_queue_t *)global_queue, fuzz_one->engine->id);
 
   if (!queue_entry) { return AFL_RET_NULL_QUEUE_ENTRY; }
 

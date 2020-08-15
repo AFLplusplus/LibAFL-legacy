@@ -116,7 +116,8 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->funcs.get_next_in_queue = get_next_base_queue_default;
   queue->shared_mem = calloc(1, sizeof(afl_sharedmem_t));
 
-  queue->queue_entries = (queue_entry_t **)afl_sharedmem_init(queue->shared_mem, MAP_SIZE);
+  queue->queue_entries =
+      (queue_entry_t **)afl_sharedmem_init(queue->shared_mem, MAP_SIZE);
 
   return AFL_RET_SUCCESS;
 
@@ -152,16 +153,6 @@ void afl_base_queue_deinit(base_queue_t *queue) {
 /* *** Possible error cases here? *** */
 void add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
-  /* Add entry to the end of the queue */
-
-  // if (!queue->size) {
-  //   queue->base = queue->end = entry;
-  // } else {
-  //   queue->end->next = entry;
-  //   entry->prev = queue->end;
-  //   queue->end = entry;
-  // }
-  /*TODO: Need to add mutex stuff here. */
   queue->queue_entries[queue->size] = entry;
 
   queue->size++;
@@ -216,19 +207,38 @@ void set_directory_default(base_queue_t *queue, char *new_dirpath) {
 
 }
 
-queue_entry_t *get_next_base_queue_default(base_queue_t *queue) {
+queue_entry_t *get_next_base_queue_default(base_queue_t *queue, int engine_id) {
 
   if (queue->size) {
 
-    queue_entry_t * current = queue->queue_entries[queue->current];
+    queue_entry_t *current = queue->queue_entries[queue->current];
+
+    if (engine_id != queue->engine_id) {
+
+      return current;
+
+    }  // If some other engine grabs from the queue, don't update the queue's
+
+       // current entry
 
     // If we reach the end of queue, start from beginning
-    if (queue->current + 1 == queue->size)  { queue->current = 0; }
+    if ((queue->current + 1) == queue->size) {
+
+      queue->current = 0;
+
+    } else {
+
+      queue->current++;
+
+    }
+
     return current;
 
   } else {
+
     // Queue empty :(
     return NULL;
+
   }
 
 }
@@ -291,11 +301,13 @@ void add_feedback_queue_default(global_queue_t *  global_queue,
 
   global_queue->feedback_queues[global_queue->feedback_queues_num] =
       feedback_queue;
+  feedback_queue->base.engine_id = global_queue->base.engine_id;
   global_queue->feedback_queues_num++;
 
 }
 
-queue_entry_t *get_next_global_queue_default(base_queue_t *queue) {
+queue_entry_t *get_next_global_queue_default(base_queue_t *queue,
+                                             int           engine_id) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
@@ -307,8 +319,8 @@ queue_entry_t *get_next_global_queue_default(base_queue_t *queue) {
   if (fbck_idx != -1) {
 
     feedback_queue_t *feedback_queue = global_queue->feedback_queues[fbck_idx];
-    queue_entry_t *   next_entry =
-        feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base));
+    queue_entry_t *   next_entry = feedback_queue->base.funcs.get_next_in_queue(
+        &(feedback_queue->base), engine_id);
 
     if (next_entry) {
 
@@ -318,7 +330,7 @@ queue_entry_t *get_next_global_queue_default(base_queue_t *queue) {
 
     else {
 
-      return get_next_base_queue_default(queue);
+      return get_next_base_queue_default(queue, engine_id);
 
     }
 
@@ -327,7 +339,7 @@ queue_entry_t *get_next_global_queue_default(base_queue_t *queue) {
   else {
 
     // We don't have any more entries feedback queue, so base queue it is.
-    return get_next_base_queue_default(queue);
+    return get_next_base_queue_default(queue, engine_id);
 
   }
 

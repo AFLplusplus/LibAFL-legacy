@@ -31,7 +31,7 @@
 #include "alloc-inl.h"
 #include "afl-returns.h"
 
-#define MAX_WORKERS      256
+#define MAX_WORKERS 256
 
 // A generic sharememory region to be used by any functions (queues or feedbacks
 // too.)
@@ -67,13 +67,13 @@ typedef struct executor executor_t;
 
 typedef struct mutator mutator_t;
 
-
 /* A global array of all the registered engines */
-engine_t * registered_fuzz_workers[MAX_WORKERS];
-u64 fuzz_workers_count;
+engine_t *registered_fuzz_workers[MAX_WORKERS];
+u64       fuzz_workers_count;
 
-/* Function to register/add a fuzz worker (engine). To avoid race condition, add mutex here(Won't be performance problem). */
-static afl_ret_t register_fuzz_worker(engine_t * engine) {
+/* Function to register/add a fuzz worker (engine). To avoid race condition, add
+ * mutex here(Won't be performance problem). */
+static afl_ret_t register_fuzz_worker(engine_t *engine) {
 
   if (fuzz_workers_count >= MAX_WORKERS) { return AFL_RET_ARRAY_END; }
 
@@ -82,7 +82,6 @@ static afl_ret_t register_fuzz_worker(engine_t * engine) {
   return AFL_RET_SUCCESS;
 
 }
-
 
 void *insert_substring(
     u8 *buf, size_t len, void *token, size_t token_len,

@@ -43,6 +43,7 @@ struct engine_functions {
 
   void (*set_fuzz_one)(engine_t *, fuzz_one_t *);
   int (*add_feedback)(engine_t *, feedback_t *);
+  void (*set_global_queue)(engine_t *, global_queue_t *);
 
   u8 (*execute)(engine_t *, raw_input_t *);
   afl_ret_t (*load_testcases_from_dir)(
@@ -78,6 +79,7 @@ u64             get_start_time_default(engine_t *);
 
 void set_fuzz_one_default(engine_t *, fuzz_one_t *);
 int  add_feedback_default(engine_t *, feedback_t *);
+void set_global_queue_default(engine_t *engine, global_queue_t *global_queue);
 
 u8        execute_default(engine_t *, raw_input_t *);
 afl_ret_t load_testcases_from_dir_default(engine_t *, char *,

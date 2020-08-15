@@ -115,7 +115,7 @@ struct base_queue_functions {
   void (*remove_from_queue)(base_queue_t *);
 
   queue_entry_t *(*get)(base_queue_t *);
-  queue_entry_t *(*get_next_in_queue)(base_queue_t *);
+  queue_entry_t *(*get_next_in_queue)(base_queue_t *, int);
   queue_entry_t *(*get_queue_base)(base_queue_t *);
   size_t (*get_size)(base_queue_t *);
   char *(*get_dirpath)(base_queue_t *);
@@ -132,6 +132,7 @@ struct base_queue {
   queue_entry_t **            queue_entries;
   queue_entry_t *             base;
   u64                         current;
+  int                         engine_id;
   queue_entry_t *             end;
   size_t                      size;
   char *                      dirpath;
@@ -157,7 +158,7 @@ char *         get_dirpath_default(base_queue_t *);
 size_t         get_names_id_default(base_queue_t *);
 bool           get_save_to_files_default(base_queue_t *);
 void           set_directory_default(base_queue_t *, char *);
-queue_entry_t *get_next_base_queue_default(base_queue_t *queue);
+queue_entry_t *get_next_base_queue_default(base_queue_t *queue, int engine_id);
 
 static inline base_queue_t *afl_base_queue_create() {
 
@@ -254,7 +255,8 @@ int  global_schedule_default(global_queue_t *);
 
 // Function to get next entry from queue, we override the base_queue
 // implementation
-queue_entry_t *get_next_global_queue_default(base_queue_t *queue);
+queue_entry_t *get_next_global_queue_default(base_queue_t *queue,
+                                             int           engine_id);
 
 /* TODO: ADD defualt implementation for the schedule function based on random.
  */
