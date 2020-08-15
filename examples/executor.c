@@ -8,6 +8,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <math.h>
+#include <pthread.h>
 
 #include <sys/wait.h>
 #include <sys/time.h>
@@ -20,6 +21,7 @@
 #include "config.h"
 #include "types.h"
 #include "debug.h"
+#include "xxh3.h"
 #include "alloc-inl.h"
 #include "libaflpp.h"
 #include "libos.h"
@@ -86,6 +88,11 @@ typedef struct timeout_obs_channel {
   u32 avg_exec_time;
 
 } timeout_obs_channel_t;
+
+typedef struct thread_instance_args {
+  engine_t * engine;
+  char *in_dir;
+} thread_instance_args_t;
 
 /* Helper functions here */
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
@@ -608,18 +615,7 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
 
 }
 
-/* Main entry point function */
-int main(int argc, char **argv) {
-
-  if (argc < 3) {
-
-    FATAL(
-        "Usage: ./executor /input/directory "
-        "/out/file/path target [target_args]");
-
-  }
-
-  char *in_dir = argv[1];
+engine_t * initialize_engine_instance(char * target_path, char * out_file, char **extra_args) {
 
   /* Let's now create a simple map-based observation channel */
   map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE);
@@ -633,10 +629,10 @@ int main(int argc, char **argv) {
   timeout_channel->base.funcs.reset = timeout_channel_reset;
 
   /* We initialize the forkserver we want to use here. */
-  afl_forkserver_t *fsrv = fsrv_init(argv[3], argv[2]);
+  afl_forkserver_t *fsrv = fsrv_init(target_path, out_file);
   if (!fsrv) { FATAL("Could not initialize forkserver!"); }
   fsrv->exec_tmout = 10000;
-  fsrv->extra_args = &argv[3];
+  fsrv->extra_args = extra_args;
 
   fsrv->base.funcs.add_observation_channel(&fsrv->base,
                                            &trace_bits_channel->base);
@@ -717,13 +713,34 @@ int main(int argc, char **argv) {
   if (!stage) { FATAL("Error creating fuzzing stage"); }
   stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
 
+  return engine;
+
+}
+
+void * thread_run_instance(void * thread_args) {
+
+  thread_instance_args_t * thread_instance_args = (thread_instance_args_t *)thread_args;
+
+  engine_t * engine = (engine_t *)thread_instance_args->engine;
+
+  afl_forkserver_t * fsrv = (afl_forkserver_t *)engine->executor;
+  map_based_channel_t * trace_bits_channel = (map_based_channel_t *)fsrv->base.observors[0];
+  timeout_obs_channel_t * timeout_channel = (timeout_obs_channel_t *)fsrv->base.observors[1];
+
+  fuzzing_stage_t * stage = (fuzzing_stage_t *)engine->fuzz_one->stages[0];
+  scheduled_mutator_t * mutators_havoc = (scheduled_mutator_t *)stage->mutators[0];
+
+  maximize_map_feedback_t * coverage_feedback = (maximize_map_feedback_t *)(engine->feedbacks[0]);
+
   /* Seeding the random generator */
-  srand(time(NULL));
+  pthread_t self_id = pthread_self();
+  u32 random_seed = XXH32(&self_id, sizeof(pthread_t), rand_below(0xffff));
+  srand(random_seed);
 
   /* Let's reduce the timeout initially to fill the queue */
   fsrv->exec_tmout = 20;
   /* Now we can simply load the testcases from the directory given */
-  afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, in_dir, NULL);
+  afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, thread_instance_args->in_dir, NULL);
   if (ret != AFL_RET_SUCCESS) {
 
     PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret));
@@ -748,15 +765,52 @@ int main(int argc, char **argv) {
   afl_observation_channel_delete(&timeout_channel->base);
   afl_scheduled_mutator_delete(mutators_havoc);
   afl_fuzz_stage_delete(stage);
-  afl_fuzz_one_delete(fuzz_one);
+  afl_fuzz_one_delete(engine->fuzz_one);
   free(coverage_feedback->virgin_bits);
-  afl_feedback_delete(&coverage_feedback->base);
-  afl_feedback_delete(timeout_feedback);
-  afl_feedback_queue_delete(coverage_feedback_queue);
-  afl_feedback_queue_delete(timeout_feedback_queue);
-  afl_global_queue_delete(global_queue);
+  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+    afl_feedback_delete((feedback_t *)engine->feedbacks[i]);
+  }
+  for (size_t i = 0; i < engine->global_queue->feedback_queues_num; ++i) {
+    afl_feedback_queue_delete(engine->global_queue->feedback_queues[i]);
+  }
+  afl_global_queue_delete(engine->global_queue);
   afl_engine_delete(engine);
   return 0;
+}
 
+
+/* Main entry point function */
+int main(int argc, char **argv) {
+
+  if (argc < 3) {
+
+    FATAL(
+        "Usage: ./executor /input/directory "
+        "/out/file/path target [target_args]");
+
+  }
+
+  char *in_dir = argv[1];
+  char *target_path = argv[3];
+  char *out_file = argv[2];
+
+  engine_t * engine_instance = initialize_engine_instance(target_path, out_file, NULL);
+  thread_instance_args_t * thread_args = calloc(1, sizeof(thread_instance_args_t));
+  thread_args->engine = engine_instance;
+  thread_args->in_dir = in_dir;
+  pthread_t t1;
+  int s = pthread_create(&t1, NULL, thread_run_instance, thread_args);
+  if (!s) { OKF("Thread created with thread id %lu", t1); }
+
+  engine_instance = initialize_engine_instance(target_path, out_file, NULL);
+  thread_args = calloc(1, sizeof(thread_instance_args_t));
+  thread_args->engine = engine_instance;
+  thread_args->in_dir = in_dir;
+  pthread_t t2;
+  s = pthread_create(&t2, NULL, thread_run_instance, thread_args);
+  if (!s) { OKF("Thread created with thread id %lu", t2); }
+
+  pthread_join(t1, NULL);
+  pthread_join(t2, NULL);
 }
 
