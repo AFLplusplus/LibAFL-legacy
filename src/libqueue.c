@@ -104,7 +104,7 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->fuzz_started = false;
   queue->size = 0;
   queue->base = NULL;
-  queue->current = NULL;
+  queue->current = 0;
 
   queue->funcs.add_to_queue = add_to_queue_default;
   queue->funcs.get_queue_base = get_queue_base_default;
@@ -114,6 +114,9 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->funcs.get_save_to_files = get_save_to_files_default;
   queue->funcs.set_directory = set_directory_default;
   queue->funcs.get_next_in_queue = get_next_base_queue_default;
+  queue->shared_mem = calloc(1, sizeof(afl_sharedmem_t));
+
+  queue->queue_entries = (queue_entry_t **)afl_sharedmem_init(queue->shared_mem, MAP_SIZE);
 
   return AFL_RET_SUCCESS;
 
@@ -139,7 +142,7 @@ void afl_base_queue_deinit(base_queue_t *queue) {
   }
 
   queue->base = NULL;
-  queue->current = NULL;
+  queue->current = 0;
   queue->size = 0;
   queue->dirpath = NULL;
   queue->fuzz_started = false;
@@ -151,14 +154,15 @@ void add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   /* Add entry to the end of the queue */
 
-  if (!queue->size) {
-    queue->base = queue->end = entry;
-  } else {
-    queue->end->next = entry;
-    entry->prev = queue->end;
-    queue->end = entry;
-  }
+  // if (!queue->size) {
+  //   queue->base = queue->end = entry;
+  // } else {
+  //   queue->end->next = entry;
+  //   entry->prev = queue->end;
+  //   queue->end = entry;
+  // }
   /*TODO: Need to add mutex stuff here. */
+  queue->queue_entries[queue->size] = entry;
 
   queue->size++;
 
@@ -214,28 +218,18 @@ void set_directory_default(base_queue_t *queue, char *new_dirpath) {
 
 queue_entry_t *get_next_base_queue_default(base_queue_t *queue) {
 
-  if (queue->current) {
+  if (queue->size) {
 
-    queue_entry_t *current = queue->current;
-    queue->current = current->next;
+    queue_entry_t * current = queue->queue_entries[queue->current];
 
-    queue->fuzz_started = true;
-
-    if (current == queue->end) { queue->current = queue->base; } // We start from the queue base again
-
+    // If we reach the end of queue, start from beginning
+    if (queue->current + 1 == queue->size)  { queue->current = 0; }
     return current;
 
-  } else if (queue->base) {
-
-    // We've just started fuzzing, we start from the base of the queue
-    queue->current = queue->base->next;
-    queue->fuzz_started = true;
-    return queue->base;
-
+  } else {
+    // Queue empty :(
+    return NULL;
   }
-
-  // Queue empty :(
-  return NULL;
 
 }
 

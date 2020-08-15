@@ -19,10 +19,11 @@ test: executor target
 	echo "CCCCCC" > ./in/c
 	LD_LIBRARY_PATH=.. ./executor ./in ./out ./target
 	rm -rf ./in
-	rm -rf ./out
+	rm -rf ./out-*
 	rm -rf ./crashes-* 2>/dev/null || trues
 
 clean:
 	rm out ./executor ./target ./success 2>/dev/null || true
 	rm -rf ./in 2>/dev/null	|| true
 	rm -rf ./crashes-* 2>/dev/null || true
+	rm -rf ./out-*

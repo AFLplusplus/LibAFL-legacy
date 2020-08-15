@@ -629,7 +629,10 @@ engine_t * initialize_engine_instance(char * target_path, char * out_file, char 
   timeout_channel->base.funcs.reset = timeout_channel_reset;
 
   /* We initialize the forkserver we want to use here. */
-  afl_forkserver_t *fsrv = fsrv_init(target_path, out_file);
+  (void)  out_file;
+  char * output_file = calloc(50, 1);
+  snprintf(output_file, 50, "out-%d", rand_below(0xFFFFFFFF));
+  afl_forkserver_t *fsrv = fsrv_init(target_path, output_file);
   if (!fsrv) { FATAL("Could not initialize forkserver!"); }
   fsrv->exec_tmout = 10000;
   fsrv->extra_args = extra_args;
@@ -747,7 +750,7 @@ void * thread_run_instance(void * thread_args) {
 
   }
 
-  OKF("Processed %llu input files.", fsrv->total_execs);
+  OKF("Processed %llu input files.", engine->executions);
 
   engine->funcs.loop(engine);
 
@@ -810,12 +813,14 @@ int main(int argc, char **argv) {
   s = pthread_create(&t2, NULL, thread_run_instance, thread_args);
   if (!s) { OKF("Thread created with thread id %lu", t2); }
 
+  u64 time_elapsed = 1;
 
   while(true) {
     sleep(1);
     u64 execs = engine_instance->executions + engine_instance_two->executions;
     u64 crashes = engine_instance->crashes + engine_instance_two->crashes;
-    printf("Execs: %llu\tCrashes: %llu\r", execs, crashes);
+    printf("Execs: %llu\tCrashes: %llu\tExecs per second: %llu\r", execs, crashes, execs/time_elapsed);
+    time_elapsed++;
     fflush(0);
   }
 

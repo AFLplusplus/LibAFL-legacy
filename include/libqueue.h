@@ -128,8 +128,10 @@ struct base_queue_functions {
 
 struct base_queue {
 
+  afl_sharedmem_t *           shared_mem;
+  queue_entry_t **            queue_entries;
   queue_entry_t *             base;
-  queue_entry_t *             current;
+  u64                         current;
   queue_entry_t *             end;
   size_t                      size;
   char *                      dirpath;
