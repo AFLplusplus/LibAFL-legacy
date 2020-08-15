@@ -803,7 +803,14 @@ int main(int argc, char **argv) {
   thread_args->in_dir = in_dir;
   pthread_t t1;
   int s = pthread_create(&t1, NULL, thread_run_instance, thread_args);
-  if (!s) { OKF("Thread created with thread id %lu", t1); }
+  if (!s) { 
+    OKF("Thread created with thread id %lu", t1);
+    if (register_fuzz_worker(engine_instance) != AFL_RET_SUCCESS) { FATAL("Error registering fuzzing instance"); } 
+  } else {
+
+    FATAL("Error creating thread");
+
+  }
 
   engine_t * engine_instance_two = initialize_engine_instance(target_path, out_file, NULL);
   thread_args = calloc(1, sizeof(thread_instance_args_t));
@@ -811,7 +818,14 @@ int main(int argc, char **argv) {
   thread_args->in_dir = in_dir;
   pthread_t t2;
   s = pthread_create(&t2, NULL, thread_run_instance, thread_args);
-  if (!s) { OKF("Thread created with thread id %lu", t2); }
+  if (!s) { 
+    OKF("Thread created with thread id %lu", t2);
+    if (register_fuzz_worker(engine_instance_two) != AFL_RET_SUCCESS) { FATAL("Error registering fuzzing instance"); } 
+  } else {
+
+    FATAL("Error creating thread");
+
+  }
 
   u64 time_elapsed = 1;
 
