@@ -62,7 +62,7 @@ typedef struct afl_forkserver {
   char *out_file,                       /* File to fuzz, if any             */
       *target_path;                     /* Path of the target               */
 
-  char **extra_args;
+  char **target_args;
 
   u32 last_run_timed_out;               /* Traced process timed out?        */
 
@@ -100,7 +100,7 @@ typedef struct thread_instance_args {
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 
 /* Functions related to the forkserver defined above */
-static afl_forkserver_t *fsrv_init(char *target_path, char *out_file);
+static afl_forkserver_t *fsrv_init(char *target_path, char ** extra_target_args);
 static exit_type_t       fsrv_run_target(executor_t *fsrv_executor);
 static u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
 static afl_ret_t fsrv_start(executor_t *fsrv_executor);
@@ -208,7 +208,7 @@ restart_select:
 }
 
 /* Function to simple initialize the forkserver */
-afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
+afl_forkserver_t *fsrv_init(char *target_path, char ** target_args) {
 
   afl_forkserver_t *fsrv = calloc(1, sizeof(afl_forkserver_t));
   if (!fsrv) { return NULL; }
@@ -224,26 +224,42 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
   fsrv->base.funcs.init_cb = fsrv_start;
   fsrv->base.funcs.place_input_cb = fsrv_place_input;
   fsrv->base.funcs.run_target_cb = fsrv_run_target;
+  fsrv->use_stdin = 1;
+
 
   fsrv->target_path = target_path;
-  fsrv->out_file = out_file;
+  fsrv->target_args = target_args;
+  fsrv->out_file = calloc(1, 50);
+  snprintf(fsrv->out_file, 50, "out-%d", rand_below(0xFFFF));
+
+  char ** target_args_copy = target_args;
+  while (*target_args_copy != NULL ) {
+    if (!strcmp(*target_args_copy, "@@")) {
+      fsrv->use_stdin = 0;
+      *target_args_copy = fsrv->out_file;  // Replace @@ with the output file name
+      break;
+    }
+    target_args_copy++;
+  }
 
   /* FD for the stdin of the child process */
-  if (!fsrv->out_file) {
+  if (fsrv->use_stdin) {
+    if (!fsrv->out_file) {
 
-    fsrv->out_fd = -1;
+      fsrv->out_fd = -1;
 
-  } else {
+    } else {
 
-    fsrv->out_fd = open((char *)fsrv->out_file, O_WRONLY | O_CREAT, 0600);
-    if (!fsrv->out_fd) {
+      fsrv->out_fd = open((char *)fsrv->out_file, O_WRONLY | O_CREAT, 0600);
+      if (!fsrv->out_fd) {
 
-      afl_executor_deinit(&fsrv->base);
-      free(fsrv);
-      return NULL;
+        afl_executor_deinit(&fsrv->base);
+        free(fsrv);
+        return NULL;
+
+      }
 
     }
-
   }
 
   fsrv->out_dir_fd = -1;
@@ -257,9 +273,6 @@ afl_forkserver_t *fsrv_init(char *target_path, char *out_file) {
     return NULL;
 
   }
-
-  /* Settings */
-  fsrv->use_stdin = 1;
 
   /* exec related stuff */
   fsrv->child_pid = -1;
@@ -293,12 +306,13 @@ static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
 
     setsid();
 
-    fsrv->out_fd = open((char *)fsrv->out_file, O_RDONLY | O_CREAT, 0600);
-    if (!fsrv->out_fd) { PFATAL("Could not open outfile in child"); }
+    if (fsrv->use_stdin) {
+      fsrv->out_fd = open((char *)fsrv->out_file, O_RDONLY | O_CREAT, 0600);
+      if (!fsrv->out_fd) { PFATAL("Could not open outfile in child"); }
 
-    dup2(fsrv->out_fd, 0);
-    close(fsrv->out_fd);
-
+      dup2(fsrv->out_fd, 0);
+      close(fsrv->out_fd);
+    }
     dup2(fsrv->dev_null_fd, 1);
     dup2(fsrv->dev_null_fd, 2);
 
@@ -312,7 +326,7 @@ static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
     close(st_pipe[0]);
     close(st_pipe[1]);
 
-    execv(fsrv->target_path, fsrv->extra_args);
+    execv(fsrv->target_path, fsrv->target_args);
 
     /* Use a distinctive bitmap signature to tell the parent about execv()
        falling through. */
@@ -376,7 +390,7 @@ static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
 
   if (fsrv->trace_bits == (u8 *)0xdeadbeef) {
 
-    WARNF("Unable to execute target application ('%s')", fsrv->extra_args[0]);
+    WARNF("Unable to execute target application ('%s')", fsrv->target_args[0]);
     return AFL_RET_EXEC_ERROR;
 
   }
@@ -391,6 +405,8 @@ u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input) {
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
+  if (!fsrv->use_stdin) { fsrv->out_fd = open(fsrv->out_file, O_RDWR | O_CREAT | O_EXCL, 00600); }
+
   ssize_t write_len = write(fsrv->out_fd, input->bytes, input->len);
 
   if (write_len < 0 || (size_t)write_len != input->len) {
@@ -400,6 +416,8 @@ u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input) {
   }
 
   fsrv->base.current_input = input;
+
+  if (!fsrv->use_stdin) { close(fsrv->out_fd); }
 
   return write_len;
 
@@ -467,6 +485,7 @@ static exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
   if (!WIFSTOPPED(fsrv->child_status)) { fsrv->child_pid = 0; }
 
   fsrv->total_execs++;
+  if (!fsrv->use_stdin) { unlink(fsrv->out_file); }
 
   /* Any subsequent operations on fsrv->trace_bits must not be moved by the
      compiler below this point. Past this location, fsrv->trace_bits[]
@@ -617,8 +636,8 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
 
 }
 
-engine_t *initialize_engine_instance(char *target_path, char *out_file,
-                                     char **extra_args) {
+engine_t *initialize_engine_instance(char *target_path,
+                                     char **target_args) {
 
   /* Let's now create a simple map-based observation channel */
   map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE);
@@ -632,13 +651,13 @@ engine_t *initialize_engine_instance(char *target_path, char *out_file,
   timeout_channel->base.funcs.reset = timeout_channel_reset;
 
   /* We initialize the forkserver we want to use here. */
-  (void)out_file;
+  // (void)out_file;
   char *output_file = calloc(50, 1);
   snprintf(output_file, 50, "out-%d", rand_below(0xFFFFFFFF));
-  afl_forkserver_t *fsrv = fsrv_init(target_path, output_file);
+  afl_forkserver_t *fsrv = fsrv_init(target_path, target_args);
   if (!fsrv) { FATAL("Could not initialize forkserver!"); }
   fsrv->exec_tmout = 10000;
-  fsrv->extra_args = extra_args;
+  fsrv->target_args = target_args;
 
   fsrv->base.funcs.add_observation_channel(&fsrv->base,
                                            &trace_bits_channel->base);
@@ -800,18 +819,20 @@ int main(int argc, char **argv) {
 
     FATAL(
         "Usage: ./executor /input/directory "
-        "/out/file/path target [target_args]");
+        "target [target_args]");
 
   }
 
   char *in_dir = argv[1];
   char *target_path = argv[3];
-  char *out_file = argv[2];
+  // char *out_file = argv[2];
 
-  for (size_t i = 0; i < 4; ++i) {
+  for (size_t i = 0; i < 1; ++i) {
+
+    char ** target_args = argv_cpy_dup(argc, argv);
 
     engine_t *engine_instance =
-        initialize_engine_instance(target_path, out_file, NULL);
+        initialize_engine_instance(target_path, &target_args[3]);
     thread_instance_args_t *thread_args =
         calloc(1, sizeof(thread_instance_args_t));
     thread_args->engine = engine_instance;

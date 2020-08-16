@@ -132,7 +132,7 @@ int rand_below(size_t limit) {
 
 }
 
-void *insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
+void *afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
                        size_t offset) {
 
   void *new_buf = calloc(len + token_len + 1, 1);
@@ -149,7 +149,7 @@ void *insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
 /* This function inserts given number of bytes at a certain offset in a string
   and returns a ptr to the newly allocated memory. NOTE: You have to free the
   original memory(if malloced) yourself*/
-u8 *insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len,
+u8 *afl_insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len,
                  size_t offset) {
 
   u8 *new_buf = calloc(len + insert_len + 1, 1);
@@ -164,7 +164,7 @@ u8 *insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len,
 
 }
 
-size_t erase_bytes(u8 *buf, size_t len, size_t offset, size_t remove_len) {
+size_t afl_erase_bytes(u8 *buf, size_t len, size_t offset, size_t remove_len) {
 
   memmove(buf + offset, buf + offset + remove_len, len - offset - remove_len);
   memset(buf + len - remove_len, 0x0, remove_len);

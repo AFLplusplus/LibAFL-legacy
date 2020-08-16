@@ -287,7 +287,7 @@ void delete_bytes_mutation(raw_input_t *input) {
   size_t del_from = rand_below(size - del_len + 1);
 
   /* We delete the bytes and then update the new input length*/
-  input->len = erase_bytes(input->bytes, size, del_from, del_len);
+  input->len = afl_erase_bytes(input->bytes, size, del_from, del_len);
 
 }
 
@@ -309,7 +309,7 @@ void clone_bytes_mutation(raw_input_t *input) {
     clone_len = choose_block_len(size);
     clone_from = rand_below(size - clone_len + 1);
 
-    input->bytes = insert_substring(
+    input->bytes = afl_insert_substring(
         input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
     input->len += clone_len;
 
@@ -318,7 +318,7 @@ void clone_bytes_mutation(raw_input_t *input) {
     clone_len = choose_block_len(HAVOC_BLK_XL);
 
     input->bytes =
-        insert_bytes(input->bytes, size, rand_below(255), clone_len, clone_to);
+        afl_insert_bytes(input->bytes, size, rand_below(255), clone_len, clone_to);
 
     input->len += clone_len;
 

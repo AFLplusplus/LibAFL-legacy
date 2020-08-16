@@ -83,17 +83,36 @@ static afl_ret_t register_fuzz_worker(engine_t *engine) {
 
 }
 
-void *insert_substring(
+void *afl_insert_substring(
     u8 *buf, size_t len, void *token, size_t token_len,
     size_t offset);  // Returns new buf containing the substring token
 int    rand_below(size_t limit);
-size_t erase_bytes(
+size_t afl_erase_bytes(
     u8 *buf, size_t len, size_t offset,
     size_t remove_len);  // Erases remove_len number of bytes from offset
-u8 *insert_bytes(u8 *buf, size_t len, u8 byte,
+u8 *afl_insert_bytes(u8 *buf, size_t len, u8 byte,
                  size_t insert_len,  // Inserts a certain length of a byte
                                      // value (byte) at offset in buf
                  size_t offset);
+
+
+static char **argv_cpy_dup(int argc, char **argv) {
+
+  int i = 0;
+
+  char **ret = calloc(1, (argc + 1) * sizeof(char *));
+
+  for (i = 0; i < argc; i++) {
+
+    ret[i] = strdup(argv[i]);
+
+  }
+
+  ret[i] = NULL;
+
+  return ret;
+
+}
 
 #endif
 
