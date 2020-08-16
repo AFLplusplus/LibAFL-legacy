@@ -824,15 +824,15 @@ int main(int argc, char **argv) {
   }
 
   char *in_dir = argv[1];
-  char *target_path = argv[3];
+  char *target_path = argv[2];
   // char *out_file = argv[2];
 
-  for (size_t i = 0; i < 1; ++i) {
+  for (size_t i = 0; i < 2; ++i) {
 
     char ** target_args = argv_cpy_dup(argc, argv);
 
     engine_t *engine_instance =
-        initialize_engine_instance(target_path, &target_args[3]);
+        initialize_engine_instance(target_path, &target_args[2]);
     thread_instance_args_t *thread_args =
         calloc(1, sizeof(thread_instance_args_t));
     thread_args->engine = engine_instance;
@@ -870,8 +870,8 @@ int main(int argc, char **argv) {
 
     }
 
-    SAYF("Execs: %llu\tCrashes: %llu\tExecs per second: %llu\r", execs, crashes,
-         execs / time_elapsed);
+    SAYF("Execs: %llu\tCrashes: %llu\tExecs per second: %llu  time elapsed: %llu\r", execs, crashes,
+         execs / time_elapsed, time_elapsed);
     time_elapsed++;
     fflush(0);
 
