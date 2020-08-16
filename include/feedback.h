@@ -27,7 +27,7 @@
 #ifndef LIBFEEDBACK_H
 #define LIBFEEDBACK_H
 
-#include "libqueue.h"
+#include "queue.h"
 
 typedef struct feedback feedback_t;
 

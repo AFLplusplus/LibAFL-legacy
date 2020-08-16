@@ -23,10 +23,10 @@
 #include <dirent.h>
 #include <time.h>
 
-#include "libengine.h"
+#include "engine.h"
 #include "afl-returns.h"
-#include "libfuzzone.h"
-#include "libos.h"
+#include "fuzzone.h"
+#include "os.h"
 
 afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
                           fuzz_one_t *fuzz_one, global_queue_t *global_queue) {

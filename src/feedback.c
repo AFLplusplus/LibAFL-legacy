@@ -24,7 +24,7 @@
 
  */
 
-#include "libfeedback.h"
+#include "feedback.h"
 
 afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue) {
 

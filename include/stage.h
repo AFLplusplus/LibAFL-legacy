@@ -25,7 +25,7 @@
 
 #define MAX_STAGE_MUTATORS 10
 
-#include "libinput.h"
+#include "input.h"
 #include "list.h"
 
 struct stage_functions {

@@ -29,7 +29,7 @@
 
 #define MAX_FEEDBACK_QUEUES 10
 
-#include "libinput.h"
+#include "input.h"
 #include "list.h"
 #include <stdbool.h>
 

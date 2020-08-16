@@ -23,13 +23,13 @@
 #include "debug.h"
 #include "xxh3.h"
 #include "alloc-inl.h"
-#include "libaflpp.h"
-#include "libos.h"
-#include "libfeedback.h"
-#include "libengine.h"
-#include "libmutator.h"
-#include "libfuzzone.h"
-#include "libstage.h"
+#include "aflpp.h"
+#include "os.h"
+#include "feedback.h"
+#include "engine.h"
+#include "mutator.h"
+#include "fuzzone.h"
+#include "stage.h"
 
 #define SUPER_INTERESTING 0.5
 #define VERY_INTERESTING 0.4

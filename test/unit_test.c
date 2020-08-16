@@ -22,7 +22,7 @@ extern void mock_assert(const int result, const char *const expression,
 #define assert(expression) \
   mock_assert((int)(expression), #expression, __FILE__, __LINE__);
 
-#include "libcommon.h"
+#include "common.h"
 
 /* remap exit -> assert, then use cmocka's mock_assert
     (compile with `--wrap=exit`) */
@@ -99,7 +99,7 @@ static void test_erase_bytes(void **state) {
 
 /* Unittests for libinput based default functions */
 
-#include "libinput.h"
+#include "input.h"
 
 void test_input_copy(void **state) {
 
@@ -179,7 +179,7 @@ void test_input_save_to_file(void **state) {
 
 /* Unittest for default engine functions */
 
-#include "libengine.h"
+#include "engine.h"
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -288,7 +288,7 @@ void test_engine_load_testcase_from_dir_default(void **state) {
 
 /* Unittests for the basic mutators and mutator functions we added */
 
-#include "libmutator.h"
+#include "mutator.h"
 #include <time.h>
 
 void test_basic_mutator_functions(void **state) {
@@ -370,7 +370,7 @@ void test_basic_mutator_functions(void **state) {
 
 /* Unittests for queue and queue entry based stuff */
 
-#include "libqueue.h"
+#include "queue.h"
 
 void test_queue_set_directory(void **state) {
 

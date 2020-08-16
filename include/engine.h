@@ -26,10 +26,10 @@
 #ifndef LIBENGINE_H
 #define LIBENGINE_H
 
-#include "libcommon.h"
-#include "libqueue.h"
-#include "libaflpp.h"
-#include "libfeedback.h"
+#include "common.h"
+#include "queue.h"
+#include "aflpp.h"
+#include "feedback.h"
 #include "afl-returns.h"
 
 #define MAX_FEEDBACKS 10

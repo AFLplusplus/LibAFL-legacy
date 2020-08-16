@@ -27,11 +27,11 @@
 #ifndef LIBAFLPP_H
 #define LIBAFLPP_H
 
-#include "libcommon.h"
-#include "libobservationchannel.h"
-#include "libinput.h"
+#include "common.h"
+#include "observationchannel.h"
+#include "input.h"
 #include "list.h"
-#include "libos.h"
+#include "os.h"
 #include <types.h>
 #include "afl-returns.h"
 

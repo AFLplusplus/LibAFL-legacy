@@ -27,7 +27,7 @@
 #ifndef LIBOBSERVATIONCHANNEL_H
 #define LIBOBSERVATIONCHANNEL_H
 
-#include "libcommon.h"
+#include "common.h"
 #include "afl-returns.h"
 
 typedef struct observation_channel observation_channel_t;

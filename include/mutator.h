@@ -26,7 +26,7 @@
 
 #define MAX_MUTATORS_COUNT 10
 
-#include "libinput.h"
+#include "input.h"
 #include "list.h"
 
 // Mutator struct will have many internal functions like mutate, trimming etc.

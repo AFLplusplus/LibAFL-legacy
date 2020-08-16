@@ -20,10 +20,10 @@
 
  */
 
-#include "libstage.h"
-#include "libengine.h"
-#include "libfuzzone.h"
-#include "libmutator.h"
+#include "stage.h"
+#include "engine.h"
+#include "fuzzone.h"
+#include "mutator.h"
 
 afl_ret_t afl_stage_init(stage_t *stage, engine_t *engine) {
 

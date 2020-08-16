@@ -20,7 +20,7 @@
 
  */
 
-#include "libaflpp.h"
+#include "aflpp.h"
 #include "list.h"
 #include "stdbool.h"
 #include "afl-returns.h"

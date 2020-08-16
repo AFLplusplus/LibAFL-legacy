@@ -29,7 +29,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "libinput.h"
+#include "input.h"
 #include "afl-returns.h"
 
 afl_ret_t afl_input_init(raw_input_t *input) {

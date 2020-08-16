@@ -20,10 +20,10 @@
 
  */
 
-#include "libqueue.h"
-#include "libfuzzone.h"
-#include "libengine.h"
-#include "libstage.h"
+#include "queue.h"
+#include "fuzzone.h"
+#include "engine.h"
+#include "stage.h"
 #include "list.h"
 
 afl_ret_t afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {

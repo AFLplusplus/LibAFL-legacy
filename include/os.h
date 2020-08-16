@@ -1,8 +1,8 @@
 #ifndef LIBOS_H
 #define LIBOS_H
 
-#include "libcommon.h"
-#include "libinput.h"
+#include "common.h"
+#include "input.h"
 
 #include <stdbool.h>
 #include <sys/types.h>

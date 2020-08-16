@@ -25,7 +25,7 @@
 #ifndef LIBFUZZONE_H
 #define LIBFUZZONE_H
 
-#include "libcommon.h"
+#include "common.h"
 #include "list.h"
 
 #define MAX_STAGES 5

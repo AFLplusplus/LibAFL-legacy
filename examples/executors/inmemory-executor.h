@@ -1,4 +1,4 @@
-#include "libaflpp.h"
+#include "aflpp.h"
 
 /* Function ptr for the harness */
 typedef exit_type_t (*harness_function_type)(u8* data, size_t size);

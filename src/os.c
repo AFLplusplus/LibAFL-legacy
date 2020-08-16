@@ -5,7 +5,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
-#include "libos.h"
+#include "os.h"
 #include "xxh3.h"
 
 // Crash related functions

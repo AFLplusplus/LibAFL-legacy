@@ -27,7 +27,7 @@
 #ifndef LIBINPUT_H
 #define LIBINPUT_H
 
-#include "libcommon.h"
+#include "common.h"
 #include "afl-returns.h"
 
 #define DEFAULT_INPUT_LEN 100

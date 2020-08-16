@@ -24,7 +24,7 @@
 
  */
 
-#include "libobservationchannel.h"
+#include "observationchannel.h"
 #include "afl-returns.h"
 
 afl_ret_t afl_observation_channel_init(observation_channel_t *channel) {

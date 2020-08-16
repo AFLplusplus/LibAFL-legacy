@@ -24,9 +24,9 @@
 
  */
 
-#include "libqueue.h"
-#include "libfeedback.h"
-#include "libengine.h"
+#include "queue.h"
+#include "feedback.h"
+#include "engine.h"
 
 // We start with the implementation of queue_entry functions here.
 afl_ret_t afl_queue_entry_init(queue_entry_t *entry, raw_input_t *input) {
