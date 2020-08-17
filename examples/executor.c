@@ -884,8 +884,8 @@ int main(int argc, char **argv) {
     }
 
     SAYF(
-        "Execs: %llu\tCrashes: %llu\tExecs per second: %llu  time elapsed: "
-        "%llu\r",
+        "Execs: %8llu\tCrashes: %4llu\tExecs per second: %5llu  time elapsed: "
+        "%8llu\r",
         execs, crashes, execs / time_elapsed, time_elapsed);
     time_elapsed++;
     fflush(0);

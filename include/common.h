@@ -27,6 +27,8 @@
 #ifndef LIBCOMMON_H
 #define LIBCOMMON_H
 
+#include <pthread.h>
+
 #include "types.h"
 #include "alloc-inl.h"
 #include "afl-returns.h"
@@ -68,6 +70,7 @@ typedef struct executor executor_t;
 typedef struct mutator mutator_t;
 
 /* A global array of all the registered engines */
+pthread_mutex_t fuzz_worker_array_lock; 
 engine_t *registered_fuzz_workers[MAX_WORKERS];
 u64       fuzz_workers_count;
 
@@ -75,10 +78,17 @@ u64       fuzz_workers_count;
  * mutex here(Won't be performance problem). */
 static afl_ret_t register_fuzz_worker(engine_t *engine) {
 
-  if (fuzz_workers_count >= MAX_WORKERS) { return AFL_RET_ARRAY_END; }
+  // Critical section. Needs a lock. Called very rarely, thus won't affect perf.
+  pthread_mutex_lock(&fuzz_worker_array_lock);
+  
+  if (fuzz_workers_count >= MAX_WORKERS) {
+    pthread_mutex_unlock(&fuzz_worker_array_lock); 
+    return AFL_RET_ARRAY_END; }
 
   registered_fuzz_workers[fuzz_workers_count] = engine;
   fuzz_workers_count++;
+  // Unlock the mutex
+  pthread_mutex_unlock(&fuzz_worker_array_lock);
   return AFL_RET_SUCCESS;
 
 }

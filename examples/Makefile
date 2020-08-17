@@ -11,7 +11,7 @@ target: ./target.c
 executor: ./executor.c
 	$(CC) executor.c -o executor $(CFLAGS)
 
-test: executor target
+test: clean executor target
 	make -C ..
 	mkdir ./in || true
 	echo "AAAAAA" > ./in/a
