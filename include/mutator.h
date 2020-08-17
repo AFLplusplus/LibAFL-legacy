@@ -41,10 +41,13 @@ struct mutator_functions {
   void (*init)(mutator_t *);  // Sort of like the afl_custom_init we have for
                               // custom mutators?
 
-  size_t (*trim)(mutator_t *,raw_input_t *);  // The params here are in_buf and out_buf.
+  size_t (*trim)(mutator_t *,
+                 raw_input_t *);  // The params here are in_buf and out_buf.
 
   size_t (*mutate)(mutator_t *, raw_input_t *);  // Mutate function
-  u8 (*custom_queue_get)(mutator_t *, raw_input_t *);   // Checks if the queue entry is to be fuzzed or not
+  u8 (*custom_queue_get)(
+      mutator_t *,
+      raw_input_t *);  // Checks if the queue entry is to be fuzzed or not
   void (*custom_queue_new_entry)(mutator_t *, queue_entry_t *);
 
   stage_t *(*get_stage)(mutator_t *);

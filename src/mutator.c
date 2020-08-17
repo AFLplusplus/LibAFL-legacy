@@ -317,8 +317,8 @@ void clone_bytes_mutation(raw_input_t *input) {
 
     clone_len = choose_block_len(HAVOC_BLK_XL);
 
-    input->bytes =
-        afl_insert_bytes(input->bytes, size, rand_below(255), clone_len, clone_to);
+    input->bytes = afl_insert_bytes(input->bytes, size, rand_below(255),
+                                    clone_len, clone_to);
 
     input->len += clone_len;
 

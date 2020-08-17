@@ -156,16 +156,32 @@ void afl_base_queue_deinit(base_queue_t *queue) {
 /* *** Possible error cases here? *** */
 void add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
-  // Before we add the entry to the queue, we call the custom mutators get_next_in_queue function, so that it can gain some extra info from the fuzzed queue(especially helpful in case of grammar mutator, e.g see hogfuzz mutator AFL++)
+  if (!entry->input) {
 
-  fuzz_one_t * fuzz_one = queue->engine->fuzz_one;
+    // Never add an entry with NULL input, something's wrong!
+    WARNF("Queue entry with NULL input");
+    return;
+
+  }
+
+  // Before we add the entry to the queue, we call the custom mutators
+  // get_next_in_queue function, so that it can gain some extra info from the
+  // fuzzed queue(especially helpful in case of grammar mutator, e.g see hogfuzz
+  // mutator AFL++)
+
+  fuzz_one_t *fuzz_one = queue->engine->fuzz_one;
 
   for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
 
-    fuzzing_stage_t * stage = (fuzzing_stage_t *)fuzz_one->stages[i];
+    fuzzing_stage_t *stage = (fuzzing_stage_t *)fuzz_one->stages[i];
     for (size_t j = 0; j < stage->mutators_count; ++j) {
 
-      if (stage->mutators[j]->funcs.custom_queue_new_entry) { stage->mutators[j]->funcs.custom_queue_new_entry(stage->mutators[j], entry); }
+      if (stage->mutators[j]->funcs.custom_queue_new_entry) {
+
+        stage->mutators[j]->funcs.custom_queue_new_entry(stage->mutators[j],
+                                                         entry);
+
+      }
 
     }
 
@@ -237,7 +253,7 @@ queue_entry_t *get_next_base_queue_default(base_queue_t *queue, int engine_id) {
 
     }  // If some other engine grabs from the queue, don't update the queue's
 
-       // current entry
+    // current entry
 
     // If we reach the end of queue, start from beginning
     if ((queue->current + 1) == queue->size) {

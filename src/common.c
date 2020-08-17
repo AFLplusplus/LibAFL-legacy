@@ -133,7 +133,7 @@ int rand_below(size_t limit) {
 }
 
 void *afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
-                       size_t offset) {
+                           size_t offset) {
 
   void *new_buf = calloc(len + token_len + 1, 1);
   memmove(new_buf, buf, offset);
@@ -150,7 +150,7 @@ void *afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
   and returns a ptr to the newly allocated memory. NOTE: You have to free the
   original memory(if malloced) yourself*/
 u8 *afl_insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len,
-                 size_t offset) {
+                     size_t offset) {
 
   u8 *new_buf = calloc(len + insert_len + 1, 1);
 

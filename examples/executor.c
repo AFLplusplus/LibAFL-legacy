@@ -100,7 +100,7 @@ typedef struct thread_instance_args {
 static u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms);
 
 /* Functions related to the forkserver defined above */
-static afl_forkserver_t *fsrv_init(char *target_path, char ** extra_target_args);
+static afl_forkserver_t *fsrv_init(char *target_path, char **extra_target_args);
 static exit_type_t       fsrv_run_target(executor_t *fsrv_executor);
 static u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
 static afl_ret_t fsrv_start(executor_t *fsrv_executor);
@@ -208,7 +208,7 @@ restart_select:
 }
 
 /* Function to simple initialize the forkserver */
-afl_forkserver_t *fsrv_init(char *target_path, char ** target_args) {
+afl_forkserver_t *fsrv_init(char *target_path, char **target_args) {
 
   afl_forkserver_t *fsrv = calloc(1, sizeof(afl_forkserver_t));
   if (!fsrv) { return NULL; }
@@ -226,24 +226,30 @@ afl_forkserver_t *fsrv_init(char *target_path, char ** target_args) {
   fsrv->base.funcs.run_target_cb = fsrv_run_target;
   fsrv->use_stdin = 1;
 
-
   fsrv->target_path = target_path;
   fsrv->target_args = target_args;
   fsrv->out_file = calloc(1, 50);
   snprintf(fsrv->out_file, 50, "out-%d", rand_below(0xFFFF));
 
-  char ** target_args_copy = target_args;
-  while (*target_args_copy != NULL ) {
+  char **target_args_copy = target_args;
+  while (*target_args_copy != NULL) {
+
     if (!strcmp(*target_args_copy, "@@")) {
+
       fsrv->use_stdin = 0;
-      *target_args_copy = fsrv->out_file;  // Replace @@ with the output file name
+      *target_args_copy =
+          fsrv->out_file;  // Replace @@ with the output file name
       break;
+
     }
+
     target_args_copy++;
+
   }
 
   /* FD for the stdin of the child process */
   if (fsrv->use_stdin) {
+
     if (!fsrv->out_file) {
 
       fsrv->out_fd = -1;
@@ -260,6 +266,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char ** target_args) {
       }
 
     }
+
   }
 
   fsrv->out_dir_fd = -1;
@@ -307,12 +314,15 @@ static afl_ret_t fsrv_start(executor_t *fsrv_executor) {
     setsid();
 
     if (fsrv->use_stdin) {
+
       fsrv->out_fd = open((char *)fsrv->out_file, O_RDONLY | O_CREAT, 0600);
       if (!fsrv->out_fd) { PFATAL("Could not open outfile in child"); }
 
       dup2(fsrv->out_fd, 0);
       close(fsrv->out_fd);
+
     }
+
     dup2(fsrv->dev_null_fd, 1);
     dup2(fsrv->dev_null_fd, 2);
 
@@ -405,7 +415,11 @@ u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input) {
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
-  if (!fsrv->use_stdin) { fsrv->out_fd = open(fsrv->out_file, O_RDWR | O_CREAT | O_EXCL, 00600); }
+  if (!fsrv->use_stdin) {
+
+    fsrv->out_fd = open(fsrv->out_file, O_RDWR | O_CREAT | O_EXCL, 00600);
+
+  }
 
   ssize_t write_len = write(fsrv->out_fd, input->bytes, input->len);
 
@@ -636,8 +650,7 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
 
 }
 
-engine_t *initialize_engine_instance(char *target_path,
-                                     char **target_args) {
+engine_t *initialize_engine_instance(char *target_path, char **target_args) {
 
   /* Let's now create a simple map-based observation channel */
   map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE);
@@ -829,7 +842,7 @@ int main(int argc, char **argv) {
 
   for (size_t i = 0; i < 2; ++i) {
 
-    char ** target_args = argv_cpy_dup(argc, argv);
+    char **target_args = argv_cpy_dup(argc, argv);
 
     engine_t *engine_instance =
         initialize_engine_instance(target_path, &target_args[2]);
@@ -870,8 +883,10 @@ int main(int argc, char **argv) {
 
     }
 
-    SAYF("Execs: %llu\tCrashes: %llu\tExecs per second: %llu  time elapsed: %llu\r", execs, crashes,
-         execs / time_elapsed, time_elapsed);
+    SAYF(
+        "Execs: %llu\tCrashes: %llu\tExecs per second: %llu  time elapsed: "
+        "%llu\r",
+        execs, crashes, execs / time_elapsed, time_elapsed);
     time_elapsed++;
     fflush(0);
 
