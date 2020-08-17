@@ -133,6 +133,7 @@ struct base_queue {
   queue_entry_t *             base;
   u64                         current;
   int                         engine_id;
+  engine_t * engine;
   queue_entry_t *             end;
   size_t                      size;
   char *                      dirpath;

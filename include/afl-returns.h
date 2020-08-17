@@ -22,6 +22,7 @@ typedef enum afl_ret {
   AFL_RET_QUEUE_ENDS,
   AFL_RET_ERROR_INITIALIZE,
   AFL_RET_NO_FUZZ_WORKERS,
+  AFL_RET_TRIM_FAIL,
 
 } afl_ret_t;
 

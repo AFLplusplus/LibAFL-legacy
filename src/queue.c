@@ -27,6 +27,9 @@
 #include "queue.h"
 #include "feedback.h"
 #include "engine.h"
+#include "fuzzone.h"
+#include "stage.h"
+#include "mutator.h"
 
 // We start with the implementation of queue_entry functions here.
 afl_ret_t afl_queue_entry_init(queue_entry_t *entry, raw_input_t *input) {
@@ -152,6 +155,21 @@ void afl_base_queue_deinit(base_queue_t *queue) {
 
 /* *** Possible error cases here? *** */
 void add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
+
+  // Before we add the entry to the queue, we call the custom mutators get_next_in_queue function, so that it can gain some extra info from the fuzzed queue(especially helpful in case of grammar mutator, e.g see hogfuzz mutator AFL++)
+
+  fuzz_one_t * fuzz_one = queue->engine->fuzz_one;
+
+  for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
+
+    fuzzing_stage_t * stage = (fuzzing_stage_t *)fuzz_one->stages[i];
+    for (size_t j = 0; j < stage->mutators_count; ++j) {
+
+      if (stage->mutators[j]->funcs.custom_queue_new_entry) { stage->mutators[j]->funcs.custom_queue_new_entry(stage->mutators[j], entry); }
+
+    }
+
+  }
 
   queue->queue_entries[queue->size] = entry;
 

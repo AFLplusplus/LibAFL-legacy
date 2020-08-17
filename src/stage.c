@@ -112,6 +112,19 @@ afl_ret_t perform_stage_default(stage_t *stage, raw_input_t *input) {
     for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
 
       mutator_t *mutator = fuzz_stage->mutators[j];
+      if (mutator->funcs.custom_queue_get) { 
+        mutator->funcs.custom_queue_get(mutator, copy);
+        continue;
+      }  // If the mutator decides not to fuzz this input, don't fuzz it. This is to support the custom mutator API of AFL++
+
+      if (mutator->funcs.trim) {
+        size_t orig_len = copy->len;
+        size_t trim_len = mutator->funcs.trim(mutator, copy);
+
+        if (trim_len > orig_len)  { return AFL_RET_TRIM_FAIL; }
+
+      }
+
       mutator->funcs.mutate(mutator, copy);
 
     }
