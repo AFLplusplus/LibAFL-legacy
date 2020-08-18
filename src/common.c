@@ -69,18 +69,18 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
   thanks to f*cking glibc we can not use tmpnam securely, it generates a
   security warning that cannot be suppressed
   so we do this worse workaround */
-  snprintf(shm->g_shm_file_path, 20, "/afl_%d_%ld", getpid(), random());
+  snprintf(shm->shm_str, 20, "/afl_%d_%ld", getpid(), random());
 
   /* create the shared memory segment as if it was a file */
   shm->g_shm_fd =
-      shm_open(shm->g_shm_file_path, O_CREAT | O_RDWR | O_EXCL, 0600);
+      shm_open(shm->shm_str, O_CREAT | O_RDWR | O_EXCL, 0600);
   if (shm->g_shm_fd == -1) { return NULL; }
 
   /* configure the size of the shared memory segment */
   if (ftruncate(shm->g_shm_fd, map_size)) {
 
     clos(shm->g_shm_fd);
-    shm_unlink(shm->g_shm_file_path);
+    shm_unlink(shm->shm_str);
     return NULL;
 
   }
@@ -91,21 +91,20 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
   if (shm->map == MAP_FAILED || shm->map == -1 || !shm->map) {
 
     close(shm->g_shm_fd);
-    shm_unlink(shm->g_shm_file_path);
+    shm_unlink(shm->shm_str);
     shm->g_shm_fd = -1;
     return NULL;
 
   }
 
 #else
-  char shm_str[256];
 
   shm->shm_id = shmget(IPC_PRIVATE, map_size, IPC_CREAT | IPC_EXCL | 0600);
 
   if (shm->shm_id < 0) { return NULL; }
 
-  snprintf(shm_str, sizeof(shm_str), "%d", shm->shm_id);
-  setenv(SHM_ENV_VAR, (char *)shm_str, 1);
+  snprintf(shm->shm_str, sizeof(shm->shm_str), "%d", shm->shm_id);
+  shm->shm_str[sizeof(shm->shm_str) - 1] = '\0';
 
   shm->map = shmat(shm->shm_id, NULL, 0);
 
@@ -116,6 +115,64 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
     return NULL;
 
   }
+
+#endif
+
+  return shm->map;
+
+}
+
+u8 *afl_sharedmem_by_str(afl_sharedmem_t *shm, char *shm_str, size_t map_size) {
+
+  shm->map = NULL;
+
+  if (!shm_str || !shm_str[0] || !map_size) {
+
+    return NULL;
+
+  }
+
+  shm->map_size = map_size;
+  strncpy(shm->shm_str, shm_str, sizeof(shm->shm_str));
+  shm->shm_str[sizeof(shm->shm_str) - 1] = '\0';
+
+#ifdef USEMMAP
+  const char *   shm_file_path = shm_str;
+  unsigned char *shm_base = NULL;
+
+  /* create the shared memory segment as if it was a file */
+  shm->g_shm_fd = shm_open(shm_file_path, O_RDWR, 0600);
+  if (shm->g_shm_fd == -1) {
+
+    return NULL;
+
+  }
+
+  /* map the shared memory segment to the address space of the process */
+  shm_base = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm->g_shm_fd, 0);
+  if (shm_base == MAP_FAILED) {
+
+    close(shm->g_shm_fd);
+    shm->g_shm_fd = -1;
+    shm->map_size = 0;
+
+    return NULL;
+
+  }
+
+  shm->map = shm_base;
+#else
+    shm->shm_id = atoi(shm_str);
+
+    shm->map = shmat(shm->shm_id, NULL, 0);
+
+    if (shm->map == (void *)-1) {
+
+      shm->map = NULL;
+      shm->map_size = 0;
+      return NULL;
+
+    }
 
 #endif
 

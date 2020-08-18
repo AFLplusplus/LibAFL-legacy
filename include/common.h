@@ -40,9 +40,10 @@
 
 typedef struct afl_sharedmem {
 
+  /* Serialized map id */
+  char shm_str[256];
 #ifdef USEMMAP
   int  g_shm_id;
-  char g_shm_file_path[20];
 #else
   int shm_id;
 #endif
@@ -55,6 +56,7 @@ typedef struct afl_sharedmem {
 // Functions to create Shared memory region, for observation channels and
 // opening inputs and stuff.
 u8 * afl_sharedmem_init(afl_sharedmem_t *sharedmem, size_t map_size);
+u8 *afl_sharedmem_by_str(afl_sharedmem_t *shm, char *shm_str, size_t map_size);
 void afl_sharedmem_deinit(afl_sharedmem_t *sharedmem);
 
 // We're declaring a few structs here which have an interdependency between them
