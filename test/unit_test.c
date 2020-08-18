@@ -59,7 +59,7 @@ static void test_insert_substring(void **state) {
   strcpy((char *)s, "This is a string");
 
   u8 *new_string = afl_insert_substring(s, strlen((char *)s), test_token,
-                                    strlen(test_token), 10);
+                                        strlen(test_token), 10);
 
   assert_string_equal(new_string, test_string);
   free(new_string);
