@@ -633,13 +633,6 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
     return 0.0;
 
-  } else if (last_run_time >
-
-             (exec_timeout + timeout_channel->avg_exec_time) / 2) {
-
-    /* The run is good enough for the global queue */
-    return 1.0;
-
   }
 
   else {
