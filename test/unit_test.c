@@ -58,7 +58,7 @@ static void test_insert_substring(void **state) {
   u8 s[100];
   strcpy((char *)s, "This is a string");
 
-  u8 *new_string = insert_substring(s, strlen((char *)s), test_token,
+  u8 *new_string = afl_insert_substring(s, strlen((char *)s), test_token,
                                     strlen(test_token), 10);
 
   assert_string_equal(new_string, test_string);
@@ -76,7 +76,7 @@ static void test_insert_bytes(void **state) {
   u8          test_byte = 0x41;
   const char *test_string = "This is a AAAAAAAstring";
 
-  u8 *new_string = insert_bytes(s, strlen((char *)s), test_byte, 7, 10);
+  u8 *new_string = afl_insert_bytes(s, strlen((char *)s), test_byte, 7, 10);
 
   assert_string_equal(new_string, test_string);
   free(new_string);
@@ -91,7 +91,7 @@ static void test_erase_bytes(void **state) {
 
   const char *test_string = "This string";
 
-  erase_bytes(s, strlen((char *)s), 5, 5);
+  afl_erase_bytes(s, strlen((char *)s), 5, 5);
 
   assert_string_equal(s, test_string);
 
