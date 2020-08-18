@@ -832,7 +832,7 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < thread_count; ++i) {
 
-    char **target_args = argv_cpy_dup(argc, argv);
+    char **target_args = afl_argv_cpy_dup(argc, argv);
 
     engine_t *engine_instance =
         initialize_engine_instance(target_path, &target_args[3]);
@@ -845,7 +845,7 @@ int main(int argc, char **argv) {
     if (!s) {
 
       OKF("Thread created with thread id %lu", t1);
-      if (register_fuzz_worker(engine_instance) != AFL_RET_SUCCESS) {
+      if (afl_register_fuzz_worker(engine_instance) != AFL_RET_SUCCESS) {
 
         FATAL("Error registering fuzzing instance");
 

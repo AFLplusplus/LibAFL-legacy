@@ -33,7 +33,7 @@ afl_ret_t afl_stage_init(stage_t *stage, engine_t *engine) {
 
   engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage);
 
-  stage->funcs.iterations = iterations_stage_default;
+  stage->funcs.iterations = afl_iterations_stage_default;
 
   return AFL_RET_SUCCESS;
 
@@ -53,8 +53,8 @@ afl_ret_t afl_fuzz_stage_init(fuzzing_stage_t *fuzz_stage, engine_t *engine) {
 
   }
 
-  fuzz_stage->funcs.add_mutator_to_stage = add_mutator_to_stage_default;
-  fuzz_stage->base.funcs.perform = perform_stage_default;
+  fuzz_stage->funcs.add_mutator_to_stage = afl_add_mutator_to_stage_default;
+  fuzz_stage->base.funcs.perform = afl_perform_stage_default;
 
   return AFL_RET_SUCCESS;
 
@@ -74,7 +74,7 @@ void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
 
 }
 
-afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage,
+afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage,
                                        mutator_t *      mutator) {
 
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
@@ -90,14 +90,14 @@ afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage,
 
 }
 
-size_t iterations_stage_default(stage_t *stage) {
+size_t afl_iterations_stage_default(stage_t *stage) {
 
   return (1 + afl_rand_below_engine(stage->engine, 128));
 
 }
 
 /* Perform default for fuzzing stage */
-afl_ret_t perform_stage_default(stage_t *stage, raw_input_t *input) {
+afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the

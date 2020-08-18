@@ -51,7 +51,7 @@ void afl_mutator_deinit(mutator_t *mutator) {
 
 }
 
-stage_t *get_mutator_stage_default(mutator_t *mutator) {
+stage_t *afl_get_mutator_stage_default(mutator_t *mutator) {
 
   return mutator->stage;
 
@@ -66,10 +66,10 @@ afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *sched_mut,
 
   }
 
-  sched_mut->base.funcs.mutate = mutate_scheduled_mutator_default;
-  sched_mut->extra_funcs.add_mutator = add_mutator_default;
-  sched_mut->extra_funcs.iterations = iterations_default;
-  sched_mut->extra_funcs.schedule = schedule_default;
+  sched_mut->base.funcs.mutate = afl_mutate_scheduled_mutator_default;
+  sched_mut->extra_funcs.add_mutator = afl_add_mutator_default;
+  sched_mut->extra_funcs.iterations = afl_iterations_default;
+  sched_mut->extra_funcs.schedule = afl_schedule_default;
 
   sched_mut->max_iterations = (max_iterations > 0) ? max_iterations : 7;
   return AFL_RET_SUCCESS;
@@ -91,7 +91,7 @@ void afl_scheduled_mutator_deinit(scheduled_mutator_t *sched_mut) {
 
 }
 
-void add_mutator_default(scheduled_mutator_t *mutator,
+void afl_add_mutator_default(scheduled_mutator_t *mutator,
                          mutator_func_type    mutator_func) {
 
   mutator->mutations[mutator->mutators_count] = mutator_func;
@@ -99,19 +99,19 @@ void add_mutator_default(scheduled_mutator_t *mutator,
 
 }
 
-int iterations_default(scheduled_mutator_t *mutator) {
+int afl_iterations_default(scheduled_mutator_t *mutator) {
 
   return 1 << (1 + afl_rand_below_engine(mutator->base.stage->engine, mutator->max_iterations));
 
 }
 
-int schedule_default(scheduled_mutator_t *mutator) {
+int afl_schedule_default(scheduled_mutator_t *mutator) {
 
   return afl_rand_below_engine(mutator->base.stage->engine, mutator->mutators_count);
 
 }
 
-size_t mutate_scheduled_mutator_default(mutator_t *  mutator,
+size_t afl_mutate_scheduled_mutator_default(mutator_t *  mutator,
                                         raw_input_t *input) {
 
   // This is to stop from compiler complaining about the incompatible pointer

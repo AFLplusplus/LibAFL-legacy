@@ -43,8 +43,8 @@ struct stage {
 
 };
 
-afl_ret_t perform_stage_default(stage_t *, raw_input_t *);
-size_t    iterations_stage_default(stage_t *);
+afl_ret_t afl_perform_stage_default(stage_t *, raw_input_t *);
+size_t    afl_iterations_stage_default(stage_t *);
 afl_ret_t afl_stage_init(stage_t *, engine_t *);
 void      afl_stage_deinit(stage_t *);
 
@@ -98,7 +98,7 @@ struct fuzzing_stage {
 
 };
 
-afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *, mutator_t *);
+afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *, mutator_t *);
 
 afl_ret_t afl_fuzz_stage_init(fuzzing_stage_t *, engine_t *);
 void      afl_fuzzing_stage_deinit(fuzzing_stage_t *);

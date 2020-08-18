@@ -90,10 +90,10 @@ list_t afl_executor_list;  // We'll be maintaining a list of executors.
 
 afl_ret_t afl_executor_init(executor_t *);
 void      afl_executor_deinit(executor_t *);
-u8 add_observation_channel_default(executor_t *, observation_channel_t *);
-observation_channel_t *get_observation_channels_default(executor_t *, size_t);
-raw_input_t *          get_current_input_default(executor_t *);
-void                   reset_observation_channel_default(executor_t *);
+u8 afl_add_observation_channel_default(executor_t *, observation_channel_t *);
+observation_channel_t *afl_get_observation_channels_default(executor_t *, size_t);
+raw_input_t *          afl_get_current_input_default(executor_t *);
+void                   afl_reset_observation_channel_default(executor_t *);
 
 // Function used to create an executor, we alloc the memory ourselves and
 // initialize the executor

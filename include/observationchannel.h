@@ -51,9 +51,9 @@ struct observation_channel {
 
 /* They're void now, but I think post_exec should have some return type? Since,
  * they'll mostly be implemented by user */
-void flush_default(observation_channel_t *);
-void reset_default(observation_channel_t *);
-void post_exec(observation_channel_t *);
+void afl_flush_default(observation_channel_t *);
+void afl_reset_default(observation_channel_t *);
+void afl_post_exec(observation_channel_t *);
 // Functions to initialize and deinitialize the generic observation channel. P.S
 // You probably will need to extend it the way we've done below.
 
@@ -107,8 +107,8 @@ struct map_based_channel {
 
 };
 
-u8 *   get_trace_bits_default(map_based_channel_t *obs_channel);
-size_t get_map_size_default(map_based_channel_t *obs_channel);
+u8 *   afl_get_trace_bits_default(map_based_channel_t *obs_channel);
+size_t afl_get_map_size_default(map_based_channel_t *obs_channel);
 
 // Functions to initialize and delete a map based observation channel
 

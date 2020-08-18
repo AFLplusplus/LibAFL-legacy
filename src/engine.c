@@ -40,18 +40,18 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
 
   if (global_queue) { global_queue->base.engine = engine; }
 
-  engine->funcs.get_queue = get_queue_default;
-  engine->funcs.get_execs = get_execs_defualt;
-  engine->funcs.get_fuzz_one = get_fuzz_one_default;
-  engine->funcs.get_start_time = get_start_time_default;
+  engine->funcs.get_queue = afl_get_queue_default;
+  engine->funcs.get_execs = afl_get_execs_defualt;
+  engine->funcs.get_fuzz_one = afl_get_fuzz_one_default;
+  engine->funcs.get_start_time = afl_get_start_time_default;
 
-  engine->funcs.set_fuzz_one = set_fuzz_one_default;
-  engine->funcs.add_feedback = add_feedback_default;
-  engine->funcs.set_global_queue = set_global_queue_default;
+  engine->funcs.set_fuzz_one = afl_set_fuzz_one_default;
+  engine->funcs.add_feedback = afl_add_feedback_default;
+  engine->funcs.set_global_queue = afl_set_global_queue_default;
 
-  engine->funcs.execute = execute_default;
-  engine->funcs.load_testcases_from_dir = load_testcases_from_dir_default;
-  engine->funcs.loop = loop_default;
+  engine->funcs.execute = afl_execute_default;
+  engine->funcs.load_testcases_from_dir = afl_load_testcases_from_dir_default;
+  engine->funcs.loop = afl_loop_default;
   engine->id = rand();
   engine->dev_urandom_fd = open("/dev/urandom", O_RDONLY);
 
@@ -83,31 +83,31 @@ void afl_engine_deinit(engine_t *engine) {
 
 }
 
-global_queue_t *get_queue_default(engine_t *engine) {
+global_queue_t *afl_get_queue_default(engine_t *engine) {
 
   return engine->global_queue;
 
 }
 
-fuzz_one_t *get_fuzz_one_default(engine_t *engine) {
+fuzz_one_t *afl_get_fuzz_one_default(engine_t *engine) {
 
   return engine->fuzz_one;
 
 }
 
-u64 get_execs_defualt(engine_t *engine) {
+u64 afl_get_execs_defualt(engine_t *engine) {
 
   return engine->executions;
 
 }
 
-u64 get_start_time_default(engine_t *engine) {
+u64 afl_get_start_time_default(engine_t *engine) {
 
   return engine->start_time;
 
 }
 
-void set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
+void afl_set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
   engine->fuzz_one = fuzz_one;
 
@@ -115,7 +115,7 @@ void set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
 }
 
-void set_global_queue_default(engine_t *engine, global_queue_t *global_queue) {
+void afl_set_global_queue_default(engine_t *engine, global_queue_t *global_queue) {
 
   engine->global_queue = global_queue;
 
@@ -135,7 +135,7 @@ void set_global_queue_default(engine_t *engine, global_queue_t *global_queue) {
 
 }
 
-int add_feedback_default(engine_t *engine, feedback_t *feedback) {
+int afl_add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
   if (engine->feedbacks_num >= MAX_FEEDBACKS) return 1;
 
@@ -147,7 +147,7 @@ int add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
 }
 
-afl_ret_t load_testcases_from_dir_default(
+afl_ret_t afl_load_testcases_from_dir_default(
     engine_t *engine, char *dirpath, raw_input_t *(*custom_input_create)()) {
 
   DIR *          dir_in;
@@ -247,7 +247,7 @@ afl_ret_t load_testcases_from_dir_default(
 
 }
 
-u8 execute_default(engine_t *engine, raw_input_t *input) {
+u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
 
   executor_t *executor = engine->executor;
 
@@ -295,7 +295,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 
 }
 
-afl_ret_t loop_default(engine_t *engine) {
+afl_ret_t afl_loop_default(engine_t *engine) {
 
   while (true) {
 

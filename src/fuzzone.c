@@ -30,9 +30,9 @@ afl_ret_t afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
 
-  fuzz_one->funcs.add_stage = add_stage_default;
-  fuzz_one->funcs.perform = perform_default;
-  fuzz_one->funcs.add_engine_default = add_engine_default;
+  fuzz_one->funcs.add_stage = afl_add_stage_default;
+  fuzz_one->funcs.perform = afl_perform_default;
+  fuzz_one->funcs.add_engine_default = afl_add_engine_default;
 
   return AFL_RET_SUCCESS;
 
@@ -55,7 +55,7 @@ void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
 }
 
-afl_ret_t perform_default(fuzz_one_t *fuzz_one) {
+afl_ret_t afl_perform_default(fuzz_one_t *fuzz_one) {
 
   // Fuzzone grabs the current queue entry from one of many global queues and
   // sends it to stage.
@@ -91,7 +91,7 @@ afl_ret_t perform_default(fuzz_one_t *fuzz_one) {
 
 }
 
-afl_ret_t add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
+afl_ret_t afl_add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
   if (!stage || !fuzz_one) { return AFL_RET_NULL_PTR; }
 
@@ -106,7 +106,7 @@ afl_ret_t add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
 }
 
-afl_ret_t add_engine_default(fuzz_one_t * fuzz_one, engine_t * engine) {
+afl_ret_t afl_add_engine_default(fuzz_one_t * fuzz_one, engine_t * engine) {
 
   fuzz_one->engine = engine;
   

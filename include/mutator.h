@@ -62,9 +62,9 @@ struct mutator {
 
 };
 
-void     mutator_init_default(mutator_t *);
-size_t   trim_default(mutator_t *, u8 *, u8 *);
-stage_t *get_mutator_stage_default(mutator_t *);
+void     afl_mutator_init_default(mutator_t *);
+size_t   afl_trim_default(mutator_t *, u8 *, u8 *);
+stage_t *afl_get_mutator_stage_default(mutator_t *);
 
 afl_ret_t afl_mutator_init(mutator_t *, stage_t *);
 void      afl_mutator_deinit(mutator_t *);
@@ -120,10 +120,10 @@ struct scheduled_mutator {
 
 /* TODO add implementation for the _schedule_ and _iterations_ functions, need a
  * random list element pop type implementation for this */
-int    iterations_default(scheduled_mutator_t *);
-void   add_mutator_default(scheduled_mutator_t *, mutator_func_type);
-int    schedule_default(scheduled_mutator_t *);
-size_t mutate_scheduled_mutator_default(mutator_t *, raw_input_t *);
+int    afl_iterations_default(scheduled_mutator_t *);
+void   afl_add_mutator_default(scheduled_mutator_t *, mutator_func_type);
+int    afl_schedule_default(scheduled_mutator_t *);
+size_t afl_mutate_scheduled_mutator_default(mutator_t *, raw_input_t *);
 
 afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *, stage_t *, size_t);
 void      afl_scheduled_mutator_deinit(scheduled_mutator_t *);
