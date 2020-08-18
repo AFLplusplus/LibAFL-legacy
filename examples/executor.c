@@ -821,24 +821,26 @@ void *thread_run_instance(void *thread_args) {
 /* Main entry point function */
 int main(int argc, char **argv) {
 
-  if (argc < 3) {
+  if (argc < 4) {
 
     FATAL(
-        "Usage: ./executor /input/directory "
+        "Usage: ./executor /input/directory number_of_threads "
         "target [target_args]");
 
   }
 
   char *in_dir = argv[1];
-  char *target_path = argv[2];
-  // char *out_file = argv[2];
+  char *target_path = argv[3];
+  int thread_count = atoi(argv[2]);
 
-  for (size_t i = 0; i < 2; ++i) {
+  if (thread_count <= 0)  { FATAL("Number of threads should be greater than 0"); }
+
+  for (int i = 0; i < thread_count; ++i) {
 
     char **target_args = argv_cpy_dup(argc, argv);
 
     engine_t *engine_instance =
-        initialize_engine_instance(target_path, &target_args[2]);
+        initialize_engine_instance(target_path, &target_args[3]);
     thread_instance_args_t *thread_args =
         calloc(1, sizeof(thread_instance_args_t));
     thread_args->engine = engine_instance;
