@@ -84,14 +84,15 @@ afl_ret_t add_mutator_to_stage_default(fuzzing_stage_t *stage,
   stage->mutators[stage->mutators_count] = mutator;
   stage->mutators_count++;
 
+  mutator->stage = (stage_t *)stage;
+
   return AFL_RET_SUCCESS;
 
 }
 
 size_t iterations_stage_default(stage_t *stage) {
 
-  (void)stage;
-  return (1 + rand_below(128));
+  return (1 + afl_rand_below_engine(stage->engine, 128));
 
 }
 

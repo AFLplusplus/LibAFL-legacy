@@ -381,7 +381,7 @@ queue_entry_t *get_next_global_queue_default(base_queue_t *queue,
 
 int global_schedule_default(global_queue_t *queue) {
 
-  return rand_below(queue->feedback_queues_num);
+  return afl_rand_below_engine(queue->base.engine, queue->feedback_queues_num);
 
 }
 

@@ -229,7 +229,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char **target_args) {
   fsrv->target_path = target_path;
   fsrv->target_args = target_args;
   fsrv->out_file = calloc(1, 50);
-  snprintf(fsrv->out_file, 50, "out-%d", rand_below(0xFFFF));
+  snprintf(fsrv->out_file, 50, "out-%d", rand());
 
   char **target_args_copy = target_args;
   while (*target_args_copy != NULL) {
@@ -716,7 +716,7 @@ engine_t *initialize_engine_instance(char *target_path, char **target_args) {
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
   // We also add the fuzzone to the engine here.
-  engine->fuzz_one = fuzz_one;
+  engine->funcs.set_fuzz_one(engine, fuzz_one);
 
   scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_create(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
@@ -763,11 +763,6 @@ void *thread_run_instance(void *thread_args) {
 
   maximize_map_feedback_t *coverage_feedback =
       (maximize_map_feedback_t *)(engine->feedbacks[0]);
-
-  /* Seeding the random generator */
-  pthread_t self_id = pthread_self();
-  u32 random_seed = XXH32(&self_id, sizeof(pthread_t), rand_below(0xffff));
-  srand(random_seed);
 
   /* Let's reduce the timeout initially to fill the queue */
   fsrv->exec_tmout = 20;

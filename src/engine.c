@@ -20,6 +20,9 @@
 
  */
 
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include <dirent.h>
 #include <time.h>
 
@@ -49,7 +52,10 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->funcs.execute = execute_default;
   engine->funcs.load_testcases_from_dir = load_testcases_from_dir_default;
   engine->funcs.loop = loop_default;
-  engine->id = rand_below(0xFFFFFFFF);
+  engine->id = rand();
+  engine->dev_urandom_fd = open("/dev/urandom", O_RDONLY);
+
+  if (!engine->dev_urandom_fd) { return AFL_RET_ERROR_INITIALIZE; }
 
   return AFL_RET_SUCCESS;
 
@@ -104,6 +110,8 @@ u64 get_start_time_default(engine_t *engine) {
 void set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
   engine->fuzz_one = fuzz_one;
+
+  if (fuzz_one) { fuzz_one->funcs.add_engine_default(engine->fuzz_one, engine); }
 
 }
 
@@ -278,7 +286,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
     default: {
 
       engine->crashes++;
-      dump_crash_to_file(executor->current_input);  // Crash written
+      dump_crash_to_file(executor->current_input, engine);  // Crash written
       return AFL_RET_WRITE_TO_CRASH;
 
     }

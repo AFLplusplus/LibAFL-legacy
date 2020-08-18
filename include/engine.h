@@ -26,6 +26,8 @@
 #ifndef LIBENGINE_H
 #define LIBENGINE_H
 
+#include <unistd.h>
+
 #include "common.h"
 #include "queue.h"
 #include "aflpp.h"
@@ -66,6 +68,9 @@ struct engine {
                                   // feedback would already be allocated
   u64 executions, start_time, crashes, feedbacks_num;
   int id;
+  u32 rand_cnt;                         /* Random number counter*/
+  u64 rand_seed[4];
+  s32 dev_urandom_fd;
 
   struct engine_functions funcs;
 
@@ -115,6 +120,50 @@ static inline void afl_engine_delete(engine_t *engine) {
 
   afl_engine_deinit(engine);
   free(engine);
+
+}
+
+static inline u64 rotl(const u64 x, int k) {
+
+  return (x << k) | (x >> (64 - k));
+
+}
+
+static u64 afl_rand_next_engine(engine_t *engine) {
+
+  const uint64_t result =
+      rotl(engine->rand_seed[0] + engine->rand_seed[3], 23) + engine->rand_seed[0];
+
+  const uint64_t t = engine->rand_seed[1] << 17;
+
+  engine->rand_seed[2] ^= engine->rand_seed[0];
+  engine->rand_seed[3] ^= engine->rand_seed[1];
+  engine->rand_seed[1] ^= engine->rand_seed[2];
+  engine->rand_seed[0] ^= engine->rand_seed[3];
+
+  engine->rand_seed[2] ^= t;
+
+  engine->rand_seed[3] = rotl(engine->rand_seed[3], 45);
+
+  return result;
+
+}
+
+static inline u64 afl_rand_below_engine(engine_t *engine, u64 limit) {
+
+  if (limit <= 1) return 0;
+
+  /* The boundary not being necessarily a power of 2,
+     we need to ensure the result uniformity. */
+  if (unlikely(!engine->rand_cnt--)) {
+
+    int read_len = read(engine->dev_urandom_fd, &engine->rand_seed, sizeof(engine->rand_seed));
+    (void)  read_len;
+    engine->rand_cnt = (RESEED_RNG / 2) + (engine->rand_seed[1] % RESEED_RNG);
+
+  }
+
+  return afl_rand_next_engine(engine) % limit;
 
 }
 

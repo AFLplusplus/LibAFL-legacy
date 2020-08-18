@@ -94,9 +94,9 @@ static inline void afl_mutator_delete(mutator_t *mutator) {
 
 }
 
-typedef void (*mutator_func_type)(raw_input_t *);
 
 typedef struct scheduled_mutator scheduled_mutator_t;
+typedef void (*mutator_func_type)(mutator_t *, raw_input_t *);
 
 struct scheduled_mutator_functions {
 
@@ -153,16 +153,16 @@ static inline void afl_scheduled_mutator_delete(
 
 }
 
-void flip_bit_mutation(raw_input_t *input);
-void flip_2_bits_mutation(raw_input_t *input);
-void flip_4_bits_mutation(raw_input_t *input);
-void flip_byte_mutation(raw_input_t *input);
-void flip_2_bytes_mutation(raw_input_t *input);
-void flip_4_bytes_mutation(raw_input_t *input);
-void random_byte_add_sub_mutation(raw_input_t *input);
-void random_byte_mutation(raw_input_t *input);
-void delete_bytes_mutation(raw_input_t *input);
-void clone_bytes_mutation(raw_input_t *input);
+void flip_bit_mutation(mutator_t * mutator, raw_input_t *input);
+void flip_2_bits_mutation(mutator_t * mutator, raw_input_t *input);
+void flip_4_bits_mutation(mutator_t * mutator, raw_input_t *input);
+void flip_byte_mutation(mutator_t * mutator, raw_input_t *input);
+void flip_2_bytes_mutation(mutator_t * mutator, raw_input_t *input);
+void flip_4_bytes_mutation(mutator_t * mutator, raw_input_t *input);
+void random_byte_add_sub_mutation(mutator_t * mutator, raw_input_t *input);
+void random_byte_mutation(mutator_t * mutator, raw_input_t *input);
+void delete_bytes_mutation(mutator_t * mutator, raw_input_t *input);
+void clone_bytes_mutation(mutator_t * mutator, raw_input_t *input);
 
 #endif
 
