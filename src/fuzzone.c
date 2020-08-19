@@ -64,7 +64,9 @@ afl_ret_t afl_perform_default(fuzz_one_t *fuzz_one) {
 
   if (!fuzz_workers_count) { return AFL_RET_NO_FUZZ_WORKERS; }
   global_queue_t *global_queue =
-      registered_fuzz_workers[afl_rand_below_engine(fuzz_one->engine, fuzz_workers_count)]->global_queue;
+      registered_fuzz_workers[afl_rand_below_engine(fuzz_one->engine,
+                                                    fuzz_workers_count)]
+          ->global_queue;
 
   queue_entry_t *queue_entry = global_queue->base.funcs.get_next_in_queue(
       (base_queue_t *)global_queue, fuzz_one->engine->id);
@@ -108,11 +110,11 @@ afl_ret_t afl_add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
 }
 
-afl_ret_t afl_add_engine_default(fuzz_one_t * fuzz_one, engine_t * engine) {
+afl_ret_t afl_add_engine_default(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
-  
-  for(size_t i = 0; i < fuzz_one->stages_num; ++i) {
+
+  for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
 
     fuzz_one->stages[i]->engine = engine;
 
@@ -121,3 +123,4 @@ afl_ret_t afl_add_engine_default(fuzz_one_t * fuzz_one, engine_t * engine) {
   return AFL_RET_SUCCESS;
 
 }
+

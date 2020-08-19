@@ -159,7 +159,8 @@ char *         afl_get_dirpath_default(base_queue_t *);
 size_t         afl_get_names_id_default(base_queue_t *);
 bool           afl_get_save_to_files_default(base_queue_t *);
 void           afl_set_directory_default(base_queue_t *, char *);
-queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id);
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
+                                               int           engine_id);
 
 static inline base_queue_t *afl_base_queue_create() {
 
@@ -257,7 +258,7 @@ int  afl_global_schedule_default(global_queue_t *);
 // Function to get next entry from queue, we override the base_queue
 // implementation
 queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
-                                             int           engine_id);
+                                                 int           engine_id);
 
 /* TODO: ADD defualt implementation for the schedule function based on random.
  */

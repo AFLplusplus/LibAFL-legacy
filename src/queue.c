@@ -181,13 +181,14 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
         if (stage->mutators[j]->funcs.custom_queue_new_entry) {
 
           stage->mutators[j]->funcs.custom_queue_new_entry(stage->mutators[j],
-                                                          entry);
+                                                           entry);
 
         }
 
       }
 
     }
+
   }
 
   queue->queue_entries[queue->size] = entry;
@@ -244,7 +245,8 @@ void afl_set_directory_default(base_queue_t *queue, char *new_dirpath) {
 
 }
 
-queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id) {
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
+                                               int           engine_id) {
 
   if (queue->size) {
 
@@ -311,7 +313,8 @@ afl_ret_t afl_global_queue_init(global_queue_t *global_queue) {
 
   global_queue->extra_funcs.add_feedback_queue = afl_add_feedback_queue_default;
   global_queue->extra_funcs.schedule = afl_global_schedule_default;
-  global_queue->base.funcs.get_next_in_queue = afl_get_next_global_queue_default;
+  global_queue->base.funcs.get_next_in_queue =
+      afl_get_next_global_queue_default;
 
   return AFL_RET_SUCCESS;
 
@@ -334,7 +337,7 @@ void afl_global_queue_deinit(global_queue_t *global_queue) {
 }
 
 void afl_add_feedback_queue_default(global_queue_t *  global_queue,
-                                feedback_queue_t *feedback_queue) {
+                                    feedback_queue_t *feedback_queue) {
 
   global_queue->feedback_queues[global_queue->feedback_queues_num] =
       feedback_queue;
@@ -344,7 +347,7 @@ void afl_add_feedback_queue_default(global_queue_t *  global_queue,
 }
 
 queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
-                                             int           engine_id) {
+                                                 int           engine_id) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the

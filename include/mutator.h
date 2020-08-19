@@ -49,7 +49,7 @@ struct mutator_functions {
       mutator_t *,
       raw_input_t *);  // Checks if the queue entry is to be fuzzed or not
   void (*custom_queue_new_entry)(mutator_t *, queue_entry_t *);
-  void (*post_process)(mutator_t *, raw_input_t *); // Post process API AFL++
+  void (*post_process)(mutator_t *, raw_input_t *);  // Post process API AFL++
 
   stage_t *(*get_stage)(mutator_t *);
 
@@ -94,7 +94,6 @@ static inline void afl_mutator_delete(mutator_t *mutator) {
   free(mutator);
 
 }
-
 
 typedef struct scheduled_mutator scheduled_mutator_t;
 typedef void (*mutator_func_type)(mutator_t *, raw_input_t *);
@@ -154,16 +153,16 @@ static inline void afl_scheduled_mutator_delete(
 
 }
 
-void flip_bit_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_2_bits_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_4_bits_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_byte_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_2_bytes_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_4_bytes_mutation(mutator_t * mutator, raw_input_t *input);
-void random_byte_add_sub_mutation(mutator_t * mutator, raw_input_t *input);
-void random_byte_mutation(mutator_t * mutator, raw_input_t *input);
-void delete_bytes_mutation(mutator_t * mutator, raw_input_t *input);
-void clone_bytes_mutation(mutator_t * mutator, raw_input_t *input);
+void flip_bit_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_byte_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input);
+void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input);
+void random_byte_mutation(mutator_t *mutator, raw_input_t *input);
+void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input);
+void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input);
 
 #endif
 

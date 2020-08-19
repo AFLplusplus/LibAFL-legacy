@@ -263,7 +263,7 @@ void test_engine_load_testcase_from_dir_default(void **state) {
 
   close(fd);
   afl_ret_t result = engine.funcs.load_testcases_from_dir(&engine, "testcases",
-                                       custom_input_create);
+                                                          custom_input_create);
 
   assert_int_equal(result, AFL_RET_SUCCESS);
 
@@ -280,7 +280,6 @@ void test_engine_load_testcase_from_dir_default(void **state) {
 
 /* Unittests for the basic mutators and mutator functions we added */
 
-
 #include <time.h>
 #include "mutator.h"
 #include "stage.h"
@@ -292,8 +291,8 @@ void test_basic_mutator_functions(void **state) {
 
   (void)state;
 
-  engine_t engine;
-  stage_t stage;
+  engine_t   engine;
+  stage_t    stage;
   fuzz_one_t fuzz_one;
   afl_engine_init(&engine, NULL, NULL, NULL);
   afl_fuzz_one_init(&fuzz_one, &engine);
@@ -428,9 +427,11 @@ void test_base_queue_get_next(void **state) {
   queue.funcs.add_to_queue(&queue, &second_entry);
 
   /* Let's tell the queue with two entries now */
-  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &first_entry);
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id),
+                   &first_entry);
 
-  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &second_entry);
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id),
+                   &second_entry);
 
   assert_int_equal(queue.size, 2);
 
@@ -438,7 +439,6 @@ void test_base_queue_get_next(void **state) {
   free(queue.shared_mem);
 
 }
-
 
 int main(int argc, char **argv) {
 

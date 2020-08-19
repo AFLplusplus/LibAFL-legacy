@@ -35,7 +35,8 @@ afl_ret_t afl_executor_init(executor_t *executor) {
   executor->funcs.place_input_cb = NULL;
   executor->funcs.run_target_cb = NULL;
   executor->funcs.add_observation_channel = afl_add_observation_channel_default;
-  executor->funcs.get_observation_channels = afl_get_observation_channels_default;
+  executor->funcs.get_observation_channels =
+      afl_get_observation_channels_default;
   executor->funcs.get_current_input = afl_get_current_input_default;
   executor->funcs.reset_observation_channels =
       afl_reset_observation_channel_default;
@@ -60,7 +61,7 @@ void afl_executor_deinit(executor_t *executor) {
 }
 
 u8 afl_add_observation_channel_default(executor_t *           executor,
-                                   observation_channel_t *obs_channel) {
+                                       observation_channel_t *obs_channel) {
 
   executor->observors[executor->observors_num] = obs_channel;
 
@@ -70,8 +71,8 @@ u8 afl_add_observation_channel_default(executor_t *           executor,
 
 }
 
-observation_channel_t *afl_get_observation_channels_default(executor_t *executor,
-                                                        size_t      idx) {
+observation_channel_t *afl_get_observation_channels_default(
+    executor_t *executor, size_t idx) {
 
   if (executor->observors_num <= idx) { return NULL; }
 

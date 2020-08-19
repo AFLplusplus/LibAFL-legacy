@@ -90,7 +90,8 @@ raw_input_t *afl_raw_inp_copy_default(raw_input_t *orig_inp) {
 
 }
 
-void afl_raw_inp_deserialize_default(raw_input_t *input, u8 *bytes, size_t len) {
+void afl_raw_inp_deserialize_default(raw_input_t *input, u8 *bytes,
+                                     size_t len) {
 
   if (input->bytes) free(input->bytes);
   input->bytes = bytes;

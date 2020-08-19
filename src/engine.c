@@ -111,11 +111,16 @@ void afl_set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
   engine->fuzz_one = fuzz_one;
 
-  if (fuzz_one) { fuzz_one->funcs.add_engine_default(engine->fuzz_one, engine); }
+  if (fuzz_one) {
+
+    fuzz_one->funcs.add_engine_default(engine->fuzz_one, engine);
+
+  }
 
 }
 
-void afl_set_global_queue_default(engine_t *engine, global_queue_t *global_queue) {
+void afl_set_global_queue_default(engine_t *      engine,
+                                  global_queue_t *global_queue) {
 
   engine->global_queue = global_queue;
 
@@ -223,12 +228,12 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
     for (size_t i = 0; i < engine->feedbacks_num; ++i) {
 
-      raw_input_t * copy = input->funcs.copy(input);
+      raw_input_t *copy = input->funcs.copy(input);
       if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
       queue_entry_t *entry = afl_queue_entry_create(copy);
-        engine->feedbacks[i]->queue->base.funcs.add_to_queue(
-            &engine->feedbacks[i]->queue->base, entry);
+      engine->feedbacks[i]->queue->base.funcs.add_to_queue(
+          &engine->feedbacks[i]->queue->base, entry);
 
     }
 

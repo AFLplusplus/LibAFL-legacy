@@ -75,7 +75,7 @@ void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
 }
 
 afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage,
-                                       mutator_t *      mutator) {
+                                           mutator_t *      mutator) {
 
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
@@ -109,7 +109,7 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
   for (size_t i = 0; i < num; ++i) {
 
     raw_input_t *copy = input->funcs.copy(input);
-    if (!copy)  { return AFL_RET_ERROR_INPUT_COPY; }
+    if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
     for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
 
@@ -139,9 +139,13 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
     /* Let's post process the mutated data now. */
     for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
 
-      mutator_t * mutator = fuzz_stage->mutators[j];
+      mutator_t *mutator = fuzz_stage->mutators[j];
 
-      if (mutator->funcs.post_process) { mutator->funcs.post_process(mutator, copy); }
+      if (mutator->funcs.post_process) {
+
+        mutator->funcs.post_process(mutator, copy);
+
+      }
 
     }
 
@@ -161,10 +165,10 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
     /* If the input is interesting and there is a global queue add the input to
      * the queue */
     if (add_to_queue && stage->engine->global_queue) {
-      
-      raw_input_t * input_copy = copy->funcs.copy(copy);
 
-      if (!input_copy)  { return AFL_RET_ERROR_INPUT_COPY; }
+      raw_input_t *input_copy = copy->funcs.copy(copy);
+
+      if (!input_copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
       queue_entry_t *entry = afl_queue_entry_create(input_copy);
 
