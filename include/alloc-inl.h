@@ -703,9 +703,7 @@ static inline void *afl_realloc(void **buf, size_t size_needed) {
   }
 
   new_buf->complete_size = next_size;
-  if (likely(buf)) {
-    *buf = (void *)(new_buf->buf);
-  }
+  if (likely(buf)) { *buf = (void *)(new_buf->buf); }
   return new_buf->buf;
 
 }

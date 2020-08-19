@@ -24,15 +24,9 @@ A PoC for low level message passing
 #include "config.h"
 #include "types.h"
 #include "debug.h"
-#include "xxh3.h"
 #include "alloc-inl.h"
 #include "aflpp.h"
-#include "os.h"
-#include "feedback.h"
-#include "engine.h"
-#include "mutator.h"
-#include "fuzzone.h"
-#include "stage.h"
+#include "common.h"
 
 // We'll start of with a megabyte of maps for now(?)
 #define LLMP_MAP_SIZE (1 << 20)
@@ -161,6 +155,7 @@ llmp_page_t *llmp_page_from_shmem(afl_shmem_t *afl_shmem) {
 
 }
 
+/* Initialize a new llmp_page_t */
 void llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
 
   page->sender = sender;
@@ -205,7 +200,10 @@ llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
 
   if (!llmp_msg_in_page(page, last_msg)) {
 
-    FATAL("EOP without any useful last_msg in the current page? size_used %ld, size_total %ld, last_msg_ptr: %p", page->size_used, page->size_total, last_msg);
+    FATAL(
+        "EOP without any useful last_msg in the current page? size_used %ld, "
+        "size_total %ld, last_msg_ptr: %p",
+        page->size_used, page->size_total, last_msg);
 
   }
 
@@ -224,8 +222,9 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
   size_t new_msg_size = sizeof(llmp_message_t) + buf_len;
 
-  //printf("alloc size_used %ld, new_size %ld, pl %ld, size_total %ld\n", page->size_used, new_msg_size, LLMP_MSG_NEW_PAGE_LEN, page->size_total);
-  //fflush(stdout);
+  // printf("alloc size_used %ld, new_size %ld, pl %ld, size_total %ld\n",
+  // page->size_used, new_msg_size, LLMP_MSG_NEW_PAGE_LEN, page->size_total);
+  // fflush(stdout);
 
   /* Still space for the new message plus the additional "we're full" message?
    */
@@ -314,7 +313,6 @@ llmp_message_t *llmp_next_message_blocking(llmp_page_t *   page,
 /* no more space left! We'll have to start a new page */
 afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
-
   size_t broadcast_map_id = 0;
   while (broker->broadcast_maps[broadcast_map_id] !=
          broker->current_broadcast_map) {
@@ -346,7 +344,8 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
   }
 
-  llmp_page_init(llmp_page_from_shmem(broker->current_broadcast_map), new_broadcast_map_id * -1, LLMP_MAP_SIZE);
+  llmp_page_init(llmp_page_from_shmem(broker->current_broadcast_map),
+                 new_broadcast_map_id * -1, LLMP_MAP_SIZE);
 
   llmp_message_t *out =
       llmp_alloc_eop(llmp_page_from_shmem(broker->current_broadcast_map),
@@ -373,7 +372,8 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
                                     llmp_incoming_t *    client) {
 
   llmp_page_t *incoming = llmp_page_from_shmem(&client->map);
-  volatile u32 current_message_id = client->current_message ? client->current_message->message_id : 0;
+  volatile u32 current_message_id =
+      client->current_message ? client->current_message->message_id : 0;
   while (current_message_id != incoming->current_id) {
 
     llmp_message_t *msg = llmp_next_message(incoming, client->current_message);
@@ -430,7 +430,8 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
 
     }
 
-    current_message_id = client->current_message ? client->current_message->message_id : 0;
+    current_message_id =
+        client->current_message ? client->current_message->message_id : 0;
 
   }
 
@@ -490,8 +491,8 @@ void llmp_dummy_client(llmp_client_state_t *client) {
 
     if (!msg) {
 
-      //printf("dummy client EOP");
-      //fflush(stdout);
+      // printf("dummy client EOP");
+      // fflush(stdout);
 
       /* Page is full -> Tell broker and start from the beginning.
       Also, pray the broker got all messaes we're overwriting. :) */
@@ -509,7 +510,8 @@ void llmp_dummy_client(llmp_client_state_t *client) {
 
     msg->sender = client->id;
     msg->tag = LLMP_TAG_RANDOM_U32_V1;
-    msg->message_id = client->last_msg_sent ? client->last_msg_sent->message_id + 1 : 1;
+    msg->message_id =
+        client->last_msg_sent ? client->last_msg_sent->message_id + 1 : 1;
     msg->buf_len = sizeof(u32);
     ((u32 *)msg->buf)[0] = rand_below(SIZE_MAX);
     llmp_commit(llmp_page_from_shmem(client->out_ringbuf), msg);
@@ -627,7 +629,8 @@ int main(int argc, char **argv) {
   if (!broker->broadcast_maps[0]) { FATAL("Could not allocate broadcast map"); }
 
   afl_shmem_init(broker->current_broadcast_map, LLMP_MAP_SIZE);
-  llmp_page_init(llmp_page_from_shmem(broker->current_broadcast_map), -1, LLMP_MAP_SIZE);
+  llmp_page_init(llmp_page_from_shmem(broker->current_broadcast_map), -1,
+                 LLMP_MAP_SIZE);
 
   pthread_t *threads = malloc(thread_count * sizeof(pthread_t));
   if (!threads) { FATAL("Coul not allocate mem for thread structs"); }
