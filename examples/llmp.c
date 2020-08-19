@@ -133,7 +133,7 @@ typedef struct llmp_msg_new_page {
   /* 0-terminated str handle for this map */
   char map_str[AFL_SHMEM_STRLEN_MAX];
 
-} __attribute__((__packed__)) llmp_msg_new_page_t;
+} __attribute__((__packed__)) llmp_msg_end_of_page_t;
 
 /* Data needed to store incoming messages */
 typedef struct llmp_incoming {
@@ -143,7 +143,7 @@ typedef struct llmp_incoming {
   /* Map to the other side */
   afl_shmem_t map;
   /* The last message we received */
-  llmp_message_t *current_message;
+  llmp_message_t *last_msg;
 
 } llmp_incoming_t;
 
@@ -174,10 +174,11 @@ typedef struct llmp_client_state {
 
 } llmp_client_state_t;
 
-/* We need at least this much space at the end of each page to start new */
-#define LLMP_MSG_NEW_PAGE_LEN \
-  (sizeof(llmp_message_t) + sizeof(llmp_msg_new_page_t))
+/* We need at least this much space at the end of each page to notify about the next page/restart */
+#define LLMP_MSG_END_OF_PAGE_LEN \
+  (sizeof(llmp_message_t) + sizeof(llmp_msg_end_of_page_t))
 
+/* If a msg is contained in the current page */
 bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg) {
 
   return ((u8 *)page < (u8 *)msg &&
@@ -202,53 +203,100 @@ void llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
 
 }
 
+/* Pointer to the message behind the lats message */
+static llmp_message_t *_llmp_next_msg_ptr(llmp_message_t *last_msg) {
+  return (llmp_message_t *)((u8 *)last_msg + sizeof(llmp_message_t) +
+                              last_msg->buf_len);
+}
+
 /* Read next message. Make sure to MEM_BARRIER(); at some point before */
-llmp_message_t *llmp_next_message(llmp_page_t *   page,
-                                  llmp_message_t *current_message) {
+llmp_message_t *llmp_read_next(llmp_page_t *page, llmp_message_t *last_msg) {
 
   if (!page->current_id) {
 
     /* No messages yet */
     return NULL;
 
-  } else if (!current_message ||
+  } else if (!last_msg) {
 
-             current_message->tag == LLMP_TAG_END_OF_PAGE_V1) {
-
-    /* We never read a message from this queue or reach EOP */
+    /* We never read a message from this queue. Return first. */
     return page->messages;
 
-  } else if (current_message->message_id == page->current_id) {
+  } else if (last_msg->message_id == page->current_id) {
 
     /* Oops! No new message! */
     return NULL;
 
   } else {
 
-    return (llmp_message_t *)((u8 *)current_message + sizeof(llmp_message_t) +
-                              current_message->buf_len);
+    return _llmp_next_msg_ptr(last_msg);
 
   }
 
 }
 
-/* Special allocation function for EOP messages (and nothing else!) */
-llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
+/* Blocks/spins until the next message gets posted to the page,
+  then returns that message. */
+llmp_message_t *llmp_read_next_blocking(llmp_page_t *   page,
+                                           llmp_message_t *last_msg) {
 
-  if (!llmp_msg_in_page(page, last_msg)) {
+  u32 current_id = 0;
+  if (last_msg != NULL) {
 
-    FATAL(
-        "EOP without any useful last_msg in the current page? size_used %ld, "
-        "size_total %ld, last_msg_ptr: %p",
-        page->size_used, page->size_total, last_msg);
+    if (unlikely(last_msg->tag == LLMP_TAG_END_OF_PAGE_V1 &&
+                llmp_msg_in_page(page, last_msg))) {
+
+      FATAL("BUG: full page passed to await_message_blocking or reset failed");
+
+    }
+
+    current_id = last_msg->message_id;
 
   }
 
-  llmp_message_t *ret =
-      (llmp_message_t *)((u8 *)last_msg + sizeof(llmp_message_t) +
-                         last_msg->buf_len);
-  ret->buf_len = sizeof(llmp_msg_new_page_t);
-  page->size_used += sizeof(llmp_message_t) + ret->buf_len;
+  while (1) {
+
+    MEM_BARRIER();
+    if (page->current_id != current_id) {
+
+      llmp_message_t *ret = llmp_read_next(page, last_msg);
+      if (!ret) { FATAL("BUG: blocking llmp message should never be NULL!"); }
+      return ret;
+
+    }
+
+  }
+
+}
+
+/* Special allocation function for EOP messages (and nothing else!) 
+  The normal alloc will fail if there is not enough space for buf_len + EOP
+  So if llmp_alloc_next fails, create new page if necessary, use this function,
+  place EOP, commit EOP, reset, alloc again on the new space.
+*/
+llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
+
+  if (!llmp_msg_in_page(page, last_msg)) {
+    FATAL(
+        "BUG: EOP without any useful last_msg in the current page? size_used %ld, "
+        "size_total %ld, last_msg_ptr: %p",
+        page->size_used, page->size_total, last_msg);
+  }
+
+  if (page->size_used + LLMP_MSG_END_OF_PAGE_LEN > page->size_total) {
+    FATAL(
+      "BUG: EOP does not fit in page! page %p, size_current %ld, size_total %ld", page, page->size_used, page->size_total
+    );
+  }
+
+  llmp_message_t *ret = _llmp_next_msg_ptr(last_msg);
+
+  ret->buf_len = sizeof(llmp_msg_end_of_page_t);
+  ret->message_id = last_msg->message_id += 1;
+  ret->tag = LLMP_TAG_END_OF_PAGE_V1;
+
+  page->size_used += LLMP_MSG_END_OF_PAGE_LEN;
+
   return ret;
 
 }
@@ -257,15 +305,15 @@ llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
 llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
                                 size_t buf_len) {
 
-  size_t new_msg_size = sizeof(llmp_message_t) + buf_len;
+  size_t complete_msg_size = sizeof(llmp_message_t) + buf_len;
 
   // printf("alloc size_used %ld, new_size %ld, pl %ld, size_total %ld\n",
-  // page->size_used, new_msg_size, LLMP_MSG_NEW_PAGE_LEN, page->size_total);
+  // page->size_used, complete_msg_size, LLMP_MSG_END_OF_PAGE_LEN, page->size_total);
   // fflush(stdout);
 
   /* Still space for the new message plus the additional "we're full" message?
    */
-  if (page->size_used + new_msg_size + LLMP_MSG_NEW_PAGE_LEN >
+  if (page->size_used + complete_msg_size + LLMP_MSG_END_OF_PAGE_LEN >
       page->size_total) {
 
     /* We're full. */
@@ -273,12 +321,13 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
   }
 
-  page->size_used += new_msg_size;
+  page->size_used += complete_msg_size;
 
   if (!last_msg || last_msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
     /* We start fresh */
     page->messages->buf_len = buf_len;
+    page->messages->message_id = last_msg ? last_msg->message_id + 1 : 1;
     return page->messages;
 
   } else if (page->current_id != last_msg->message_id) {
@@ -288,17 +337,20 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
   } else {
 
-    llmp_message_t *ret =
-        (llmp_message_t *)((u8 *)last_msg + sizeof(llmp_message_t) +
-                           last_msg->buf_len);
+    llmp_message_t *ret = _llmp_next_msg_ptr(last_msg);
+
     ret->buf_len = buf_len;
+    ret->message_id = last_msg->message_id + 1;
     return ret;
 
   }
 
 }
 
-/* Commit the message last allocated by llmp_alloc_next to the queue */
+/* Commit the message last allocated by llmp_alloc_next to the queue.
+  After commiting, the msg shall no longer be altered!
+  It will be read by the consuming threads (broker->clients or client->broker)
+ */
 bool llmp_commit(llmp_page_t *page, llmp_message_t *msg) {
 
   if (!msg || !llmp_msg_in_page(page, msg)) {
@@ -311,39 +363,6 @@ bool llmp_commit(llmp_page_t *page, llmp_message_t *msg) {
   page->current_id = msg->message_id;
   MEM_BARRIER();
   return true;
-
-}
-
-/* Blocks/loops until the next message gets posted */
-llmp_message_t *llmp_next_message_blocking(llmp_page_t *   page,
-                                           llmp_message_t *current_message) {
-
-  u32 current_id = 0;
-  if (current_message != NULL) {
-
-    if (unlikely(current_message->tag == LLMP_TAG_END_OF_PAGE_V1 &&
-                 current_message)) {
-
-      FATAL("BUG: full page passed to await_message_blocking");
-
-    }
-
-    current_id = current_message->message_id;
-
-  }
-
-  while (1) {
-
-    MEM_BARRIER();
-    if (page->current_id != current_id) {
-
-      llmp_message_t *ret = llmp_next_message(page, current_message);
-      if (!ret) { FATAL("BUG: blocking llmp message may never be NULL!"); }
-      return ret;
-
-    }
-
-  }
 
 }
 
@@ -375,7 +394,7 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
   }
 
-  if (!afl_shmem_init(broker->current_broadcast_map, LLMP_MSG_NEW_PAGE_LEN)) {
+  if (!afl_shmem_init(broker->current_broadcast_map, LLMP_MSG_END_OF_PAGE_LEN)) {
 
     return AFL_RET_ALLOC;
 
@@ -387,7 +406,7 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
   llmp_message_t *out =
       llmp_alloc_eop(llmp_page_from_shmem(broker->current_broadcast_map),
                      broker->last_msg_sent);
-  llmp_msg_new_page_t *new_page_msg = (llmp_msg_new_page_t *)out->buf;
+  llmp_msg_end_of_page_t *new_page_msg = (llmp_msg_end_of_page_t *)out->buf;
   new_page_msg->map_id = new_broadcast_map_id;
   new_page_msg->map_size = broker->current_broadcast_map->map_size;
   strncpy(new_page_msg->map_str, broker->current_broadcast_map->shm_str,
@@ -411,10 +430,10 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
 
   llmp_page_t *incoming = llmp_page_from_shmem(&client->map);
   volatile u32 current_message_id =
-      client->current_message ? client->current_message->message_id : 0;
+      client->last_msg ? client->last_msg->message_id : 0;
   while (current_message_id != incoming->current_id) {
 
-    llmp_message_t *msg = llmp_next_message(incoming, client->current_message);
+    llmp_message_t *msg = llmp_read_next(incoming, client->last_msg);
     if (!msg) {
 
       FATAL(
@@ -426,7 +445,7 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
     if (msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
       /* Ringbuf - we have to start over. */
-      client->current_message = NULL;
+      client->last_msg = NULL;
 
     } else {
 
@@ -464,12 +483,12 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
 
       broker->last_msg_sent = out;
 
-      client->current_message = msg;
+      client->last_msg = msg;
 
     }
 
     current_message_id =
-        client->current_message ? client->current_message->message_id : 0;
+        client->last_msg ? client->last_msg->message_id : 0;
 
   }
 
@@ -504,9 +523,9 @@ void llmp_client_handle_out_eop(llmp_client_state_t *client) {
       llmp_page_from_shmem(client->out_ringbuf), client->last_msg_sent);
   out->tag = LLMP_TAG_END_OF_PAGE_V1;
   out->sender = client->id;
-  out->buf_len = sizeof(llmp_msg_new_page_t);
+  out->buf_len = sizeof(llmp_msg_end_of_page_t);
   /* We don't set anything here anyway - reusing the ringbuf for clients for
-  now. llmp_msg_new_page_t *new_page_msg = (llmp_msg_new_page_t *)out->buf;
+  now. llmp_msg_end_of_page_t *new_page_msg = (llmp_msg_end_of_page_t *)out->buf;
   */
   if (!llmp_commit(llmp_page_from_shmem(client->out_ringbuf), out)) {
 
@@ -568,21 +587,21 @@ void llmp_printer_client(llmp_client_state_t *client) {
   while (1) {
 
     MEM_BARRIER();
-    message = llmp_next_message_blocking(
+    message = llmp_read_next_blocking(
         llmp_page_from_shmem(client->current_broadcast_map),
         client->last_msg_sent);
     client->last_msg_sent = message;
 
     if (message->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
-      if (message->buf_len != sizeof(llmp_msg_new_page_t)) {
+      if (message->buf_len != sizeof(llmp_msg_end_of_page_t)) {
 
         FATAL("BUG: Broker did not send a new page ID on EOP.");
 
       }
 
       /* We will get a new page id as payload */
-      llmp_msg_new_page_t *new_page = (llmp_msg_new_page_t *)message->buf;
+      llmp_msg_end_of_page_t *new_page = (llmp_msg_end_of_page_t *)message->buf;
 
       // TODO: Tidy up ref to old map(?)
       afl_shmem_t *shmem = calloc(1, sizeof(afl_shmem_t));
@@ -676,7 +695,7 @@ int main(int argc, char **argv) {
   for (i = 0; i < thread_count; i++) {
 
     llmp_incoming_t *client = &broker->llmp_clients[i];
-    client->current_message = NULL;
+    client->last_msg = NULL;
     client->id = i;
     if (!afl_shmem_init(&client->map, LLMP_MAP_SIZE)) {
 
