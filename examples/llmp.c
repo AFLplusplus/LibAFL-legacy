@@ -1,5 +1,42 @@
 /*
 A PoC for low level message passing
+
+To send new messages, the clients place a new message at the end of their out_ringbuf.
+If the ringbuf is filled up, they start place a LLMP_AGE_END_OF_PAGE_V1 msg and start over placing msgs from the beginning.
+The broker _needs to_ always be fast enough to consume more than the clients produce.
+For our fuzzing scenario, with the target execution as bottleneck, this is always the case.
+
+[client0]        [client1]    ...    [clientN]
+  |                  |                 /
+[out_ringbuf0] [out_ringbuf1] ... [out_ringbufN] 
+  |                 /                /
+  |________________/                /
+  |________________________________/
+ \|/
+[broker]
+
+After the broker received a new message for clientN, (out_ringbufN->current_id != last_message->message_id)
+the broker will copy the message content to its own, centralized page.
+
+The clients periodically check (current_broadcast_map->current_id != last_message->message_id) for new incoming messages.
+If the page is filled up, the broker instead creates a new page and places a LLMP_TAG_END_OF_PAGE_V1 message in its queue.
+The LLMP_TAG_END_PAGE_V1 buf contains the new string to access the shared map.
+The clients then switch over to read from that new current map.
+
+[broker]
+  |
+[current_broadcast_map]
+  |
+  |___________________________________
+  |_________________                  \
+  |                 \                  \
+  |                  |                  |
+ \|/                \|/                \|/
+[client0]        [client1]    ...    [clientN]
+
+In the future, if we need zero copy, the current_broadcast_map could instead list the out_ringbuf ID an offset for each message.
+In that case, the clients also need to create new shmaps once their bufs are filled up.
+
 */
 
 #include <stdio.h>
@@ -368,6 +405,7 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
 }
 
+/* broker broadcast to its own page for all others to read */
 void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
                                     llmp_incoming_t *    client) {
 
