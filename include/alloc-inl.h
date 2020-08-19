@@ -665,7 +665,7 @@ static inline void *afl_realloc(void **buf, size_t size_needed) {
   size_t current_size = 0;
   size_t next_size = 0;
 
-  if (likely(*buf)) {
+  if (likely(buf && *buf)) {
 
     /* the size is always stored at buf - 1*size_t */
     new_buf = afl_alloc_bufptr(*buf);
@@ -703,8 +703,10 @@ static inline void *afl_realloc(void **buf, size_t size_needed) {
   }
 
   new_buf->complete_size = next_size;
-  *buf = (void *)(new_buf->buf);
-  return *buf;
+  if (likely(buf)) {
+    *buf = (void *)(new_buf->buf);
+  }
+  return new_buf->buf;
 
 }
 

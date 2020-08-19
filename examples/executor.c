@@ -831,9 +831,13 @@ int main(int argc, char **argv) {
 
   char *in_dir = argv[1];
   char *target_path = argv[3];
-  int thread_count = atoi(argv[2]);
+  int   thread_count = atoi(argv[2]);
 
-  if (thread_count <= 0)  { FATAL("Number of threads should be greater than 0"); }
+  if (thread_count <= 0) {
+
+    FATAL("Number of threads should be greater than 0");
+
+  }
 
   for (int i = 0; i < thread_count; ++i) {
 

@@ -128,7 +128,7 @@ struct base_queue_functions {
 
 struct base_queue {
 
-  afl_sharedmem_t *           shared_mem;
+  afl_shmem_t *               shared_mem;
   queue_entry_t **            queue_entries;
   queue_entry_t *             base;
   u64                         current;

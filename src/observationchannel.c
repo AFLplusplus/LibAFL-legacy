@@ -73,7 +73,7 @@ afl_ret_t afl_map_channel_init(map_based_channel_t *map_channel,
 
   afl_observation_channel_init(&(map_channel->base));
 
-  if (!afl_sharedmem_init(&map_channel->shared_map, map_size)) {
+  if (!afl_shmem_init(&map_channel->shared_map, map_size)) {
 
     return AFL_RET_ERROR_INITIALIZE;
 
@@ -88,7 +88,7 @@ afl_ret_t afl_map_channel_init(map_based_channel_t *map_channel,
 
 void afl_map_channel_deinit(map_based_channel_t *map_channel) {
 
-  afl_sharedmem_deinit(&map_channel->shared_map);
+  afl_shmem_deinit(&map_channel->shared_map);
 
   afl_observation_channel_deinit(&map_channel->base);
 

@@ -117,10 +117,10 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->funcs.get_save_to_files = get_save_to_files_default;
   queue->funcs.set_directory = set_directory_default;
   queue->funcs.get_next_in_queue = get_next_base_queue_default;
-  queue->shared_mem = calloc(1, sizeof(afl_sharedmem_t));
+  queue->shared_mem = calloc(1, sizeof(afl_shmem_t));
 
   queue->queue_entries =
-      (queue_entry_t **)afl_sharedmem_init(queue->shared_mem, MAP_SIZE);
+      (queue_entry_t **)afl_shmem_init(queue->shared_mem, MAP_SIZE);
 
   return AFL_RET_SUCCESS;
 

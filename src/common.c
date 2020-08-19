@@ -28,7 +28,7 @@
 #include <sys/shm.h>
 #include "common.h"
 
-void afl_sharedmem_deinit(afl_sharedmem_t *shm) {
+void afl_shmem_deinit(afl_shmem_t *shm) {
 
 #ifdef USEMMAP
   if (shm->map != NULL) {
@@ -53,7 +53,7 @@ void afl_sharedmem_deinit(afl_sharedmem_t *shm) {
 
 }
 
-u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
+u8 *afl_shmem_init(afl_shmem_t *shm, size_t map_size) {
 
   shm->map_size = map_size;
 
@@ -72,8 +72,7 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
   snprintf(shm->shm_str, 20, "/afl_%d_%ld", getpid(), random());
 
   /* create the shared memory segment as if it was a file */
-  shm->g_shm_fd =
-      shm_open(shm->shm_str, O_CREAT | O_RDWR | O_EXCL, 0600);
+  shm->g_shm_fd = shm_open(shm->shm_str, O_CREAT | O_RDWR | O_EXCL, 0600);
   if (shm->g_shm_fd == -1) { return NULL; }
 
   /* configure the size of the shared memory segment */
@@ -122,15 +121,11 @@ u8 *afl_sharedmem_init(afl_sharedmem_t *shm, size_t map_size) {
 
 }
 
-u8 *afl_sharedmem_by_str(afl_sharedmem_t *shm, char *shm_str, size_t map_size) {
+u8 *afl_shmem_by_str(afl_shmem_t *shm, char *shm_str, size_t map_size) {
 
   shm->map = NULL;
 
-  if (!shm_str || !shm_str[0] || !map_size) {
-
-    return NULL;
-
-  }
+  if (!shm_str || !shm_str[0] || !map_size) { return NULL; }
 
   shm->map_size = map_size;
   strncpy(shm->shm_str, shm_str, sizeof(shm->shm_str));
@@ -142,14 +137,11 @@ u8 *afl_sharedmem_by_str(afl_sharedmem_t *shm, char *shm_str, size_t map_size) {
 
   /* create the shared memory segment as if it was a file */
   shm->g_shm_fd = shm_open(shm_file_path, O_RDWR, 0600);
-  if (shm->g_shm_fd == -1) {
-
-    return NULL;
-
-  }
+  if (shm->g_shm_fd == -1) { return NULL; }
 
   /* map the shared memory segment to the address space of the process */
-  shm_base = mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm->g_shm_fd, 0);
+  shm_base =
+      mmap(0, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm->g_shm_fd, 0);
   if (shm_base == MAP_FAILED) {
 
     close(shm->g_shm_fd);
@@ -162,17 +154,17 @@ u8 *afl_sharedmem_by_str(afl_sharedmem_t *shm, char *shm_str, size_t map_size) {
 
   shm->map = shm_base;
 #else
-    shm->shm_id = atoi(shm_str);
+  shm->shm_id = atoi(shm_str);
 
-    shm->map = shmat(shm->shm_id, NULL, 0);
+  shm->map = shmat(shm->shm_id, NULL, 0);
 
-    if (shm->map == (void *)-1) {
+  if (shm->map == (void *)-1) {
 
-      shm->map = NULL;
-      shm->map_size = 0;
-      return NULL;
+    shm->map = NULL;
+    shm->map_size = 0;
+    return NULL;
 
-    }
+  }
 
 #endif
 
