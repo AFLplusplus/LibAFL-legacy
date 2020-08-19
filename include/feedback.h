@@ -47,6 +47,8 @@ struct feedback {
                                          struct here. What do you guys say? */
 
   struct feedback_functions funcs;
+  int observation_idx;
+
 
 };
 
@@ -60,8 +62,8 @@ typedef struct feedback_metadata {
 // Default implementation of the vtables functions
 
 /*TODO: Can we have a similiar implementation for the is_interesting function?*/
-void              set_feedback_queue_default(feedback_t *, feedback_queue_t *);
-feedback_queue_t *get_feedback_queue_default(feedback_t *);
+void              afl_set_feedback_queue_default(feedback_t *, feedback_queue_t *);
+feedback_queue_t *afl_get_feedback_queue_default(feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
 void      afl_feedback_deinit(feedback_t *);

@@ -23,6 +23,7 @@ typedef enum afl_ret {
   AFL_RET_ERROR_INITIALIZE,
   AFL_RET_NO_FUZZ_WORKERS,
   AFL_RET_TRIM_FAIL,
+  AFL_RET_ERROR_INPUT_COPY,
 
 } afl_ret_t;
 
@@ -39,6 +40,8 @@ static inline char *afl_ret_stringify(afl_ret_t afl_ret) {
       return "Could not execute target";
     case AFL_RET_BROKEN_TARGET:
       return "Target did not behave as expected";
+    case AFL_RET_ERROR_INPUT_COPY:
+      return "Error creating input copy";
     case AFL_RET_ALLOC:
       if (!errno) { return "Allocation failed"; }
       /* fall-through */

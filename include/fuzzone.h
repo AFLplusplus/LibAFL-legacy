@@ -34,6 +34,7 @@ struct fuzz_one_functions {
 
   afl_ret_t (*perform)(fuzz_one_t *);
   afl_ret_t (*add_stage)(fuzz_one_t *, stage_t *);
+  afl_ret_t (*add_engine_default)(fuzz_one_t *, engine_t *);
 
 };
 
@@ -47,8 +48,9 @@ struct fuzz_one {
 
 };
 
-afl_ret_t perform_default(fuzz_one_t *);
-afl_ret_t add_stage_default(fuzz_one_t *, stage_t *);
+afl_ret_t afl_perform_default(fuzz_one_t *);
+afl_ret_t afl_add_stage_default(fuzz_one_t *, stage_t *);
+afl_ret_t afl_add_engine_default(fuzz_one_t *, engine_t *);
 
 afl_ret_t afl_fuzz_one_init(fuzz_one_t *, engine_t *);
 void      afl_fuzz_one_deinit(fuzz_one_t *);

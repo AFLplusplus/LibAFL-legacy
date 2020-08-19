@@ -80,7 +80,7 @@ u64             fuzz_workers_count;
 
 /* Function to register/add a fuzz worker (engine). To avoid race condition, add
  * mutex here(Won't be performance problem). */
-static inline afl_ret_t register_fuzz_worker(engine_t *engine) {
+static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
 
   // Critical section. Needs a lock. Called very rarely, thus won't affect perf.
   pthread_mutex_lock(&fuzz_worker_array_lock);
@@ -112,7 +112,7 @@ u8 *afl_insert_bytes(u8 *buf, size_t len, u8 byte,
                                          // value (byte) at offset in buf
                      size_t offset);
 
-static inline char **argv_cpy_dup(int argc, char **argv) {
+static inline char **afl_argv_cpy_dup(int argc, char **argv) {
 
   int i = 0;
 

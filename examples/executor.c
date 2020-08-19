@@ -34,6 +34,8 @@
 #define SUPER_INTERESTING 0.5
 #define VERY_INTERESTING 0.4
 #define INTERESTING 0.3
+#define MAP_CHANNEL_ID 0x1
+#define TIMEOUT_CHANNEL_ID 0x2
 
 /* We are defining our own executor, a forkserver */
 typedef struct afl_forkserver {
@@ -229,7 +231,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char **target_args) {
   fsrv->target_path = target_path;
   fsrv->target_args = target_args;
   fsrv->out_file = calloc(1, 50);
-  snprintf(fsrv->out_file, 50, "out-%d", rand_below(0xFFFF));
+  snprintf(fsrv->out_file, 50, "out-%d", rand());
 
   char **target_args_copy = target_args;
   while (*target_args_copy != NULL) {
@@ -580,8 +582,17 @@ static float coverage_fbck_is_interesting(feedback_t *feedback,
 
   /* First get the observation channel */
 
+  if (feedback->observation_idx == -1) {
+    for (size_t i = 0; i < fsrv->observors_num; ++i) {
+      if (fsrv->observors[i]->channel_id == MAP_CHANNEL_ID) {
+        feedback->observation_idx = i;
+        break;
+      }
+    }
+  }
+
   map_based_channel_t *obs_channel =
-      (map_based_channel_t *)fsrv->funcs.get_observation_channels(fsrv, 0);
+      (map_based_channel_t *)fsrv->funcs.get_observation_channels(fsrv, feedback->observation_idx);
   bool found = false;
 
   u8 *   trace_bits = obs_channel->shared_map.map;
@@ -596,6 +607,8 @@ static float coverage_fbck_is_interesting(feedback_t *feedback,
   if (found && feedback->queue) {
 
     raw_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
+
+    if (!input) { FATAL("Error creating a copy of input"); }
 
     queue_entry_t *new_entry = afl_queue_entry_create(input);
     // An incompatible ptr type warning has been suppresed here. We pass the
@@ -620,6 +633,16 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
   afl_forkserver_t *fsrv = (afl_forkserver_t *)executor;
   u32               exec_timeout = fsrv->exec_tmout;
 
+  // We find the related observation channel here
+  if (feedback->observation_idx == -1) {
+    for (size_t i = 0; i < executor->observors_num; ++i) {
+      if (executor->observors[i]->channel_id == TIMEOUT_CHANNEL_ID) {
+        feedback->observation_idx = i;
+        break;
+      }
+    }
+  }
+
   timeout_obs_channel_t *timeout_channel =
       (timeout_obs_channel_t *)fsrv->base.funcs.get_observation_channels(
           &fsrv->base, 1);
@@ -628,8 +651,10 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
 
   if (last_run_time == exec_timeout) {
 
-    queue_entry_t *new_entry = afl_queue_entry_create(
-        fsrv->base.current_input->funcs.copy(fsrv->base.current_input));
+    raw_input_t * input = fsrv->base.current_input->funcs.copy(fsrv->base.current_input);
+    if (!input) { FATAL("Error creating a copy of input"); }
+
+    queue_entry_t *new_entry = afl_queue_entry_create(input);
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
     return 0.0;
 
@@ -646,13 +671,13 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
 engine_t *initialize_engine_instance(char *target_path, char **target_args) {
 
   /* Let's now create a simple map-based observation channel */
-  map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE);
+  map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE, MAP_CHANNEL_ID);
 
   /* Another timing based observation channel */
   timeout_obs_channel_t *timeout_channel =
       calloc(1, sizeof(timeout_obs_channel_t));
   if (!timeout_channel) { FATAL("Error initializing observation channel"); }
-  afl_observation_channel_init(&timeout_channel->base);
+  afl_observation_channel_init(&timeout_channel->base, TIMEOUT_CHANNEL_ID);
   timeout_channel->base.funcs.post_exec = timeout_channel_post_exec;
   timeout_channel->base.funcs.reset = timeout_channel_reset;
 
@@ -716,7 +741,7 @@ engine_t *initialize_engine_instance(char *target_path, char **target_args) {
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
   // We also add the fuzzone to the engine here.
-  engine->fuzz_one = fuzz_one;
+  engine->funcs.set_fuzz_one(engine, fuzz_one);
 
   scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_create(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
@@ -764,11 +789,6 @@ void *thread_run_instance(void *thread_args) {
   maximize_map_feedback_t *coverage_feedback =
       (maximize_map_feedback_t *)(engine->feedbacks[0]);
 
-  /* Seeding the random generator */
-  pthread_t self_id = pthread_self();
-  u32 random_seed = XXH32(&self_id, sizeof(pthread_t), rand_below(0xffff));
-  srand(random_seed);
-
   /* Let's reduce the timeout initially to fill the queue */
   fsrv->exec_tmout = 20;
   /* Now we can simply load the testcases from the directory given */
@@ -782,7 +802,11 @@ void *thread_run_instance(void *thread_args) {
 
   OKF("Processed %llu input files.", engine->executions);
 
-  engine->funcs.loop(engine);
+  afl_ret_t fuzz_ret = engine->funcs.loop(engine);
+
+  if (fuzz_ret != AFL_RET_SUCCESS) {
+    PFATAL("Error fuzzing the target: %s", afl_ret_stringify(fuzz_ret));
+  }
 
   SAYF(
       "Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n",
@@ -841,7 +865,7 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < thread_count; ++i) {
 
-    char **target_args = argv_cpy_dup(argc, argv);
+    char **target_args = afl_argv_cpy_dup(argc, argv);
 
     engine_t *engine_instance =
         initialize_engine_instance(target_path, &target_args[3]);
@@ -854,7 +878,7 @@ int main(int argc, char **argv) {
     if (!s) {
 
       OKF("Thread created with thread id %lu", t1);
-      if (register_fuzz_worker(engine_instance) != AFL_RET_SUCCESS) {
+      if (afl_register_fuzz_worker(engine_instance) != AFL_RET_SUCCESS) {
 
         FATAL("Error registering fuzzing instance");
 

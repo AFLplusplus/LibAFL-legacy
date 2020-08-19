@@ -62,16 +62,16 @@ void      afl_input_deinit(raw_input_t *input);
 
 // Default implementations of the functions for raw input vtable
 
-void         raw_inp_deserialize_default(raw_input_t *this_input, u8 *bytes,
+void         afl_raw_inp_deserialize_default(raw_input_t *this_input, u8 *bytes,
                                          size_t len);
-u8 *         raw_inp_serialize_default(raw_input_t *this_input);
-raw_input_t *raw_inp_copy_default(raw_input_t *this_input);
-void      raw_inp_restore_default(raw_input_t *this_input, raw_input_t *input);
-afl_ret_t raw_inp_load_from_file_default(raw_input_t *this_inputinput,
+u8 *         afl_raw_inp_serialize_default(raw_input_t *this_input);
+raw_input_t *afl_raw_inp_copy_default(raw_input_t *this_input);
+void      afl_raw_inp_restore_default(raw_input_t *this_input, raw_input_t *input);
+afl_ret_t afl_raw_inp_load_from_file_default(raw_input_t *this_inputinput,
                                          char *       fname);
-afl_ret_t raw_inp_save_to_file_default(raw_input_t *this_input, char *fname);
-void      raw_inp_clear_default(raw_input_t *this_input);
-u8 *      raw_inp_get_bytes_default(raw_input_t *this_input);
+afl_ret_t afl_raw_inp_save_to_file_default(raw_input_t *this_input, char *fname);
+void      afl_raw_inp_clear_default(raw_input_t *this_input);
+u8 *      afl_raw_inp_get_bytes_default(raw_input_t *this_input);
 
 /* Function to create and destroy a new input, allocates memory and initializes
   it. In destroy, it first deinitializes the struct and then frees it. */

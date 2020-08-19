@@ -102,10 +102,10 @@ static inline void afl_queue_entry_delete(queue_entry_t *queue_entry) {
 }
 
 // Default implementations for the functions for queue_entry vtable
-raw_input_t *  get_input_default(queue_entry_t *entry);
-queue_entry_t *get_next_default(queue_entry_t *entry);
-queue_entry_t *get_prev_default(queue_entry_t *entry);
-queue_entry_t *get_parent_default(queue_entry_t *entry);
+raw_input_t *  afl_get_input_default(queue_entry_t *entry);
+queue_entry_t *afl_get_next_default(queue_entry_t *entry);
+queue_entry_t *afl_get_prev_default(queue_entry_t *entry);
+queue_entry_t *afl_get_parent_default(queue_entry_t *entry);
 
 typedef struct base_queue base_queue_t;
 
@@ -152,14 +152,14 @@ struct base_queue {
 afl_ret_t afl_base_queue_init(base_queue_t *);
 void      afl_base_queue_deinit(base_queue_t *);
 
-void           add_to_queue_default(base_queue_t *, queue_entry_t *);
-queue_entry_t *get_queue_base_default(base_queue_t *);
-size_t         get_base_queue_size_default(base_queue_t *);
-char *         get_dirpath_default(base_queue_t *);
-size_t         get_names_id_default(base_queue_t *);
-bool           get_save_to_files_default(base_queue_t *);
-void           set_directory_default(base_queue_t *, char *);
-queue_entry_t *get_next_base_queue_default(base_queue_t *queue, int engine_id);
+void           afl_add_to_queue_default(base_queue_t *, queue_entry_t *);
+queue_entry_t *afl_get_queue_base_default(base_queue_t *);
+size_t         afl_get_base_queue_size_default(base_queue_t *);
+char *         afl_get_dirpath_default(base_queue_t *);
+size_t         afl_get_names_id_default(base_queue_t *);
+bool           afl_get_save_to_files_default(base_queue_t *);
+void           afl_set_directory_default(base_queue_t *, char *);
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id);
 
 static inline base_queue_t *afl_base_queue_create() {
 
@@ -251,12 +251,12 @@ struct global_queue {
 };
 
 // Default implementations of global queue vtable functions
-void add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
-int  global_schedule_default(global_queue_t *);
+void afl_add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
+int  afl_global_schedule_default(global_queue_t *);
 
 // Function to get next entry from queue, we override the base_queue
 // implementation
-queue_entry_t *get_next_global_queue_default(base_queue_t *queue,
+queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
                                              int           engine_id);
 
 /* TODO: ADD defualt implementation for the schedule function based on random.
