@@ -528,7 +528,7 @@ void llmp_broker(llmp_broker_state_t *broker) {
 
     }
 
-    sleep(10);
+    usleep(10 * 1000);
 
   }
 
@@ -590,10 +590,13 @@ void llmp_dummy_client(llmp_client_state_t *client) {
         client->last_msg_sent ? client->last_msg_sent->message_id + 1 : 1;
     msg->buf_len = sizeof(u32);
     ((u32 *)msg->buf)[0] = rand_below(SIZE_MAX);
+
+    OKF("%d Sending msg with id %d and payload %d.", client->id, msg->message_id, ((u32 *)msg->buf)[0]);
+
     llmp_commit(llmp_page_from_shmem(client->out_ringbuf), msg);
     client->last_msg_sent = msg;
 
-    sleep(rand_below(4000));
+    usleep(rand_below(4000) * 1000);
 
   }
 
@@ -704,7 +707,9 @@ int main(int argc, char **argv) {
       malloc(sizeof(afl_shmem_t));
   if (!broker->broadcast_maps[0]) { FATAL("Could not allocate broadcast map"); }
 
-  afl_shmem_init(broker->current_broadcast_map, LLMP_MAP_SIZE);
+  if (!afl_shmem_init(broker->current_broadcast_map, LLMP_MAP_SIZE)) {
+    FATAL("Could not allocate shared map for broker");
+  }
   llmp_page_init(llmp_page_from_shmem(broker->current_broadcast_map), -1,
                  LLMP_MAP_SIZE);
 
