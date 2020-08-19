@@ -135,6 +135,15 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
 
     }
 
+    /* Let's post process the mutated data now. */
+    for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
+
+      mutator_t * mutator = fuzz_stage->mutators[j];
+
+      if (mutator->funcs.post_process) { mutator->funcs.post_process(mutator, copy); }
+
+    }
+
     afl_ret_t ret = stage->engine->funcs.execute(stage->engine, copy);
     /* Let's collect some feedback on the input now */
 

@@ -49,6 +49,7 @@ struct mutator_functions {
       mutator_t *,
       raw_input_t *);  // Checks if the queue entry is to be fuzzed or not
   void (*custom_queue_new_entry)(mutator_t *, queue_entry_t *);
+  void (*post_process)(mutator_t *, raw_input_t *); // Post process API AFL++
 
   stage_t *(*get_stage)(mutator_t *);
 
