@@ -112,7 +112,7 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->funcs.add_to_queue = afl_add_to_queue_default;
   queue->funcs.get_queue_base = afl_get_queue_base_default;
   queue->funcs.get_size = afl_get_base_queue_size_default;
-  queue->funcs.get_dirpath = get_dirpath_default;
+  queue->funcs.get_dirpath = afl_get_dirpath_default;
   queue->funcs.get_names_id = afl_get_names_id_default;
   queue->funcs.get_save_to_files = afl_get_save_to_files_default;
   queue->funcs.set_directory = afl_set_directory_default;
@@ -205,7 +205,7 @@ size_t afl_get_base_queue_size_default(base_queue_t *queue) {
 
 }
 
-char *get_dirpath_default(base_queue_t *queue) {
+char *afl_get_dirpath_default(base_queue_t *queue) {
 
   return queue->dirpath;
 
