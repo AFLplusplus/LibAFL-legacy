@@ -136,7 +136,7 @@ void test_input_load_from_file(void **state) {
   afl_input_init(&input);
 
   /* We just have to test the default func, we don't use the vtable here */
-  raw_inp_load_from_file_default(&input, fname);
+  afl_raw_inp_load_from_file_default(&input, fname);
 
   assert_string_equal(input.bytes, test_string);
   assert_int_equal(input.len, write_len);
@@ -163,7 +163,7 @@ void test_input_save_to_file(void **state) {
   input.len = strlen(test_string);
 
   /* We just have to test the default func, we don't use the vtable here */
-  raw_inp_save_to_file_default(&input, fname);
+  afl_raw_inp_save_to_file_default(&input, fname);
 
   int fd = open(fname, O_RDONLY);
 
@@ -262,18 +262,10 @@ void test_engine_load_testcase_from_dir_default(void **state) {
   }
 
   close(fd);
-  engine.funcs.load_testcases_from_dir(&engine, "testcases",
+  afl_ret_t result = engine.funcs.load_testcases_from_dir(&engine, "testcases",
                                        custom_input_create);
 
-  /* Let's test the inputs now */
-  assert_non_null(input[0]->bytes);
-  assert_non_null(input[1]->bytes);
-  assert_string_equal(input[1]->bytes, corpus_one);
-  assert_string_equal(input[0]->bytes, corpus_two);
-
-  /* Freeing up resources now */
-  afl_input_delete(input[0]);
-  afl_input_delete(input[1]);
+  assert_int_equal(result, AFL_RET_SUCCESS);
 
   /* Let's now remove the directory */
   if (unlink("testcases/test1") || unlink("testcases/test2")) {
@@ -288,12 +280,27 @@ void test_engine_load_testcase_from_dir_default(void **state) {
 
 /* Unittests for the basic mutators and mutator functions we added */
 
-#include "mutator.h"
+
 #include <time.h>
+#include "mutator.h"
+#include "stage.h"
+#include "fuzzone.h"
+
+// We will need a global engine to work with this
 
 void test_basic_mutator_functions(void **state) {
 
   (void)state;
+
+  engine_t engine;
+  stage_t stage;
+  fuzz_one_t fuzz_one;
+  afl_engine_init(&engine, NULL, NULL, NULL);
+  afl_fuzz_one_init(&fuzz_one, &engine);
+  afl_stage_init(&stage, &engine);
+
+  mutator_t mutator;
+  afl_mutator_init(&mutator, &stage);
 
   /* First let's create a basic inputs */
   raw_input_t  input;
@@ -308,59 +315,59 @@ void test_basic_mutator_functions(void **state) {
   srand(time(NULL));
 
   /* We test the different mutation functions now */
-  flip_bit_mutation(&input);
+  flip_bit_mutation(&mutator, &input);
   assert_string_not_equal(input.bytes, test_string);
 
   copy = input.funcs.copy(&input);
 
-  flip_2_bits_mutation(&input);
+  flip_2_bits_mutation(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  flip_4_bits_mutation(&input);
+  flip_4_bits_mutation(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  flip_byte_mutation(&input);
+  flip_byte_mutation(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  flip_2_bytes_mutation(&input);
+  flip_2_bytes_mutation(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  flip_4_bytes_mutation(&input);
+  flip_4_bytes_mutation(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  random_byte_add_sub_mutation(&input);
+  random_byte_add_sub_mutation(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  random_byte_mutation(&input);
+  random_byte_mutation(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  delete_bytes_mutation(&input);
+  delete_bytes_mutation(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  clone_bytes_mutation(&input);
+  clone_bytes_mutation(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
 
   afl_input_delete(copy);
@@ -388,74 +395,50 @@ void test_queue_set_directory(void **state) {
 
   assert_string_equal(queue.dirpath, new_dirpath);
 
+  afl_sharedmem_deinit(queue.shared_mem);
+  free(queue.shared_mem);
+
 }
 
 void test_base_queue_get_next(void **state) {
 
   (void)state;
 
+  engine_t engine;
+  afl_engine_init(&engine, NULL, NULL, NULL);
+
   base_queue_t queue;
   afl_base_queue_init(&queue);
+  queue.engine = &engine;
+  queue.engine_id = engine.id;
 
   /* When queue is empty we should get NULL */
-  assert_null(queue.funcs.get_next_in_queue(&queue));
+  assert_null(queue.funcs.get_next_in_queue(&queue, engine.id));
+
+  raw_input_t input;
 
   queue_entry_t first_entry;
-  afl_queue_entry_init(&first_entry, NULL);
+  afl_queue_entry_init(&first_entry, &input);
 
   queue.funcs.add_to_queue(&queue, &first_entry);
 
   queue_entry_t second_entry;
-  afl_queue_entry_init(&second_entry, NULL);
+  afl_queue_entry_init(&second_entry, &input);
 
   queue.funcs.add_to_queue(&queue, &second_entry);
 
   /* Let's tell the queue with two entries now */
-  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue), &second_entry);
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &first_entry);
 
-  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue), &first_entry);
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &second_entry);
 
   assert_int_equal(queue.size, 2);
 
-}
-
-void test_global_queue_get_next(void **state) {
-
-  (void)state;
-
-  global_queue_t global_queue;
-  afl_global_queue_init(&global_queue);
-
-  queue_entry_t first_entry;
-  afl_queue_entry_init(&first_entry, NULL);
-
-  global_queue.base.funcs.add_to_queue(&global_queue.base, &first_entry);
-
-  /* Since this global queue doesn't have any feedback queue, we should get the
-   * queue entry we just added*/
-
-  assert_ptr_equal(
-      global_queue.base.funcs.get_next_in_queue(&global_queue.base),
-      &first_entry);
-
-  /* We add a feedback queue with an entry and check if the queue returns that
-   */
-
-  feedback_queue_t feedback_queue;
-  afl_feedback_queue_init(&feedback_queue, NULL, NULL);
-
-  queue_entry_t second_entry;
-  afl_queue_entry_init(&second_entry, NULL);
-
-  feedback_queue.base.funcs.add_to_queue(&feedback_queue.base, &second_entry);
-
-  global_queue.extra_funcs.add_feedback_queue(&global_queue, &feedback_queue);
-
-  assert_ptr_equal(
-      global_queue.base.funcs.get_next_in_queue(&global_queue.base),
-      &second_entry);
+  afl_sharedmem_deinit(queue.shared_mem);
+  free(queue.shared_mem);
 
 }
+
 
 int main(int argc, char **argv) {
 
@@ -475,7 +458,6 @@ int main(int argc, char **argv) {
 
       cmocka_unit_test(test_queue_set_directory),
       cmocka_unit_test(test_base_queue_get_next),
-      cmocka_unit_test(test_global_queue_get_next),
 
   };
 

@@ -30,6 +30,8 @@ afl_ret_t afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
 
+  if (engine) { engine->fuzz_one = fuzz_one; }
+
   fuzz_one->funcs.add_stage = afl_add_stage_default;
   fuzz_one->funcs.perform = afl_perform_default;
   fuzz_one->funcs.add_engine_default = afl_add_engine_default;

@@ -171,20 +171,23 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   fuzz_one_t *fuzz_one = queue->engine->fuzz_one;
 
-  for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
+  if (fuzz_one) {
 
-    fuzzing_stage_t *stage = (fuzzing_stage_t *)fuzz_one->stages[i];
-    for (size_t j = 0; j < stage->mutators_count; ++j) {
+    for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
 
-      if (stage->mutators[j]->funcs.custom_queue_new_entry) {
+      fuzzing_stage_t *stage = (fuzzing_stage_t *)fuzz_one->stages[i];
+      for (size_t j = 0; j < stage->mutators_count; ++j) {
 
-        stage->mutators[j]->funcs.custom_queue_new_entry(stage->mutators[j],
-                                                         entry);
+        if (stage->mutators[j]->funcs.custom_queue_new_entry) {
+
+          stage->mutators[j]->funcs.custom_queue_new_entry(stage->mutators[j],
+                                                          entry);
+
+        }
 
       }
 
     }
-
   }
 
   queue->queue_entries[queue->size] = entry;
