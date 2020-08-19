@@ -33,6 +33,8 @@ afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue) {
   feedback->funcs.set_feedback_queue = afl_set_feedback_queue_default;
   feedback->funcs.get_feedback_queue = afl_get_feedback_queue_default;
 
+  feedback->observation_idx = -1; // Initialize this to a negative index
+
   return AFL_RET_SUCCESS;
 
 }

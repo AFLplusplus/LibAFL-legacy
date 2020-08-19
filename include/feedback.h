@@ -47,6 +47,8 @@ struct feedback {
                                          struct here. What do you guys say? */
 
   struct feedback_functions funcs;
+  int observation_idx;
+
 
 };
 

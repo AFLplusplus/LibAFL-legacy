@@ -34,6 +34,8 @@
 #define SUPER_INTERESTING 0.5
 #define VERY_INTERESTING 0.4
 #define INTERESTING 0.3
+#define MAP_CHANNEL_ID 0x1
+#define TIMEOUT_CHANNEL_ID 0x2
 
 /* We are defining our own executor, a forkserver */
 typedef struct afl_forkserver {
@@ -580,8 +582,17 @@ static float coverage_fbck_is_interesting(feedback_t *feedback,
 
   /* First get the observation channel */
 
+  if (feedback->observation_idx == -1) {
+    for (size_t i = 0; i < fsrv->observors_num; ++i) {
+      if (fsrv->observors[i]->channel_id == MAP_CHANNEL_ID) {
+        feedback->observation_idx = i;
+        break;
+      }
+    }
+  }
+
   map_based_channel_t *obs_channel =
-      (map_based_channel_t *)fsrv->funcs.get_observation_channels(fsrv, 0);
+      (map_based_channel_t *)fsrv->funcs.get_observation_channels(fsrv, feedback->observation_idx);
   bool found = false;
 
   u8 *   trace_bits = obs_channel->shared_map.map;
@@ -620,6 +631,16 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
   afl_forkserver_t *fsrv = (afl_forkserver_t *)executor;
   u32               exec_timeout = fsrv->exec_tmout;
 
+  // We find the related observation channel here
+  if (feedback->observation_idx == -1) {
+    for (size_t i = 0; i < executor->observors_num; ++i) {
+      if (executor->observors[i]->channel_id == TIMEOUT_CHANNEL_ID) {
+        feedback->observation_idx = i;
+        break;
+      }
+    }
+  }
+
   timeout_obs_channel_t *timeout_channel =
       (timeout_obs_channel_t *)fsrv->base.funcs.get_observation_channels(
           &fsrv->base, 1);
@@ -646,13 +667,13 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
 engine_t *initialize_engine_instance(char *target_path, char **target_args) {
 
   /* Let's now create a simple map-based observation channel */
-  map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE);
+  map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE, MAP_CHANNEL_ID);
 
   /* Another timing based observation channel */
   timeout_obs_channel_t *timeout_channel =
       calloc(1, sizeof(timeout_obs_channel_t));
   if (!timeout_channel) { FATAL("Error initializing observation channel"); }
-  afl_observation_channel_init(&timeout_channel->base);
+  afl_observation_channel_init(&timeout_channel->base, TIMEOUT_CHANNEL_ID);
   timeout_channel->base.funcs.post_exec = timeout_channel_post_exec;
   timeout_channel->base.funcs.reset = timeout_channel_reset;
 

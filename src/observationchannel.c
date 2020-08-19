@@ -27,10 +27,11 @@
 #include "observationchannel.h"
 #include "afl-returns.h"
 
-afl_ret_t afl_observation_channel_init(observation_channel_t *channel) {
+afl_ret_t afl_observation_channel_init(observation_channel_t *channel, size_t channel_id) {
 
   (void)channel;
 
+  channel->channel_id = channel_id;
   return AFL_RET_SUCCESS;
 
 }
@@ -69,9 +70,9 @@ void afl_post_exec(observation_channel_t *channel) {
 }
 
 afl_ret_t afl_map_channel_init(map_based_channel_t *map_channel,
-                               size_t               map_size) {
+                               size_t               map_size, size_t channel_id) {
 
-  afl_observation_channel_init(&(map_channel->base));
+  afl_observation_channel_init(&(map_channel->base), channel_id);
 
   if (!afl_sharedmem_init(&map_channel->shared_map, map_size)) {
 
