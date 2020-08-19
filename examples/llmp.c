@@ -132,8 +132,6 @@ typedef struct llmp_page {
 /* A new sharedmap. */
 typedef struct llmp_msg_new_page {
 
-  /* unique map id for this map */
-  u32 map_id;
   /* size of this map */
   size_t map_size;
   /* 0-terminated str handle for this map */
@@ -384,26 +382,24 @@ bool llmp_commit(llmp_page_t *page, llmp_message_t *msg) {
 /* no more space left! We'll have to start a new page */
 afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
-  size_t broadcast_map_id = 0;
-  while (broker->broadcast_maps[broadcast_map_id] !=
-         broker->current_broadcast_map) {
-
-    broadcast_map_id++;
-
+  size_t i = 0;
+  while (broker->broadcast_maps[i] != broker->current_broadcast_map) {
+    i++;
   }
+  i++;
+  size_t new_map_count = i + 1;
+  llmp_page_t *old_broadcast_map = llmp_page_from_shmem(broker->current_broadcast_map);
 
-  size_t new_broadcast_map_id = broadcast_map_id + 1;
-
-  if (!afl_realloc((void **)&broker->broadcast_maps,
-                   1 + new_broadcast_map_id * sizeof(afl_shmem_t **))) {
+  if (!afl_realloc((void **)&broker->broadcast_maps, 
+                   new_map_count * sizeof(afl_shmem_t **))) {
 
     return AFL_RET_ALLOC;
 
   }
 
-  broker->broadcast_maps[new_broadcast_map_id] = broker->current_broadcast_map =
+  broker->broadcast_maps[i] = broker->current_broadcast_map =
       malloc(sizeof(afl_shmem_t));
-  if (!broker->broadcast_maps[new_broadcast_map_id]) {
+  if (!broker->broadcast_maps[i]) {
 
     FATAL("Could not allocate broadcast map");
 
@@ -416,19 +412,18 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
   }
 
-  llmp_page_init(llmp_page_from_shmem(broker->current_broadcast_map),
-                 new_broadcast_map_id * -1, LLMP_MAP_SIZE);
+  llmp_page_init(llmp_page_from_shmem(broker->current_broadcast_map), -1, LLMP_MAP_SIZE);
 
-  llmp_message_t *out =
-      llmp_alloc_eop(llmp_page_from_shmem(broker->current_broadcast_map),
-                     broker->last_msg_sent);
+  llmp_page_from_shmem(broker->current_broadcast_map)->current_id = old_broadcast_map->current_id;
+
+  /* On the old map, place a last message linking to the new map for the clients to consume */
+  llmp_message_t *out = llmp_alloc_eop(old_broadcast_map, broker->last_msg_sent);
   llmp_msg_end_of_page_t *new_page_msg = (llmp_msg_end_of_page_t *)out->buf;
-  new_page_msg->map_id = new_broadcast_map_id;
   new_page_msg->map_size = broker->current_broadcast_map->map_size;
   strncpy(new_page_msg->map_str, broker->current_broadcast_map->shm_str,
           AFL_SHMEM_STRLEN_MAX);
   new_page_msg->map_str[AFL_SHMEM_STRLEN_MAX - 1] = '\0';
-  if (!llmp_commit(llmp_page_from_shmem(broker->current_broadcast_map), out)) {
+  if (!llmp_commit(old_broadcast_map, out)) {
 
     FATAL("Erro sending msg");
 
@@ -444,8 +439,10 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
                                     llmp_incoming_t *    client) {
 
+  llmp_page_t *broadcast_page = llmp_page_from_shmem(broker->current_broadcast_map);
+
   llmp_page_t *incoming = llmp_page_from_shmem(&client->map);
-  volatile u32 current_message_id =
+  u32 current_message_id =
       client->last_msg ? client->last_msg->message_id : 0;
   while (current_message_id != incoming->current_id) {
 
@@ -466,16 +463,20 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
     } else {
 
       llmp_message_t *out =
-          llmp_alloc_next(llmp_page_from_shmem(broker->current_broadcast_map),
-                          broker->last_msg_sent, msg->buf_len);
+          llmp_alloc_next(broadcast_page, broker->last_msg_sent, msg->buf_len);
+
       if (!out) {
 
         /* no more space left! We'll have to start a new page */
         afl_ret_t ret = llmp_broker_handle_out_eop(broker);
         if (ret != AFL_RET_SUCCESS) { FATAL("%s", afl_ret_stringify(ret)); }
+
+        /* handle_out_eop allocates a new current broadcast_map */
+        broadcast_page = llmp_page_from_shmem(broker->current_broadcast_map);
+
         /* the alloc is now on a new page */
         out =
-            llmp_alloc_next(llmp_page_from_shmem(broker->current_broadcast_map),
+            llmp_alloc_next(broadcast_page,
                             broker->last_msg_sent, msg->buf_len);
         if (!out) {
 
@@ -490,6 +491,8 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
       If we should need zero copy, we could instead post a link to the
       original msg with the map_id and offset. */
       memcpy(out, msg, sizeof(llmp_message_t) + msg->buf_len);
+      /* We need to replace the message ID with our own */
+      out->message_id = llmp_page_from_shmem(broker->current_broadcast_map)->current_id + 1;
       if (!llmp_commit(llmp_page_from_shmem(broker->current_broadcast_map),
                        out)) {
 

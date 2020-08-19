@@ -45,7 +45,7 @@ typedef struct afl_shmem {
   /* Serialized map id */
   char shm_str[AFL_SHMEM_STRLEN_MAX];
 #ifdef USEMMAP
-  int g_shm_id;
+  int g_shm_fd;
 #else
   int shm_id;
 #endif
