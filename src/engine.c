@@ -223,10 +223,12 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
     for (size_t i = 0; i < engine->feedbacks_num; ++i) {
 
-      queue_entry_t *entry = afl_queue_entry_create(input->funcs.copy(input));
+      raw_input_t * copy = input->funcs.copy(input);
+      if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
-      engine->feedbacks[i]->queue->base.funcs.add_to_queue(
-          &engine->feedbacks[i]->queue->base, entry);
+      queue_entry_t *entry = afl_queue_entry_create(copy);
+        engine->feedbacks[i]->queue->base.funcs.add_to_queue(
+            &engine->feedbacks[i]->queue->base, entry);
 
     }
 
@@ -314,7 +316,8 @@ afl_ret_t afl_loop_default(engine_t *engine) {
 
       case AFL_RET_NULL_QUEUE_ENTRY:
         return fuzz_one_ret;
-
+      case AFL_RET_ERROR_INPUT_COPY:
+        return fuzz_one_ret;
       default:
         continue;
 

@@ -608,6 +608,8 @@ static float coverage_fbck_is_interesting(feedback_t *feedback,
 
     raw_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
 
+    if (!input) { FATAL("Error creating a copy of input"); }
+
     queue_entry_t *new_entry = afl_queue_entry_create(input);
     // An incompatible ptr type warning has been suppresed here. We pass the
     // feedback queue to the add_to_queue rather than the base_queue
@@ -649,8 +651,10 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
 
   if (last_run_time == exec_timeout) {
 
-    queue_entry_t *new_entry = afl_queue_entry_create(
-        fsrv->base.current_input->funcs.copy(fsrv->base.current_input));
+    raw_input_t * input = fsrv->base.current_input->funcs.copy(fsrv->base.current_input);
+    if (!input) { FATAL("Error creating a copy of input"); }
+
+    queue_entry_t *new_entry = afl_queue_entry_create(input);
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
     return 0.0;
 
@@ -798,7 +802,11 @@ void *thread_run_instance(void *thread_args) {
 
   OKF("Processed %llu input files.", engine->executions);
 
-  engine->funcs.loop(engine);
+  afl_ret_t fuzz_ret = engine->funcs.loop(engine);
+
+  if (fuzz_ret != AFL_RET_SUCCESS) {
+    PFATAL("Error fuzzing the target: %s", afl_ret_stringify(fuzz_ret));
+  }
 
   SAYF(
       "Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n",
