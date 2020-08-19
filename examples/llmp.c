@@ -1,27 +1,32 @@
 /*
 A PoC for low level message passing
 
-To send new messages, the clients place a new message at the end of their out_ringbuf.
-If the ringbuf is filled up, they start place a LLMP_AGE_END_OF_PAGE_V1 msg and start over placing msgs from the beginning.
-The broker _needs to_ always be fast enough to consume more than the clients produce.
-For our fuzzing scenario, with the target execution as bottleneck, this is always the case.
+To send new messages, the clients place a new message at the end of their
+out_ringbuf. If the ringbuf is filled up, they start place a
+LLMP_AGE_END_OF_PAGE_V1 msg and start over placing msgs from the beginning. The
+broker _needs to_ always be fast enough to consume more than the clients
+produce. For our fuzzing scenario, with the target execution as bottleneck, this
+is always the case.
 
 [client0]        [client1]    ...    [clientN]
   |                  |                 /
-[out_ringbuf0] [out_ringbuf1] ... [out_ringbufN] 
+[out_ringbuf0] [out_ringbuf1] ... [out_ringbufN]
   |                 /                /
   |________________/                /
   |________________________________/
  \|/
 [broker]
 
-After the broker received a new message for clientN, (out_ringbufN->current_id != last_message->message_id)
-the broker will copy the message content to its own, centralized page.
+After the broker received a new message for clientN, (out_ringbufN->current_id
+!= last_message->message_id) the broker will copy the message content to its
+own, centralized page.
 
-The clients periodically check (current_broadcast_map->current_id != last_message->message_id) for new incoming messages.
-If the page is filled up, the broker instead creates a new page and places a LLMP_TAG_END_OF_PAGE_V1 message in its queue.
-The LLMP_TAG_END_PAGE_V1 buf contains the new string to access the shared map.
-The clients then switch over to read from that new current map.
+The clients periodically check (current_broadcast_map->current_id !=
+last_message->message_id) for new incoming messages. If the page is filled up,
+the broker instead creates a new page and places a LLMP_TAG_END_OF_PAGE_V1
+message in its queue. The LLMP_TAG_END_PAGE_V1 buf contains the new string to
+access the shared map. The clients then switch over to read from that new
+current map.
 
 [broker]
   |
@@ -34,8 +39,9 @@ The clients then switch over to read from that new current map.
  \|/                \|/                \|/
 [client0]        [client1]    ...    [clientN]
 
-In the future, if we need zero copy, the current_broadcast_map could instead list the out_ringbuf ID an offset for each message.
-In that case, the clients also need to create new shmaps once their bufs are filled up.
+In the future, if we need zero copy, the current_broadcast_map could instead
+list the out_ringbuf ID an offset for each message. In that case, the clients
+also need to create new shmaps once their bufs are filled up.
 
 */
 
@@ -174,7 +180,8 @@ typedef struct llmp_client_state {
 
 } llmp_client_state_t;
 
-/* We need at least this much space at the end of each page to notify about the next page/restart */
+/* We need at least this much space at the end of each page to notify about the
+ * next page/restart */
 #define LLMP_MSG_END_OF_PAGE_LEN \
   (sizeof(llmp_message_t) + sizeof(llmp_msg_end_of_page_t))
 
@@ -205,8 +212,10 @@ void llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
 
 /* Pointer to the message behind the lats message */
 static llmp_message_t *_llmp_next_msg_ptr(llmp_message_t *last_msg) {
+
   return (llmp_message_t *)((u8 *)last_msg + sizeof(llmp_message_t) +
-                              last_msg->buf_len);
+                            last_msg->buf_len);
+
 }
 
 /* Read next message. Make sure to MEM_BARRIER(); at some point before */
@@ -238,13 +247,13 @@ llmp_message_t *llmp_read_next(llmp_page_t *page, llmp_message_t *last_msg) {
 /* Blocks/spins until the next message gets posted to the page,
   then returns that message. */
 llmp_message_t *llmp_read_next_blocking(llmp_page_t *   page,
-                                           llmp_message_t *last_msg) {
+                                        llmp_message_t *last_msg) {
 
   u32 current_id = 0;
   if (last_msg != NULL) {
 
     if (unlikely(last_msg->tag == LLMP_TAG_END_OF_PAGE_V1 &&
-                llmp_msg_in_page(page, last_msg))) {
+                 llmp_msg_in_page(page, last_msg))) {
 
       FATAL("BUG: full page passed to await_message_blocking or reset failed");
 
@@ -269,7 +278,7 @@ llmp_message_t *llmp_read_next_blocking(llmp_page_t *   page,
 
 }
 
-/* Special allocation function for EOP messages (and nothing else!) 
+/* Special allocation function for EOP messages (and nothing else!)
   The normal alloc will fail if there is not enough space for buf_len + EOP
   So if llmp_alloc_next fails, create new page if necessary, use this function,
   place EOP, commit EOP, reset, alloc again on the new space.
@@ -277,16 +286,22 @@ llmp_message_t *llmp_read_next_blocking(llmp_page_t *   page,
 llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
 
   if (!llmp_msg_in_page(page, last_msg)) {
+
     FATAL(
-        "BUG: EOP without any useful last_msg in the current page? size_used %ld, "
+        "BUG: EOP without any useful last_msg in the current page? size_used "
+        "%ld, "
         "size_total %ld, last_msg_ptr: %p",
         page->size_used, page->size_total, last_msg);
+
   }
 
   if (page->size_used + LLMP_MSG_END_OF_PAGE_LEN > page->size_total) {
+
     FATAL(
-      "BUG: EOP does not fit in page! page %p, size_current %ld, size_total %ld", page, page->size_used, page->size_total
-    );
+        "BUG: EOP does not fit in page! page %p, size_current %ld, size_total "
+        "%ld",
+        page, page->size_used, page->size_total);
+
   }
 
   llmp_message_t *ret = _llmp_next_msg_ptr(last_msg);
@@ -308,8 +323,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
   size_t complete_msg_size = sizeof(llmp_message_t) + buf_len;
 
   // printf("alloc size_used %ld, new_size %ld, pl %ld, size_total %ld\n",
-  // page->size_used, complete_msg_size, LLMP_MSG_END_OF_PAGE_LEN, page->size_total);
-  // fflush(stdout);
+  // page->size_used, complete_msg_size, LLMP_MSG_END_OF_PAGE_LEN,
+  // page->size_total); fflush(stdout);
 
   /* Still space for the new message plus the additional "we're full" message?
    */
@@ -394,7 +409,8 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
   }
 
-  if (!afl_shmem_init(broker->current_broadcast_map, LLMP_MSG_END_OF_PAGE_LEN)) {
+  if (!afl_shmem_init(broker->current_broadcast_map,
+                      LLMP_MSG_END_OF_PAGE_LEN)) {
 
     return AFL_RET_ALLOC;
 
@@ -487,8 +503,7 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
 
     }
 
-    current_message_id =
-        client->last_msg ? client->last_msg->message_id : 0;
+    current_message_id = client->last_msg ? client->last_msg->message_id : 0;
 
   }
 
@@ -525,7 +540,8 @@ void llmp_client_handle_out_eop(llmp_client_state_t *client) {
   out->sender = client->id;
   out->buf_len = sizeof(llmp_msg_end_of_page_t);
   /* We don't set anything here anyway - reusing the ringbuf for clients for
-  now. llmp_msg_end_of_page_t *new_page_msg = (llmp_msg_end_of_page_t *)out->buf;
+  now. llmp_msg_end_of_page_t *new_page_msg = (llmp_msg_end_of_page_t
+  *)out->buf;
   */
   if (!llmp_commit(llmp_page_from_shmem(client->out_ringbuf), out)) {
 
