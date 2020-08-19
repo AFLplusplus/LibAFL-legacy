@@ -56,6 +56,10 @@ also need to create new shmaps once their bufs are filled up.
 #include <stdbool.h>
 #include <pthread.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include <sys/wait.h>
 #include <sys/time.h>
 #ifndef USEMMAP
@@ -82,6 +86,12 @@ also need to create new shmaps once their bufs are filled up.
 
 /* Just a u32 in a msg, for testing purposes */
 #define LLMP_TAG_RANDOM_U32_V1 (0x344D011)
+
+/* We've added a client */
+#define LLMP_TAG_CLIENT_ADDED_V1 (0xC11E471)
+
+/* If you're reading this, we got an issue */
+#define LLMP_TAG_UNALLOCATED_V1 (0xDEADAFll)
 
 /* The actual message.
     Sender is the original client id.
@@ -138,6 +148,15 @@ typedef struct llmp_msg_new_page {
   char map_str[AFL_SHMEM_STRLEN_MAX];
 
 } __attribute__((__packed__)) llmp_msg_end_of_page_t;
+
+typedef struct llmp_msg_client_added {
+
+  /* size of this map */
+  size_t map_size;
+  /* 0-terminated str handle for this map */
+  char map_str[AFL_SHMEM_STRLEN_MAX];
+
+} __attribute__((__packed__)) llmp_msg_client_added_t;
 
 /* Data needed to store incoming messages */
 typedef struct llmp_incoming {
@@ -205,6 +224,7 @@ void llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
   page->current_id = 0;
   page->size_total = size;
   page->size_used = 0;
+  page->messages->tag = LLMP_TAG_UNALLOCATED_V1;
 
 }
 
@@ -336,12 +356,13 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
   page->size_used += complete_msg_size;
 
+  llmp_message_t *ret = NULL;
+
   if (!last_msg || last_msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
     /* We start fresh */
-    page->messages->buf_len = buf_len;
-    page->messages->message_id = last_msg ? last_msg->message_id + 1 : 1;
-    return page->messages;
+    ret = page->messages;
+    ret->message_id = last_msg ? last_msg->message_id + 1 : 1;
 
   } else if (page->current_id != last_msg->message_id) {
 
@@ -350,13 +371,17 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
   } else {
 
-    llmp_message_t *ret = _llmp_next_msg_ptr(last_msg);
-
-    ret->buf_len = buf_len;
+    ret = _llmp_next_msg_ptr(last_msg);
     ret->message_id = last_msg->message_id + 1;
-    return ret;
 
   }
+
+  ret->buf_len = buf_len;
+
+  /* Maybe catch some bugs... */
+  _llmp_next_msg_ptr(ret)->tag = LLMP_TAG_UNALLOCATED_V1; 
+
+  return ret;
 
 }
 
@@ -435,12 +460,44 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
 }
 
+llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker, size_t len) {
+
+  llmp_page_t *broadcast_page =
+      llmp_page_from_shmem(broker->current_broadcast_map);
+
+  llmp_message_t *out =
+      llmp_alloc_next(broadcast_page, broker->last_msg_sent, len);
+
+  if (!out) {
+
+    /* no more space left! We'll have to start a new page */
+    afl_ret_t ret = llmp_broker_handle_out_eop(broker);
+    if (ret != AFL_RET_SUCCESS) { FATAL("%s", afl_ret_stringify(ret)); }
+
+    /* handle_out_eop allocates a new current broadcast_map */
+    broadcast_page = llmp_page_from_shmem(broker->current_broadcast_map);
+
+    /* the alloc is now on a new page */
+    out = llmp_alloc_next(broadcast_page, broker->last_msg_sent,
+                          len);
+    if (!out) {
+
+      FATAL("Error allocating %ld bytes in shmap %s", len,
+            broker->current_broadcast_map->shm_str);
+
+    }
+
+  }
+
+  return out;
+
+}
+
 /* broker broadcast to its own page for all others to read */
 void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
                                     llmp_incoming_t *    client) {
 
-  llmp_page_t *broadcast_page =
-      llmp_page_from_shmem(broker->current_broadcast_map);
+  // TODO: We could memcpy a range of pending messages, instead of one by one.
 
   llmp_page_t *incoming = llmp_page_from_shmem(&client->map);
   u32 current_message_id = client->last_msg ? client->last_msg->message_id : 0;
@@ -463,27 +520,11 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
     } else {
 
       llmp_message_t *out =
-          llmp_alloc_next(broadcast_page, broker->last_msg_sent, msg->buf_len);
+          llmp_broker_alloc_next(broker, msg->buf_len);
 
       if (!out) {
-
-        /* no more space left! We'll have to start a new page */
-        afl_ret_t ret = llmp_broker_handle_out_eop(broker);
-        if (ret != AFL_RET_SUCCESS) { FATAL("%s", afl_ret_stringify(ret)); }
-
-        /* handle_out_eop allocates a new current broadcast_map */
-        broadcast_page = llmp_page_from_shmem(broker->current_broadcast_map);
-
-        /* the alloc is now on a new page */
-        out = llmp_alloc_next(broadcast_page, broker->last_msg_sent,
-                              msg->buf_len);
-        if (!out) {
-
-          FATAL("Error allocating %ld bytes in shmap %s", msg->buf_len,
+        FATAL("Error allocating %ld bytes in shmap %s", msg->buf_len,
                 broker->current_broadcast_map->shm_str);
-
-        }
-
       }
 
       /* Copy over the whole message.
@@ -556,64 +597,141 @@ void llmp_client_handle_out_eop(llmp_client_state_t *client) {
 
 }
 
-/* A client that randomly produces messages */
-void llmp_dummy_client(llmp_client_state_t *client) {
+/* Alloc the next message, internally resetting the ringbuf if full */
+llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client, size_t size) {
 
   llmp_message_t *msg;
-  while (1) {
 
+  msg = llmp_alloc_next(llmp_page_from_shmem(client->out_ringbuf),
+                        client->last_msg_sent, size);
+
+  if (!msg) {
+
+    /* Page is full -> Tell broker and start from the beginning.
+    Also, pray the broker got all messaes we're overwriting. :) */
+    llmp_client_handle_out_eop(client);
+
+    /* The out_ringbuf will have been changed by handle_out_eop. Don't alias. */
     msg = llmp_alloc_next(llmp_page_from_shmem(client->out_ringbuf),
                           client->last_msg_sent, sizeof(u32));
-
     if (!msg) {
 
-      // printf("dummy client EOP");
-      // fflush(stdout);
-
-      /* Page is full -> Tell broker and start from the beginning.
-      Also, pray the broker got all messaes we're overwriting. :) */
-      llmp_client_handle_out_eop(client);
-
-      msg = llmp_alloc_next(llmp_page_from_shmem(client->out_ringbuf),
-                            client->last_msg_sent, sizeof(u32));
-      if (!msg) {
-
-        FATAL("BUG: Something went wrong allocating a msg in the shmap");
-
-      }
+      FATAL("BUG: Something went wrong allocating a msg in the shmap");
 
     }
 
-    msg->sender = client->id;
+  }
+
+  msg->sender = client->id;
+  msg->message_id =
+      client->last_msg_sent ? client->last_msg_sent->message_id + 1 : 1;
+
+  return msg;
+
+}
+
+/* Commits a msg to the client's out ringbuf */
+bool llmp_client_commit(llmp_client_state_t *client_state, llmp_message_t *msg) {
+
+  bool ret = llmp_commit(llmp_page_from_shmem(client_state->out_ringbuf), msg);
+  client_state->last_msg_sent = msg;
+  return ret;
+
+}
+
+/* A client that randomly produces messages */
+void llmp_dummy_client(llmp_client_state_t *client) {
+
+  while (1) {
+
+    llmp_message_t *msg = llmp_client_alloc_next(client, sizeof(u32));
     msg->tag = LLMP_TAG_RANDOM_U32_V1;
-    msg->message_id =
-        client->last_msg_sent ? client->last_msg_sent->message_id + 1 : 1;
-    msg->buf_len = sizeof(u32);
     ((u32 *)msg->buf)[0] = rand_below(SIZE_MAX);
 
     OKF("%d Sending msg with id %d and payload %d.", client->id,
         msg->message_id, ((u32 *)msg->buf)[0]);
 
-    llmp_commit(llmp_page_from_shmem(client->out_ringbuf), msg);
-    client->last_msg_sent = msg;
-
+    llmp_client_commit(client, msg);
     usleep(rand_below(4000) * 1000);
 
   }
 
 }
 
+/* A simple client that, on connect, reads the new client's shmap str and writes the broker's initial map str */
+void llmp_socket_client(llmp_client_state_t *client_state) {
+
+  char broker_map_str[AFL_SHMEM_STRLEN_MAX];
+  strncpy(broker_map_str, client_state->current_broadcast_map->shm_str, AFL_SHMEM_STRLEN_MAX);
+
+	struct sockaddr_in serv_addr = {0};
+ 
+	int listenfd = socket(AF_INET, SOCK_STREAM, 0);
+
+  serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+  /* port 2801 */
+	serv_addr.sin_port = htons(0xAF1);
+
+  bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
+  listen(listenfd, 10);
+
+  while(1)
+	{
+		int connfd = accept(listenfd, (struct sockaddr*)NULL, NULL);
+
+		if (write(connfd, broker_map_str, AFL_SHMEM_STRLEN_MAX) != AFL_SHMEM_STRLEN_MAX) {
+      WARNF("Socket_client: TCP client disconnected immediately");
+      close(connfd);
+      continue;
+    }
+    ssize_t rlen_total = 0;
+
+    llmp_message_t *msg = llmp_client_alloc_next(client_state, sizeof(llmp_msg_client_added_t));
+
+    if (!msg) {
+      FATAL("Error allocating new client msg in tcp client!");
+    }
+      
+    while (rlen_total != AFL_SHMEM_STRLEN_MAX) {
+
+      msg->tag = LLMP_TAG_CLIENT_ADDED_V1;
+      llmp_msg_client_added_t *payload = (llmp_msg_client_added_t *)msg->buf;
+      /* TODO: Maybe the new tcp client wants to tell us its size, instead? */
+      payload->map_size = LLMP_MAP_SIZE;
+
+      ssize_t rlen = read(connfd, payload->map_str, AFL_SHMEM_STRLEN_MAX - rlen_total);
+      if (rlen < 0) {
+        // TODO: Handle EINTR?
+        WARNF("No complete map str receved from TCP client");
+        close(connfd);
+        continue;
+      }
+
+      msg = llmp_client_alloc_next(client_state, sizeof(llmp_msg_client_added_t));
+      if (!msg) {
+        FATAL("Error allocating new client msg in tcp client!");
+      }
+
+    }
+
+		close(connfd);
+		sleep(1);
+	}
+
+}
+
 /* A client listening for new messages, then printing them */
-void llmp_printer_client(llmp_client_state_t *client) {
+void llmp_printer_client(llmp_client_state_t *client_state) {
 
   llmp_message_t *message;
   while (1) {
 
     MEM_BARRIER();
     message = llmp_read_next_blocking(
-        llmp_page_from_shmem(client->current_broadcast_map),
-        client->last_msg_sent);
-    client->last_msg_sent = message;
+        llmp_page_from_shmem(client_state->current_broadcast_map),
+        client_state->last_msg_sent);
+    client_state->last_msg_sent = message;
 
     if (message->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
@@ -630,7 +748,7 @@ void llmp_printer_client(llmp_client_state_t *client) {
       afl_shmem_t *shmem = calloc(1, sizeof(afl_shmem_t));
       if (!shmem) { PFATAL("Could not allocate memory for sharedmem."); }
       afl_shmem_by_str(shmem, new_page->map_str, new_page->map_size);
-      client->current_broadcast_map = shmem;
+      client_state->current_broadcast_map = shmem;
 
     } else if (message->tag == LLMP_TAG_RANDOM_U32_V1) {
 
@@ -651,21 +769,25 @@ void llmp_printer_client(llmp_client_state_t *client) {
 void *llmp_client_thread(void *thread_args) {
 
   /* instead of using the shmap directly, we could use `afl_shmem_by_str` */
-  llmp_client_state_t *client = (llmp_client_state_t *)thread_args;
-  if (!client) {
+  llmp_client_state_t *client_state = (llmp_client_state_t *)thread_args;
+  if (!client_state) {
 
     // TODO: Propagate errors to broker;
     FATAL("Could not get client");
 
   }
 
-  if (client->id == 0) {
+  if (client_state->id == 0) {
 
-    llmp_printer_client(client);
+    llmp_socket_client(client_state);
+
+  } else if (client_state->id == 1) {
+
+    llmp_printer_client(client_state);
 
   } else {
 
-    llmp_dummy_client(client);
+    llmp_dummy_client(client_state);
 
   }
 
