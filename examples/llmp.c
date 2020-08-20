@@ -2,7 +2,7 @@
 A PoC for low level message passing
 
 To send new messages, the clients place a new message at the end of their
-out_ringbuf. If the ringbuf is filled up, they start place a
+client_out_map. If the ringbuf is filled up, they start place a
 LLMP_AGE_END_OF_PAGE_V1 msg and start over placing msgs from the beginning. The
 broker _needs to_ always be fast enough to consume more than the clients
 produce. For our fuzzing scenario, with the target execution as bottleneck, this
@@ -40,7 +40,7 @@ current map.
 [client0]        [client1]    ...    [clientN]
 
 In the future, if we need zero copy, the current_broadcast_map could instead
-list the out_ringbuf ID an offset for each message. In that case, the clients
+list the client_out_map ID an offset for each message. In that case, the clients
 also need to create new shmaps once their bufs are filled up.
 
 */
@@ -115,7 +115,7 @@ typedef struct llmp_message {
 } __attribute__((packed)) llmp_message_t;
 
 /* A sharedmap page, used for unidirectional data flow.
-   After a new message is added, current_id should be set to the messages'
+   After a new message is added, current_msg_id should be set to the messages'
    unique id. Will then be read by the connected clients. If the page is full, a
    LLMP_TAG_END_OF_PAGE_V1 packet must be placed. In case of the broker, the
    sharedmap id of the next page must be included. The connected clients will
@@ -128,7 +128,7 @@ typedef struct llmp_page {
   /* who sends messages to this page */
   u32 sender;
   /* The id of the last finished message */
-  volatile size_t current_id;
+  volatile size_t current_msg_id;
   /* Total size of the page */
   size_t size_total;
   /* How much of the page we already used */
@@ -139,8 +139,11 @@ typedef struct llmp_page {
 
 } __attribute__((__packed__)) llmp_page_t;
 
-/* A new sharedmap. */
-typedef struct llmp_msg_new_page {
+/* A new sharedmap appeared. 
+  This is an internal message!
+  LLMP_TAG_NEW_PAGE_V1
+  */
+typedef struct llmp_payload_new_page {
 
   /* size of this map */
   size_t map_size;
@@ -149,6 +152,9 @@ typedef struct llmp_msg_new_page {
 
 } __attribute__((__packed__)) llmp_msg_end_of_page_t;
 
+/* Message payload when a client got added
+  LLMP_TAG_CLIENT_ADDED_V1
+  */
 typedef struct llmp_msg_client_added {
 
   /* size of this map */
@@ -159,43 +165,53 @@ typedef struct llmp_msg_client_added {
 } __attribute__((__packed__)) llmp_msg_client_added_t;
 
 /* Data needed to store incoming messages */
-typedef struct llmp_incoming {
 
-  /* Optional id of the other side, if needed */
+/* For the client: state */
+typedef struct llmp_client_state {
+
+  /* unique ID of this client */
   u32 id;
-  /* Map to the other side */
-  afl_shmem_t map;
-  /* The last message we received */
-  llmp_message_t *last_msg;
+  /* the current broadcast map to read from */
+  afl_shmem_t *current_broadcast_map;
+  /* the last msg we sent */
+  llmp_message_t *last_msg_sent;
+  /* The ringbuf to write to */
+  afl_shmem_t client_out_map;
 
-} llmp_incoming_t;
+} llmp_client_state_t;
+
+/* For the broker: to keep track of the client */
+typedef struct llmp_broker_client_metadata {
+
+  /* infos about this client */
+  llmp_client_state_t client_state;
+
+  /* these are null for remote clients */
+
+  /* The last message we/the broker received for this client. */
+  llmp_message_t *last_msg_broker_read;
+
+  /* pthread associated to this client */
+  pthread_t *pthread;
+  /* the client loop function */
+  void (*client_loop)(llmp_client_state_t *, void *);
+  /* Additional data for this client loop */
+  void *data;
+
+} llmp_broker_client_metadata_t;
 
 /* state of the main broker */
 typedef struct llmp_broker_state {
 
   llmp_message_t *last_msg_sent;
 
-  afl_shmem_t * current_broadcast_map;
-  afl_shmem_t **broadcast_maps;
+  size_t      broadcast_map_count;
+  afl_shmem_t *broadcast_maps;
 
   size_t          llmp_client_count;
-  llmp_incoming_t llmp_clients[];
+  llmp_broker_client_metadata_t *llmp_clients;
 
 } llmp_broker_state_t;
-
-/* state of the attached clients */
-typedef struct llmp_client_state {
-
-  /* unique ID of this client */
-  u32 id;
-  /* The ringbuf to write to */
-  afl_shmem_t *out_ringbuf;
-  /* the current broadcast map to read from */
-  afl_shmem_t *current_broadcast_map;
-  /* the last msg we sent */
-  llmp_message_t *last_msg_sent;
-
-} llmp_client_state_t;
 
 /* We need at least this much space at the end of each page to notify about the
  * next page/restart */
@@ -221,7 +237,7 @@ llmp_page_t *llmp_page_from_shmem(afl_shmem_t *afl_shmem) {
 void llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
 
   page->sender = sender;
-  page->current_id = 0;
+  page->current_msg_id = 0;
   page->size_total = size;
   page->size_used = 0;
   page->messages->tag = LLMP_TAG_UNALLOCATED_V1;
@@ -239,7 +255,7 @@ static llmp_message_t *_llmp_next_msg_ptr(llmp_message_t *last_msg) {
 /* Read next message. Make sure to MEM_BARRIER(); at some point before */
 llmp_message_t *llmp_read_next(llmp_page_t *page, llmp_message_t *last_msg) {
 
-  if (!page->current_id) {
+  if (!page->current_msg_id) {
 
     /* No messages yet */
     return NULL;
@@ -249,7 +265,7 @@ llmp_message_t *llmp_read_next(llmp_page_t *page, llmp_message_t *last_msg) {
     /* We never read a message from this queue. Return first. */
     return page->messages;
 
-  } else if (last_msg->message_id == page->current_id) {
+  } else if (last_msg->message_id == page->current_msg_id) {
 
     /* Oops! No new message! */
     return NULL;
@@ -267,7 +283,7 @@ llmp_message_t *llmp_read_next(llmp_page_t *page, llmp_message_t *last_msg) {
 llmp_message_t *llmp_read_next_blocking(llmp_page_t *   page,
                                         llmp_message_t *last_msg) {
 
-  u32 current_id = 0;
+  u32 current_msg_id = 0;
   if (last_msg != NULL) {
 
     if (unlikely(last_msg->tag == LLMP_TAG_END_OF_PAGE_V1 &&
@@ -277,14 +293,14 @@ llmp_message_t *llmp_read_next_blocking(llmp_page_t *   page,
 
     }
 
-    current_id = last_msg->message_id;
+    current_msg_id = last_msg->message_id;
 
   }
 
   while (1) {
 
     MEM_BARRIER();
-    if (page->current_id != current_id) {
+    if (page->current_msg_id != current_msg_id) {
 
       llmp_message_t *ret = llmp_read_next(page, last_msg);
       if (!ret) { FATAL("BUG: blocking llmp message should never be NULL!"); }
@@ -364,7 +380,7 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
     ret = page->messages;
     ret->message_id = last_msg ? last_msg->message_id + 1 : 1;
 
-  } else if (page->current_id != last_msg->message_id) {
+  } else if (page->current_msg_id != last_msg->message_id) {
 
     /* Oops, wrong usage! */
     FATAL("BUG: The current message never got commited using llmp_commit!");
@@ -398,60 +414,54 @@ bool llmp_commit(llmp_page_t *page, llmp_message_t *msg) {
   }
 
   MEM_BARRIER();
-  page->current_id = msg->message_id;
+  page->current_msg_id = msg->message_id;
   MEM_BARRIER();
   return true;
 
 }
 
+static inline afl_shmem_t *_llmp_broker_current_broadcast_map(llmp_broker_state_t *broker_state) {
+  return &broker_state->broadcast_maps[broker_state->broadcast_map_count - 1];
+}
+
 /* no more space left! We'll have to start a new page */
 afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
-  size_t i = 0;
-  while (broker->broadcast_maps[i] != broker->current_broadcast_map) {
+  llmp_page_t *old_broadcast_map = llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
+  broker->broadcast_map_count++;
 
-    i++;
-
-  }
-
-  i++;
-  size_t       new_map_count = i + 1;
-  llmp_page_t *old_broadcast_map =
-      llmp_page_from_shmem(broker->current_broadcast_map);
-
-  if (!afl_realloc((void **)&broker->broadcast_maps,
-                   new_map_count * sizeof(afl_shmem_t **))) {
+   if (!afl_realloc((void **)&broker->broadcast_maps,
+                   broker->broadcast_map_count * sizeof(afl_shmem_t))) {
 
     return AFL_RET_ALLOC;
 
   }
 
-  broker->broadcast_maps[i] = broker->current_broadcast_map =
-      malloc(sizeof(afl_shmem_t));
-  if (!broker->broadcast_maps[i]) { FATAL("Could not allocate broadcast map"); }
-
-  if (!afl_shmem_init(broker->current_broadcast_map,
+  if (!afl_shmem_init(broker->broadcast_maps,
                       LLMP_MSG_END_OF_PAGE_LEN)) {
 
     return AFL_RET_ALLOC;
 
   }
 
-  llmp_page_init(llmp_page_from_shmem(broker->current_broadcast_map), -1,
-                 LLMP_MAP_SIZE);
+  llmp_page_t *new_broadcast_map = llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
+  llmp_page_init(new_broadcast_map, -1, LLMP_MAP_SIZE);
 
-  llmp_page_from_shmem(broker->current_broadcast_map)->current_id =
-      old_broadcast_map->current_id;
+  new_broadcast_map->current_msg_id = old_broadcast_map->current_msg_id;
 
   /* On the old map, place a last message linking to the new map for the clients
    * to consume */
   llmp_message_t *out =
       llmp_alloc_eop(old_broadcast_map, broker->last_msg_sent);
   llmp_msg_end_of_page_t *new_page_msg = (llmp_msg_end_of_page_t *)out->buf;
-  new_page_msg->map_size = broker->current_broadcast_map->map_size;
-  strncpy(new_page_msg->map_str, broker->current_broadcast_map->shm_str,
+
+  /* copy the infos to the message we're going to send on the old buf */
+  new_page_msg->map_size = _llmp_broker_current_broadcast_map(broker)->map_size;
+  strncpy(new_page_msg->map_str, _llmp_broker_current_broadcast_map(broker)->shm_str,
           AFL_SHMEM_STRLEN_MAX);
   new_page_msg->map_str[AFL_SHMEM_STRLEN_MAX - 1] = '\0';
+
+  /* Send the last msg on the old buf */
   if (!llmp_commit(old_broadcast_map, out)) { FATAL("Erro sending msg"); }
 
   broker->last_msg_sent = out;
@@ -463,8 +473,7 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker,
                                        size_t               len) {
 
-  llmp_page_t *broadcast_page =
-      llmp_page_from_shmem(broker->current_broadcast_map);
+  llmp_page_t *broadcast_page = llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
 
   llmp_message_t *out =
       llmp_alloc_next(broadcast_page, broker->last_msg_sent, len);
@@ -476,14 +485,14 @@ llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker,
     if (ret != AFL_RET_SUCCESS) { FATAL("%s", afl_ret_stringify(ret)); }
 
     /* handle_out_eop allocates a new current broadcast_map */
-    broadcast_page = llmp_page_from_shmem(broker->current_broadcast_map);
+    broadcast_page = llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
 
     /* the alloc is now on a new page */
     out = llmp_alloc_next(broadcast_page, broker->last_msg_sent, len);
     if (!out) {
 
       FATAL("Error allocating %ld bytes in shmap %s", len,
-            broker->current_broadcast_map->shm_str);
+          _llmp_broker_current_broadcast_map(broker)->shm_str);
 
     }
 
@@ -495,15 +504,15 @@ llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker,
 
 /* broker broadcast to its own page for all others to read */
 void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
-                                    llmp_incoming_t *    client) {
+                                    llmp_broker_client_metadata_t *    client) {
 
   // TODO: We could memcpy a range of pending messages, instead of one by one.
 
-  llmp_page_t *incoming = llmp_page_from_shmem(&client->map);
-  u32 current_message_id = client->last_msg ? client->last_msg->message_id : 0;
-  while (current_message_id != incoming->current_id) {
+  llmp_page_t *incoming = llmp_page_from_shmem(&client->client_state.client_out_map);
+  u32 current_message_id = client->last_msg_broker_read ? client->last_msg_broker_read->message_id : 0;
+  while (current_message_id != incoming->current_msg_id) {
 
-    llmp_message_t *msg = llmp_read_next(incoming, client->last_msg);
+    llmp_message_t *msg = llmp_read_next(incoming, client->last_msg_broker_read);
     if (!msg) {
 
       FATAL(
@@ -515,7 +524,7 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
     if (msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
       /* Ringbuf - we have to start over. */
-      client->last_msg = NULL;
+      client->last_msg_broker_read = NULL;
 
     } else {
 
@@ -524,7 +533,7 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
       if (!out) {
 
         FATAL("Error allocating %ld bytes in shmap %s", msg->buf_len,
-              broker->current_broadcast_map->shm_str);
+          _llmp_broker_current_broadcast_map(broker)->shm_str);
 
       }
 
@@ -532,11 +541,12 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
       If we should need zero copy, we could instead post a link to the
       original msg with the map_id and offset. */
       memcpy(out, msg, sizeof(llmp_message_t) + msg->buf_len);
+
       /* We need to replace the message ID with our own */
-      out->message_id =
-          llmp_page_from_shmem(broker->current_broadcast_map)->current_id + 1;
-      if (!llmp_commit(llmp_page_from_shmem(broker->current_broadcast_map),
-                       out)) {
+      llmp_page_t *out_page = llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
+
+      out->message_id = out_page->current_msg_id + 1;
+      if (!llmp_commit(out_page, out)) {
 
         FATAL("Error sending msg");
 
@@ -544,11 +554,11 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
 
       broker->last_msg_sent = out;
 
-      client->last_msg = msg;
+      client->last_msg_broker_read = msg;
 
     }
 
-    current_message_id = client->last_msg ? client->last_msg->message_id : 0;
+    current_message_id = client->last_msg_broker_read ? client->last_msg_broker_read->message_id : 0;
 
   }
 
@@ -556,7 +566,7 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *broker,
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page */
-void llmp_broker(llmp_broker_state_t *broker) {
+void llmp_broker_loop(llmp_broker_state_t *broker) {
 
   u32 i;
 
@@ -565,7 +575,7 @@ void llmp_broker(llmp_broker_state_t *broker) {
     MEM_BARRIER();
     for (i = 0; i < broker->llmp_client_count; i++) {
 
-      llmp_incoming_t *client = &broker->llmp_clients[i];
+      llmp_broker_client_metadata_t *client = &broker->llmp_clients[i];
       llmp_broker_broadcast_new_msgs(broker, client);
 
     }
@@ -576,11 +586,55 @@ void llmp_broker(llmp_broker_state_t *broker) {
 
 }
 
+/* A wrapper around unpacking the data, calling through to the loop */
+static void *_llmp_client_wrapped_loop(void *llmp_client_broker_metadata_ptr) {
+  llmp_broker_client_metadata_t *metadata = (llmp_broker_client_metadata_t *)llmp_client_broker_metadata_ptr;
+  metadata->client_loop(&metadata->client_state, metadata->data);
+
+  WARNF("Client loop exited for client %d", metadata->client_state.id);
+  return NULL;
+}
+
+/* Kicks off all threaded clients in the brackground, using pthreads */
+bool llmp_broker_launch_threaded_clients(llmp_broker_state_t *broker) {
+
+  size_t i;
+
+  for (i = 0; i < broker->llmp_client_count; i++) {
+
+    if (broker->llmp_clients[i].pthread != NULL) {
+      /* Got a pthread -> threaded client. Spwan. :) */
+      int s = pthread_create(broker->llmp_clients[i].pthread, NULL, _llmp_client_wrapped_loop, &broker->llmp_clients[i]);
+
+      if (s) {
+
+        // TODO: Better Error-handling! :)
+        PFATAL("Error creating thread %ld", i);
+
+      }
+
+    }
+
+  }
+
+  return true;
+}
+
+
+
+/* Start all threads and the main broker. Never returns. */
+void llmp_broker_run(llmp_broker_state_t *broker) {
+
+  llmp_broker_launch_threaded_clients(broker);
+  llmp_broker_loop(broker);
+
+}
+
 /* We don't have any space. Send eop, the reset to beginning of ringbuf */
 void llmp_client_handle_out_eop(llmp_client_state_t *client) {
 
   llmp_message_t *out = llmp_alloc_eop(
-      llmp_page_from_shmem(client->out_ringbuf), client->last_msg_sent);
+      llmp_page_from_shmem(&client->client_out_map), client->last_msg_sent);
   out->tag = LLMP_TAG_END_OF_PAGE_V1;
   out->sender = client->id;
   out->buf_len = sizeof(llmp_msg_end_of_page_t);
@@ -588,7 +642,7 @@ void llmp_client_handle_out_eop(llmp_client_state_t *client) {
   now. llmp_msg_end_of_page_t *new_page_msg = (llmp_msg_end_of_page_t
   *)out->buf;
   */
-  if (!llmp_commit(llmp_page_from_shmem(client->out_ringbuf), out)) {
+  if (!llmp_commit(llmp_page_from_shmem(&client->client_out_map), out)) {
 
     FATAL("Error sending msg");
 
@@ -604,7 +658,7 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
 
   llmp_message_t *msg;
 
-  msg = llmp_alloc_next(llmp_page_from_shmem(client->out_ringbuf),
+  msg = llmp_alloc_next(llmp_page_from_shmem(&client->client_out_map),
                         client->last_msg_sent, size);
 
   if (!msg) {
@@ -613,8 +667,8 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
     Also, pray the broker got all messaes we're overwriting. :) */
     llmp_client_handle_out_eop(client);
 
-    /* The out_ringbuf will have been changed by handle_out_eop. Don't alias. */
-    msg = llmp_alloc_next(llmp_page_from_shmem(client->out_ringbuf),
+    /* The client_out_map will have been changed by handle_out_eop. Don't alias. */
+    msg = llmp_alloc_next(llmp_page_from_shmem(&client->client_out_map),
                           client->last_msg_sent, sizeof(u32));
     if (!msg) {
 
@@ -636,14 +690,16 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
 bool llmp_client_commit(llmp_client_state_t *client_state,
                         llmp_message_t *     msg) {
 
-  bool ret = llmp_commit(llmp_page_from_shmem(client_state->out_ringbuf), msg);
+  bool ret = llmp_commit(llmp_page_from_shmem(&client_state->client_out_map), msg);
   client_state->last_msg_sent = msg;
   return ret;
 
 }
 
 /* A client that randomly produces messages */
-void llmp_dummy_client(llmp_client_state_t *client) {
+void llmp_client_loop_rand_u32(llmp_client_state_t *client, void *data) {
+
+  (void)data;
 
   while (1) {
 
@@ -663,7 +719,9 @@ void llmp_dummy_client(llmp_client_state_t *client) {
 
 /* A simple client that, on connect, reads the new client's shmap str and writes
  * the broker's initial map str */
-void llmp_socket_client(llmp_client_state_t *client_state) {
+void llmp_client_loop_tcp(llmp_client_state_t *client_state, void *data) {
+
+  int port = (int)(size_t)data;
 
   char broker_map_str[AFL_SHMEM_STRLEN_MAX];
   strncpy(broker_map_str, client_state->current_broadcast_map->shm_str,
@@ -676,7 +734,7 @@ void llmp_socket_client(llmp_client_state_t *client_state) {
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
   /* port 2801 */
-  serv_addr.sin_port = htons(0xAF1);
+  serv_addr.sin_port = htons(port);
 
   bind(listenfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr));
   listen(listenfd, 10);
@@ -733,7 +791,9 @@ void llmp_socket_client(llmp_client_state_t *client_state) {
 }
 
 /* A client listening for new messages, then printing them */
-void llmp_printer_client(llmp_client_state_t *client_state) {
+void llmp_client_loop_print_u32(llmp_client_state_t *client_state, void *data) {
+
+  (void)data;
 
   llmp_message_t *message;
   while (1) {
@@ -777,42 +837,95 @@ void llmp_printer_client(llmp_client_state_t *client_state) {
 
 }
 
-void *llmp_client_thread(void *thread_args) {
+/* Client thread will be called with llmp_client_state_t client, containing the data in ->data.
+This will register a client to be spawned up as soon as broker_loop() starts.
+Clients can also added later via llmp_broker_register_remote(..) or the local_tcp_client
+*/
+bool llmp_broker_new_threaded_client(llmp_broker_state_t *broker, void (*client_loop)(llmp_client_state_t *, void *), void *data) {
 
-  /* instead of using the shmap directly, we could use `afl_shmem_by_str` */
-  llmp_client_state_t *client_state = (llmp_client_state_t *)thread_args;
-  if (!client_state) {
+  /* make space for a new client and calculate its id */
+  broker->llmp_client_count++;
+  afl_realloc((void **)&broker->llmp_clients, broker->llmp_client_count * sizeof(llmp_broker_client_metadata_t));
 
-    // TODO: Propagate errors to broker;
-    FATAL("Could not get client");
+  llmp_broker_client_metadata_t *client = &broker->llmp_clients[broker->llmp_client_count - 1];
+  memset(client, 0, sizeof(llmp_broker_client_metadata_t));
+
+  client->pthread = malloc(sizeof(pthread_t));
+  if (!client->pthread) {
+    return false;
+  }
+
+  memset(client->pthread, 0, sizeof(pthread_t));
+
+  client->last_msg_broker_read = NULL;
+  client->client_state.last_msg_sent = NULL;
+  client->client_state.id = broker->llmp_client_count;
+
+  client->client_loop = client_loop;
+  client->data = data;
+
+  if (!afl_shmem_init(&client->client_state.client_out_map, LLMP_MAP_SIZE)) {
+
+    return false;
 
   }
 
-  if (client_state->id == 0) {
+  llmp_page_init(llmp_page_from_shmem(&client->client_state.client_out_map), client->client_state.id, LLMP_MAP_SIZE);
 
-    llmp_socket_client(client_state);
+  /* Each client starts with the very first map.
+  They should then iterate through all maps once and work on all old messages. */
+  client->client_state.current_broadcast_map = &broker->broadcast_maps[0];
 
-  } else if (client_state->id == 1) {
+  return true;
 
-    llmp_printer_client(client_state);
+}
 
-  } else {
+/* Register a simple tcp client that will listen for new shard map clients via tcp */
+void llmp_broker_new_tcp_client(llmp_broker_state_t *broker, int port) {
 
-    llmp_dummy_client(client_state);
+  llmp_broker_new_threaded_client(broker, llmp_client_loop_tcp, (void *)(size_t)port); 
+
+}
+
+/* Allocate and set up the new broker instance. Afterwards, run with broker_run. */
+llmp_broker_state_t *llmp_broker_new() {
+
+  /* Allocate enough space for us and an array of clients */
+  llmp_broker_state_t *broker = malloc(sizeof(llmp_broker_state_t));
+  if (!broker) { FATAL("Could not allocate broker mem"); }
+  broker->last_msg_sent = NULL;
+  broker->llmp_client_count = 0;
+
+  broker->llmp_clients = NULL;
+  broker->broadcast_maps = NULL;
+
+  /* let's create some space for outgoing maps */
+  if (!afl_realloc((void **)&broker->broadcast_maps,
+                   1 * sizeof(afl_shmem_t))) {
+
+    FATAL("Could not allocate mem");
 
   }
 
-  /* both should never return */
-  FATAL("BUG: Unreachable");
+  broker->broadcast_map_count = 1;
+
+  if (!afl_shmem_init(_llmp_broker_current_broadcast_map(broker), LLMP_MAP_SIZE)) {
+
+    FATAL("Could not allocate shared map for broker");
+
+  }
+
+  llmp_page_init(llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker)), -1,
+                 LLMP_MAP_SIZE);
+
+  return broker;
 
 }
 
 /* Main entry point function */
 int main(int argc, char **argv) {
 
-  s32 i;
-
-  if (argc < 2) { FATAL("No client count given"); }
+  if (argc < 2 || argc > 3) { FATAL("Usage ./llmp_test <thread_count> <port=0xAF1>"); }
 
   int thread_count = atoi(argv[1]);
   if (thread_count <= 0) {
@@ -821,77 +934,26 @@ int main(int argc, char **argv) {
 
   }
 
-  /* Allocate enough space for us and an array of clients */
-  llmp_broker_state_t *broker =
-      afl_realloc(NULL, sizeof(llmp_broker_state_t) +
-                            (thread_count * sizeof(llmp_incoming_t)));
-  if (!broker) { FATAL("Could not allocate broker mem"); }
-  broker->broadcast_maps = 0;
-  broker->llmp_client_count = thread_count;
-  broker->last_msg_sent = NULL;
+  int port = 0xAF1;
 
-  if (!afl_realloc((void **)&broker->broadcast_maps,
-                   1 * sizeof(afl_shmem_t **))) {
+  if (argc > 2) {
 
-    FATAL("Could not allocate mem");
+    port=atoi(argv[2]);
+    if (port <= 0 || port >= 1<<16) { FATAL("illegal port"); }
 
   }
 
-  broker->broadcast_maps[0] = broker->current_broadcast_map =
-      malloc(sizeof(afl_shmem_t));
-  if (!broker->broadcast_maps[0]) { FATAL("Could not allocate broadcast map"); }
+  llmp_broker_state_t *broker = llmp_broker_new();
 
-  if (!afl_shmem_init(broker->current_broadcast_map, LLMP_MAP_SIZE)) {
+  llmp_broker_new_tcp_client(broker, port);
 
-    FATAL("Could not allocate shared map for broker");
-
+  if (!llmp_broker_new_threaded_client(broker, llmp_client_loop_print_u32, NULL)) {
+    FATAL("error adding threaded client");
+  }
+  if (!llmp_broker_new_threaded_client(broker, llmp_client_loop_rand_u32, NULL)) {
+    FATAL("error adding threaded client");
   }
 
-  llmp_page_init(llmp_page_from_shmem(broker->current_broadcast_map), -1,
-                 LLMP_MAP_SIZE);
-
-  pthread_t *threads = malloc(thread_count * sizeof(pthread_t));
-  if (!threads) { FATAL("Coul not allocate mem for thread structs"); }
-
-  for (i = 0; i < thread_count; i++) {
-
-    llmp_incoming_t *client = &broker->llmp_clients[i];
-    client->last_msg = NULL;
-    client->id = i;
-    if (!afl_shmem_init(&client->map, LLMP_MAP_SIZE)) {
-
-      FATAL("Error creating shared mem");
-
-    }
-
-    llmp_page_init(llmp_page_from_shmem(&client->map), i, LLMP_MAP_SIZE);
-
-    llmp_client_state_t *thread_args = malloc(sizeof(llmp_client_state_t));
-    if (!thread_args) { FATAL("Could not allocate mem"); }
-    thread_args->current_broadcast_map = broker->current_broadcast_map;
-    thread_args->last_msg_sent = NULL;
-    thread_args->out_ringbuf = &client->map;
-    thread_args->id = client->id;
-
-    pthread_t *thread = &threads[i];
-
-    int s = pthread_create(thread, NULL, llmp_client_thread, thread_args);
-    if (!s) {
-
-      OKF("Thread created with thread id %lu", *thread);
-
-    } else {
-
-      FATAL("Error creating thread");
-
-    }
-
-  }
-
-  llmp_broker(broker);
-
-  FATAL("BUG: unreachable");
-  return 0;
+  llmp_broker_run(broker);
 
 }
-
