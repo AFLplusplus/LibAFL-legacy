@@ -30,8 +30,7 @@ afl_ret_t afl_stage_init(stage_t *stage, engine_t *engine) {
   stage->engine = engine;
 
   // We also add this stage to the engine's fuzzone
-
-  engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage);
+  if (engine) { engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage); }
 
   stage->funcs.iterations = afl_iterations_stage_default;
 
@@ -45,7 +44,7 @@ void afl_stage_deinit(stage_t *stage) {
 
 }
 
-afl_ret_t afl_fuzz_stage_init(fuzzing_stage_t *fuzz_stage, engine_t *engine) {
+afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *fuzz_stage, engine_t *engine) {
 
   if (afl_stage_init(&(fuzz_stage->base), engine) != AFL_RET_SUCCESS) {
 

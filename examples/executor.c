@@ -24,12 +24,12 @@
 #include "xxh3.h"
 #include "alloc-inl.h"
 #include "aflpp.h"
-#include "os.h"
-#include "feedback.h"
+// #include "os.h"
+// #include "feedback.h"
 #include "engine.h"
-#include "mutator.h"
-#include "fuzzone.h"
-#include "stage.h"
+// #include "mutator.h"
+// #include "fuzzone.h"
+// #include "stage.h"
 
 #define SUPER_INTERESTING 0.5
 #define VERY_INTERESTING 0.4
@@ -761,7 +761,7 @@ engine_t *initialize_engine_instance(char *target_path, char **target_args) {
                                           random_byte_add_sub_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_mutation);
 
-  fuzzing_stage_t *stage = afl_fuzz_stage_create(engine);
+  fuzzing_stage_t *stage = afl_fuzzing_stage_create(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }
   stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
 

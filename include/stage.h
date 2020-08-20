@@ -100,14 +100,14 @@ struct fuzzing_stage {
 
 afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *, mutator_t *);
 
-afl_ret_t afl_fuzz_stage_init(fuzzing_stage_t *, engine_t *);
+afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *, engine_t *);
 void      afl_fuzzing_stage_deinit(fuzzing_stage_t *);
 
-static inline fuzzing_stage_t *afl_fuzz_stage_create(engine_t *engine) {
+static inline fuzzing_stage_t *afl_fuzzing_stage_create(engine_t *engine) {
 
   fuzzing_stage_t *stage = calloc(1, sizeof(fuzzing_stage_t));
   if (!stage) { return NULL; }
-  if (afl_fuzz_stage_init(stage, engine) != AFL_RET_SUCCESS) {
+  if (afl_fuzzing_stage_init(stage, engine) != AFL_RET_SUCCESS) {
 
     free(stage);
     return NULL;

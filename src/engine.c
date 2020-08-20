@@ -27,6 +27,7 @@
 #include <time.h>
 
 #include "engine.h"
+#include "aflpp.h"
 #include "afl-returns.h"
 #include "fuzzone.h"
 #include "os.h"

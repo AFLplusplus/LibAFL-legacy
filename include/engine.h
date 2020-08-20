@@ -30,7 +30,6 @@
 
 #include "common.h"
 #include "queue.h"
-#include "aflpp.h"
 #include "feedback.h"
 #include "afl-returns.h"
 
