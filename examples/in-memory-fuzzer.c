@@ -3,7 +3,7 @@
 #include "inmemory-executor.h"
 #include <png.h>
 
-u8 *__afl_area_ptr;
+extern uint8_t * __lafl_map;
 
 exit_type_t harness_func(u8 * input, size_t len) {
 
@@ -27,7 +27,7 @@ exit_type_t harness_func(u8 * input, size_t len) {
 int main(int argc, char ** argv) {
 
     afl_sharedmem_t afl_sharedmem;
-    __afl_area_ptr = afl_sharedmem_init(&afl_sharedmem, MAP_SIZE);
+    u8 * __afl_area_ptr = afl_sharedmem_init(&afl_sharedmem, MAP_SIZE);
 
     /* Let's create an in-memory executor */
 
@@ -42,12 +42,12 @@ int main(int argc, char ** argv) {
     input->bytes = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     input->len = 37;
     
-    in_memory_executor->base.funcs.run_target_cb(input->bytes, input->len);
+    harness_func(input->bytes, input->len);
 
     input->bytes = "\x89PNG\r\n\x1a\nBBBBBBBBBBBBBBBBBBBBB";
     input->len = 29;
 
-    in_memory_executor->base.funcs.run_target_cb(input->bytes, input->len);
+    harness_func(input->bytes, input->len);
 
     return 0;
 

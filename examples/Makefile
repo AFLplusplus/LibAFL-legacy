@@ -27,3 +27,10 @@ clean:
 	rm -rf ./in 2>/dev/null	|| true
 	rm -rf ./crashes-* 2>/dev/null || true
 	rm -rf ./out-*
+
+libpng-cvg.a: Runtime.c
+	clang-10 -c Runtime.c /usr/local/lib/libpng.a -fsanitize-coverage=trace-pc-guard -g -o libpng-cvg.o
+	llvm-ar-10 rc libpng-cvg.a libpng-cvg.o
+
+in-memory-fuzzer: in-memory-fuzzer.c libpng-cvg.a 
+	clang in-memory-fuzzer.c libpng-cvg.a -g -L/home/jack_0f_spades/LibAFL -I/home/jack_0f_spades/LibAFL/include -I/home/jack_0f_spades/LibAFL/examples/executors -laflpp -o in-mem
