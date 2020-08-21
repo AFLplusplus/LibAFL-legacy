@@ -105,7 +105,7 @@ typedef struct llmp_message {
   /* the sender's id */
   u32 sender;
   /* unique id for this msg */
-  volatile u32 message_id;
+  u32 message_id;
 
   /* the length of the payload */
   size_t buf_len;
@@ -353,7 +353,7 @@ llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
 
 }
 
-/* will return a ptr to the next msg buf, or NULL if map is full */
+/* Will return a ptr to the next msg buf, or NULL if map is full. */
 llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
                                 size_t buf_len) {
 
@@ -669,7 +669,8 @@ void llmp_client_handle_out_eop(llmp_client_state_t *client) {
 
 }
 
-/* A client receives a broadcast message. Returns null if no message is availiable */
+/* A client receives a broadcast message. Returns null if no message is
+ * availiable */
 llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
 
   llmp_message_t *msg = llmp_recv(llmp_page_from_shmem(&client->client_out_map),
@@ -685,11 +686,13 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
 
 }
 
-/* A client blocks until the next broadcast rolls in */
+/* A client blocks/spins until the next message gets posted to the page,
+  then returns that message. */
 llmp_message_t *llmp_client_recv_blocking(llmp_client_state_t *client) {
 
-  llmp_message_t *msg = llmp_recv_blocking(llmp_page_from_shmem(client->current_broadcast_map),
-                            client->last_msg_recvd);
+  llmp_message_t *msg =
+      llmp_recv_blocking(llmp_page_from_shmem(client->current_broadcast_map),
+                         client->last_msg_recvd);
   if (msg->tag == LLMP_TAG_UNALLOCATED_V1) {
 
     FATAL("BUG: Read unallocated msg");

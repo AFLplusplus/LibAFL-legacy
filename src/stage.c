@@ -44,7 +44,8 @@ void afl_stage_deinit(stage_t *stage) {
 
 }
 
-afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *fuzz_stage, engine_t *engine) {
+afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *fuzz_stage,
+                                 engine_t *       engine) {
 
   if (afl_stage_init(&(fuzz_stage->base), engine) != AFL_RET_SUCCESS) {
 
