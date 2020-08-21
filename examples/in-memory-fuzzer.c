@@ -1,5 +1,6 @@
 /* An in mmeory fuzzing example */
 
+#include <stdio.h>
 #include "inmemory-executor.h"
 #include <png.h>
 
@@ -26,8 +27,8 @@ exit_type_t harness_func(u8 * input, size_t len) {
 
 int main(int argc, char ** argv) {
 
-    afl_sharedmem_t afl_sharedmem;
-    u8 * __afl_area_ptr = afl_sharedmem_init(&afl_sharedmem, MAP_SIZE);
+    extern u8 * __afl_area_ptr;
+    int i;
     
     if (argc > 1) { // only to get rid of warnings
     
@@ -48,12 +49,24 @@ int main(int argc, char ** argv) {
     input->bytes = (u8*) "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     input->len = 37;
     
+    memset(__afl_area_ptr, 0, MAP_SIZE);
     harness_func(input->bytes, input->len);
+    fprintf(stderr, "Trace data:");
+    for (i = 0; i < MAP_SIZE; i++)
+      if (__afl_area_ptr[i])
+        fprintf(stderr, " map[%d]=%u", i, __afl_area_ptr[i]);
+    fprintf(stderr, "\n");
 
     input->bytes = (u8*) "\x89PNG\r\n\x1a\nBBBBBBBBBBBBBBBBBBBBB";
     input->len = 29;
 
+    memset(__afl_area_ptr, 0, MAP_SIZE);
     harness_func(input->bytes, input->len);
+    fprintf(stderr, "Trace data:");
+    for (i = 0; i < MAP_SIZE; i++)
+      if (__afl_area_ptr[i])
+        fprintf(stderr, " map[%d]=%u", i, __afl_area_ptr[i]);
+    fprintf(stderr, "\n");
 
     return 0;
 
