@@ -284,7 +284,7 @@ llmp_message_t *llmp_recv(llmp_page_t *page, llmp_message_t *last_msg) {
 /* Blocks/spins until the next message gets posted to the page,
   then returns that message. */
 llmp_message_t *llmp_recv_blocking(llmp_page_t *   page,
-                                        llmp_message_t *last_msg) {
+                                   llmp_message_t *last_msg) {
 
   u32 current_msg_id = 0;
   if (last_msg != NULL) {
@@ -525,8 +525,7 @@ void llmp_broker_broadcast_new_msgs(llmp_broker_state_t *          broker,
                                : 0;
   while (current_message_id != incoming->current_msg_id) {
 
-    llmp_message_t *msg =
-        llmp_recv(incoming, client->last_msg_broker_read);
+    llmp_message_t *msg = llmp_recv(incoming, client->last_msg_broker_read);
     if (!msg) {
 
       FATAL(
@@ -672,22 +671,25 @@ void llmp_client_handle_out_eop(llmp_client_state_t *client) {
 
 llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
 
-  llmp_message_t *msg = llmp_recv(llmp_page_from_shmem(&client->client_out_map), client->last_msg_recvd);
+  llmp_message_t *msg = llmp_recv(llmp_page_from_shmem(&client->client_out_map),
+                                  client->last_msg_recvd);
   if (msg->tag == LLMP_TAG_UNALLOCATED_V1) {
+
     FATAL("BUG: Read unallocated msg");
+
   }
+
   client->last_msg_recvd = msg;
   return msg;
-  
+
 }
 
 llmp_message_t *llmp_client_recv_blocking(llmp_client_state_t *client) {
 
-  return llmp_recv_blocking(llmp_page_from_shmem(client->current_broadcast_map), client->last_msg_recvd);
-  
+  return llmp_recv_blocking(llmp_page_from_shmem(client->current_broadcast_map),
+                            client->last_msg_recvd);
+
 }
-
-
 
 /* Alloc the next message, internally resetting the ringbuf if full */
 llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
@@ -725,8 +727,7 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
 }
 
 /* Commits a msg to the client's out ringbuf */
-bool llmp_client_send(llmp_client_state_t *client_state,
-                        llmp_message_t *     msg) {
+bool llmp_client_send(llmp_client_state_t *client_state, llmp_message_t *msg) {
 
   bool ret =
       llmp_send(llmp_page_from_shmem(&client_state->client_out_map), msg);
@@ -821,7 +822,9 @@ void llmp_client_loop_tcp(llmp_client_state_t *client_state, void *data) {
     close(connfd);
 
     if (!llmp_client_send(client_state, msg)) {
+
       FATAL("BUG: Error sending incoming tcp msg to broker");
+
     }
 
     msg = llmp_client_alloc_next(client_state, sizeof(llmp_msg_client_added_t));
@@ -992,12 +995,14 @@ int main(int argc, char **argv) {
 
   int i;
   for (i = 0; i < thread_count; i++) {
+
     if (!llmp_broker_new_threaded_client(broker, llmp_client_loop_rand_u32,
-                                       NULL)) {
+                                         NULL)) {
 
       FATAL("error adding threaded client");
 
     }
+
   }
 
   llmp_broker_run(broker);
