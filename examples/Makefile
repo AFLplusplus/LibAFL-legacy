@@ -1,6 +1,6 @@
 MAKEFILE_PATH := $(abspath .)
 AFL_DIR:=$(realpath $(MAKEFILE_PATH)/../../)
-AFL_CC:=$(AFL_DIR)/AFLplusplus/afl-clang
+AFL_CC:=$(AFL_DIR)/AFLplusplus/afl-clang-fast
 CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -pthread -fsanitize=address -laflpp -lm -Wall -Wextra -Werror -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
 
 all: clean target executor
@@ -29,4 +29,4 @@ clean:
 	rm -rf ./out-*
 
 in-memory-fuzzer: in-memory-fuzzer.c
-	clang Runtime.c in-memory-fuzzer.c ./libpng.a -g -L/home/jack_0f_spades/LibAFL -L/home/jack_0f_spades/LibAFL/examples -I/home/jack_0f_spades/LibAFL/include -I/home/jack_0f_spades/LibAFL/examples/executors -laflpp -o in-mem -lz -lm
+	clang Runtime.c in-memory-fuzzer.c ./libpng.a -g -L/home/jack_0f_spades/LibAFL -L/home/jack_0f_spades/LibAFL/examples -I/home/jack_0f_spades/LibAFL/include -I/home/jack_0f_spades/LibAFL/examples/executors -laflpp -o in-mem -lz -lm $(AFL_DIR)/AFLplusplus/afl-llvm-rt.o
