@@ -11,7 +11,7 @@ target: ./target.c
 	$(AFL_CC) -g target.c -o target
 
 executor: ./executor.c
-	$(CC) executor.c -o executor $(CFLAGS)
+	gcc executor.c -o executor $(CFLAGS)
 
 test: clean executor target
 	make -C ..
@@ -31,4 +31,4 @@ clean:
 	rm -rf ./out-*
 
 in-memory-fuzzer: in-memory-fuzzer.c
-	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -laflpp -o in-mem -lz -lm  $(AFL_DIR)/afl-llvm-rt.o
+	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_DIR)/afl-llvm-rt.o
