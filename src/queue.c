@@ -288,6 +288,8 @@ afl_ret_t afl_feedback_queue_init(feedback_queue_t *feedback_queue,
   afl_base_queue_init(&(feedback_queue->base));
   feedback_queue->feedback = feedback;
 
+  if (feedback) { feedback->queue = feedback_queue; }
+
   if (!name) { name = (char *)""; }
 
   feedback_queue->name = name;

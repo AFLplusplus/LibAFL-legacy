@@ -27,12 +27,19 @@
 #ifndef LIBAFLPP_H
 #define LIBAFLPP_H
 
+#include <types.h>
+
 #include "common.h"
 #include "observationchannel.h"
 #include "input.h"
+#include "mutator.h"
+#include "queue.h"
+#include "engine.h"
+#include "fuzzone.h"
+#include "feedback.h"
+#include "stage.h"
 #include "list.h"
 #include "os.h"
-#include <types.h>
 #include "afl-returns.h"
 
 #define MAX_OBS_CHANNELS 5

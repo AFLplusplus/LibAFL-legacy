@@ -31,12 +31,13 @@ exit_type_t in_memory_run_target(executor_t * executor) {
 
 }
 
-static in_memeory_executor_t * in_memory_exeutor_init(in_memeory_executor_t * in_memeory_executor, harness_function_type harness) {
+static void in_memory_exeutor_init(in_memeory_executor_t * in_memeory_executor, harness_function_type harness) {
     
     afl_executor_init(&in_memeory_executor->base);
     in_memeory_executor->harness = harness;
     in_memeory_executor->base.funcs.run_target_cb = in_memory_run_target;
     in_memeory_executor->base.funcs.place_input_cb = in_mem_executor_place_input;
+    return;
     
 }
 

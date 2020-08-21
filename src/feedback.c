@@ -59,6 +59,8 @@ void afl_set_feedback_queue_default(feedback_t *      feedback,
 
   feedback->queue = queue;
 
+  if (queue) { queue->feedback = feedback; }
+
 }
 
 feedback_queue_t *afl_get_feedback_queue_default(feedback_t *feedback) {

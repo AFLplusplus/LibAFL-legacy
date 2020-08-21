@@ -9,7 +9,7 @@ int main() {
 
   char input[100] = {'\x00'};
 
-  int r = read(0, input, 50);
+  int r = read(0, input, 4);
   if (!r) { puts("Error!\n"); }
 
   printf("In target\n");

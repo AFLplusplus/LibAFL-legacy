@@ -1,7 +1,9 @@
 MAKEFILE_PATH := $(abspath .)
-AFL_DIR:=$(realpath $(MAKEFILE_PATH)/../../)
-AFL_CC:=$(AFL_DIR)/AFLplusplus/afl-clang
-CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -pthread -fsanitize=address -laflpp -lm -Wall -Wextra -Werror -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
+AFL_DIR?=$(realpath $(MAKEFILE_PATH)/../../)
+AFL_CC:=afl-clang-fast
+CFLAGS+=-g -L.. -I../include -I$(AFL_DIR)/include -pthread -laflpp -lm -Wall -Wextra -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
+
+$(info AFL_DIR is $(AFL_DIR))
 
 all: clean target executor
 
@@ -9,7 +11,7 @@ target: ./target.c
 	$(AFL_CC) -g target.c -o target
 
 executor: ./executor.c
-	$(CC) executor.c -o executor $(CFLAGS)
+	gcc executor.c -o executor $(CFLAGS)
 
 test: clean executor target
 	make -C ..
@@ -26,7 +28,10 @@ llmp: ./llmp.c
 	$(CC) llmp.c -o llmp $(CFLAGS)
 
 clean:
-	rm out ./executor ./target ./success 2>/dev/null || true
+	rm out ./executor ./target ./success ./in-mem 2>/dev/null || true
 	rm -rf ./in 2>/dev/null	|| true
 	rm -rf ./crashes-* 2>/dev/null || true
 	rm -rf ./out-*
+
+in-memory-fuzzer: in-memory-fuzzer.c
+	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_DIR)/afl-llvm-rt.o
