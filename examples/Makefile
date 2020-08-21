@@ -1,6 +1,6 @@
 MAKEFILE_PATH := $(abspath .)
 AFL_DIR:=$(realpath $(MAKEFILE_PATH)/../../)
-AFL_CC:=$(AFL_DIR)/AFLplusplus/afl-clang
+AFL_CC:=$(AFL_DIR)/AFLplusplus/afl-clang-fast
 CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -pthread -fsanitize=address -laflpp -lm -Wall -Wextra -Werror -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
 
 all: clean target executor
