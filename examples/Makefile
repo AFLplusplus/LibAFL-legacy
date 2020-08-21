@@ -29,4 +29,4 @@ clean:
 	rm -rf ./out-*
 
 in-memory-fuzzer: in-memory-fuzzer.c
-	clang Runtime.c in-memory-fuzzer.c ./libpng.a -g -L/home/jack_0f_spades/LibAFL -L/home/jack_0f_spades/LibAFL/examples -I/home/jack_0f_spades/LibAFL/include -I/home/jack_0f_spades/LibAFL/examples/executors -laflpp -o in-mem -lz -lm $(AFL_DIR)/AFLplusplus/afl-llvm-rt.o
+	clang in-memory-fuzzer.c ./libpng.a -g -L/home/jack_0f_spades/LibAFL -L/home/jack_0f_spades/LibAFL/examples -I/home/jack_0f_spades/LibAFL/include -I/home/jack_0f_spades/LibAFL/examples/executors -laflpp -o in-mem -lz -lm $(AFL_DIR)/AFLplusplus/afl-llvm-rt.o
