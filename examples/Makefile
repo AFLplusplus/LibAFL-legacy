@@ -24,8 +24,8 @@ test: clean executor target
 	rm -rf ./out-*
 	rm -rf ./crashes-* 2>/dev/null || trues
 
-llmp: ./llmp.c
-	$(CC) llmp.c -o llmp $(CFLAGS)
+llmp-main: ./llmp-main.c
+	$(CC) llmp-main.c -o llmp-main $(CFLAGS)
 
 clean:
 	rm out ./executor ./target ./success ./in-mem 2>/dev/null || true

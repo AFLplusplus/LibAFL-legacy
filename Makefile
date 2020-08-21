@@ -56,15 +56,19 @@ engine.o: ./src/engine.c ./include/engine.h ./src/feedback.o ./src/queue.o ./src
 os.o: ./src/os.c ./include/os.h ./src/common.o ./src/input.o
 	$(CC ./src/os.c -o os.so $(CFLAGS)
 
+# Compiling the OS helper  for the library
+llmp.o: ./src/llmp.c ./include/llmp.h
+	$(CC ./src/os.c -o llmp.o $(CFLAGS)
+
 # Compiling the final library
 aflpp.o: ./src/aflpp.c ./include/aflpp.h ./src/observationchannel.o ./src/input.observation
 	$(CC) ./src/aflpp.c -o aflpp.so $(CFLAGS)
 
-libaflpp.so: ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
-	$(CC) ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
+libaflpp.so: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
+	$(CC) ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
 
-example-fuzzer: ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
-	$(CC) ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o ./examples/executor.c -o example-fuzzer $(CFLAGS)
+example-fuzzer: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
+	$(CC) ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o ./examples/executor.c -o example-fuzzer $(CFLAGS)
 
 
 

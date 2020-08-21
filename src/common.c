@@ -27,6 +27,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include "common.h"
+#include "afl-shmem.h"
 
 void afl_shmem_deinit(afl_shmem_t *shm) {
 

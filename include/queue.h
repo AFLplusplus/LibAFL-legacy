@@ -31,6 +31,7 @@
 
 #include "input.h"
 #include "list.h"
+#include "afl-shmem.h"
 #include <stdbool.h>
 
 /*
