@@ -683,7 +683,7 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
 
 llmp_message_t *llmp_client_recv_blocking(llmp_client_state_t *client) {
 
-  return llmp_recv_blocking(llmp_page_from_shmem(&client->client_out_map), client->last_msg_recvd);
+  return llmp_recv_blocking(llmp_page_from_shmem(client->current_broadcast_map), client->last_msg_recvd);
   
 }
 
@@ -990,11 +990,14 @@ int main(int argc, char **argv) {
 
   }
 
-  if (!llmp_broker_new_threaded_client(broker, llmp_client_loop_rand_u32,
+  int i;
+  for (i = 0; i < thread_count; i++) {
+    if (!llmp_broker_new_threaded_client(broker, llmp_client_loop_rand_u32,
                                        NULL)) {
 
-    FATAL("error adding threaded client");
+      FATAL("error adding threaded client");
 
+    }
   }
 
   llmp_broker_run(broker);
