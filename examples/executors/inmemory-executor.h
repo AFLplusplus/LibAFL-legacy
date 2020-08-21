@@ -37,6 +37,7 @@ static in_memeory_executor_t * in_memory_exeutor_init(in_memeory_executor_t * in
     in_memeory_executor->harness = harness;
     in_memeory_executor->base.funcs.run_target_cb = in_memory_run_target;
     in_memeory_executor->base.funcs.place_input_cb = in_mem_executor_place_input;
+    return in_memeory_executor;
     
 }
 

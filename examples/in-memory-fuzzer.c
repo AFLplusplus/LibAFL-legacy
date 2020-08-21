@@ -28,6 +28,12 @@ int main(int argc, char ** argv) {
 
     afl_sharedmem_t afl_sharedmem;
     u8 * __afl_area_ptr = afl_sharedmem_init(&afl_sharedmem, MAP_SIZE);
+    
+    if (argc > 1) { // only to get rid of warnings
+    
+      fprintf(stderr, "%s: This has not options\n", argv[0]);
+    
+    }
 
     /* Let's create an in-memory executor */
 
@@ -39,12 +45,12 @@ int main(int argc, char ** argv) {
 
     raw_input_t * input = afl_input_create();
 
-    input->bytes = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    input->bytes = (u8*) "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
     input->len = 37;
     
     harness_func(input->bytes, input->len);
 
-    input->bytes = "\x89PNG\r\n\x1a\nBBBBBBBBBBBBBBBBBBBBB";
+    input->bytes = (u8*) "\x89PNG\r\n\x1a\nBBBBBBBBBBBBBBBBBBBBB";
     input->len = 29;
 
     harness_func(input->bytes, input->len);
