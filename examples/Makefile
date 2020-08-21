@@ -1,7 +1,7 @@
 MAKEFILE_PATH := $(abspath .)
 AFL_DIR?=$(realpath $(MAKEFILE_PATH)/../../)
 AFL_CC:=afl-clang-fast
-CFLAGS+=-g -L.. -I../include -I$(AFL_DIR)/include -pthread -fsanitize=address -laflpp -lm -Wall -Wextra -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
+CFLAGS+=-g -L.. -I../include -I$(AFL_DIR)/include -pthread -laflpp -lm -Wall -Wextra -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
 
 $(info AFL_DIR is $(AFL_DIR))
 
