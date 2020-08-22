@@ -19,6 +19,22 @@ LibAFL is a framework to build fuzzers, with support for mutithreading. The main
 
 LibAFL is supposed to be the fuzzing framework with all the pieces to build fuzzer, a sort of "LLVM of fuzzers".
 
+LibAFL defines the different pieces of fuzzer as follows:
+1. Executor - Structure to run the target and collecct observation (code coverage, exec time etc from it). An example would be the forkserver in AFL++
+2. Observation Channel - Observation channel is the structure which holds the run result (depending on the context, e.g if we eant code-coverage metric or something else) for the last run.
+3. Feedback - Feedback is the structure which infers valuable information from the run result stored in the observation channel. It can be used to give score to the input being fuzzed (based on the context, that is if it was looking to maximise code-coverage, execution time or something else) and also add new entries to the queue.
+4. Queue - LibAFL supports two major types of queues.
+    - Feedback queue - This type of queue is feedback specific i.e it is filled by entries which performed well based on a given feedback metric (say code-coverage). It also has a scheduling policy for itself which it can use to get next entries.
+    - Global queue - This is the global queue for the fuzzer instance, it holds all the feedback queues, schedules one of the feedback queues for the next run. Also it has it's own queue which can also hold entries.
+
+5. Fuzzone - This structure is inspired from AFL, with one fuzzone present in each fuzz instance, it holds all the stages of the fuzz instance and also handles the crashes/timeouts of the target.
+
+6. Stage - There can be many fuzzing stages in a fuzzer (e.g AFL has three stages, deterministic, havoc and splicing) and each stage can have it's own mutator. Thus a fuzzer can have multiple stages depending on if it's finding new finds in the current stage (or for how long the stage has been running).
+
+7. Mutators - Mutators have been defined to be as generic as possible with function pointers which can cover almost all mutators, (and if they don't, you can always extend them :) ). There are functions for mutating, trimming, post-process of the data which are called at appropriate places by the lib. Also, mutators also can define functions which decide if fuzzing a queue entry is beneficial or not. These mutator structures are largely inspired from AFL++ custom mutator API.
+
+8. Engine - Finally, the engine is the central cog of the fuzzer. It binds all the other pieces(like executor, feedbacks, fuzzone) together. Every engine is also associated with a global queue, whose entries can be shared with other engine instances.
+
 ## Features
 
 As a fuzzing library, LibAFL packs with it large number of features which are very handy for fuzzing.
