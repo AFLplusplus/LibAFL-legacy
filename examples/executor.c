@@ -729,13 +729,10 @@ engine_t *initialize_engine_instance(char *target_path, char **target_args) {
   if (!engine) { FATAL("Error initializing Engine"); }
   engine->funcs.add_feedback(engine, (feedback_t *)coverage_feedback);
   engine->funcs.add_feedback(engine, timeout_feedback);
-  engine->funcs.set_global_queue(engine, global_queue);
 
   fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
-  // We also add the fuzzone to the engine here.
-  engine->funcs.set_fuzz_one(engine, fuzz_one);
 
   scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_create(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
