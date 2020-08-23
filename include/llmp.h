@@ -58,7 +58,7 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 #include <pthread.h>
 
 #include "afl-returns.h"
-#include "afl-shmem.h" // for sharedmem
+#include "afl-shmem.h"  // for sharedmem
 #include "types.h"
 
 // We'll start of with a megabyte of maps for now(?)
@@ -104,6 +104,8 @@ typedef struct llmp_page {
   size_t size_total;
   /* How much of the page we already used */
   size_t size_used;
+  /* The largest allocated element so far */
+  size_t max_alloc_size;
   /* The messages start here. They can be of variable size, so don't address
    * them by array. */
   llmp_message_t messages[];
@@ -126,9 +128,9 @@ typedef struct llmp_client_state {
 
 } llmp_client_state_t;
 
-/* A convenient clientloop function that can be run threaded on llmp broker startup */
+/* A convenient clientloop function that can be run threaded on llmp broker
+ * startup */
 typedef void (*clientloop_t)(llmp_client_state_t *client_state, void *data);
-
 
 /* For the broker, internal: to keep track of the client */
 typedef struct llmp_broker_client_metadata {
@@ -166,7 +168,6 @@ typedef struct llmp_broker_state {
 /* Gets the llmp page struct from the shmem map */
 llmp_page_t *llmp_page_from_shmem(afl_shmem_t *afl_shmem);
 
-
 /* If a msg is contained in the current page */
 bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg);
 
@@ -201,7 +202,9 @@ data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
-bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker, clientloop_t clientloop, void *data);
+bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
+                                              clientloop_t         clientloop,
+                                              void *               data);
 
 /* Kicks off all threaded clients in the brackground, using pthreads */
 bool llmp_broker_launch_clientloops(llmp_broker_state_t *broker);
@@ -214,11 +217,10 @@ void llmp_broker_register_local_server(llmp_broker_state_t *broker, int port);
  * its own shared page */
 void llmp_broker_loop(llmp_broker_state_t *broker);
 
-/* Start all threads and the main broker. 
+/* Start all threads and the main broker.
 Same as llmp_broker_launch_threaded clients();
 Never returns. */
 void llmp_broker_run(llmp_broker_state_t *broker);
-
 
 #endif                                                            /* LLMP_H */
 
