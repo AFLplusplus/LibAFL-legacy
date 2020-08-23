@@ -49,14 +49,15 @@ also need to create new shmaps once their bufs are filled up.
 #include <unistd.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h> 
 #include <dirent.h>
 #include <time.h>
 #include <fcntl.h>
 #include <math.h>
 #include <stdbool.h>
 #include <pthread.h>
-
-#include <sys/socket.h>
+#include <netdb.h> 
+#include <sys/socket.h> 
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -90,6 +91,7 @@ also need to create new shmaps once their bufs are filled up.
   If you're reading this, we got an issue */
 #define LLMP_TAG_UNALLOCATED_V1 (0xDEADAFll)
 
+/* Message payload when a client got added LLMP_TAG_CLIENT_ADDED_V1 */
 /* A new sharedmap appeared.
   This is an internal message!
   LLMP_TAG_NEW_PAGE_V1
@@ -101,24 +103,12 @@ typedef struct llmp_payload_new_page {
   /* 0-terminated str handle for this map */
   char map_str[AFL_SHMEM_STRLEN_MAX];
 
-} __attribute__((__packed__)) llmp_msg_end_of_page_t;
-
-/* Message payload when a client got added
-  LLMP_TAG_CLIENT_ADDED_V1
-  */
-typedef struct llmp_msg_client_added {
-
-  /* size of this map */
-  size_t map_size;
-  /* 0-terminated str handle for this map */
-  char map_str[AFL_SHMEM_STRLEN_MAX];
-
-} __attribute__((__packed__)) llmp_msg_client_added_t;
+} __attribute__((__packed__)) llmp_payload_new_page_t;
 
 /* We need at least this much space at the end of each page to notify about the
  * next page/restart */
 #define LLMP_MSG_END_OF_PAGE_LEN \
-  (sizeof(llmp_message_t) + sizeof(llmp_msg_end_of_page_t))
+  (sizeof(llmp_message_t) + sizeof(llmp_payload_new_page_t))
 
 /* If a msg is contained in the current page */
 bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg) {
@@ -243,7 +233,7 @@ llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
 
   llmp_message_t *ret = _llmp_next_msg_ptr(last_msg);
 
-  ret->buf_len = sizeof(llmp_msg_end_of_page_t);
+  ret->buf_len = sizeof(llmp_payload_new_page_t);
   ret->message_id = last_msg->message_id += 1;
   ret->tag = LLMP_TAG_END_OF_PAGE_V1;
 
@@ -352,7 +342,7 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
   llmp_page_t *new_broadcast_map =
       llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
-  _llmp_page_init(new_broadcast_map, -1, LLMP_MAP_SIZE);
+  _llmp_page_init(new_broadcast_map, -1, LLMP_INITIAL_MAP_SIZE);
 
   new_broadcast_map->current_msg_id = old_broadcast_map->current_msg_id;
 
@@ -360,7 +350,7 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
    * to consume */
   llmp_message_t *out =
       llmp_alloc_eop(old_broadcast_map, broker->last_msg_sent);
-  llmp_msg_end_of_page_t *new_page_msg = (llmp_msg_end_of_page_t *)out->buf;
+  llmp_payload_new_page_t *new_page_msg = (llmp_payload_new_page_t *)out->buf;
 
   /* copy the infos to the message we're going to send on the old buf */
   new_page_msg->map_size = _llmp_broker_current_broadcast_map(broker)->map_size;
@@ -555,9 +545,9 @@ static void llmp_client_handle_out_eop(llmp_client_state_t *client) {
       llmp_page_from_shmem(&client->client_out_map), client->last_msg_sent);
   out->tag = LLMP_TAG_END_OF_PAGE_V1;
   out->sender = client->id;
-  out->buf_len = sizeof(llmp_msg_end_of_page_t);
+  out->buf_len = sizeof(llmp_payload_new_page_t);
   /* We don't set anything here anyway - reusing the ringbuf for clients for
-  now. llmp_msg_end_of_page_t *new_page_msg = (llmp_msg_end_of_page_t
+  now. llmp_payload_new_page_t *new_page_msg = (llmp_payload_new_page_t
   *)out->buf;
   */
   if (!llmp_send(llmp_page_from_shmem(&client->client_out_map), out)) {
@@ -652,13 +642,14 @@ bool llmp_client_send(llmp_client_state_t *client_state, llmp_message_t *msg) {
 
 /* A simple client that, on connect, reads the new client's shmap str and writes
  * the broker's initial map str */
-void llmp_clientloop_tcp(llmp_client_state_t *client_state, void *data) {
+void llmp_clientloop_process_server(llmp_client_state_t *client_state, void *data) {
 
   int port = (int)(size_t)data;
 
-  char broker_map_str[AFL_SHMEM_STRLEN_MAX];
-  strncpy(broker_map_str, client_state->current_broadcast_map->shm_str,
-          AFL_SHMEM_STRLEN_MAX);
+  llmp_payload_new_page_t initial_broadcast_map = {0};
+  initial_broadcast_map.map_size = client_state->current_broadcast_map->map_size;
+  strncpy(initial_broadcast_map.map_str, client_state->current_broadcast_map->shm_str,
+          AFL_SHMEM_STRLEN_MAX - 1);
 
   struct sockaddr_in serv_addr = {0};
 
@@ -673,21 +664,20 @@ void llmp_clientloop_tcp(llmp_client_state_t *client_state, void *data) {
   listen(listenfd, 10);
 
   llmp_message_t *msg =
-      llmp_client_alloc_next(client_state, sizeof(llmp_msg_client_added_t));
+      llmp_client_alloc_next(client_state, sizeof(llmp_payload_new_page_t));
 
   while (1) {
 
     if (!msg) { FATAL("Error allocating new client msg in tcp client!"); }
 
     msg->tag = LLMP_TAG_CLIENT_ADDED_V1;
-    /* TODO: Maybe the new tcp client wants to tell us its size, instead? */
-    llmp_msg_client_added_t *payload = (llmp_msg_client_added_t *)msg->buf;
-    payload->map_size = LLMP_MAP_SIZE;
+    llmp_payload_new_page_t *payload = (llmp_payload_new_page_t *)msg->buf;
+    payload->map_size = LLMP_INITIAL_MAP_SIZE;
 
     int connfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
 
-    if (write(connfd, broker_map_str, AFL_SHMEM_STRLEN_MAX) !=
-        AFL_SHMEM_STRLEN_MAX) {
+    if (write(connfd, &initial_broadcast_map, sizeof(llmp_payload_new_page_t)) !=
+        sizeof(llmp_payload_new_page_t)) {
 
       WARNF("Socket_client: TCP client disconnected immediately");
       close(connfd);
@@ -697,10 +687,10 @@ void llmp_clientloop_tcp(llmp_client_state_t *client_state, void *data) {
 
     ssize_t rlen_total = 0;
 
-    while (rlen_total != AFL_SHMEM_STRLEN_MAX) {
+    while (rlen_total != sizeof(llmp_payload_new_page_t)) {
 
       ssize_t rlen =
-          read(connfd, payload->map_str, AFL_SHMEM_STRLEN_MAX - rlen_total);
+          read(connfd, payload, sizeof(llmp_payload_new_page_t) - rlen_total);
       if (rlen < 0) {
 
         // TODO: Handle EINTR?
@@ -720,9 +710,91 @@ void llmp_clientloop_tcp(llmp_client_state_t *client_state, void *data) {
 
     }
 
-    msg = llmp_client_alloc_next(client_state, sizeof(llmp_msg_client_added_t));
+    msg = llmp_client_alloc_next(client_state, sizeof(llmp_payload_new_page_t));
 
   }
+
+}
+
+
+/* Creates a new client process that will connect to the given port */
+llmp_client_state_t *llmp_client_new(int port) {
+
+	int connfd = 0; 
+	struct sockaddr_in servaddr = {0};
+
+  llmp_client_state_t *client_state = calloc(1, sizeof(llmp_client_state_t));
+
+  client_state->current_broadcast_map = calloc(1, sizeof(afl_shmem_t));
+  if (!client_state->current_broadcast_map) {
+    PFATAL("Could not allocate mem");
+  }
+
+  if (!afl_shmem_init(&client_state->client_out_map, LLMP_INITIAL_MAP_SIZE)) {
+    PFATAL("Could not create sharedmem");
+  }
+
+	// socket create and varification 
+	connfd = socket(AF_INET, SOCK_STREAM, 0); 
+	if (connfd == -1) { 
+    PFATAL("Unable to create socket");
+	} 
+
+	servaddr.sin_family = AF_INET; 
+	servaddr.sin_addr.s_addr = inet_addr("127.0.0.1"); 
+	servaddr.sin_port = htons(port); 
+
+	if (connect(connfd, (struct sockaddr*)&servaddr, sizeof(servaddr)) != 0) { 
+    FATAL("Unable to connect to broker at localhost:%d, make sure it's running and has a port exposed", port);
+	} 
+
+  llmp_payload_new_page_t client_map_msg, broker_map_msg = {0};
+  client_map_msg.map_size = client_state->client_out_map.map_size;
+  strncpy(client_map_msg.map_str, client_state->client_out_map.shm_str,
+          AFL_SHMEM_STRLEN_MAX - 1);
+
+  if (write(connfd, &client_map_msg, sizeof(llmp_payload_new_page_t)) !=
+      sizeof(llmp_payload_new_page_t)) {
+
+    afl_shmem_deinit(&client_state->client_out_map);
+    free(client_state);
+    close(connfd);
+    FATAL("Socket_client: TCP server disconnected immediately");
+
+  }
+
+  ssize_t rlen_total = 0;
+
+  while (rlen_total != sizeof(llmp_payload_new_page_t)) {
+
+    ssize_t rlen =
+        read(connfd, &broker_map_msg, sizeof(llmp_payload_new_page_t) - rlen_total);
+    if (rlen < 0) {
+
+      // TODO: Handle EINTR?
+      afl_shmem_deinit(&client_state->client_out_map);
+      free(client_state);
+      close(connfd);
+
+      FATAL("No complete map str receved from llmp tcp server");
+
+    }
+
+  }
+
+  close(connfd);
+
+  if (!afl_shmem_by_str(client_state->current_broadcast_map, broker_map_msg.map_str, broker_map_msg.map_size)) {
+
+      // TODO: Handle EINTR?
+      afl_shmem_deinit(&client_state->client_out_map);
+      free(client_state);
+      close(connfd);
+
+    FATAL("Could not allocate shmem");
+  }
+
+  return client_state;
 
 }
 
@@ -757,14 +829,14 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker, clien
   client->clientloop = clientloop;
   client->data = data;
 
-  if (!afl_shmem_init(&client->client_state.client_out_map, LLMP_MAP_SIZE)) {
+  if (!afl_shmem_init(&client->client_state.client_out_map, LLMP_INITIAL_MAP_SIZE)) {
 
     return false;
 
   }
 
   _llmp_page_init(llmp_page_from_shmem(&client->client_state.client_out_map),
-                 client->client_state.id, LLMP_MAP_SIZE);
+                 client->client_state.id, LLMP_INITIAL_MAP_SIZE);
 
   /* Each client starts with the very first map.
   They should then iterate through all maps once and work on all old messages.
@@ -777,9 +849,9 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker, clien
 
 /* Register a simple tcp client that will listen for new shard map clients via
  * tcp */
-void llmp_broker_new_tcp_client(llmp_broker_state_t *broker, int port) {
+void llmp_broker_register_local_server(llmp_broker_state_t *broker, int port) {
 
-  llmp_broker_register_threaded_clientloop(broker, llmp_clientloop_tcp,
+  llmp_broker_register_threaded_clientloop(broker, llmp_clientloop_process_server,
                                   (void *)(size_t)port);
 
 }
@@ -807,7 +879,7 @@ llmp_broker_state_t *llmp_broker_new() {
   broker->broadcast_map_count = 1;
 
   if (!afl_shmem_init(_llmp_broker_current_broadcast_map(broker),
-                      LLMP_MAP_SIZE)) {
+                      LLMP_INITIAL_MAP_SIZE)) {
 
     FATAL("Could not allocate shared map for broker");
 
@@ -815,7 +887,7 @@ llmp_broker_state_t *llmp_broker_new() {
 
   _llmp_page_init(
       llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker)), -1,
-      LLMP_MAP_SIZE);
+      LLMP_INITIAL_MAP_SIZE);
 
   return broker;
 

@@ -124,6 +124,7 @@ u8 *afl_shmem_init(afl_shmem_t *shm, size_t map_size) {
 
 u8 *afl_shmem_by_str(afl_shmem_t *shm, char *shm_str, size_t map_size) {
 
+  if (!shm) { return NULL; }
   shm->map = NULL;
 
   if (!shm_str || !shm_str[0] || !map_size) { return NULL; }

@@ -1,3 +1,7 @@
+/*
+Example main for llmp.
+*/
+
 #include <stdio.h>
 
 #include "aflpp.h"
@@ -9,7 +13,7 @@
 #define LLMP_TAG_RANDOM_U32_V1 (0x344D011)
 
 /* A client that randomly produces messages */
-void llmp_client_loop_rand_u32(llmp_client_state_t *client, void *data) {
+void llmp_clientloop_rand_u32(llmp_client_state_t *client, void *data) {
 
   (void)data;
 
@@ -31,7 +35,7 @@ void llmp_client_loop_rand_u32(llmp_client_state_t *client, void *data) {
 
 
 /* A client listening for new messages, then printing them */
-void llmp_client_loop_print_u32(llmp_client_state_t *client_state, void *data) {
+void llmp_clientloop_print_u32(llmp_client_state_t *client_state, void *data) {
 
   (void)data;
 
@@ -60,52 +64,80 @@ void llmp_client_loop_print_u32(llmp_client_state_t *client_state, void *data) {
 /* Main entry point function */
 int main(int argc, char **argv) {
 
-  if (argc < 2 || argc > 3) {
-
-    FATAL("Usage ./llmp_test <thread_count> <port=0xAF1>");
-
-  }
-
-  int thread_count = atoi(argv[1]);
-  if (thread_count <= 0) {
-
-    FATAL("Number of clients should be greater than 0");
-
-  }
-
+  int thread_count = 1;
   int port = 0xAF1;
 
+  bool is_main = true;
+
+  if (argc < 2 || argc > 4) {
+
+    FATAL("Usage ./llmp_test [main|worker] <thread_count=1> <port=0xAF1>");
+
+  }
+
+  if (!strcmp(argv[1], "worker")) {
+    is_main = false;
+  } else if (strcmp(argv[1], "main")) {
+    FATAL("Mode must either be main or worker!\n"
+        "Usage ./llmp_test [main|worker] <thread_count=1> <port=0xAF1>");
+
+  }
+
   if (argc > 2) {
+    int thread_count = atoi(argv[2]);
+    if (thread_count < 0) {
+
+      FATAL("Number of clients cannot be negative.");
+
+    }
+    OKF("Spawning %d clients", thread_count);
+  }
+
+  if (argc > 3) {
 
     port = atoi(argv[2]);
     if (port <= 0 || port >= 1 << 16) { FATAL("illegal port"); }
 
   }
 
-  llmp_broker_state_t *broker = llmp_broker_new();
+  if (is_main) {
+    /* The main node has a broker, a tcp server, and a few worker threads */
+    llmp_broker_state_t *broker = llmp_broker_new();
 
-  llmp_broker_new_tcp_client(broker, port);
+    llmp_broker_register_local_server(broker, port);
 
-  if (!llmp_broker_register_threaded_clientloop(broker, llmp_client_loop_print_u32,
-                                       NULL)) {
-
-    FATAL("error adding threaded client");
-
-  }
-
-  int i;
-  for (i = 0; i < thread_count; i++) {
-
-    if (!llmp_broker_register_threaded_clientloop(broker, llmp_client_loop_rand_u32,
-                                         NULL)) {
+    if (!llmp_broker_register_threaded_clientloop(broker, llmp_clientloop_print_u32,
+                                        NULL)) {
 
       FATAL("error adding threaded client");
 
     }
 
+    int i;
+    for (i = 0; i < thread_count; i++) {
+
+      if (!llmp_broker_register_threaded_clientloop(broker, llmp_clientloop_rand_u32,
+                                          NULL)) {
+
+        FATAL("error adding threaded client");
+
+      }
+
+    }
+
+    llmp_broker_run(broker);
+
+  } else {
+
+    if (thread_count > 1) {
+      WARNF("Multiple threads not supported for clients.");
+    }
+
+    // Worker only needs to spawn client threads.
+    llmp_client_state_t *client_state = llmp_client_new(port);
+    llmp_clientloop_rand_u32(client_state, NULL);
+
   }
 
-  llmp_broker_run(broker);
-
+  FATAL("Unreachable");
 }
-

@@ -62,7 +62,7 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 #include "types.h"
 
 // We'll start of with a megabyte of maps for now(?)
-#define LLMP_MAP_SIZE (1 << 20)
+#define LLMP_INITIAL_MAP_SIZE (1 << 20)
 
 /* The actual message.
     Sender is the original client id.
@@ -126,7 +126,6 @@ typedef struct llmp_client_state {
 
 } llmp_client_state_t;
 
-
 /* A convenient clientloop function that can be run threaded on llmp broker startup */
 typedef void (*clientloop_t)(llmp_client_state_t *client_state, void *data);
 
@@ -171,6 +170,9 @@ llmp_page_t *llmp_page_from_shmem(afl_shmem_t *afl_shmem);
 /* If a msg is contained in the current page */
 bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg);
 
+/* Creates a new client process that will connect to the given port */
+llmp_client_state_t *llmp_client_new(int port);
+
 /* A client receives a broadcast message. Returns null if no message is
  * availiable */
 llmp_message_t *llmp_client_recv(llmp_client_state_t *client);
@@ -206,7 +208,7 @@ bool llmp_broker_launch_clientloops(llmp_broker_state_t *broker);
 
 /* Register a simple tcp client that will listen for new shard map clients via
  * tcp */
-void llmp_broker_new_tcp_client(llmp_broker_state_t *broker, int port);
+void llmp_broker_register_local_server(llmp_broker_state_t *broker, int port);
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page */
