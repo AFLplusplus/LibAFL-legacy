@@ -61,7 +61,7 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 #include "afl-shmem.h"  // for sharedmem
 #include "types.h"
 
-// We'll start of with a megabyte of maps for now(?)
+/* We'll start of with a megabyte of maps for now(?) */
 #define LLMP_INITIAL_MAP_SIZE (1 << 20)
 
 /* The actual message.
@@ -98,6 +98,11 @@ typedef struct llmp_page {
 
   /* who sends messages to this page */
   u32 sender;
+  /* The only variable that may be written to by the _receiver_:
+  On first message receive, save_to_unmap is set to 1. This means that
+  the sender can unmap this page after EOP, on exit, ...
+  Using u32 for a bool as it feels more aligned. */
+  volatile u32 save_to_unmap;
   /* The id of the last finished message */
   volatile size_t current_msg_id;
   /* Total size of the page */
@@ -123,8 +128,10 @@ typedef struct llmp_client_state {
   afl_shmem_t *current_broadcast_map;
   /* the last msg we sent */
   llmp_message_t *last_msg_sent;
-  /* The ringbuf to write to */
-  afl_shmem_t client_out_map;
+  /* Number of maps we're using */
+  size_t out_map_count;
+  /* The maps to write to */
+  afl_shmem_t *out_maps;
 
 } llmp_client_state_t;
 
@@ -138,12 +145,15 @@ typedef struct llmp_broker_client_metadata {
   /* infos about this client */
   llmp_client_state_t client_state;
 
-  /* these are null for remote clients */
+  /* The client map we're currently reading from */
+  /* We can't use the one from client_state for threaded clients
+  as they share the heap with us... */
+  afl_shmem_t *cur_client_map;
 
   /* The last message we/the broker received for this client. */
   llmp_message_t *last_msg_broker_read;
 
-  /* pthread associated to this client */
+  /* pthread associated to this client, if we have a threaded client */
   pthread_t *pthread;
   /* the client loop function */
   clientloop_t clientloop;
@@ -165,8 +175,25 @@ typedef struct llmp_broker_state {
 
 } llmp_broker_state_t;
 
-/* Gets the llmp page struct from the shmem map */
-llmp_page_t *llmp_page_from_shmem(afl_shmem_t *afl_shmem);
+/* Get a message buf as type if size matches, else NULL */
+#define LLMP_MSG_BUF_AS(msg, type)                                    \
+  ({                                                                  \
+                                                                      \
+    llmp_message_t *_msg = msg;                                       \
+    ((type *)((_msg)->buf_len == sizeof(type) ? (_msg)->buf : NULL)); \
+                                                                      \
+  })
+
+/* Get a message as type if tag matches, else NULL */
+#define LLMP_MSG_BUF_IF_TAG(msg, type, tag)                         \
+  ({                                                                \
+                                                                    \
+    llmp_message_t *_msg = msg;                                     \
+    ((type *)(((msg)->tag == tag && (msg)->buf_len == sizeof(type)) \
+                  ? (msg)->buf                                      \
+                  : NULL));                                         \
+                                                                    \
+  })
 
 /* If a msg is contained in the current page */
 bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg);

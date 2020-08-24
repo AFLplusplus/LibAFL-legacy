@@ -110,13 +110,13 @@ afl_ret_t afl_add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
 }
 
-afl_ret_t afl_set_engine_default(fuzz_one_t * fuzz_one, engine_t * engine) {
+afl_ret_t afl_set_engine_default(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->engine = engine;
 
   if (engine) { engine->fuzz_one = fuzz_one; }
-  
-  for(size_t i = 0; i < fuzz_one->stages_num; ++i) {
+
+  for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
 
     fuzz_one->stages[i]->engine = engine;
 

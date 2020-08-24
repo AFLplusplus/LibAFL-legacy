@@ -39,7 +39,11 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->fuzz_one = fuzz_one;
   engine->global_queue = global_queue;
 
-  if (global_queue) { global_queue->base.funcs.set_engine(&global_queue->base, engine); }
+  if (global_queue) {
+
+    global_queue->base.funcs.set_engine(&global_queue->base, engine);
+
+  }
 
   engine->funcs.get_queue = afl_get_queue_default;
   engine->funcs.get_execs = afl_get_execs_defualt;
@@ -112,7 +116,11 @@ void afl_set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
   engine->fuzz_one = fuzz_one;
 
-  if (fuzz_one) { fuzz_one->funcs.set_engine_default(engine->fuzz_one, engine); }
+  if (fuzz_one) {
+
+    fuzz_one->funcs.set_engine_default(engine->fuzz_one, engine);
+
+  }
 
 }
 

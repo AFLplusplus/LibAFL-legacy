@@ -748,7 +748,6 @@ engine_t *initialize_engine_instance(char *target_path, char **target_args) {
   fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
-
   scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_create(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 

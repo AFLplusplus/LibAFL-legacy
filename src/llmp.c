@@ -131,9 +131,19 @@ bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg) {
 }
 
 /* Gets the llmp page struct from the shmem map */
-llmp_page_t *llmp_page_from_shmem(afl_shmem_t *afl_shmem) {
+static llmp_page_t *shmem2page(afl_shmem_t *afl_shmem) {
 
   return (llmp_page_t *)afl_shmem->map;
+
+}
+
+/* In case we don't have enough space, make sure the next page will be large
+  enough. For now, we want to have at least enough space to store 2 of the
+  largest messages we encountered. */
+static size_t new_map_size(size_t max_alloc) {
+
+  return next_pow2(MAX((max_alloc * 2) + LLMP_MSG_END_OF_PAGE_LEN,
+                       (size_t)LLMP_INITIAL_MAP_SIZE));
 
 }
 
@@ -145,6 +155,7 @@ static void _llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
   page->max_alloc_size = 0;
   page->size_total = size;
   page->size_used = 0;
+  page->messages->message_id = 0;
   page->messages->tag = LLMP_TAG_UNALLOCATED_V1;
 
 }
@@ -262,6 +273,10 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
   size_t complete_msg_size = sizeof(llmp_message_t) + buf_len;
 
+  /* In case we don't have enough space, make sure the next page will be large
+   * enough */
+  page->max_alloc_size = MAX(page->max_alloc_size, complete_msg_size);
+
   // printf("alloc size_used %ld, new_size %ld, pl %ld, size_total %ld\n",
   // page->size_used, complete_msg_size, LLMP_MSG_END_OF_PAGE_LEN,
   // page->size_total); fflush(stdout);
@@ -270,6 +285,10 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
    */
   if (page->size_used + complete_msg_size + LLMP_MSG_END_OF_PAGE_LEN >
       page->size_total) {
+
+    DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: %ld, "
+        "total size %ld). Returning NULL",
+        buf_len, page->size_used, page->size_total);
 
     /* We're full. */
     return NULL;
@@ -284,12 +303,15 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
     /* We start fresh */
     ret = page->messages;
-    ret->message_id = last_msg ? last_msg->message_id + 1 : 1;
+    ret->message_id = last_msg ? last_msg->message_id + 1 : 0;
 
   } else if (page->current_msg_id != last_msg->message_id) {
 
     /* Oops, wrong usage! */
-    FATAL("BUG: The current message never got commited using llmp_send!");
+    FATAL(
+        "BUG: The current message never got commited using llmp_send! "
+        "(page->current_msg_id %ld, last_msg->message_id: %d)",
+        page->current_msg_id, last_msg->message_id);
 
   } else {
 
@@ -299,7 +321,6 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
   }
 
   ret->buf_len = buf_len;
-  page->max_alloc_size = MAX(page->max_alloc_size, ret->buf_len);
 
   /* Maybe catch some bugs... */
   _llmp_next_msg_ptr(ret)->tag = LLMP_TAG_UNALLOCATED_V1;
@@ -314,9 +335,16 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
  */
 bool llmp_send(llmp_page_t *page, llmp_message_t *msg) {
 
+  if (msg->tag == LLMP_TAG_UNALLOCATED_V1) {
+
+    FATAL("No tag set on message with id %d!", msg->message_id);
+
+  }
+
   if (!msg || !llmp_msg_in_page(page, msg)) {
 
-    FATAL("BUG: Uh-Oh! Wrong msg passed to llmp_send_allocated :(");
+    DBG("BUG: Uh-Oh! Wrong msg passed to llmp_send_allocated :(");
+    return false;
 
   }
 
@@ -341,54 +369,76 @@ llmp_page_t *llmp_new_page_shmem(afl_shmem_t *uninited_afl_shmem, size_t sender,
 
   size_t size = next_pow2(MAX(size_requested, (size_t)LLMP_INITIAL_MAP_SIZE));
   if (!afl_shmem_init(uninited_afl_shmem, size)) { return NULL; }
-  _llmp_page_init(llmp_page_from_shmem(uninited_afl_shmem), sender,
-                  size_requested);
-  return llmp_page_from_shmem(uninited_afl_shmem);
+  _llmp_page_init(shmem2page(uninited_afl_shmem), sender, size_requested);
+  return shmem2page(uninited_afl_shmem);
+
+}
+
+/* This function handles EOP by creating a new shared page and informing the
+  listener about it using a EOP message. */
+static afl_ret_t handle_out_eop(afl_shmem_t **maps_p, size_t *map_count_p,
+                                llmp_message_t **last_msg_p) {
+
+  u32          map_count = *map_count_p;
+  llmp_page_t *old_map = shmem2page(maps_p[map_count - 1]);
+
+  if (!afl_realloc((void **)maps_p, (map_count + 1) * sizeof(afl_shmem_t))) {
+
+    DBG("Unable to alloc space for broker map");
+    return AFL_RET_ALLOC;
+
+  }
+
+  /* Broadcast a new, large enough, message */
+  llmp_page_t *new_map =
+      llmp_new_page_shmem(maps_p[map_count], old_map->sender,
+                          new_map_size(old_map->max_alloc_size));
+  if (!new_map) {
+
+    DBG("Unable to initialize new broker page");
+    return AFL_RET_ALLOC;
+
+  }
+
+  map_count_p[0] = map_count_p[0] + 1;
+
+  new_map->current_msg_id = old_map->current_msg_id;
+  new_map->max_alloc_size = old_map->max_alloc_size;
+
+  /* On the old map, place a last message linking to the new map for the clients
+   * to consume */
+  llmp_message_t *out = llmp_alloc_eop(old_map, *last_msg_p);
+
+  out->sender = old_map->sender;
+
+  llmp_payload_new_page_t *new_page_msg = (llmp_payload_new_page_t *)out->buf;
+
+  /* copy the infos to the message we're going to send on the old buf */
+  new_page_msg->map_size = maps_p[map_count]->map_size;
+  strncpy(new_page_msg->shm_str, maps_p[map_count]->shm_str,
+          AFL_SHMEM_STRLEN_MAX - 1);
+
+  // We never sent a msg on the new buf */
+  *last_msg_p = NULL;
+
+  /* Send the last msg on the old buf */
+  if (!llmp_send(old_map, out)) {
+
+    DBG("Could not inform the broker!");
+    return AFL_RET_UNKNOWN_ERROR;
+
+  }
+
+  return AFL_RET_SUCCESS;
 
 }
 
 /* no more space left! We'll have to start a new page */
 afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
-  llmp_page_t *old_broadcast_map =
-      llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
-  broker->broadcast_map_count++;
-
-  if (!afl_realloc((void **)&broker->broadcast_maps,
-                   broker->broadcast_map_count * sizeof(afl_shmem_t))) {
-
-    return AFL_RET_ALLOC;
-
-  }
-
-  llmp_page_t *new_broadcast_map = llmp_new_page_shmem(
-      &broker->broadcast_maps[broker->broadcast_map_count - 1], -1,
-      MAX(old_broadcast_map->max_alloc_size * 2,
-          (size_t)LLMP_INITIAL_MAP_SIZE));
-  if (!new_broadcast_map) { return AFL_RET_ALLOC; }
-
-  new_broadcast_map->current_msg_id = old_broadcast_map->current_msg_id;
-  new_broadcast_map->max_alloc_size = old_broadcast_map->max_alloc_size;
-
-  /* On the old map, place a last message linking to the new map for the clients
-   * to consume */
-  llmp_message_t *out =
-      llmp_alloc_eop(old_broadcast_map, broker->last_msg_sent);
-  llmp_payload_new_page_t *new_page_msg = (llmp_payload_new_page_t *)out->buf;
-
-  /* copy the infos to the message we're going to send on the old buf */
-  new_page_msg->map_size = _llmp_broker_current_broadcast_map(broker)->map_size;
-  strncpy(new_page_msg->shm_str,
-          _llmp_broker_current_broadcast_map(broker)->shm_str,
-          AFL_SHMEM_STRLEN_MAX);
-  new_page_msg->shm_str[AFL_SHMEM_STRLEN_MAX - 1] = '\0';
-
-  /* Send the last msg on the old buf */
-  if (!llmp_send(old_broadcast_map, out)) { FATAL("Erro sending msg"); }
-
-  broker->last_msg_sent = out;
-
-  return AFL_RET_SUCCESS;
+  DBG("Broadcasting broker EOP");
+  return (handle_out_eop(&broker->broadcast_maps, &broker->broadcast_map_count,
+                         &broker->last_msg_sent) != AFL_RET_SUCCESS);
 
 }
 
@@ -396,7 +446,7 @@ llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker,
                                        size_t               len) {
 
   llmp_page_t *broadcast_page =
-      llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
+      shmem2page(_llmp_broker_current_broadcast_map(broker));
 
   llmp_message_t *out =
       llmp_alloc_next(broadcast_page, broker->last_msg_sent, len);
@@ -408,8 +458,7 @@ llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker,
     if (ret != AFL_RET_SUCCESS) { FATAL("%s", afl_ret_stringify(ret)); }
 
     /* handle_out_eop allocates a new current broadcast_map */
-    broadcast_page =
-        llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
+    broadcast_page = shmem2page(_llmp_broker_current_broadcast_map(broker));
 
     /* the alloc is now on a new page */
     out = llmp_alloc_next(broadcast_page, broker->last_msg_sent, len);
@@ -426,8 +475,9 @@ llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker,
 
 }
 
-static llmp_broker_client_metadata_t *_llmp_broker_register_client(
-    llmp_broker_state_t *broker) {
+/* Registers a new client for the given sharedmap str and size */
+static llmp_broker_client_metadata_t *llmp_broker_register_client(
+    llmp_broker_state_t *broker, char *shm_str, size_t map_size) {
 
   /* make space for a new client and calculate its id */
   afl_realloc(
@@ -440,42 +490,44 @@ static llmp_broker_client_metadata_t *_llmp_broker_register_client(
 
   client->client_state.id = broker->llmp_client_count;
 
+  client->cur_client_map = calloc(1, sizeof(afl_shmem_t));
+  if (!client->cur_client_map) {
+
+    DBG("Could not allocate mem for client map");
+    return NULL;
+
+  }
+
+  if (!afl_shmem_by_str(client->cur_client_map, shm_str, map_size)) {
+
+    DBG("Could not map shmem '%s'", shm_str);
+    return NULL;
+
+  }
+
 #ifdef LLMP_DEBUG
   size_t i;
   for (i = 0; i < broker->llmp_client_count; i++) {
+
     u32 actual_id = broker->llmp_clients[i].client_state.id;
     if (i != actual_id) {
-      FATAL("Inconsistent client state detected: id is %d but should be %ld", actual_id, i);
+
+      FATAL("Inconsistent client state detected: id is %d but should be %ld",
+            actual_id, i);
+
     }
+
   }
+
 #endif
 
   broker->llmp_client_count++;
 
-  return client;
-
-}
-
-static bool llmp_broker_register_clientprocess(
-    llmp_broker_state_t *broker, llmp_payload_new_page_t *client_map_info) {
-
-  llmp_broker_client_metadata_t *client = _llmp_broker_register_client(broker);
-
-  if (!afl_shmem_by_str(&client->client_state.client_out_map,
-                        client_map_info->shm_str, client_map_info->map_size)) {
-
-    DBG("Could not get shmem by str for map %s of size %ld",
-        client_map_info->shm_str, client_map_info->map_size);
-    // TODO: Handle EINTR?
-    afl_shmem_deinit(&client->client_state.client_out_map);
-    broker->llmp_client_count--;
-    return false;
-
-  }
+  // tODO: Add client map
 
   DBG("Added clientprocess with id %d", client->client_state.id);
 
-  return true;
+  return client;
 
 }
 
@@ -485,16 +537,16 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
   // TODO: We could memcpy a range of pending messages, instead of one by one.
 
-  llmp_page_t *incoming =
-      llmp_page_from_shmem(&client->client_state.client_out_map);
-  u32 current_message_id = client->last_msg_broker_read
+  llmp_page_t *incoming = shmem2page(client->cur_client_map);
+  u32          current_message_id = client->last_msg_broker_read
                                ? client->last_msg_broker_read->message_id
                                : 0;
   while (current_message_id != incoming->current_msg_id) {
 
     llmp_message_t *msg = llmp_recv(incoming, client->last_msg_broker_read);
 
-    DBG("Our current_message_id for client %d (at ptr %p) is %d%s, now processing msg id "
+    DBG("Our current_message_id for client %d (at ptr %p) is %d%s, now "
+        "processing msg id "
         "%d with tag 0x%X",
         client->client_state.id, client, current_message_id,
         client->last_msg_broker_read ? "" : " (last msg was NULL)",
@@ -510,10 +562,36 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
     if (msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
-      DBG("Got EOP from client %d", client->client_state.id);
+      llmp_payload_new_page_t *pageinfo =
+          LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
+      if (!pageinfo) {
 
-      /* Ringbuf - we have to start over. */
-      client->last_msg_broker_read = NULL;
+        FATAL("Illegal message length for EOP (is %ld, expected %ld)",
+              msg->buf_len, sizeof(llmp_payload_new_page_t));
+
+      }
+
+      DBG("Got EOP from client %d. Mapping new map.", client->client_state.id);
+
+      afl_shmem_t *old_map = client->cur_client_map;
+      client->cur_client_map = calloc(1, sizeof(afl_shmem_t));
+      if (!client->cur_client_map) {
+
+        PFATAL("Faild to allocate mem for new client map");
+
+      }
+
+      if (!afl_shmem_by_str(client->cur_client_map, pageinfo->shm_str,
+                            pageinfo->map_size)) {
+
+        FATAL("Could not get shmem by str for map %s of size %ld",
+              pageinfo->shm_str, pageinfo->map_size);
+
+      }
+
+      shmem2page(old_map)->save_to_unmap = true;
+      afl_shmem_deinit(old_map);
+      free(old_map);
 
     } else if (msg->tag == LLMP_TAG_CLIENT_ADDED_V1) {
 
@@ -521,22 +599,22 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
       /* This client informs us about yet another new client
       add it to the list! Also, no need to forward this msg. */
-      if (msg->buf_len != sizeof(llmp_payload_new_page_t)) {
+      llmp_payload_new_page_t *pageinfo =
+          LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
+      if (!pageinfo) {
 
         WARNF(
             "Ignoring broken CLIENT_ADDED msg due to incorrect size. "
             "Expected %ld but got %ld",
             sizeof(llmp_payload_new_page_t), msg->buf_len);
 
-      } else {
+      }
 
-        llmp_payload_new_page_t *pageinfo = (llmp_payload_new_page_t *)msg->buf;
-        if (!llmp_broker_register_clientprocess(broker, pageinfo)) {
+      if (!llmp_broker_register_client(broker, pageinfo->shm_str,
+                                       pageinfo->map_size)) {
 
-          FATAL("Could not register clientprocess with shm_str %s",
-                pageinfo->shm_str);
-
-        }
+        FATAL("Could not register clientprocess with shm_str %s",
+              pageinfo->shm_str);
 
       }
 
@@ -559,7 +637,7 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
       /* We need to replace the message ID with our own */
       llmp_page_t *out_page =
-          llmp_page_from_shmem(_llmp_broker_current_broadcast_map(broker));
+          shmem2page(_llmp_broker_current_broadcast_map(broker));
 
       out->message_id = out_page->current_msg_id + 1;
       if (!llmp_send(out_page, out)) { FATAL("Error sending msg"); }
@@ -648,24 +726,35 @@ void llmp_broker_run(llmp_broker_state_t *broker) {
 }
 
 /* We don't have any space. Send eop, the reset to beginning of ringbuf */
-static void llmp_client_handle_out_eop(llmp_client_state_t *client) {
+static bool llmp_client_handle_out_eop(llmp_client_state_t *client) {
 
-  llmp_message_t *out = llmp_alloc_eop(
-      llmp_page_from_shmem(&client->client_out_map), client->last_msg_sent);
-  out->tag = LLMP_TAG_END_OF_PAGE_V1;
-  out->sender = client->id;
-  out->buf_len = sizeof(llmp_payload_new_page_t);
-  /* We don't set anything here anyway - reusing the ringbuf for clients for
-  now. llmp_payload_new_page_t *new_page_msg = (llmp_payload_new_page_t
-  *)out->buf;
-  */
-  if (!llmp_send(llmp_page_from_shmem(&client->client_out_map), out)) {
+  DBG("Sending client EOP for client %d", client->id);
 
-    FATAL("Error sending msg");
+  if (handle_out_eop(&client->out_maps, &client->out_map_count,
+                     &client->last_msg_sent) != AFL_RET_SUCCESS) {
+
+    DBG("An error occurred when handling client eop");
+    return false;
 
   }
 
-  client->last_msg_sent = out;
+  u8 *current_map = client->out_maps[client->out_map_count - 1].map;
+
+  /* This is a good time to see if we can unallocate older pages.
+  The broker would have informed us by setting the flag
+  */
+  while (client->out_maps[0].map != current_map &&
+         shmem2page(&client->out_maps[0])->save_to_unmap) {
+
+    /* This page is save to unmap. The broker already reads or read it. */
+
+    DBG("Unmap shared map %s from client", client->out_maps[0].shm_str);
+    memmove(client->out_maps, client->out_maps + 1,
+            (client->out_map_count - 1) * sizeof(afl_shmem_t));
+
+  }
+
+  return true;
 
 }
 
@@ -673,8 +762,9 @@ static void llmp_client_handle_out_eop(llmp_client_state_t *client) {
  * availiable */
 llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
 
-  llmp_message_t *msg = llmp_recv(llmp_page_from_shmem(&client->client_out_map),
-                                  client->last_msg_recvd);
+  llmp_message_t *msg =
+      llmp_recv(shmem2page(&client->out_maps[client->out_map_count - 1]),
+                client->last_msg_recvd);
   if (msg->tag == LLMP_TAG_UNALLOCATED_V1) {
 
     FATAL("BUG: Read unallocated msg");
@@ -690,9 +780,8 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
   then returns that message. */
 llmp_message_t *llmp_client_recv_blocking(llmp_client_state_t *client) {
 
-  llmp_message_t *msg =
-      llmp_recv_blocking(llmp_page_from_shmem(client->current_broadcast_map),
-                         client->last_msg_recvd);
+  llmp_message_t *msg = llmp_recv_blocking(
+      shmem2page(client->current_broadcast_map), client->last_msg_recvd);
   if (msg->tag == LLMP_TAG_UNALLOCATED_V1) {
 
     FATAL("BUG: Read unallocated msg");
@@ -710,22 +799,31 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
 
   llmp_message_t *msg;
 
-  msg = llmp_alloc_next(llmp_page_from_shmem(&client->client_out_map),
-                        client->last_msg_sent, size);
+  msg =
+      llmp_alloc_next(shmem2page(&client->out_maps[client->out_map_count - 1]),
+                      client->last_msg_sent, size);
 
   if (!msg) {
 
     /* Page is full -> Tell broker and start from the beginning.
     Also, pray the broker got all messaes we're overwriting. :) */
-    llmp_client_handle_out_eop(client);
+    if (!llmp_client_handle_out_eop(client)) {
 
-    /* The client_out_map will have been changed by handle_out_eop. Don't alias.
+      DBG("BUG: Error sending EOP");
+      return NULL;
+
+    }
+
+    /* The client_out_map will have been changed by handle_out_eop. Don't
+     * alias.
      */
-    msg = llmp_alloc_next(llmp_page_from_shmem(&client->client_out_map),
-                          client->last_msg_sent, sizeof(u32));
+    msg = llmp_alloc_next(
+        shmem2page(&client->out_maps[client->out_map_count - 1]),
+        client->last_msg_sent, sizeof(u32));
     if (!msg) {
 
-      FATAL("BUG: Something went wrong allocating a msg in the shmap");
+      DBG("BUG: Something went wrong allocating a msg in the shmap");
+      return NULL;
 
     }
 
@@ -745,15 +843,28 @@ bool llmp_client_send(llmp_client_state_t *client_state, llmp_message_t *msg) {
   DBG("Client %d sends new msg with tag 0x%X and size %ld", client_state->id,
       msg->tag, msg->buf_len);
 
-  bool ret =
-      llmp_send(llmp_page_from_shmem(&client_state->client_out_map), msg);
+  llmp_page_t *page =
+      shmem2page(&client_state->out_maps[client_state->out_map_count - 1]);
+
+#ifdef LLMP_DEBUG
+  if (!llmp_msg_in_page(page, msg)) {
+
+    FATAL(
+        "BUG: Message to send not in correct page (%p not in %p with size %ld)",
+        msg, page, page->size_total);
+
+  }
+
+#endif
+
+  bool ret = llmp_send(page, msg);
   client_state->last_msg_sent = msg;
   return ret;
 
 }
 
-/* A simple client that, on connect, reads the new client's shmap str and writes
- * the broker's initial map str */
+/* A simple client that, on connect, reads the new client's shmap str and
+ * writes the broker's initial map str */
 void llmp_clientloop_process_server(llmp_client_state_t *client_state,
                                     void *               data) {
 
@@ -860,14 +971,27 @@ llmp_client_state_t *llmp_client_new(int port) {
   client_state->current_broadcast_map = calloc(1, sizeof(afl_shmem_t));
   if (!client_state->current_broadcast_map) {
 
-    PFATAL("Could not allocate mem");
+    DBG("Could not allocate mem");
+    return NULL;
 
   }
 
-  if (!llmp_new_page_shmem(&client_state->client_out_map, client_state->id,
+  if (!afl_realloc((void **)&client_state->out_maps, 1 * sizeof(afl_shmem_t))) {
+
+    DBG("Could not allocate memory");
+    free(client_state->current_broadcast_map);
+    free(client_state);
+    return NULL;
+
+  }
+
+  client_state->out_map_count = 1;
+
+  if (!llmp_new_page_shmem(&client_state->out_maps[0], client_state->id,
                            LLMP_INITIAL_MAP_SIZE)) {
 
-    PFATAL("Could not create sharedmem");
+    DBG("Could not create sharedmem");
+    goto error;
 
   }
 
@@ -881,24 +1005,25 @@ llmp_client_state_t *llmp_client_new(int port) {
 
   if (connect(connfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) != 0) {
 
-    FATAL(
-        "Unable to connect to broker at localhost:%d, make sure it's running "
+    DBG("Unable to connect to broker at localhost:%d, make sure it's running "
         "and has a port exposed",
         port);
+    goto error;
 
   }
 
   llmp_payload_new_page_t client_map_msg, broker_map_msg = {0};
-  client_map_msg.map_size = client_state->client_out_map.map_size;
-  strncpy(client_map_msg.shm_str, client_state->client_out_map.shm_str,
+  client_map_msg.map_size = client_state->out_maps[0].map_size;
+  strncpy(client_map_msg.shm_str, client_state->out_maps[0].shm_str,
           AFL_SHMEM_STRLEN_MAX - 1);
 
   if (write(connfd, &client_map_msg, sizeof(llmp_payload_new_page_t)) !=
       sizeof(llmp_payload_new_page_t)) {
 
-    afl_shmem_deinit(&client_state->client_out_map);
+    afl_shmem_deinit(&client_state->out_maps[0]);
     free(client_state);
     close(connfd);
+    return NULL;
     FATAL("Socket_client: TCP server disconnected immediately");
 
   }
@@ -912,12 +1037,10 @@ llmp_client_state_t *llmp_client_new(int port) {
     if (rlen < 0) {
 
       // TODO: Handle EINTR?
-      afl_shmem_deinit(&client_state->client_out_map);
-      free(client_state);
+      DBG("Got short response from broker via TCP");
       close(connfd);
-
-      // printf("No complete map str receved from llmp tcp server");
-      return NULL;
+      afl_shmem_deinit(&client_state->out_maps[0]);
+      goto error;
 
     }
 
@@ -931,20 +1054,24 @@ llmp_client_state_t *llmp_client_new(int port) {
                         broker_map_msg.shm_str, broker_map_msg.map_size)) {
 
     // TODO: Handle EINTR?
-    afl_shmem_deinit(&client_state->client_out_map);
-    free(client_state);
-    close(connfd);
-
-    FATAL("Could not allocate shmem");
+    DBG("Could not allocate shmem");
+    afl_shmem_deinit(&client_state->out_maps[0]);
+    goto error;
 
   }
 
   return client_state;
 
+error:
+  afl_free(client_state->out_maps);
+  free(client_state->current_broadcast_map);
+  free(client_state);
+  return NULL;
+
 }
 
-/* Client thread will be called with llmp_client_state_t client, containing the
-data in ->data. This will register a client to be spawned up as soon as
+/* Client thread will be called with llmp_client_state_t client, containing
+the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
@@ -952,27 +1079,66 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
                                               clientloop_t         clientloop,
                                               void *               data) {
 
-  llmp_broker_client_metadata_t *client = _llmp_broker_register_client(broker);
+  /* We do a little dance with two sharedmaps, as the threaded clients
+    reuse the client_state struct as they share the heap. If we were to
+    treat threads and processes differently, it'd get too complex, so
+    let's just map the sharedmem twice into this process, and be done */
+  afl_shmem_t client_map = {0};
 
-  client->pthread = malloc(sizeof(pthread_t));
-  if (!client->pthread) { return false; }
-  memset(client->pthread, 0, sizeof(pthread_t));
+  if (!llmp_new_page_shmem(&client_map, broker->llmp_client_count,
+                           LLMP_INITIAL_MAP_SIZE)) {
 
-  client->clientloop = clientloop;
-  client->data = data;
-
-  if (!llmp_new_page_shmem(&client->client_state.client_out_map,
-                           client->client_state.id, LLMP_INITIAL_MAP_SIZE)) {
-
-    DBG("Could not get shared map");
+    DBG("Failed to set up shmem for new client.");
     return false;
 
   }
 
+  pthread_t *pthread = calloc(1, sizeof(pthread_t));
+  if (!pthread) {
+
+    DBG("Failed to alloc pthread struct");
+    afl_shmem_deinit(&client_map);
+    return false;
+
+  }
+
+  llmp_broker_client_metadata_t *client = llmp_broker_register_client(
+      broker, client_map.shm_str, client_map.map_size);
+  if (!client) {
+
+    DBG("Could not register threaded client");
+    afl_shmem_deinit(&client_map);
+    free(pthread);
+    return false;
+
+  }
+
+  client->clientloop = clientloop;
+  client->data = data;
+  client->pthread = pthread;
+
+  /* Copy the already allocated shmem to the client state */
+  if (!afl_realloc((void *)&client->client_state.out_maps,
+                   sizeof(afl_shmem_t))) {
+
+    DBG("Could not alloc mem for client map");
+    afl_shmem_deinit(&client_map);
+    afl_shmem_deinit(client->cur_client_map);
+    free(pthread);
+    /* "Unregister" by subtracting the client from count */
+    broker->llmp_client_count--;
+    return false;
+
+  }
+
+  memcpy(client->client_state.out_maps, &client_map, sizeof(afl_shmem_t));
+  client->client_state.out_map_count = 1;
+
   /* Each client starts with the very first map.
   They should then iterate through all maps once and work on all old messages.
-*/
+  */
   client->client_state.current_broadcast_map = &broker->broadcast_maps[0];
+  client->client_state.out_map_count = 1;
 
   DBG("Registered threaded client with id %d (loop func at %p)",
       client->client_state.id, client->clientloop);
@@ -994,18 +1160,14 @@ void llmp_broker_register_local_server(llmp_broker_state_t *broker, int port) {
 
 }
 
-/* Allocate and set up the new broker instance. Afterwards, run with broker_run.
+/* Allocate and set up the new broker instance. Afterwards, run with
+ * broker_run.
  */
 llmp_broker_state_t *llmp_broker_new() {
 
   /* Allocate enough space for us and an array of clients */
-  llmp_broker_state_t *broker = malloc(sizeof(llmp_broker_state_t));
+  llmp_broker_state_t *broker = calloc(1, sizeof(llmp_broker_state_t));
   if (!broker) { FATAL("Could not allocate broker mem"); }
-  broker->last_msg_sent = NULL;
-  broker->llmp_client_count = 0;
-
-  broker->llmp_clients = NULL;
-  broker->broadcast_maps = NULL;
 
   /* let's create some space for outgoing maps */
   if (!afl_realloc((void **)&broker->broadcast_maps, 1 * sizeof(afl_shmem_t))) {

@@ -162,7 +162,8 @@ size_t         afl_get_names_id_default(base_queue_t *);
 bool           afl_get_save_to_files_default(base_queue_t *);
 void           afl_set_directory_default(base_queue_t *, char *);
 void           afl_set_engine_base_queue_default(base_queue_t *, engine_t *);
-queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id);
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
+                                               int           engine_id);
 
 static inline base_queue_t *afl_base_queue_create() {
 

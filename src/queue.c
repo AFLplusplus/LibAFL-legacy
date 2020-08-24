@@ -246,14 +246,15 @@ void afl_set_directory_default(base_queue_t *queue, char *new_dirpath) {
 
 }
 
-void afl_set_engine_base_queue_default(base_queue_t * queue, engine_t * engine) {
+void afl_set_engine_base_queue_default(base_queue_t *queue, engine_t *engine) {
 
   queue->engine = engine;
-  if (engine) { queue->engine_id = engine->id; } 
+  if (engine) { queue->engine_id = engine->id; }
 
 }
 
-queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id) {
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
+                                               int           engine_id) {
 
   if (queue->size) {
 
@@ -352,7 +353,7 @@ void afl_add_feedback_queue_default(global_queue_t *  global_queue,
 
   global_queue->feedback_queues[global_queue->feedback_queues_num] =
       feedback_queue;
-  engine_t * engine = global_queue->base.engine;
+  engine_t *engine = global_queue->base.engine;
   feedback_queue->base.funcs.set_engine(&feedback_queue->base, engine);
   global_queue->feedback_queues_num++;
 
@@ -403,23 +404,25 @@ int afl_global_schedule_default(global_queue_t *queue) {
 
 }
 
-void afl_set_engine_global_queue_default(base_queue_t * global_queue_base, engine_t * engine) {
+void afl_set_engine_global_queue_default(base_queue_t *global_queue_base,
+                                         engine_t *    engine) {
 
-  global_queue_t * global_queue = (global_queue_t *)global_queue_base;
+  global_queue_t *global_queue = (global_queue_t *)global_queue_base;
 
   // First add engine to the global queue itself
 
   afl_set_engine_base_queue_default(&global_queue->base, engine);
-  //Set engine's queue to the global queue
+  // Set engine's queue to the global queue
 
   if (engine) { engine->global_queue = global_queue; }
 
   for (size_t i = 0; i < global_queue->feedback_queues_num; ++i) {
-    
+
     // Set this engine to every feedback queue in global queue
-    global_queue->feedback_queues[i]->base.funcs.set_engine(&(global_queue->feedback_queues[i]->base), engine);
+    global_queue->feedback_queues[i]->base.funcs.set_engine(
+        &(global_queue->feedback_queues[i]->base), engine);
 
   }
 
-
 }
+
