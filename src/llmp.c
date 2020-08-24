@@ -100,6 +100,9 @@ also need to create new shmaps once their bufs are filled up.
   If you're reading this, we got an issue */
 #define LLMP_TAG_UNALLOCATED_V1 (0xDEADAFll)
 
+/* Just a random msg */
+#define LLMP_ALIVE_V1 (0xA11431)
+
 /* Message payload when a client got added LLMP_TAG_CLIENT_ADDED_V1 */
 /* A new sharedmap appeared.
   This is an internal message!
@@ -437,6 +440,16 @@ static llmp_broker_client_metadata_t *_llmp_broker_register_client(
 
   client->client_state.id = broker->llmp_client_count;
 
+#ifdef LLMP_DEBUG
+  size_t i;
+  for (i = 0; i < broker->llmp_client_count; i++) {
+    u32 actual_id = broker->llmp_clients[i].client_state.id;
+    if (i != actual_id) {
+      FATAL("Inconsistent client state detected: id is %d but should be %ld", actual_id, i);
+    }
+  }
+#endif
+
   broker->llmp_client_count++;
 
   return client;
@@ -481,9 +494,9 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
     llmp_message_t *msg = llmp_recv(incoming, client->last_msg_broker_read);
 
-    DBG("Our current_message_id for client %d is %d%s, now processing msg id "
+    DBG("Our current_message_id for client %d (at ptr %p) is %d%s, now processing msg id "
         "%d with tag 0x%X",
-        client->client_state.id, current_message_id,
+        client->client_state.id, client, current_message_id,
         client->last_msg_broker_read ? "" : " (last msg was NULL)",
         msg->message_id, msg->tag);
 
