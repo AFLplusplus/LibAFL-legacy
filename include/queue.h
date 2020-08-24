@@ -124,6 +124,7 @@ struct base_queue_functions {
   bool (*get_save_to_files)(base_queue_t *);
 
   void (*set_directory)(base_queue_t *, char *);
+  void (*set_engine)(base_queue_t *, engine_t *);
 
 };
 
@@ -160,8 +161,8 @@ char *         afl_get_dirpath_default(base_queue_t *);
 size_t         afl_get_names_id_default(base_queue_t *);
 bool           afl_get_save_to_files_default(base_queue_t *);
 void           afl_set_directory_default(base_queue_t *, char *);
-queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
-                                               int           engine_id);
+void           afl_set_engine_base_queue_default(base_queue_t *, engine_t *);
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id);
 
 static inline base_queue_t *afl_base_queue_create() {
 
@@ -255,6 +256,7 @@ struct global_queue {
 // Default implementations of global queue vtable functions
 void afl_add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
 int  afl_global_schedule_default(global_queue_t *);
+void afl_set_engine_global_queue_default(base_queue_t *, engine_t *);
 
 // Function to get next entry from queue, we override the base_queue
 // implementation

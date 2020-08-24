@@ -34,7 +34,7 @@ afl_ret_t afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   fuzz_one->funcs.add_stage = afl_add_stage_default;
   fuzz_one->funcs.perform = afl_perform_default;
-  fuzz_one->funcs.add_engine_default = afl_add_engine_default;
+  fuzz_one->funcs.set_engine_default = afl_set_engine_default;
 
   return AFL_RET_SUCCESS;
 
@@ -110,11 +110,13 @@ afl_ret_t afl_add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
 }
 
-afl_ret_t afl_add_engine_default(fuzz_one_t *fuzz_one, engine_t *engine) {
+afl_ret_t afl_set_engine_default(fuzz_one_t * fuzz_one, engine_t * engine) {
 
   fuzz_one->engine = engine;
 
-  for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
+  if (engine) { engine->fuzz_one = fuzz_one; }
+  
+  for(size_t i = 0; i < fuzz_one->stages_num; ++i) {
 
     fuzz_one->stages[i]->engine = engine;
 
