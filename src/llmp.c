@@ -79,9 +79,10 @@ also need to create new shmaps once their bufs are filled up.
 #define LLMP_DEBUG
 /* all the debug prints */
 #ifdef LLMP_DEBUG
-#define DBG(x...) ACTF("(llmp) " x)
+  #define DBG(x...) ACTF("(llmp) " x)
 #else
-#define DBG(x...) {}
+  #define DBG(x...) \
+    {}
 #endif
 
 /* INTERNAL TAG
@@ -422,7 +423,8 @@ llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker,
 
 }
 
-static llmp_broker_client_metadata_t* _llmp_broker_register_client(llmp_broker_state_t *broker) {
+static llmp_broker_client_metadata_t *_llmp_broker_register_client(
+    llmp_broker_state_t *broker) {
 
   /* make space for a new client and calculate its id */
   afl_realloc(
@@ -441,14 +443,16 @@ static llmp_broker_client_metadata_t* _llmp_broker_register_client(llmp_broker_s
 
 }
 
-
-static bool llmp_broker_register_clientprocess(llmp_broker_state_t *broker, llmp_payload_new_page_t *client_map_info) {
+static bool llmp_broker_register_clientprocess(
+    llmp_broker_state_t *broker, llmp_payload_new_page_t *client_map_info) {
 
   llmp_broker_client_metadata_t *client = _llmp_broker_register_client(broker);
 
-  if (!afl_shmem_by_str(&client->client_state.client_out_map, client_map_info->shm_str, client_map_info->map_size)) {
+  if (!afl_shmem_by_str(&client->client_state.client_out_map,
+                        client_map_info->shm_str, client_map_info->map_size)) {
 
-    DBG("Could not get shmem by str for map %s of size %ld", client_map_info->shm_str, client_map_info->map_size);
+    DBG("Could not get shmem by str for map %s of size %ld",
+        client_map_info->shm_str, client_map_info->map_size);
     // TODO: Handle EINTR?
     afl_shmem_deinit(&client->client_state.client_out_map);
     broker->llmp_client_count--;
@@ -464,7 +468,7 @@ static bool llmp_broker_register_clientprocess(llmp_broker_state_t *broker, llmp
 
 /* broker broadcast to its own page for all others to read */
 void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
-                                    llmp_broker_client_metadata_t *client) {
+                                 llmp_broker_client_metadata_t *client) {
 
   // TODO: We could memcpy a range of pending messages, instead of one by one.
 
@@ -474,11 +478,14 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
                                ? client->last_msg_broker_read->message_id
                                : 0;
   while (current_message_id != incoming->current_msg_id) {
-      
+
     llmp_message_t *msg = llmp_recv(incoming, client->last_msg_broker_read);
 
-    DBG("Our current_message_id for client %d is %d%s, now processing msg id %d with tag 0x%X", client->client_state.id, current_message_id,
-    client->last_msg_broker_read ? "": " (last msg was NULL)", msg->message_id, msg->tag);
+    DBG("Our current_message_id for client %d is %d%s, now processing msg id "
+        "%d with tag 0x%X",
+        client->client_state.id, current_message_id,
+        client->last_msg_broker_read ? "" : " (last msg was NULL)",
+        msg->message_id, msg->tag);
 
     if (!msg) {
 
@@ -502,13 +509,22 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
       /* This client informs us about yet another new client
       add it to the list! Also, no need to forward this msg. */
       if (msg->buf_len != sizeof(llmp_payload_new_page_t)) {
-        WARNF("Ignoring broken CLIENT_ADDED msg due to incorrect size. "
-        "Expected %ld but got %ld", sizeof(llmp_payload_new_page_t), msg->buf_len);
+
+        WARNF(
+            "Ignoring broken CLIENT_ADDED msg due to incorrect size. "
+            "Expected %ld but got %ld",
+            sizeof(llmp_payload_new_page_t), msg->buf_len);
+
       } else {
+
         llmp_payload_new_page_t *pageinfo = (llmp_payload_new_page_t *)msg->buf;
         if (!llmp_broker_register_clientprocess(broker, pageinfo)) {
-          FATAL("Could not register clientprocess with shm_str %s", pageinfo->shm_str);
+
+          FATAL("Could not register clientprocess with shm_str %s",
+                pageinfo->shm_str);
+
         }
+
       }
 
     } else {
@@ -538,14 +554,13 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
       broker->last_msg_sent = out;
 
     }
+
     client->last_msg_broker_read = msg;
     current_message_id = msg->message_id;
 
   }
 
 }
-
-
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page */
@@ -714,7 +729,8 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
 /* Commits a msg to the client's out ringbuf */
 bool llmp_client_send(llmp_client_state_t *client_state, llmp_message_t *msg) {
 
-  DBG("Client %d sends new msg with tag 0x%X and size %ld", client_state->id, msg->tag, msg->buf_len);
+  DBG("Client %d sends new msg with tag 0x%X and size %ld", client_state->id,
+      msg->tag, msg->buf_len);
 
   bool ret =
       llmp_send(llmp_page_from_shmem(&client_state->client_out_map), msg);
@@ -747,11 +763,12 @@ void llmp_clientloop_process_server(llmp_client_state_t *client_state,
   serv_addr.sin_port = htons(port);
 
   if (bind(listenfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
+
     PFATAL("Could not bind to %d", port);
+
   }
-  if (listen(listenfd, 10) == -1) {
-    PFATAL("Coult not listen to %d", port);
-  }
+
+  if (listen(listenfd, 10) == -1) { PFATAL("Coult not listen to %d", port); }
 
   llmp_message_t *msg =
       llmp_client_alloc_next(client_state, sizeof(llmp_payload_new_page_t));
@@ -765,8 +782,10 @@ void llmp_clientloop_process_server(llmp_client_state_t *client_state,
 
     int connfd = accept(listenfd, (struct sockaddr *)NULL, NULL);
     if (connfd == -1) {
+
       WARNF("Error on accept");
       continue;
+
     }
 
     DBG("New clientprocess connected");
@@ -784,9 +803,9 @@ void llmp_clientloop_process_server(llmp_client_state_t *client_state,
     size_t rlen_total = 0;
 
     while (rlen_total < sizeof(llmp_payload_new_page_t)) {
-    
-      ssize_t rlen =
-          read(connfd, payload + rlen_total, sizeof(llmp_payload_new_page_t) - rlen_total);
+
+      ssize_t rlen = read(connfd, payload + rlen_total,
+                          sizeof(llmp_payload_new_page_t) - rlen_total);
       if (rlen < 0) {
 
         // TODO: Handle EINTR?
@@ -802,7 +821,8 @@ void llmp_clientloop_process_server(llmp_client_state_t *client_state,
 
     close(connfd);
 
-    DBG("Got new client with map id %s and size %ld", payload->shm_str, payload->map_size);
+    DBG("Got new client with map id %s and size %ld", payload->shm_str,
+        payload->map_size);
 
     if (!llmp_client_send(client_state, msg)) {
 
@@ -941,7 +961,8 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
 */
   client->client_state.current_broadcast_map = &broker->broadcast_maps[0];
 
-  DBG("Registered threaded client with id %d (loop func at %p)", client->client_state.id, client->clientloop);
+  DBG("Registered threaded client with id %d (loop func at %p)",
+      client->client_state.id, client->clientloop);
 
   return true;
 
@@ -952,9 +973,10 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
 void llmp_broker_register_local_server(llmp_broker_state_t *broker, int port) {
 
   if (!llmp_broker_register_threaded_clientloop(
-      broker, llmp_clientloop_process_server, (void *)(size_t)port)
-  ) {
+          broker, llmp_clientloop_process_server, (void *)(size_t)port)) {
+
     FATAL("Error registering new threaded client");
+
   }
 
 }
@@ -997,3 +1019,4 @@ llmp_broker_state_t *llmp_broker_new() {
 
 /* Other files may dbg too */
 #undef DBG
+
