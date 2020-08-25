@@ -751,6 +751,7 @@ engine_t *initialize_engine_instance(char *target_path, char **target_args) {
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
                                           random_byte_add_sub_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, splicing_mutation);
 
   fuzzing_stage_t *stage = afl_fuzzing_stage_create(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }

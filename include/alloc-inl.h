@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 
 #include "config.h"
@@ -76,6 +77,35 @@ static inline size_t next_pow2(size_t in) {
 
 }
 
+/* AFL alloc buffer, the struct is here so we don't need to do fancy ptr
+ * arithmetics */
+struct afl_alloc_buf {
+
+  /* The complete allocated size, including the header of len
+   * AFL_ALLOC_SIZE_OFFSET */
+  size_t complete_size;
+  /* ptr to the first element of the actual buffer */
+  u8 buf[0];
+
+};
+
+#define AFL_ALLOC_SIZE_OFFSET (offsetof(struct afl_alloc_buf, buf))
+
+/* Returs the container element to this ptr */
+static inline struct afl_alloc_buf *afl_alloc_bufptr(void *buf) {
+
+  return (struct afl_alloc_buf *)((u8 *)buf - AFL_ALLOC_SIZE_OFFSET);
+
+}
+
+/* Gets the maximum size of the buf contents (ptr->complete_size -
+ * AFL_ALLOC_SIZE_OFFSET) */
+static inline size_t afl_alloc_bufsize(void *buf) {
+
+  return afl_alloc_bufptr(buf)->complete_size - AFL_ALLOC_SIZE_OFFSET;
+
+}
+
 /* This function makes sure *size is > size_needed after call.
  It will realloc *buf otherwise.
  *size will grow exponentially as per:
@@ -83,42 +113,71 @@ static inline size_t next_pow2(size_t in) {
  Will return NULL and free *buf if size_needed is <1 or realloc failed.
  @return For convenience, this function returns *buf.
  */
-static inline void *maybe_grow(u8 **buf, size_t *size, size_t size_needed) {
+static inline void *afl_realloc(void **buf, size_t size_needed) {
+
+  struct afl_alloc_buf *new_buf = NULL;
+
+  size_t current_size = 0;
+  size_t next_size = 0;
+
+  if (likely(*buf)) {
+
+    /* the size is always stored at buf - 1*size_t */
+    new_buf = afl_alloc_bufptr(*buf);
+    current_size = new_buf->complete_size;
+
+  }
+
+  size_needed += AFL_ALLOC_SIZE_OFFSET;
 
   /* No need to realloc */
-  if (likely(size_needed && *size >= size_needed)) { return *buf; }
+  if (likely(current_size >= size_needed)) { return *buf; }
 
   /* No initial size was set */
-  if (size_needed < INITIAL_GROWTH_SIZE) { size_needed = INITIAL_GROWTH_SIZE; }
+  if (size_needed < INITIAL_GROWTH_SIZE) {
 
-  /* grow exponentially */
-  size_t next_size = next_pow2(size_needed);
+    next_size = INITIAL_GROWTH_SIZE;
 
-  /* handle overflow and zero size_needed */
-  if (!next_size) { next_size = size_needed; }
+  } else {
+
+    /* grow exponentially */
+    next_size = next_pow2(size_needed);
+
+    /* handle overflow: fall back to the original size_needed */
+    if (unlikely(!next_size)) { next_size = size_needed; }
+
+  }
 
   /* alloc */
-  *buf = realloc(*buf, next_size);
-  *size = *buf ? next_size : 0;
+  new_buf = realloc(new_buf, next_size);
+  if (unlikely(!new_buf)) {
 
+    *buf = NULL;
+    return NULL;
+
+  }
+
+  new_buf->complete_size = next_size;
+  *buf = (void *)(new_buf->buf);
   return *buf;
 
 }
 
-/* Swaps buf1 ptr and buf2 ptr, as well as their sizes */
-static inline void swap_bufs(void **buf1, size_t *size1, void **buf2,
-                             size_t *size2) {
+static inline void afl_free(void *buf) {
 
-  void * scratch_buf = *buf1;
-  size_t scratch_size = *size1;
+  if (buf) { free(afl_alloc_bufptr(buf)); }
+
+}
+
+/* Swaps buf1 ptr and buf2 ptr, as well as their sizes */
+static inline void afl_swap_bufs(void **buf1, void **buf2) {
+
+  void *scratch_buf = *buf1;
   *buf1 = *buf2;
-  *size1 = *size2;
   *buf2 = scratch_buf;
-  *size2 = scratch_size;
 
 }
 
 #undef INITIAL_GROWTH_SIZE
 
 #endif                                               /* ! _HAVE_ALLOC_INL_H */
-

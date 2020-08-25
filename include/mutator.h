@@ -24,7 +24,7 @@
 #ifndef LIBMUTATOR_H
 #define LIBMUTATOR_H
 
-#define MAX_MUTATORS_COUNT 10
+#define MAX_MUTATORS_COUNT 20
 
 #include "input.h"
 #include "list.h"
@@ -164,6 +164,7 @@ void random_byte_add_sub_mutation(mutator_t * mutator, raw_input_t *input);
 void random_byte_mutation(mutator_t * mutator, raw_input_t *input);
 void delete_bytes_mutation(mutator_t * mutator, raw_input_t *input);
 void clone_bytes_mutation(mutator_t * mutator, raw_input_t *input);
+void splicing_mutation(mutator_t * mutator, raw_input_t *input);
 
 #endif
 

@@ -55,6 +55,7 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->funcs.loop = afl_loop_default;
   engine->id = rand();
   engine->dev_urandom_fd = open("/dev/urandom", O_RDONLY);
+  engine->buf = NULL;
 
   if (!engine->dev_urandom_fd) { return AFL_RET_ERROR_INITIALIZE; }
 

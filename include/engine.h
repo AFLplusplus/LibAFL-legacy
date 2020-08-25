@@ -70,6 +70,7 @@ struct engine {
   u32 rand_cnt;                         /* Random number counter*/
   u64 rand_seed[4];
   s32 dev_urandom_fd;
+  u8 *buf;  // Reusable buf for realloc
 
   struct engine_functions funcs;
 
