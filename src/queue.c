@@ -174,10 +174,12 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   if (fuzz_one) {
 
-    for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
+    size_t i;
+    for (i = 0; i < fuzz_one->stages_num; ++i) {
 
       fuzzing_stage_t *stage = (fuzzing_stage_t *)fuzz_one->stages[i];
-      for (size_t j = 0; j < stage->mutators_count; ++j) {
+      size_t j;
+      for (j = 0; j < stage->mutators_count; ++j) {
 
         if (stage->mutators[j]->funcs.custom_queue_new_entry) {
 
@@ -335,10 +337,11 @@ afl_ret_t afl_global_queue_init(global_queue_t *global_queue) {
 void afl_global_queue_deinit(global_queue_t *global_queue) {
 
   /* Should we also deinit the feedback queues?? */
+  size_t i;
 
   afl_base_queue_deinit(&global_queue->base);
 
-  for (size_t i = 0; i < global_queue->feedback_queues_num; ++i) {
+  for (i = 0; i < global_queue->feedback_queues_num; ++i) {
 
     global_queue->feedback_queues[i] = NULL;
 
@@ -407,6 +410,7 @@ int afl_global_schedule_default(global_queue_t *queue) {
 void afl_set_engine_global_queue_default(base_queue_t *global_queue_base,
                                          engine_t *    engine) {
 
+  size_t i;
   global_queue_t *global_queue = (global_queue_t *)global_queue_base;
 
   // First add engine to the global queue itself
@@ -416,7 +420,7 @@ void afl_set_engine_global_queue_default(base_queue_t *global_queue_base,
 
   if (engine) { engine->global_queue = global_queue; }
 
-  for (size_t i = 0; i < global_queue->feedback_queues_num; ++i) {
+  for (i = 0; i < global_queue->feedback_queues_num; ++i) {
 
     // Set this engine to every feedback queue in global queue
     global_queue->feedback_queues[i]->base.funcs.set_engine(

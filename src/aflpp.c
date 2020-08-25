@@ -48,9 +48,10 @@ afl_ret_t afl_executor_init(executor_t *executor) {
 // Default implementations for executor vtable
 void afl_executor_deinit(executor_t *executor) {
 
+  size_t i;
   executor->current_input = NULL;
 
-  for (size_t i = 0; i < executor->observors_num; ++i) {
+  for (i = 0; i < executor->observors_num; ++i) {
 
     afl_observation_channel_deinit(executor->observors[i]);
 
@@ -88,7 +89,8 @@ raw_input_t *afl_get_current_input_default(executor_t *executor) {
 
 void afl_reset_observation_channel_default(executor_t *executor) {
 
-  for (size_t i = 0; i < executor->observors_num; ++i) {
+  size_t i;
+  for (i = 0; i < executor->observors_num; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) {

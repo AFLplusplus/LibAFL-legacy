@@ -62,11 +62,12 @@ afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *fuzz_stage,
 
 void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
 
+  size_t i;
   /* We deinitialize the mutators associated with the stage here */
 
   afl_stage_deinit(&(fuzz_stage->base));
 
-  for (size_t i = 0; i < fuzz_stage->mutators_count; ++i) {
+  for (i = 0; i < fuzz_stage->mutators_count; ++i) {
 
     afl_mutator_deinit(fuzz_stage->mutators[i]);
 
@@ -99,6 +100,7 @@ size_t afl_iterations_stage_default(stage_t *stage) {
 /* Perform default for fuzzing stage */
 afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
 
+  size_t i;
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
@@ -106,12 +108,13 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
 
   size_t num = fuzz_stage->base.funcs.iterations(stage);
 
-  for (size_t i = 0; i < num; ++i) {
+  for (i = 0; i < num; ++i) {
 
     raw_input_t *copy = input->funcs.copy(input);
     if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
-    for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
+    size_t j;
+    for (j = 0; j < fuzz_stage->mutators_count; ++j) {
 
       mutator_t *mutator = fuzz_stage->mutators[j];
       if (mutator->funcs.custom_queue_get) {
@@ -137,7 +140,7 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
     }
 
     /* Let's post process the mutated data now. */
-    for (size_t j = 0; j < fuzz_stage->mutators_count; ++j) {
+    for (j = 0; j < fuzz_stage->mutators_count; ++j) {
 
       mutator_t *mutator = fuzz_stage->mutators[j];
 
@@ -154,7 +157,7 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
 
     bool add_to_queue = false;
 
-    for (size_t i = 0; i < stage->engine->feedbacks_num; ++i) {
+    for (i = 0; i < stage->engine->feedbacks_num; ++i) {
 
       add_to_queue = add_to_queue ||
                      stage->engine->feedbacks[i]->funcs.is_interesting(

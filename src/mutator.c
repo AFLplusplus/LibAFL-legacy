@@ -78,10 +78,11 @@ afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *sched_mut,
 
 void afl_scheduled_mutator_deinit(scheduled_mutator_t *sched_mut) {
 
+  size_t i;
   afl_mutator_deinit(&(sched_mut->base));
   sched_mut->max_iterations = 0;
 
-  for (size_t i = 0; i < sched_mut->mutators_count; ++i) {
+  for (i = 0; i < sched_mut->mutators_count; ++i) {
 
     sched_mut->mutations[i] = NULL;
 
@@ -120,8 +121,8 @@ size_t afl_mutate_scheduled_mutator_default(mutator_t *  mutator,
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
   scheduled_mutator_t *scheduled_mutator = (scheduled_mutator_t *)mutator;
-
-  for (int i = 0;
+  int i;
+  for (i = 0;
        i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator); ++i) {
 
     scheduled_mutator

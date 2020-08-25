@@ -1,7 +1,7 @@
 MAKEFILE_PATH := $(abspath .)
 AFL_DIR:=$(realpath $(MAKEFILE_PATH)/../../)
 AFL_CC:=$(AFL_DIR)/AFLplusplus/afl-clang
-CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -fsanitize=address -I$(AFL_DIR)/include -laflpp -lm -Wall -Wextra -Wshadow -Werror -Wno-unused-parameter -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
+CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -fsanitize=address -I$(AFL_DIR)/include -laflpp -lm -Wall -Wextra -Wshadow -Werror -Wno-unused-parameter -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector -std=gnu89
 
 all: test
 

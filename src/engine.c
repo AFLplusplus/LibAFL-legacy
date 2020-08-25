@@ -68,6 +68,7 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
 
 void afl_engine_deinit(engine_t *engine) {
 
+  size_t i;
   /* Let's free everything associated with the engine here, except the queues,
    * should we leave anything else? */
 
@@ -75,7 +76,7 @@ void afl_engine_deinit(engine_t *engine) {
   engine->executor = NULL;
   engine->global_queue = NULL;
 
-  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+  for (i = 0; i < engine->feedbacks_num; ++i) {
 
     engine->feedbacks[i] = NULL;
 
@@ -155,6 +156,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
   DIR *          dir_in;
   struct dirent *dir_ent;
   char           infile[PATH_MAX];
+  size_t i;
 
   raw_input_t *input;
   size_t       dir_name_size = strlen(dirpath);
@@ -223,7 +225,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
     /* We add the corpus to the queue initially for all the feedback queues */
 
-    for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+    for (i = 0; i < engine->feedbacks_num; ++i) {
 
       raw_input_t *copy = input->funcs.copy(input);
       if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
@@ -253,6 +255,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
 u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
 
+  size_t i;
   executor_t *executor = engine->executor;
 
   executor->funcs.reset_observation_channels(executor);
@@ -268,7 +271,7 @@ u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
   /* We've run the target with the executor, we can now simply postExec call the
    * observation channels*/
 
-  for (size_t i = 0; i < executor->observors_num; ++i) {
+  for (i = 0; i < executor->observors_num; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) {

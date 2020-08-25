@@ -1,4 +1,4 @@
-CFLAGS+=-g -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Wextra -Werror -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
+CFLAGS+=-g -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector -std=gnu89
 LDFLAGS+=-shared
 
 all:	libaflpp.so
@@ -6,7 +6,7 @@ all:	libaflpp.so
 clean:
 	rm ./src/*.o || true
 	rm ./*.so || true
-	rm example-fuzzer
+	rm example-fuzzer || true
 
 # Compiling the common  file
 common.o: ./src/common.c ./include/common.h
