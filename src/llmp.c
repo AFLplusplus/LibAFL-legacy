@@ -960,13 +960,67 @@ void llmp_clientloop_process_server(llmp_client_state_t *client_state,
 
 }
 
+/* Creates a new, unconnected, client state */
+llmp_client_state_t *llmp_client_new_unconnected() {
+  
+  llmp_client_state_t *client_state = calloc(1, sizeof(llmp_client_state_t));
+
+  client_state->current_broadcast_map = calloc(1, sizeof(afl_shmem_t));
+  if (!client_state->current_broadcast_map) {
+
+    DBG("Could not allocate mem");
+    return NULL;
+
+  }
+
+  if (!afl_realloc((void **)&client_state->out_maps, 1 * sizeof(afl_shmem_t))) {
+
+    DBG("Could not allocate memory");
+    free(client_state->current_broadcast_map);
+    free(client_state);
+    return NULL;
+
+  }
+
+  client_state->out_map_count = 1;
+
+  if (!llmp_new_page_shmem(&client_state->out_maps[0], client_state->id,
+                           LLMP_INITIAL_MAP_SIZE)) {
+
+    DBG("Could not create sharedmem");
+    free(client_state->current_broadcast_map);
+    free(client_state);
+    afl_free(client_state->out_maps);
+    return NULL;
+
+  }
+  return llmp_client_new_unconnected();
+
+}
+
+/* Destroys the given cient state */
+void llmp_client_destroy(llmp_client_state_t *client_state) {
+
+  size_t i;
+  for (i = 0; i < client_state->out_map_count; i++) {
+    afl_shmem_deinit(&client_state->out_maps[i]);
+  }
+  afl_free(client_state->out_maps);
+
+  afl_shmem_deinit(client_state->current_broadcast_map);
+  free(client_state->current_broadcast_map);
+  free(client_state);
+
+}
+
+
 /* Creates a new client process that will connect to the given port */
 llmp_client_state_t *llmp_client_new(int port) {
 
   int                connfd = 0;
   struct sockaddr_in servaddr = {0};
 
-  llmp_client_state_t *client_state = calloc(1, sizeof(llmp_client_state_t));
+  llmp_client_state_t *client_state = llmp_client_new_unconnected();
 
   client_state->current_broadcast_map = calloc(1, sizeof(afl_shmem_t));
   if (!client_state->current_broadcast_map) {
@@ -1063,9 +1117,7 @@ llmp_client_state_t *llmp_client_new(int port) {
   return client_state;
 
 error:
-  afl_free(client_state->out_maps);
-  free(client_state->current_broadcast_map);
-  free(client_state);
+  llmp_client_destroy(client_state);
   return NULL;
 
 }

@@ -201,6 +201,12 @@ bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg);
 /* Creates a new client process that will connect to the given port */
 llmp_client_state_t *llmp_client_new(int port);
 
+/* Creates a new, unconnected, client state */
+llmp_client_state_t *llmp_client_new_unconnected();
+
+/* Destroys the given cient state */
+void llmp_client_destroy(llmp_client_state_t *client_state);
+
 /* A client receives a broadcast message. Returns null if no message is
  * availiable */
 llmp_message_t *llmp_client_recv(llmp_client_state_t *client);
