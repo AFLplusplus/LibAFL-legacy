@@ -13,5 +13,5 @@ unit_test:	unit_test.o
 
 test: unit_test
 	make -C ..
+	rm -rf ./testcases || true
 	LD_LIBRARY_PATH=.. ./unit_test
-	rm ./unit_test
