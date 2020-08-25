@@ -175,7 +175,7 @@ static size_t choose_block_len(size_t limit) {
 
 void flip_bit_mutation(mutator_t *mutator, raw_input_t *input) {
 
-  int bit = afl_rand_below_engine(mutator->stage->engine, input->len * 8);
+  int bit = afl_rand_below_engine(mutator->stage->engine, input->len * 8 - 1) + 1;
 
   input->bytes[(bit >> 3)] ^= (1 << ((bit - 1) % 8));
 
@@ -185,7 +185,7 @@ void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input) {
 
   size_t size = input->len;
 
-  int bit = afl_rand_below_engine(mutator->stage->engine, size * 8);
+  int bit = afl_rand_below_engine(mutator->stage->engine, (size * 8) - 1) + 1;
 
   if ((size << 3) - bit < 2) { return; }
 

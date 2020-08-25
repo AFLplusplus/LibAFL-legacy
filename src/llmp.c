@@ -480,9 +480,13 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
     llmp_broker_state_t *broker, char *shm_str, size_t map_size) {
 
   /* make space for a new client and calculate its id */
-  afl_realloc(
+  if (!afl_realloc(
       (void **)&broker->llmp_clients,
-      (broker->llmp_client_count + 1) * sizeof(llmp_broker_client_metadata_t));
+      (broker->llmp_client_count + 1) * sizeof(llmp_broker_client_metadata_t))) {
+
+    return NULL;
+
+  }
 
   llmp_broker_client_metadata_t *client =
       &broker->llmp_clients[broker->llmp_client_count];
@@ -988,9 +992,9 @@ llmp_client_state_t *llmp_client_new_unconnected() {
                            LLMP_INITIAL_MAP_SIZE)) {
 
     DBG("Could not create sharedmem");
+    afl_free(client_state->out_maps);
     free(client_state->current_broadcast_map);
     free(client_state);
-    afl_free(client_state->out_maps);
     return NULL;
 
   }
@@ -1025,6 +1029,7 @@ llmp_client_state_t *llmp_client_new(int port) {
   client_state->current_broadcast_map = calloc(1, sizeof(afl_shmem_t));
   if (!client_state->current_broadcast_map) {
 
+    llmp_client_destroy(client_state);
     DBG("Could not allocate mem");
     return NULL;
 
