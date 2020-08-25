@@ -373,7 +373,13 @@ void test_basic_mutator_functions(void **state) {
 void test_queue_set_directory(void **state) {
 
   base_queue_t queue;
-  afl_base_queue_init(&queue);
+  afl_ret_t ret;
+  if ((ret = afl_base_queue_init(&queue)) != AFL_RET_SUCCESS) {
+
+    WARNF("Could not init queue: %s", afl_ret_stringify(ret));
+    assert(0);
+
+  }
 
   /* Testing for an empty dirpath */
   queue.funcs.set_directory(&queue, NULL);
@@ -427,8 +433,7 @@ void test_base_queue_get_next(void **state) {
 
   assert_int_equal(queue.size, 2);
 
-  afl_shmem_deinit(queue.shared_mem);
-  free(queue.shared_mem);
+  afl_base_queue_deinit(&queue);
 
 }
 

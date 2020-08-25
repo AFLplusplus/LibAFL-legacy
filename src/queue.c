@@ -119,9 +119,16 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->funcs.set_engine = afl_set_engine_base_queue_default;
   queue->funcs.get_next_in_queue = afl_get_next_base_queue_default;
   queue->shared_mem = calloc(1, sizeof(afl_shmem_t));
+  if (!queue->shared_mem) {
+    return AFL_RET_ALLOC;
+  }
 
   queue->queue_entries =
       (queue_entry_t **)afl_shmem_init(queue->shared_mem, MAP_SIZE);
+  if (!queue->queue_entries) {
+    free(queue->shared_mem);
+    return AFL_RET_ALLOC;
+  }
 
   return AFL_RET_SUCCESS;
 
@@ -151,6 +158,9 @@ void afl_base_queue_deinit(base_queue_t *queue) {
   queue->size = 0;
   queue->dirpath = NULL;
   queue->fuzz_started = false;
+
+  afl_shmem_deinit(queue->shared_mem);
+  free(queue->shared_mem);
 
 }
 

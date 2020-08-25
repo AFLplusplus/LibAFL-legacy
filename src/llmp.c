@@ -994,7 +994,7 @@ llmp_client_state_t *llmp_client_new_unconnected() {
     return NULL;
 
   }
-  return llmp_client_new_unconnected();
+  return client_state;
 
 }
 
