@@ -28,6 +28,7 @@
 #define LIBOBSERVATIONCHANNEL_H
 
 #include "common.h"
+#include "afl-shmem.h"
 #include "afl-returns.h"
 
 typedef struct observation_channel observation_channel_t;
@@ -45,7 +46,7 @@ struct observation_channel_functions {
 struct observation_channel {
 
   // Can we have anything else here?
-  size_t channel_id;
+  size_t                               channel_id;
   struct observation_channel_functions funcs;
 
 };
@@ -64,12 +65,14 @@ void      afl_observation_channel_deinit(observation_channel_t *);
 /* Function to create and destroy a new observation channel, allocates memory
   and initializes it. In destroy, it first deinitializes the struct and then
   frees it. */
-static inline observation_channel_t *afl_observation_channel_create(size_t channel_id) {
+static inline observation_channel_t *afl_observation_channel_create(
+    size_t channel_id) {
 
   observation_channel_t *new_obs_channel =
       calloc(1, sizeof(observation_channel_t));
   if (!new_obs_channel) return NULL;
-  if (afl_observation_channel_init(new_obs_channel, channel_id) != AFL_RET_SUCCESS) {
+  if (afl_observation_channel_init(new_obs_channel, channel_id) !=
+      AFL_RET_SUCCESS) {
 
     free(new_obs_channel);
     return NULL;
@@ -102,7 +105,7 @@ struct map_based_channel {
 
   observation_channel_t base;  // Base observation channel "class"
 
-  afl_sharedmem_t shared_map;
+  afl_shmem_t shared_map;
 
   struct map_based_channel_functions extra_funcs;
 
@@ -116,12 +119,14 @@ size_t afl_get_map_size_default(map_based_channel_t *obs_channel);
 afl_ret_t afl_map_channel_init(map_based_channel_t *, size_t, size_t);
 void      afl_map_channel_deinit(map_based_channel_t *);
 
-static inline map_based_channel_t *afl_map_channel_create(size_t map_size, size_t channel_id) {
+static inline map_based_channel_t *afl_map_channel_create(size_t map_size,
+                                                          size_t channel_id) {
 
   map_based_channel_t *map_channel = calloc(1, sizeof(map_based_channel_t));
   if (!map_channel) { return NULL; }
 
-  if (afl_map_channel_init(map_channel, map_size, channel_id) == AFL_RET_ERROR_INITIALIZE) {
+  if (afl_map_channel_init(map_channel, map_size, channel_id) ==
+      AFL_RET_ERROR_INITIALIZE) {
 
     free(map_channel);
     return NULL;

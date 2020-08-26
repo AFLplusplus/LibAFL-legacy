@@ -23,6 +23,7 @@ extern void mock_assert(const int result, const char *const expression,
   mock_assert((int)(expression), #expression, __FILE__, __LINE__);
 
 #include "common.h"
+#include "aflpp.h"
 
 /* remap exit -> assert, then use cmocka's mock_assert
     (compile with `--wrap=exit`) */
@@ -184,10 +185,6 @@ void test_input_save_to_file(void **state) {
 #include <sys/types.h>
 #include <fcntl.h>
 
-raw_input_t *input[2];  // We'll need a global input being filled everytime to
-                        // work with this
-int counter = 0;
-
 u8 engine_mock_execute(engine_t *engine, raw_input_t *input) {
 
   return AFL_RET_SUCCESS;
@@ -196,14 +193,11 @@ u8 engine_mock_execute(engine_t *engine, raw_input_t *input) {
 
 static raw_input_t *custom_input_create() {
 
-  input[counter] = afl_input_create();
+  raw_input_t *input = afl_input_create();
 
-  input[counter]->funcs.clear(input[counter]);
+  input->funcs.clear(input);
 
-  raw_input_t *current_input = input[counter];
-  counter++;
-
-  return current_input;
+  return input;
 
 }
 
@@ -237,8 +231,6 @@ void test_engine_load_testcase_from_dir_default(void **state) {
   engine.funcs.load_testcases_from_dir(&engine, "testcases",
                                        custom_input_create);
 
-  assert_null(input[0]);
-
   // Let's test it with a few files in the directory
   int fd = open("testcases/test1", O_RDWR | O_CREAT, 0600);
   int write_len = write(fd, corpus_one, 21);
@@ -263,7 +255,7 @@ void test_engine_load_testcase_from_dir_default(void **state) {
 
   close(fd);
   afl_ret_t result = engine.funcs.load_testcases_from_dir(&engine, "testcases",
-                                       custom_input_create);
+                                                          custom_input_create);
 
   assert_int_equal(result, AFL_RET_SUCCESS);
 
@@ -280,7 +272,6 @@ void test_engine_load_testcase_from_dir_default(void **state) {
 
 /* Unittests for the basic mutators and mutator functions we added */
 
-
 #include <time.h>
 #include "mutator.h"
 #include "stage.h"
@@ -292,8 +283,8 @@ void test_basic_mutator_functions(void **state) {
 
   (void)state;
 
-  engine_t engine;
-  stage_t stage;
+  engine_t   engine;
+  stage_t    stage;
   fuzz_one_t fuzz_one;
   afl_engine_init(&engine, NULL, NULL, NULL);
   afl_fuzz_one_init(&fuzz_one, &engine);
@@ -382,7 +373,13 @@ void test_basic_mutator_functions(void **state) {
 void test_queue_set_directory(void **state) {
 
   base_queue_t queue;
-  afl_base_queue_init(&queue);
+  afl_ret_t    ret;
+  if ((ret = afl_base_queue_init(&queue)) != AFL_RET_SUCCESS) {
+
+    WARNF("Could not init queue: %s", afl_ret_stringify(ret));
+    assert(0);
+
+  }
 
   /* Testing for an empty dirpath */
   queue.funcs.set_directory(&queue, NULL);
@@ -395,7 +392,7 @@ void test_queue_set_directory(void **state) {
 
   assert_string_equal(queue.dirpath, new_dirpath);
 
-  afl_sharedmem_deinit(queue.shared_mem);
+  afl_shmem_deinit(queue.shared_mem);
   free(queue.shared_mem);
 
 }
@@ -428,17 +425,17 @@ void test_base_queue_get_next(void **state) {
   queue.funcs.add_to_queue(&queue, &second_entry);
 
   /* Let's tell the queue with two entries now */
-  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &first_entry);
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id),
+                   &first_entry);
 
-  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &second_entry);
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id),
+                   &second_entry);
 
   assert_int_equal(queue.size, 2);
 
-  afl_sharedmem_deinit(queue.shared_mem);
-  free(queue.shared_mem);
+  afl_base_queue_deinit(&queue);
 
 }
-
 
 int main(int argc, char **argv) {
 

@@ -1,9 +1,9 @@
 MAKEFILE_PATH := $(abspath .)
-AFL_DIR?=$(realpath $(MAKEFILE_PATH)/../../)
+AFL_PATH?=$(realpath $(MAKEFILE_PATH)/../../)
 AFL_CC:=afl-clang-fast
-CFLAGS+=-g -L.. -I../include -I$(AFL_DIR)/include -pthread -laflpp -lm -Wall -Wextra -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O1 -fstack-protector
+CFLAGS+=-g -L.. -I../include -I$(AFL_PATH)/include -pthread -laflpp -lm -Wall -Wextra -Wshadow -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector
 
-$(info AFL_DIR is $(AFL_DIR))
+$(info AFL_PATH is $(AFL_PATH))
 
 all: clean target executor
 
@@ -24,11 +24,15 @@ test: clean executor target
 	rm -rf ./out-*
 	rm -rf ./crashes-* 2>/dev/null || trues
 
+llmp-main: ./llmp-main.c
+	$(CC) llmp-main.c -o llmp-main $(CFLAGS)
+
 clean:
 	rm out ./executor ./target ./success ./in-mem 2>/dev/null || true
 	rm -rf ./in 2>/dev/null	|| true
 	rm -rf ./crashes-* 2>/dev/null || true
+	rm -rf ./llmp-main || true
 	rm -rf ./out-*
 
 in-memory-fuzzer: in-memory-fuzzer.c
-	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_DIR)/afl-llvm-rt.o
+	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o

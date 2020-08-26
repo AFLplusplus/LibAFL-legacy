@@ -118,10 +118,17 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->funcs.set_directory = afl_set_directory_default;
   queue->funcs.set_engine = afl_set_engine_base_queue_default;
   queue->funcs.get_next_in_queue = afl_get_next_base_queue_default;
-  queue->shared_mem = calloc(1, sizeof(afl_sharedmem_t));
+  queue->shared_mem = calloc(1, sizeof(afl_shmem_t));
+  if (!queue->shared_mem) { return AFL_RET_ALLOC; }
 
   queue->queue_entries =
-      (queue_entry_t **)afl_sharedmem_init(queue->shared_mem, MAP_SIZE);
+      (queue_entry_t **)afl_shmem_init(queue->shared_mem, MAP_SIZE);
+  if (!queue->queue_entries) {
+
+    free(queue->shared_mem);
+    return AFL_RET_ALLOC;
+
+  }
 
   return AFL_RET_SUCCESS;
 
@@ -152,6 +159,9 @@ void afl_base_queue_deinit(base_queue_t *queue) {
   queue->dirpath = NULL;
   queue->fuzz_started = false;
 
+  afl_shmem_deinit(queue->shared_mem);
+  free(queue->shared_mem);
+
 }
 
 /* *** Possible error cases here? *** */
@@ -174,21 +184,24 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   if (fuzz_one) {
 
-    for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
+    size_t i;
+    for (i = 0; i < fuzz_one->stages_num; ++i) {
 
       fuzzing_stage_t *stage = (fuzzing_stage_t *)fuzz_one->stages[i];
-      for (size_t j = 0; j < stage->mutators_count; ++j) {
+      size_t           j;
+      for (j = 0; j < stage->mutators_count; ++j) {
 
         if (stage->mutators[j]->funcs.custom_queue_new_entry) {
 
           stage->mutators[j]->funcs.custom_queue_new_entry(stage->mutators[j],
-                                                          entry);
+                                                           entry);
 
         }
 
       }
 
     }
+
   }
 
   queue->queue_entries[queue->size] = entry;
@@ -245,14 +258,15 @@ void afl_set_directory_default(base_queue_t *queue, char *new_dirpath) {
 
 }
 
-void afl_set_engine_base_queue_default(base_queue_t * queue, engine_t * engine) {
+void afl_set_engine_base_queue_default(base_queue_t *queue, engine_t *engine) {
 
   queue->engine = engine;
-  if (engine) { queue->engine_id = engine->id; } 
+  if (engine) { queue->engine_id = engine->id; }
 
 }
 
-queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id) {
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
+                                               int           engine_id) {
 
   if (queue->size) {
 
@@ -323,7 +337,8 @@ afl_ret_t afl_global_queue_init(global_queue_t *global_queue) {
 
   global_queue->extra_funcs.add_feedback_queue = afl_add_feedback_queue_default;
   global_queue->extra_funcs.schedule = afl_global_schedule_default;
-  global_queue->base.funcs.get_next_in_queue = afl_get_next_global_queue_default;
+  global_queue->base.funcs.get_next_in_queue =
+      afl_get_next_global_queue_default;
 
   return AFL_RET_SUCCESS;
 
@@ -332,10 +347,11 @@ afl_ret_t afl_global_queue_init(global_queue_t *global_queue) {
 void afl_global_queue_deinit(global_queue_t *global_queue) {
 
   /* Should we also deinit the feedback queues?? */
+  size_t i;
 
   afl_base_queue_deinit(&global_queue->base);
 
-  for (size_t i = 0; i < global_queue->feedback_queues_num; ++i) {
+  for (i = 0; i < global_queue->feedback_queues_num; ++i) {
 
     global_queue->feedback_queues[i] = NULL;
 
@@ -346,18 +362,18 @@ void afl_global_queue_deinit(global_queue_t *global_queue) {
 }
 
 void afl_add_feedback_queue_default(global_queue_t *  global_queue,
-                                feedback_queue_t *feedback_queue) {
+                                    feedback_queue_t *feedback_queue) {
 
   global_queue->feedback_queues[global_queue->feedback_queues_num] =
       feedback_queue;
-  engine_t * engine = global_queue->base.engine;
+  engine_t *engine = global_queue->base.engine;
   feedback_queue->base.funcs.set_engine(&feedback_queue->base, engine);
   global_queue->feedback_queues_num++;
 
 }
 
 queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
-                                             int           engine_id) {
+                                                 int           engine_id) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
@@ -397,27 +413,30 @@ queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
 
 int afl_global_schedule_default(global_queue_t *queue) {
 
-  return afl_rand_below_engine(queue->base.engine, queue->feedback_queues_num);
+  return afl_rand_below(&queue->base.engine->rnd, queue->feedback_queues_num);
 
 }
 
-void afl_set_engine_global_queue_default(base_queue_t * global_queue_base, engine_t * engine) {
+void afl_set_engine_global_queue_default(base_queue_t *global_queue_base,
+                                         engine_t *    engine) {
 
-  global_queue_t * global_queue = (global_queue_t *)global_queue_base;
+  size_t          i;
+  global_queue_t *global_queue = (global_queue_t *)global_queue_base;
 
   // First add engine to the global queue itself
 
   afl_set_engine_base_queue_default(&global_queue->base, engine);
-  //Set engine's queue to the global queue
+  // Set engine's queue to the global queue
 
   if (engine) { engine->global_queue = global_queue; }
 
-  for (size_t i = 0; i < global_queue->feedback_queues_num; ++i) {
-    
+  for (i = 0; i < global_queue->feedback_queues_num; ++i) {
+
     // Set this engine to every feedback queue in global queue
-    global_queue->feedback_queues[i]->base.funcs.set_engine(&(global_queue->feedback_queues[i]->base), engine);
+    global_queue->feedback_queues[i]->base.funcs.set_engine(
+        &(global_queue->feedback_queues[i]->base), engine);
 
   }
 
-
 }
+

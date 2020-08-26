@@ -42,12 +42,13 @@ afl_ret_t afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
 
 void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
+  size_t i;
   /* Also remove the fuzz one from engine */
   fuzz_one->engine = NULL;
 
   /* TODO: Should we deinitialize the stages or just remove the reference of
    * fuzzone from them? */
-  for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
+  for (i = 0; i < fuzz_one->stages_num; ++i) {
 
     fuzz_one->stages[i] = NULL;
 
@@ -61,10 +62,13 @@ afl_ret_t afl_perform_default(fuzz_one_t *fuzz_one) {
 
   // Fuzzone grabs the current queue entry from one of many global queues and
   // sends it to stage.
+  size_t i;
 
   if (!fuzz_workers_count) { return AFL_RET_NO_FUZZ_WORKERS; }
   global_queue_t *global_queue =
-      registered_fuzz_workers[afl_rand_below_engine(fuzz_one->engine, fuzz_workers_count)]->global_queue;
+      registered_fuzz_workers[afl_rand_below(&fuzz_one->engine->rnd,
+                                                    fuzz_workers_count)]
+          ->global_queue;
 
   queue_entry_t *queue_entry = global_queue->base.funcs.get_next_in_queue(
       (base_queue_t *)global_queue, fuzz_one->engine->id);
@@ -72,7 +76,7 @@ afl_ret_t afl_perform_default(fuzz_one_t *fuzz_one) {
   if (!queue_entry) { return AFL_RET_NULL_QUEUE_ENTRY; }
 
   /* Fuzz the entry with every stage */
-  for (size_t i = 0; i < fuzz_one->stages_num; ++i) {
+  for (i = 0; i < fuzz_one->stages_num; ++i) {
 
     stage_t * current_stage = fuzz_one->stages[i];
     afl_ret_t stage_ret =
@@ -108,13 +112,14 @@ afl_ret_t afl_add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
 }
 
-afl_ret_t afl_set_engine_default(fuzz_one_t * fuzz_one, engine_t * engine) {
+afl_ret_t afl_set_engine_default(fuzz_one_t *fuzz_one, engine_t *engine) {
 
+  size_t i;
   fuzz_one->engine = engine;
 
   if (engine) { engine->fuzz_one = fuzz_one; }
-  
-  for(size_t i = 0; i < fuzz_one->stages_num; ++i) {
+
+  for (i = 0; i < fuzz_one->stages_num; ++i) {
 
     fuzz_one->stages[i]->engine = engine;
 
@@ -123,3 +128,4 @@ afl_ret_t afl_set_engine_default(fuzz_one_t * fuzz_one, engine_t * engine) {
   return AFL_RET_SUCCESS;
 
 }
+

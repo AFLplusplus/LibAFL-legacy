@@ -33,29 +33,7 @@
 #include "alloc-inl.h"
 #include "afl-returns.h"
 
-#define MAX_WORKERS 256
-
-// A generic sharememory region to be used by any functions (queues or feedbacks
-// too.)
-
-typedef struct afl_sharedmem {
-
-#ifdef USEMMAP
-  int  g_shm_id;
-  char g_shm_file_path[20];
-#else
-  int shm_id;
-#endif
-
-  u8 *   map;
-  size_t map_size;
-
-} afl_sharedmem_t;
-
-// Functions to create Shared memory region, for observation channels and
-// opening inputs and stuff.
-u8 * afl_sharedmem_init(afl_sharedmem_t *sharedmem, size_t map_size);
-void afl_sharedmem_deinit(afl_sharedmem_t *sharedmem);
+#define MAX_WORKERS (256)
 
 // We're declaring a few structs here which have an interdependency between them
 
@@ -99,7 +77,6 @@ static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
 void *afl_insert_substring(
     u8 *buf, size_t len, void *token, size_t token_len,
     size_t offset);  // Returns new buf containing the substring token
-int    rand_below(size_t limit);
 size_t afl_erase_bytes(
     u8 *buf, size_t len, size_t offset,
     size_t remove_len);  // Erases remove_len number of bytes from offset

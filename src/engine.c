@@ -39,7 +39,11 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->fuzz_one = fuzz_one;
   engine->global_queue = global_queue;
 
-  if (global_queue) { global_queue->base.funcs.set_engine(&global_queue->base, engine); }
+  if (global_queue) {
+
+    global_queue->base.funcs.set_engine(&global_queue->base, engine);
+
+  }
 
   engine->funcs.get_queue = afl_get_queue_default;
   engine->funcs.get_execs = afl_get_execs_defualt;
@@ -53,11 +57,15 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->funcs.execute = afl_execute_default;
   engine->funcs.load_testcases_from_dir = afl_load_testcases_from_dir_default;
   engine->funcs.loop = afl_loop_default;
-  engine->id = rand();
-  engine->dev_urandom_fd = open("/dev/urandom", O_RDONLY);
+  afl_ret_t ret = afl_rand_init(&engine->rnd);
+
   engine->buf = NULL;
 
-  if (!engine->dev_urandom_fd) { return AFL_RET_ERROR_INITIALIZE; }
+  if (ret != AFL_RET_SUCCESS) {
+    return ret;
+  }
+
+  engine->id = afl_rand_next(&engine->rnd) ;
 
   return AFL_RET_SUCCESS;
 
@@ -65,14 +73,17 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
 
 void afl_engine_deinit(engine_t *engine) {
 
+  size_t i;
   /* Let's free everything associated with the engine here, except the queues,
    * should we leave anything else? */
+
+  afl_rand_deinit(&engine->rnd);
 
   engine->fuzz_one = NULL;
   engine->executor = NULL;
   engine->global_queue = NULL;
 
-  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+  for (i = 0; i < engine->feedbacks_num; ++i) {
 
     engine->feedbacks[i] = NULL;
 
@@ -113,11 +124,16 @@ void afl_set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
   engine->fuzz_one = fuzz_one;
 
-  if (fuzz_one) { fuzz_one->funcs.set_engine_default(engine->fuzz_one, engine); }
+  if (fuzz_one) {
+
+    fuzz_one->funcs.set_engine_default(engine->fuzz_one, engine);
+
+  }
 
 }
 
-void afl_set_global_queue_default(engine_t *engine, global_queue_t *global_queue) {
+void afl_set_global_queue_default(engine_t *      engine,
+                                  global_queue_t *global_queue) {
 
   engine->global_queue = global_queue;
 
@@ -147,6 +163,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
   DIR *          dir_in;
   struct dirent *dir_ent;
   char           infile[PATH_MAX];
+  size_t         i;
 
   raw_input_t *input;
   size_t       dir_name_size = strlen(dirpath);
@@ -215,14 +232,14 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
     /* We add the corpus to the queue initially for all the feedback queues */
 
-    for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+    for (i = 0; i < engine->feedbacks_num; ++i) {
 
-      raw_input_t * copy = input->funcs.copy(input);
+      raw_input_t *copy = input->funcs.copy(input);
       if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
       queue_entry_t *entry = afl_queue_entry_create(copy);
-        engine->feedbacks[i]->queue->base.funcs.add_to_queue(
-            &engine->feedbacks[i]->queue->base, entry);
+      engine->feedbacks[i]->queue->base.funcs.add_to_queue(
+          &engine->feedbacks[i]->queue->base, entry);
 
     }
 
@@ -245,6 +262,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
 u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
 
+  size_t      i;
   executor_t *executor = engine->executor;
 
   executor->funcs.reset_observation_channels(executor);
@@ -260,7 +278,7 @@ u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
   /* We've run the target with the executor, we can now simply postExec call the
    * observation channels*/
 
-  for (size_t i = 0; i < executor->observors_num; ++i) {
+  for (i = 0; i < executor->observors_num; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) {

@@ -2,41 +2,50 @@
 
 #ifdef __cplusplus
 extern "C" {
+
 #endif
 
 #define MAP_SIZE 65536
 
-extern uint8_t * __lafl_map;
+extern uint8_t *__lafl_map;
 
-uint8_t __lafl_dummy_map[MAP_SIZE];
-uint8_t * __lafl_map = __lafl_dummy_map;
+uint8_t  __lafl_dummy_map[MAP_SIZE];
+uint8_t *__lafl_map = __lafl_dummy_map;
 
-uint8_t* __lafl_edges_map = __lafl_dummy_map;
-uint8_t* __lafl_cmp_map = __lafl_dummy_map;
+uint8_t *__lafl_edges_map = __lafl_dummy_map;
+uint8_t *__lafl_cmp_map = __lafl_dummy_map;
 
 uint32_t __lafl_max_edges_size = 0;
 
-void __sanitizer_cov_trace_pc_guard(uint32_t* guard) {
+void __sanitizer_cov_trace_pc_guard(uint32_t *guard) {
+
   __lafl_edges_map[*guard]++;
+
 }
 
-void __sanitizer_cov_trace_pc_guard_init(uint32_t* start, uint32_t* stop) {
- 
+void __sanitizer_cov_trace_pc_guard_init(uint32_t *start, uint32_t *stop) {
+
   if (start == stop || *start) return;
 
   *(start++) = ++__lafl_max_edges_size;
 
   while (start < stop) {
+
     *start = ++__lafl_max_edges_size;
     start++;
+
   }
 
 }
 
-#define MAX(a,b) \
- ({ __typeof__ (a) _a = (a); \
-     __typeof__ (b) _b = (b); \
-   _a > _b ? _a : _b; })
+#define MAX(a, b)           \
+  ({                        \
+                            \
+    __typeof__(a) _a = (a); \
+    __typeof__(b) _b = (b); \
+    _a > _b ? _a : _b;      \
+                            \
+  })
 
 #if defined(__APPLE__)
   #pragma weak __sanitizer_cov_trace_const_cmp1 = __sanitizer_cov_trace_cmp1
@@ -55,52 +64,79 @@ void __sanitizer_cov_trace_const_cmp8(uint64_t arg1, uint64_t arg2)
 #endif
 
 void __sanitizer_cov_trace_cmp1(uint8_t arg1, uint8_t arg2) {
+
   uintptr_t k = (uintptr_t)__builtin_return_address(0);
   k = (k >> 4) ^ (k << 8);
   k &= MAP_SIZE - 1;
-  __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
+  __lafl_cmp_map[k] =
+      MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
+
 }
 
 void __sanitizer_cov_trace_cmp2(uint16_t arg1, uint16_t arg2) {
+
   uintptr_t k = (uintptr_t)__builtin_return_address(0);
   k = (k >> 4) ^ (k << 8);
   k &= MAP_SIZE - 1;
-  __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
+  __lafl_cmp_map[k] =
+      MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
+
 }
 
 void __sanitizer_cov_trace_cmp4(uint32_t arg1, uint32_t arg2) {
+
   uintptr_t k = (uintptr_t)__builtin_return_address(0);
   k = (k >> 4) ^ (k << 8);
   k &= MAP_SIZE - 1;
-  __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
+  __lafl_cmp_map[k] =
+      MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
+
 }
 
 void __sanitizer_cov_trace_cmp8(uint64_t arg1, uint64_t arg2) {
+
   uintptr_t k = (uintptr_t)__builtin_return_address(0);
   k = (k >> 4) ^ (k << 8);
   k &= MAP_SIZE - 1;
-  __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcountll(~(arg1 ^ arg2))));
+  __lafl_cmp_map[k] =
+      MAX(__lafl_cmp_map[k], (__builtin_popcountll(~(arg1 ^ arg2))));
+
 }
 
-void __sanitizer_cov_trace_switch(uint64_t val, uint64_t* cases) {
+void __sanitizer_cov_trace_switch(uint64_t val, uint64_t *cases) {
+
   uintptr_t rt = (uintptr_t)__builtin_return_address(0);
   if (cases[1] == 64) {
+
     for (uint64_t i = 0; i < cases[0]; i++) {
+
       uintptr_t k = rt + i;
       k = (k >> 4) ^ (k << 8);
       k &= MAP_SIZE - 1;
-      __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcountll(~(val ^ cases[i + 2]))));
+      __lafl_cmp_map[k] =
+          MAX(__lafl_cmp_map[k], (__builtin_popcountll(~(val ^ cases[i + 2]))));
+
     }
+
   } else {
+
     for (uint64_t i = 0; i < cases[0]; i++) {
+
       uintptr_t k = rt + i;
       k = (k >> 4) ^ (k << 8);
       k &= MAP_SIZE - 1;
-      __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcount(~(val ^ cases[i + 2]))));
+      __lafl_cmp_map[k] =
+          MAX(__lafl_cmp_map[k], (__builtin_popcount(~(val ^ cases[i + 2]))));
+
     }
+
   }
+
 }
 
 #ifdef __cplusplus
+
 }
+
 #endif
+

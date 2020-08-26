@@ -31,6 +31,7 @@
 
 #include "input.h"
 #include "list.h"
+#include "afl-shmem.h"
 #include <stdbool.h>
 
 /*
@@ -129,7 +130,7 @@ struct base_queue_functions {
 
 struct base_queue {
 
-  afl_sharedmem_t *           shared_mem;
+  afl_shmem_t *               shared_mem;
   queue_entry_t **            queue_entries;
   queue_entry_t *             base;
   u64                         current;
@@ -161,7 +162,8 @@ size_t         afl_get_names_id_default(base_queue_t *);
 bool           afl_get_save_to_files_default(base_queue_t *);
 void           afl_set_directory_default(base_queue_t *, char *);
 void           afl_set_engine_base_queue_default(base_queue_t *, engine_t *);
-queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id);
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
+                                               int           engine_id);
 
 static inline base_queue_t *afl_base_queue_create() {
 
@@ -260,7 +262,7 @@ void afl_set_engine_global_queue_default(base_queue_t *, engine_t *);
 // Function to get next entry from queue, we override the base_queue
 // implementation
 queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
-                                             int           engine_id);
+                                                 int           engine_id);
 
 /* TODO: ADD defualt implementation for the schedule function based on random.
  */

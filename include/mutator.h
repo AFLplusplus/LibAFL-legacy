@@ -49,7 +49,7 @@ struct mutator_functions {
       mutator_t *,
       raw_input_t *);  // Checks if the queue entry is to be fuzzed or not
   void (*custom_queue_new_entry)(mutator_t *, queue_entry_t *);
-  void (*post_process)(mutator_t *, raw_input_t *); // Post process API AFL++
+  void (*post_process)(mutator_t *, raw_input_t *);  // Post process API AFL++
 
   stage_t *(*get_stage)(mutator_t *);
 
@@ -95,15 +95,14 @@ static inline void afl_mutator_delete(mutator_t *mutator) {
 
 }
 
-
 typedef struct scheduled_mutator scheduled_mutator_t;
 typedef void (*mutator_func_type)(mutator_t *, raw_input_t *);
 
 struct scheduled_mutator_functions {
 
-  int (*schedule)(scheduled_mutator_t *);
+  size_t (*schedule)(scheduled_mutator_t *);
   void (*add_mutator)(scheduled_mutator_t *, mutator_func_type);
-  int (*iterations)(scheduled_mutator_t *);
+  size_t (*iterations)(scheduled_mutator_t *);
 
 };
 
@@ -121,9 +120,9 @@ struct scheduled_mutator {
 
 /* TODO add implementation for the _schedule_ and _iterations_ functions, need a
  * random list element pop type implementation for this */
-int    afl_iterations_default(scheduled_mutator_t *);
+size_t afl_iterations_default(scheduled_mutator_t *);
 void   afl_add_mutator_default(scheduled_mutator_t *, mutator_func_type);
-int    afl_schedule_default(scheduled_mutator_t *);
+size_t afl_schedule_default(scheduled_mutator_t *);
 size_t afl_mutate_scheduled_mutator_default(mutator_t *, raw_input_t *);
 
 afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *, stage_t *, size_t);
