@@ -61,11 +61,9 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
 
   engine->buf = NULL;
 
-  if (ret != AFL_RET_SUCCESS) {
-    return ret;
-  }
+  if (ret != AFL_RET_SUCCESS) { return ret; }
 
-  engine->id = afl_rand_next(&engine->rnd) ;
+  engine->id = afl_rand_next(&engine->rnd);
 
   return AFL_RET_SUCCESS;
 

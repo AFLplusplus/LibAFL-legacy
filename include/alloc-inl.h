@@ -712,8 +712,10 @@ static inline void *afl_realloc(void **buf, size_t size_needed) {
 static inline void afl_free(void *buf) {
 
   if (buf) { free(afl_alloc_bufptr(buf)); }
+
 }
 
 #undef INITIAL_GROWTH_SIZE
 
 #endif                                               /* ! _HAVE_ALLOC_INL_H */
+

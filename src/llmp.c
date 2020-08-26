@@ -480,7 +480,8 @@ llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker,
 
 }
 
-/* Registers a new client for the given sharedmap str and size */
+/* Registers a new client for the given sharedmap str and size.
+  Be careful: Intenral realloc may change the location of the client map */
 static llmp_broker_client_metadata_t *llmp_broker_register_client(
     llmp_broker_state_t *broker, char *shm_str, size_t map_size) {
 
@@ -497,7 +498,12 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
       &broker->llmp_clients[broker->llmp_client_count];
   memset(client, 0, sizeof(llmp_broker_client_metadata_t));
 
-  client->client_state.id = broker->llmp_client_count;
+  client->client_state = calloc(1, sizeof(llmp_client_state_t));
+  if (!client->client_state) {
+    return NULL;
+  }
+
+  client->client_state->id = broker->llmp_client_count;
 
   client->cur_client_map = calloc(1, sizeof(afl_shmem_t));
   if (!client->cur_client_map) {
@@ -518,7 +524,7 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
   size_t i;
   for (i = 0; i < broker->llmp_client_count; i++) {
 
-    u32 actual_id = broker->llmp_clients[i].client_state.id;
+    u32 actual_id = broker->llmp_clients[i].client_state->id;
     if (i != actual_id) {
 
       FATAL("Inconsistent client state detected: id is %d but should be %ld",
@@ -534,7 +540,7 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
 
   // tODO: Add client map
 
-  DBG("Added clientprocess with id %d", client->client_state.id);
+  DBG("Added clientprocess with id %d", client->client_state->id);
 
   return client;
 
@@ -557,7 +563,7 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
     DBG("Our current_message_id for client %d (at ptr %p) is %d%s, now "
         "processing msg id "
         "%d with tag 0x%X",
-        client->client_state.id, client, current_message_id,
+        client->client_state->id, client, current_message_id,
         client->last_msg_broker_read ? "" : " (last msg was NULL)",
         msg->message_id, msg->tag);
 
@@ -580,7 +586,7 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
       }
 
-      DBG("Got EOP from client %d. Mapping new map.", client->client_state.id);
+      DBG("Got EOP from client %d. Mapping new map.", client->client_state->id);
 
       afl_shmem_t *old_map = client->cur_client_map;
       client->cur_client_map = calloc(1, sizeof(afl_shmem_t));
@@ -619,6 +625,8 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
       }
 
+      /* register_client may realloc the clients, we need to find ours again */
+      u32 client_id = client->client_state->id;
       if (!llmp_broker_register_client(broker, pageinfo->shm_str,
                                        pageinfo->map_size)) {
 
@@ -626,6 +634,8 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
               pageinfo->shm_str);
 
       }
+      /* find client again */
+      client = &broker->llmp_clients[client_id];
 
     } else {
 
@@ -690,9 +700,9 @@ static void *_llmp_client_wrapped_loop(void *llmp_client_broker_metadata_ptr) {
 
   llmp_broker_client_metadata_t *metadata =
       (llmp_broker_client_metadata_t *)llmp_client_broker_metadata_ptr;
-  metadata->clientloop(&metadata->client_state, metadata->data);
+  metadata->clientloop(metadata->client_state, metadata->data);
 
-  WARNF("Client loop exited for client %d", metadata->client_state.id);
+  WARNF("Client loop exited for client %d", metadata->client_state->id);
   return NULL;
 
 }
@@ -1182,7 +1192,7 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
   client->pthread = pthread;
 
   /* Copy the already allocated shmem to the client state */
-  if (!afl_realloc((void *)&client->client_state.out_maps,
+  if (!afl_realloc((void *)&client->client_state->out_maps,
                    sizeof(afl_shmem_t))) {
 
     DBG("Could not alloc mem for client map");
@@ -1195,17 +1205,17 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
 
   }
 
-  memcpy(client->client_state.out_maps, &client_map, sizeof(afl_shmem_t));
-  client->client_state.out_map_count = 1;
+  memcpy(client->client_state->out_maps, &client_map, sizeof(afl_shmem_t));
+  client->client_state->out_map_count = 1;
 
   /* Each client starts with the very first map.
   They should then iterate through all maps once and work on all old messages.
   */
-  client->client_state.current_broadcast_map = &broker->broadcast_maps[0];
-  client->client_state.out_map_count = 1;
+  client->client_state->current_broadcast_map = &broker->broadcast_maps[0];
+  client->client_state->out_map_count = 1;
 
   DBG("Registered threaded client with id %d (loop func at %p)",
-      client->client_state.id, client->clientloop);
+      client->client_state->id, client->clientloop);
 
   return true;
 

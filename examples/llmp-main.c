@@ -20,7 +20,7 @@ void llmp_clientloop_rand_u32(llmp_client_state_t *client, void *data) {
 
   afl_rand_t rnd = {0};
 
-  if (!afl_rand_init(&rnd)) {
+  if (afl_rand_init(&rnd) != AFL_RET_SUCCESS) {
     FATAL("Error creating rnd");
   }
 

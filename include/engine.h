@@ -74,11 +74,10 @@ struct engine {
 
   afl_rand_t rnd;
 
-  u8 *buf;  // Reusable buf for realloc
+  u8 *                    buf;  // Reusable buf for realloc
   struct engine_functions funcs;
 
 };
-
 
 /* TODO: Add default implementations for load_testcases and execute */
 global_queue_t *afl_get_queue_default(engine_t *);

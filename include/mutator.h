@@ -153,17 +153,17 @@ static inline void afl_scheduled_mutator_delete(
 
 }
 
-void flip_bit_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_2_bits_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_4_bits_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_byte_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_2_bytes_mutation(mutator_t * mutator, raw_input_t *input);
-void flip_4_bytes_mutation(mutator_t * mutator, raw_input_t *input);
-void random_byte_add_sub_mutation(mutator_t * mutator, raw_input_t *input);
-void random_byte_mutation(mutator_t * mutator, raw_input_t *input);
-void delete_bytes_mutation(mutator_t * mutator, raw_input_t *input);
-void clone_bytes_mutation(mutator_t * mutator, raw_input_t *input);
-void splicing_mutation(mutator_t * mutator, raw_input_t *input);
+void flip_bit_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_byte_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input);
+void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input);
+void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input);
+void random_byte_mutation(mutator_t *mutator, raw_input_t *input);
+void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input);
+void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input);
+void splicing_mutation(mutator_t *mutator, raw_input_t *input);
 
 #endif
 

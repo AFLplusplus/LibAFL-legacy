@@ -143,7 +143,7 @@ typedef void (*clientloop_t)(llmp_client_state_t *client_state, void *data);
 typedef struct llmp_broker_client_metadata {
 
   /* infos about this client */
-  llmp_client_state_t client_state;
+  llmp_client_state_t *client_state;
 
   /* The client map we're currently reading from */
   /* We can't use the one from client_state for threaded clients

@@ -5,10 +5,10 @@
 
 typedef struct afl_rand_state {
 
-  u32 rand_cnt;                                     /* Random number counter*/
-  u64 rand_seed[4];
-  s32 dev_urandom_fd;
-  s64 init_seed;
+  u32  rand_cnt;                                    /* Random number counter*/
+  u64  rand_seed[4];
+  s32  dev_urandom_fd;
+  s64  init_seed;
   bool fixed_seed;
 
 } afl_rand_t;
@@ -61,29 +61,35 @@ static inline u64 afl_rand_below(afl_rand_t *rnd, u64 limit) {
      we need to ensure the result uniformity. */
   if (unlikely(!rnd->rand_cnt--) && likely(!rnd->fixed_seed)) {
 
-    int read_len = read(rnd->dev_urandom_fd, &rnd->rand_seed,
-                        sizeof(rnd->rand_seed));
+    int read_len =
+        read(rnd->dev_urandom_fd, &rnd->rand_seed, sizeof(rnd->rand_seed));
     (void)read_len;
     rnd->rand_cnt = (RESEED_RNG / 2) + (rnd->rand_seed[1] % RESEED_RNG);
 
   }
 
-  /* Modulo is biased - we don't want our fuzzing to be biased so let's do it right. */
-  u64 unbiased_rnd; 
+  /* Modulo is biased - we don't want our fuzzing to be biased so let's do it
+   * right. */
+  u64 unbiased_rnd;
   do {
+
     unbiased_rnd = afl_rand_next(rnd);
+
   } while (unbiased_rnd >= (UINT64_MAX - (UINT64_MAX % limit)));
+
   return unbiased_rnd % limit;
 
 }
 
 /* initialize with a fixed seed (for reproducability) */
-static inline afl_ret_t afl_rand_init_fixed_seed(afl_rand_t *rnd, s64 init_seed) {
+static inline afl_ret_t afl_rand_init_fixed_seed(afl_rand_t *rnd,
+                                                 s64         init_seed) {
 
   memset(rnd, 0, sizeof(afl_rand_t));
   rnd->fixed_seed = true;
   afl_rand_set_seed(rnd, init_seed);
   return AFL_RET_SUCCESS;
+
 }
 
 /* initialize feeded by urandom */
@@ -100,9 +106,9 @@ static inline afl_ret_t afl_rand_init(afl_rand_t *rnd) {
 }
 
 static inline void afl_rand_deinit(afl_rand_t *rnd) {
-  if (rnd->dev_urandom_fd) {
-    close(rnd->dev_urandom_fd);
-  }
+
+  if (rnd->dev_urandom_fd) { close(rnd->dev_urandom_fd); }
+
 }
 
-#endif /* AFL_RAND_H */
+#endif                                                        /* AFL_RAND_H */
