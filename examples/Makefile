@@ -1,9 +1,9 @@
 MAKEFILE_PATH := $(abspath .)
-AFL_DIR?=$(realpath $(MAKEFILE_PATH)/../../)
+AFL_PATH?=$(realpath $(MAKEFILE_PATH)/../../)
 AFL_CC:=afl-clang-fast
-CFLAGS+=-g -L.. -I../include -I$(AFL_DIR)/include -pthread -laflpp -lm -Wall -Wextra -Wshadow -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector
+CFLAGS+=-g -L.. -I../include -I$(AFL_PATH)/include -pthread -laflpp -lm -Wall -Wextra -Wshadow -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector
 
-$(info AFL_DIR is $(AFL_DIR))
+$(info AFL_PATH is $(AFL_PATH))
 
 all: clean target executor
 
@@ -35,4 +35,4 @@ clean:
 	rm -rf ./out-*
 
 in-memory-fuzzer: in-memory-fuzzer.c
-	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_DIR)/afl-llvm-rt.o
+	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o
