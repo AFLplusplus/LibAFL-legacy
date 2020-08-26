@@ -1,4 +1,4 @@
-CFLAGS+=-g -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong -fsanitize=address -std=gnu89 -DLLMP_DEBUG=1
+CFLAGS+=-g -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong -fsanitize=address -std=gnu89 #-DLLMP_DEBUG=1
 LDFLAGS+=-shared
 
 all:	libaflpp.so
