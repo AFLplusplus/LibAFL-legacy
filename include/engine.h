@@ -74,6 +74,7 @@ struct engine {
 
   afl_rand_t rnd;
 
+  u8 *buf;  // Reusable buf for realloc
   struct engine_functions funcs;
 
 };

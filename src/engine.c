@@ -59,6 +59,8 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->funcs.loop = afl_loop_default;
   afl_ret_t ret = afl_rand_init(&engine->rnd);
 
+  engine->buf = NULL;
+
   if (ret != AFL_RET_SUCCESS) {
     return ret;
   }

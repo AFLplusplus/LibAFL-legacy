@@ -29,6 +29,7 @@
 #include "mutator.h"
 #include "engine.h"
 #include "stage.h"
+#include "alloc-inl.h"
 
 #define ARITH_MAX 35
 
@@ -358,3 +359,81 @@ inline void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
+static void locate_diffs(u8 *ptr1, u8 *ptr2, u32 len, s32 *first, s32 *last) {
+
+  s32 f_loc = -1;
+  s32 l_loc = -1;
+  u32 pos;
+
+  for (pos = 0; pos < len; ++pos) {
+
+    if (*(ptr1++) != *(ptr2++)) {
+
+      if (f_loc == -1) { f_loc = pos; }
+      l_loc = pos;
+
+    }
+
+  }
+
+  *first = f_loc;
+  *last = l_loc;
+
+  return;
+
+}
+
+void splicing_mutation(mutator_t * mutator, raw_input_t * input) {
+
+  /* Let's grab the engine for random num generation and queue */
+  
+  engine_t * engine = mutator->stage->engine;
+  global_queue_t * global_queue = engine->global_queue;
+
+  raw_input_t * splice_input = NULL;
+  s32 f_diff, l_diff;
+
+  int counter = 0;
+
+retry_splicing:
+
+
+  do {
+
+    size_t random_queue_idx = afl_rand_below(&engine->rnd, global_queue->feedback_queues_num + 1); // +1 so that we can also grab a queue entry from the global_queue
+    
+    if (random_queue_idx < global_queue->feedback_queues_num) {
+      // Grab a random entry from the random feedback queue
+      feedback_queue_t * random_fbck_queue = global_queue->feedback_queues[random_queue_idx];
+      splice_input = (random_fbck_queue->base.size > 0) ? random_fbck_queue->base.queue_entries[afl_rand_below(&engine->rnd, random_fbck_queue->base.size)]->input : NULL;
+
+      if (splice_input && !splice_input->bytes) { splice_input = NULL; }
+
+    }
+    else {
+      // Grab a random entry from the global queue
+      splice_input = (global_queue->base.size > 0) ? global_queue->base.queue_entries[afl_rand_below(&engine->rnd, global_queue->base.size)]->input : NULL;
+      if (splice_input && !splice_input->bytes) { splice_input = NULL; }
+
+    }
+    // Counter basically stops it from infinite loop in case of empty queue
+    if (counter++ > 20) { return; }
+  } while(splice_input == NULL);
+  
+  locate_diffs(input->bytes, splice_input->bytes, MIN((s64)input->len, (s64)splice_input->len), &f_diff, &l_diff);
+
+  if (f_diff < 0 || l_diff < 2 || f_diff == l_diff) { goto retry_splicing; }
+
+  /* Split somewhere between the first and last differing byte. */
+
+  u32 split_at = f_diff + afl_rand_below(&engine->rnd, l_diff - f_diff);
+
+  /* Do the thing. */
+
+  input->len = splice_input->len;
+
+  input->bytes =  realloc(input->bytes, splice_input->len);
+  memcpy(input->bytes + split_at, splice_input->bytes + split_at, splice_input->len-split_at);
+
+  input->len = splice_input->len;
+}

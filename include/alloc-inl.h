@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 #include <stddef.h>
 
@@ -711,19 +712,8 @@ static inline void *afl_realloc(void **buf, size_t size_needed) {
 static inline void afl_free(void *buf) {
 
   if (buf) { free(afl_alloc_bufptr(buf)); }
-
-}
-
-/* Swaps buf1 ptr and buf2 ptr, as well as their sizes */
-static inline void afl_swap_bufs(void **buf1, void **buf2) {
-
-  void *scratch_buf = *buf1;
-  *buf1 = *buf2;
-  *buf2 = scratch_buf;
-
 }
 
 #undef INITIAL_GROWTH_SIZE
 
 #endif                                               /* ! _HAVE_ALLOC_INL_H */
-
