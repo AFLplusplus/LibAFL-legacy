@@ -417,8 +417,8 @@ static afl_ret_t llmp_handle_out_eop(afl_shmem_t **maps_p, size_t *map_count_p,
 
   /* copy the infos to the message we're going to send on the old buf */
   new_page_msg->map_size = (*maps_p)[map_count].map_size;
-  strncpy(new_page_msg->shm_str, (*maps_p)[map_count].shm_str,
-          AFL_SHMEM_STRLEN_MAX - 1);
+  memcpy(new_page_msg->shm_str, (*maps_p)[map_count].shm_str,
+          AFL_SHMEM_STRLEN_MAX);
 
   // We never sent a msg on the new buf */
   *last_msg_p = NULL;
@@ -879,9 +879,9 @@ void llmp_clientloop_process_server(llmp_client_state_t *client_state,
   llmp_payload_new_page_t initial_broadcast_map = {0};
   initial_broadcast_map.map_size =
       client_state->current_broadcast_map->map_size;
-  strncpy(initial_broadcast_map.shm_str,
+  memcpy(initial_broadcast_map.shm_str,
           client_state->current_broadcast_map->shm_str,
-          AFL_SHMEM_STRLEN_MAX - 1);
+          AFL_SHMEM_STRLEN_MAX);
 
   struct sockaddr_in serv_addr = {0};
 
@@ -1075,8 +1075,8 @@ llmp_client_state_t *llmp_client_new(int port) {
 
   llmp_payload_new_page_t client_map_msg, broker_map_msg = {0};
   client_map_msg.map_size = client_state->out_maps[0].map_size;
-  strncpy(client_map_msg.shm_str, client_state->out_maps[0].shm_str,
-          AFL_SHMEM_STRLEN_MAX - 1);
+  memcpy(client_map_msg.shm_str, client_state->out_maps[0].shm_str,
+          AFL_SHMEM_STRLEN_MAX);
 
   if (write(connfd, &client_map_msg, sizeof(llmp_payload_new_page_t)) !=
       sizeof(llmp_payload_new_page_t)) {
