@@ -31,6 +31,7 @@ clean:
 	rm out ./executor ./target ./success ./in-mem 2>/dev/null || true
 	rm -rf ./in 2>/dev/null	|| true
 	rm -rf ./crashes-* 2>/dev/null || true
+	rm -rf ./llmp-main || true
 	rm -rf ./out-*
 
 in-memory-fuzzer: in-memory-fuzzer.c

@@ -22,3 +22,8 @@ test: unit_test unit_llmp
 	rm -rf ./testcases || true
 	LD_LIBRARY_PATH=.. ./unit_test
 	LD_LIBRARY_PATH=.. ./unit_llmp
+
+clean:
+	rm -rf ./testcases || true
+	rm unit_test
+	rm unit_llmp
