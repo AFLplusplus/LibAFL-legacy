@@ -30,6 +30,7 @@
 #include <types.h>
 
 #include "common.h"
+#include "config.h"
 #include "observationchannel.h"
 #include "input.h"
 #include "mutator.h"
