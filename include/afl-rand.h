@@ -69,13 +69,16 @@ static inline u64 afl_rand_below(afl_rand_t *rnd, u64 limit) {
   }
 
   /* Modulo is biased - we don't want our fuzzing to be biased so let's do it
-   * right. */
+  right. See
+  https://stackoverflow.com/questions/10984974/why-do-people-say-there-is-modulo-bias-when-using-a-random-number-generator
+  */
+
   u64 unbiased_rnd;
   do {
 
     unbiased_rnd = afl_rand_next(rnd);
 
-  } while (unbiased_rnd >= (UINT64_MAX - (UINT64_MAX % limit)));
+  } while (unlikely(unbiased_rnd >= (UINT64_MAX - (UINT64_MAX % limit))));
 
   return unbiased_rnd % limit;
 

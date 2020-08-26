@@ -94,6 +94,9 @@ typedef struct llmp_message {
    the broker to consume all messages in the given time. Only the sender should
    ever write to this, and never remove anything.
 */
+
+typedef struct llmp_broker_state llmp_broker_state_t;
+
 typedef struct llmp_page {
 
   /* who sends messages to this page */
@@ -137,7 +140,12 @@ typedef struct llmp_client_state {
 
 /* A convenient clientloop function that can be run threaded on llmp broker
  * startup */
-typedef void (*clientloop_t)(llmp_client_state_t *client_state, void *data);
+typedef void (*llmp_clientloop_func)(llmp_client_state_t *client_state, void *data);
+
+/* A hook able to intercept messages arriving at the broker.
+If return is false, message will not be delivered to clients.
+This is synchronous, if you need long-running message handlers, register a client instead. */
+typedef bool (*llmp_message_hook_func)(llmp_broker_state_t *client_state, llmp_message_t *msg, void *data);
 
 /* For the broker, internal: to keep track of the client */
 typedef struct llmp_broker_client_metadata {
@@ -156,11 +164,19 @@ typedef struct llmp_broker_client_metadata {
   /* pthread associated to this client, if we have a threaded client */
   pthread_t *pthread;
   /* the client loop function */
-  clientloop_t clientloop;
+  llmp_clientloop_func clientloop;
   /* Additional data for this client loop */
   void *data;
 
 } llmp_broker_client_metadata_t;
+
+/* Storage class for msg hooks */
+typedef struct llmp_message_hook_data {
+
+  llmp_message_hook_func *func;
+  void *data;
+
+} llmp_message_hook_data_t;
 
 /* state of the main broker. Mostly internal stuff. */
 typedef struct llmp_broker_state {
@@ -169,6 +185,9 @@ typedef struct llmp_broker_state {
 
   size_t       broadcast_map_count;
   afl_shmem_t *broadcast_maps;
+
+  size_t msg_hook_count;
+  llmp_message_hook_data_t *msg_hooks;
 
   size_t                         llmp_client_count;
   llmp_broker_client_metadata_t *llmp_clients;
@@ -223,7 +242,7 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
 bool llmp_client_send(llmp_client_state_t *client_state, llmp_message_t *msg);
 
 /* A simple client that, on connect, reads the new client's shmap str and writes
- * the broker's initial map str */
+ the broker's initial map str */
 void llmp_clientloop_tcp(llmp_client_state_t *client_state, void *data);
 
 /* Allocate and set up the new broker instance. Afterwards, run with broker_run.
@@ -236,18 +255,23 @@ broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
 bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
-                                              clientloop_t         clientloop,
+                                              llmp_clientloop_func         clientloop,
                                               void *               data);
 
 /* Kicks off all threaded clients in the brackground, using pthreads */
 bool llmp_broker_launch_clientloops(llmp_broker_state_t *broker);
 
 /* Register a simple tcp client that will listen for new shard map clients via
- * tcp */
-void llmp_broker_register_local_server(llmp_broker_state_t *broker, int port);
+ tcp */
+bool llmp_broker_register_local_server(llmp_broker_state_t *broker, int port);
+
+/* Adds a hook that gets called for each new message the broker touches.
+if the callback returns false, the message is not forwarded to the clients. */
+afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *broker, llmp_message_hook_func *hook, void *data);
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
- * its own shared page */
+ its own shared page.
+ Never returns. */
 void llmp_broker_loop(llmp_broker_state_t *broker);
 
 /* Start all threads and the main broker.
