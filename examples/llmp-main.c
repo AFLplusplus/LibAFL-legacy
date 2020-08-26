@@ -8,6 +8,7 @@ Example main for llmp.
 #include "debug.h"
 #include "types.h"
 #include "llmp.h"
+#include "afl-rand.h"
 
 /* Just a u32 in a msg, for testing purposes */
 #define LLMP_TAG_RANDOM_U32_V1 (0x344D011)
@@ -17,17 +18,23 @@ void llmp_clientloop_rand_u32(llmp_client_state_t *client, void *data) {
 
   (void)data;
 
+  afl_rand_t rnd = {0};
+
+  if (!afl_rand_init(&rnd)) {
+    FATAL("Error creating rnd");
+  }
+
   while (1) {
 
     llmp_message_t *msg = llmp_client_alloc_next(client, sizeof(u32));
     msg->tag = LLMP_TAG_RANDOM_U32_V1;
-    ((u32 *)msg->buf)[0] = rand_below(SIZE_MAX);
+    ((u32 *)msg->buf)[0] = afl_rand_below(&rnd, SIZE_MAX);
 
     OKF("%d Sending msg with id %d and payload %d.", client->id,
         msg->message_id, ((u32 *)msg->buf)[0]);
 
     llmp_client_send(client, msg);
-    usleep(rand_below(4000) * 1000);
+    usleep(afl_rand_below(&rnd, 4000) * 1000);
 
   }
 

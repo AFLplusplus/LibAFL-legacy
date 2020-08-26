@@ -57,10 +57,13 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->funcs.execute = afl_execute_default;
   engine->funcs.load_testcases_from_dir = afl_load_testcases_from_dir_default;
   engine->funcs.loop = afl_loop_default;
-  engine->id = rand();
-  engine->dev_urandom_fd = open("/dev/urandom", O_RDONLY);
+  afl_ret_t ret = afl_rand_init(&engine->rnd);
 
-  if (!engine->dev_urandom_fd) { return AFL_RET_ERROR_INITIALIZE; }
+  if (ret != AFL_RET_SUCCESS) {
+    return ret;
+  }
+
+  engine->id = afl_rand_next(&engine->rnd) ;
 
   return AFL_RET_SUCCESS;
 

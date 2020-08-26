@@ -77,7 +77,6 @@ static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
 void *afl_insert_substring(
     u8 *buf, size_t len, void *token, size_t token_len,
     size_t offset);  // Returns new buf containing the substring token
-int    rand_below(size_t limit);
 size_t afl_erase_bytes(
     u8 *buf, size_t len, size_t offset,
     size_t remove_len);  // Erases remove_len number of bytes from offset

@@ -66,7 +66,7 @@ afl_ret_t afl_perform_default(fuzz_one_t *fuzz_one) {
 
   if (!fuzz_workers_count) { return AFL_RET_NO_FUZZ_WORKERS; }
   global_queue_t *global_queue =
-      registered_fuzz_workers[afl_rand_below_engine(fuzz_one->engine,
+      registered_fuzz_workers[afl_rand_below(&fuzz_one->engine->rnd,
                                                     fuzz_workers_count)]
           ->global_queue;
 

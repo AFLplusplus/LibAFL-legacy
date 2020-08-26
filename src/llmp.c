@@ -76,7 +76,6 @@ also need to create new shmaps once their bufs are filled up.
 #include "common.h"
 #include "llmp.h"
 
-#define LLMP_DEBUG
 /* all the debug prints */
 #ifdef LLMP_DEBUG
   #define DBG(x...) ACTF("(llmp) " x)

@@ -202,13 +202,6 @@ u8 *afl_shmem_by_str(afl_shmem_t *shm, char *shm_str, size_t map_size) {
 
 /* Few helper functions */
 
-// Return random number below limit, if limit <= 0, returns -1
-int rand_below(size_t limit) {
-
-  return (limit > 0) ? (int)(rand() % limit) : -1;
-
-}
-
 void *afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
                            size_t offset) {
 

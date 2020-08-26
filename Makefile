@@ -1,4 +1,4 @@
-CFLAGS+=-g -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector -std=gnu89
+CFLAGS+=-g -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector -std=gnu89 -DLLMP_DEBUG=1
 LDFLAGS+=-shared
 
 all:	libaflpp.so
@@ -54,11 +54,11 @@ engine.o: ./src/engine.c ./include/engine.h ./src/feedback.o ./src/queue.o ./src
 
 # Compiling the OS helper  for the library
 os.o: ./src/os.c ./include/os.h ./src/common.o ./src/input.o
-	$(CC ./src/os.c -o os.so $(CFLAGS)
+	$(CC) ./src/os.c -o os.so $(CFLAGS)
 
 # Compiling the OS helper  for the library
 llmp.o: ./src/llmp.c ./include/llmp.h
-	$(CC ./src/os.c -o llmp.o $(CFLAGS)
+	$(CC) ./src/os.c -o llmp.o $(CFLAGS)
 
 # Compiling the final library
 aflpp.o: ./src/aflpp.c ./include/aflpp.h ./src/observationchannel.o ./src/input.observation

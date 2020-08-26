@@ -93,7 +93,7 @@ afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage,
 
 size_t afl_iterations_stage_default(stage_t *stage) {
 
-  return (1 + afl_rand_below_engine(stage->engine, 128));
+  return (1 + afl_rand_below(&stage->engine->rnd, 128));
 
 }
 
