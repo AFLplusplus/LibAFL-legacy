@@ -75,6 +75,8 @@ void afl_engine_deinit(engine_t *engine) {
   /* Let's free everything associated with the engine here, except the queues,
    * should we leave anything else? */
 
+  afl_rand_deinit(&engine->rnd);
+
   engine->fuzz_one = NULL;
   engine->executor = NULL;
   engine->global_queue = NULL;
