@@ -32,8 +32,10 @@
 void afl_shmem_deinit(afl_shmem_t *shm) {
 
   if (!shm || !shm->map) {
+
     // Not set or not initialized;
     return;
+
   }
 
   shm->shm_str[0] = '\0';
@@ -82,8 +84,10 @@ u8 *afl_shmem_init(afl_shmem_t *shm, size_t map_size) {
   /* create the shared memory segment as if it was a file */
   shm->g_shm_fd = shm_open(shm->shm_str, O_CREAT | O_RDWR | O_EXCL, 0600);
   if (shm->g_shm_fd == -1) {
+
     shm->shm_str[0] = '\0';
     return NULL;
+
   }
 
   /* configure the size of the shared memory segment */
@@ -113,9 +117,11 @@ u8 *afl_shmem_init(afl_shmem_t *shm, size_t map_size) {
 
   shm->shm_id = shmget(IPC_PRIVATE, map_size, IPC_CREAT | IPC_EXCL | 0600);
 
-  if (shm->shm_id < 0) { 
+  if (shm->shm_id < 0) {
+
     shm->shm_str[0] = '\0';
     return NULL;
+
   }
 
   snprintf(shm->shm_str, sizeof(shm->shm_str), "%d", shm->shm_id);
@@ -152,9 +158,11 @@ u8 *afl_shmem_by_str(afl_shmem_t *shm, char *shm_str, size_t map_size) {
 
   /* create the shared memory segment as if it was a file */
   shm->g_shm_fd = shm_open(shm_file_path, O_RDWR, 0600);
-  if (shm->g_shm_fd == -1) { 
+  if (shm->g_shm_fd == -1) {
+
     shm->shm_str[0] = '\0';
     return NULL;
+
   }
 
   /* map the shared memory segment to the address space of the process */

@@ -119,15 +119,15 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->funcs.set_engine = afl_set_engine_base_queue_default;
   queue->funcs.get_next_in_queue = afl_get_next_base_queue_default;
   queue->shared_mem = calloc(1, sizeof(afl_shmem_t));
-  if (!queue->shared_mem) {
-    return AFL_RET_ALLOC;
-  }
+  if (!queue->shared_mem) { return AFL_RET_ALLOC; }
 
   queue->queue_entries =
       (queue_entry_t **)afl_shmem_init(queue->shared_mem, MAP_SIZE);
   if (!queue->queue_entries) {
+
     free(queue->shared_mem);
     return AFL_RET_ALLOC;
+
   }
 
   return AFL_RET_SUCCESS;
@@ -188,7 +188,7 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
     for (i = 0; i < fuzz_one->stages_num; ++i) {
 
       fuzzing_stage_t *stage = (fuzzing_stage_t *)fuzz_one->stages[i];
-      size_t j;
+      size_t           j;
       for (j = 0; j < stage->mutators_count; ++j) {
 
         if (stage->mutators[j]->funcs.custom_queue_new_entry) {
@@ -420,7 +420,7 @@ int afl_global_schedule_default(global_queue_t *queue) {
 void afl_set_engine_global_queue_default(base_queue_t *global_queue_base,
                                          engine_t *    engine) {
 
-  size_t i;
+  size_t          i;
   global_queue_t *global_queue = (global_queue_t *)global_queue_base;
 
   // First add engine to the global queue itself

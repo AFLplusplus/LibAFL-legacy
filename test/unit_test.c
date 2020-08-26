@@ -373,7 +373,7 @@ void test_basic_mutator_functions(void **state) {
 void test_queue_set_directory(void **state) {
 
   base_queue_t queue;
-  afl_ret_t ret;
+  afl_ret_t    ret;
   if ((ret = afl_base_queue_init(&queue)) != AFL_RET_SUCCESS) {
 
     WARNF("Could not init queue: %s", afl_ret_stringify(ret));

@@ -121,9 +121,9 @@ size_t afl_mutate_scheduled_mutator_default(mutator_t *  mutator,
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
   scheduled_mutator_t *scheduled_mutator = (scheduled_mutator_t *)mutator;
-  int i;
-  for (i = 0;
-       i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator); ++i) {
+  int                  i;
+  for (i = 0; i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator);
+       ++i) {
 
     scheduled_mutator
         ->mutations[scheduled_mutator->extra_funcs.schedule(scheduled_mutator)](
@@ -175,7 +175,8 @@ static size_t choose_block_len(size_t limit) {
 
 void flip_bit_mutation(mutator_t *mutator, raw_input_t *input) {
 
-  int bit = afl_rand_below_engine(mutator->stage->engine, input->len * 8 - 1) + 1;
+  int bit =
+      afl_rand_below_engine(mutator->stage->engine, input->len * 8 - 1) + 1;
 
   input->bytes[(bit >> 3)] ^= (1 << ((bit - 1) % 8));
 

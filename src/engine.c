@@ -156,7 +156,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
   DIR *          dir_in;
   struct dirent *dir_ent;
   char           infile[PATH_MAX];
-  size_t i;
+  size_t         i;
 
   raw_input_t *input;
   size_t       dir_name_size = strlen(dirpath);
@@ -255,7 +255,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
 u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
 
-  size_t i;
+  size_t      i;
   executor_t *executor = engine->executor;
 
   executor->funcs.reset_observation_channels(executor);

@@ -673,10 +673,9 @@ static inline void *afl_realloc(void **buf, size_t size_needed) {
     new_buf = afl_alloc_bufptr(*buf);
     current_size = new_buf->complete_size;
 
-
     /* No need to realloc */
     if (likely(current_size >= size_needed)) { return *buf; }
-    
+
   }
 
   /* No initial size was set */

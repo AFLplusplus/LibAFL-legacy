@@ -49,7 +49,6 @@ int        __wrap_printf(const char *format, ...) {
 
 static void test_llmp_client(void **state) {
 
-
   llmp_client_state_t *client = llmp_client_new_unconnected();
   llmp_client_alloc_next(client, LLMP_INITIAL_MAP_SIZE + 10);
 
@@ -58,8 +57,6 @@ static void test_llmp_client(void **state) {
   llmp_client_destroy(client);
 
 }
-
-
 
 int main(int argc, char **argv) {
 
