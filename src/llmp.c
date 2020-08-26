@@ -547,7 +547,7 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
 }
 
 /* broker broadcast to its own page for all others to read */
-void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
+inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
                                  llmp_broker_client_metadata_t *client) {
 
   // TODO: We could memcpy a range of pending messages, instead of one by one.
@@ -685,20 +685,28 @@ void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 }
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
- * its own shared page */
-void llmp_broker_loop(llmp_broker_state_t *broker) {
+ * its own shared page, once. */
+inline void llmp_broker_once(llmp_broker_state_t *broker) {
 
   u32 i;
+  MEM_BARRIER();
+  for (i = 0; i < broker->llmp_client_count; i++) {
+
+    llmp_broker_client_metadata_t *client = &broker->llmp_clients[i];
+    llmp_broker_handle_new_msgs(broker, client);
+
+  }
+
+}
+
+/* The broker walks all pages and looks for changes, then broadcasts them on
+ * its own shared page */
+void llmp_broker_loop(llmp_broker_state_t *broker) {
 
   while (1) {
 
     MEM_BARRIER();
-    for (i = 0; i < broker->llmp_client_count; i++) {
-
-      llmp_broker_client_metadata_t *client = &broker->llmp_clients[i];
-      llmp_broker_handle_new_msgs(broker, client);
-
-    }
+    llmp_broker_once(broker);
 
     /* 5 milis of sleep for now to not busywait at 100% */
     usleep(5 * 1000);

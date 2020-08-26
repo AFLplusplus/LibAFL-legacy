@@ -145,7 +145,7 @@ typedef void (*llmp_clientloop_func)(llmp_client_state_t *client_state, void *da
 /* A hook able to intercept messages arriving at the broker.
 If return is false, message will not be delivered to clients.
 This is synchronous, if you need long-running message handlers, register a client instead. */
-typedef bool (*llmp_message_hook_func)(llmp_broker_state_t *client_state, llmp_message_t *msg, void *data);
+typedef bool (*llmp_message_hook_func)(llmp_broker_state_t *broker, llmp_message_t *msg, void *data);
 
 /* For the broker, internal: to keep track of the client */
 typedef struct llmp_broker_client_metadata {
@@ -278,6 +278,11 @@ void llmp_broker_loop(llmp_broker_state_t *broker);
 Same as llmp_broker_launch_threaded clients();
 Never returns. */
 void llmp_broker_run(llmp_broker_state_t *broker);
+
+/* The broker walks all pages and looks for changes, then broadcasts them on
+ * its own shared page, once. */
+inline void llmp_broker_once(llmp_broker_state_t *broker);
+
 
 #endif                                                            /* LLMP_H */
 
