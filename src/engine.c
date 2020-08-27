@@ -38,6 +38,7 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->executor = executor;
   engine->fuzz_one = fuzz_one;
   engine->global_queue = global_queue;
+  engine->feedbacks_num = 0;
 
   if (global_queue) {
 
