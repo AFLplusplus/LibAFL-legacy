@@ -499,9 +499,7 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
   memset(client, 0, sizeof(llmp_broker_client_metadata_t));
 
   client->client_state = calloc(1, sizeof(llmp_client_state_t));
-  if (!client->client_state) {
-    return NULL;
-  }
+  if (!client->client_state) { return NULL; }
 
   client->client_state->id = broker->llmp_client_count;
 
@@ -548,7 +546,7 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
 
 /* broker broadcast to its own page for all others to read */
 inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
-                                 llmp_broker_client_metadata_t *client) {
+                                        llmp_broker_client_metadata_t *client) {
 
   // TODO: We could memcpy a range of pending messages, instead of one by one.
 
@@ -602,8 +600,10 @@ inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
         FATAL("Could not get shmem by str for map %s of size %ld",
               pageinfo->shm_str, pageinfo->map_size);
 
-      } 
-      /* tell the client it may free the shmap. this is the only broker write access to it. */
+      }
+
+      /* tell the client it may free the shmap. this is the only broker write
+       * access to it. */
       shmem2page(old_map)->save_to_unmap = true;
       afl_shmem_deinit(old_map);
       free(old_map);
@@ -634,16 +634,19 @@ inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
               pageinfo->shm_str);
 
       }
+
       /* find client again */
       client = &broker->llmp_clients[client_id];
 
     } else {
 
-      bool forward_msg = true;
+      bool   forward_msg = true;
       size_t i;
       for (i = 0; i < broker->msg_hook_count; i++) {
+
         llmp_message_hook_data_t *msg_hook = &broker->msg_hooks[i];
         forward_msg &= (*msg_hook->func)(broker, msg, msg_hook->data);
+
       }
 
       if (likely(forward_msg)) {
@@ -806,10 +809,8 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
   while (1) {
 
     msg = llmp_recv(shmem2page(client->current_broadcast_map),
-                  client->last_msg_recvd);
-    if (!msg) {
-      return NULL;
-    }
+                    client->last_msg_recvd);
+    if (!msg) { return NULL; }
 
     client->last_msg_recvd = msg;
     if (msg->tag == LLMP_TAG_UNALLOCATED_V1) {
@@ -817,6 +818,7 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
       FATAL("BUG: Read unallocated msg");
 
     } else if (msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
+
       /* we have to allocate a new page */
 
       llmp_payload_new_page_t *pageinfo =
@@ -844,7 +846,8 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
         FATAL("Could not get shmem by str for map %s of size %ld",
               pageinfo->shm_str, pageinfo->map_size);
 
-      } 
+      }
+
       /* Not needed for broker shmem2page(old_map)->save_to_unmap = true; */
       afl_shmem_deinit(old_map);
       free(old_map);
@@ -854,7 +857,9 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
       return msg;
 
     }
+
   }
+
 }
 
 /* A client blocks/spins until the next message gets posted to the page,
@@ -867,21 +872,30 @@ llmp_message_t *llmp_client_recv_blocking(llmp_client_state_t *client) {
 
     MEM_BARRIER();
     /* busy-wait for a new msg_id to show up in the page */
-    if (page->current_msg_id != (client->last_msg_recvd ? client->last_msg_recvd->message_id : 0)) {
+    if (page->current_msg_id !=
+        (client->last_msg_recvd ? client->last_msg_recvd->message_id : 0)) {
 
-      DBG("Blocking read got new page->current_msg_id %ld (last msg id was %d)", page->current_msg_id, (client->last_msg_recvd ? client->last_msg_recvd->message_id : 0));
- 
+      DBG("Blocking read got new page->current_msg_id %ld (last msg id was %d)",
+          page->current_msg_id,
+          (client->last_msg_recvd ? client->last_msg_recvd->message_id : 0));
 
       llmp_message_t *ret = llmp_client_recv(client);
       if (ret) {
+
         DBG("blocking got new msg %d", ret->message_id);
         return ret;
+
       }
-      #ifdef LLMP_DEBUG
-      if (client->last_msg_recvd != NULL && client->last_msg_recvd->tag == LLMP_TAG_END_OF_PAGE_V1) {
+
+#ifdef LLMP_DEBUG
+      if (client->last_msg_recvd != NULL &&
+          client->last_msg_recvd->tag == LLMP_TAG_END_OF_PAGE_V1) {
+
         FATAL("BUG: client recv returned null unexpectedly");
+
       }
-      #endif
+
+#endif
       /* The current page could have changed in recv (EOP) */
       page = shmem2page(client->current_broadcast_map);
       /* last msg will exist, even if EOP was handled internally */
@@ -1241,7 +1255,7 @@ broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
 bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
-                                              llmp_clientloop_func         clientloop,
+                                              llmp_clientloop_func clientloop,
                                               void *               data) {
 
   /* We do a little dance with two sharedmaps, as the threaded clients
@@ -1323,26 +1337,32 @@ bool llmp_broker_register_local_server(llmp_broker_state_t *broker, int port) {
     return false;
 
   }
+
   return true;
 
 }
 
 /* Adds a hook that gets called for each new message the broker touches.
 if the callback returns false, the message is not forwarded to the clients. */
-afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *broker, llmp_message_hook_func *hook, void *data) {
+afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *   broker,
+                                       llmp_message_hook_func *hook,
+                                       void *                  data) {
 
-  if (!afl_realloc((void **)&broker->msg_hooks, (broker->msg_hook_count + 1) * sizeof(llmp_message_hook_data_t))) {
+  if (!afl_realloc(
+          (void **)&broker->msg_hooks,
+          (broker->msg_hook_count + 1) * sizeof(llmp_message_hook_data_t))) {
+
     DBG("realloc for msg hooks failed");
     return AFL_RET_ALLOC;
+
   }
+
   broker->msg_hooks[broker->msg_hook_count].func = hook;
   broker->msg_hooks[broker->msg_hook_count].data = data;
   broker->msg_hook_count++;
   return AFL_RET_SUCCESS;
 
 }
-
-
 
 /* Allocate and set up the new broker instance. Afterwards, run with
  * broker_run.

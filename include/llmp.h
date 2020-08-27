@@ -140,12 +140,15 @@ typedef struct llmp_client_state {
 
 /* A convenient clientloop function that can be run threaded on llmp broker
  * startup */
-typedef void (*llmp_clientloop_func)(llmp_client_state_t *client_state, void *data);
+typedef void (*llmp_clientloop_func)(llmp_client_state_t *client_state,
+                                     void *               data);
 
 /* A hook able to intercept messages arriving at the broker.
 If return is false, message will not be delivered to clients.
-This is synchronous, if you need long-running message handlers, register a client instead. */
-typedef bool (*llmp_message_hook_func)(llmp_broker_state_t *broker, llmp_message_t *msg, void *data);
+This is synchronous, if you need long-running message handlers, register a
+client instead. */
+typedef bool (*llmp_message_hook_func)(llmp_broker_state_t *broker,
+                                       llmp_message_t *msg, void *data);
 
 /* For the broker, internal: to keep track of the client */
 typedef struct llmp_broker_client_metadata {
@@ -174,7 +177,7 @@ typedef struct llmp_broker_client_metadata {
 typedef struct llmp_message_hook_data {
 
   llmp_message_hook_func *func;
-  void *data;
+  void *                  data;
 
 } llmp_message_hook_data_t;
 
@@ -186,7 +189,7 @@ typedef struct llmp_broker_state {
   size_t       broadcast_map_count;
   afl_shmem_t *broadcast_maps;
 
-  size_t msg_hook_count;
+  size_t                    msg_hook_count;
   llmp_message_hook_data_t *msg_hooks;
 
   size_t                         llmp_client_count;
@@ -255,7 +258,7 @@ broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
 bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
-                                              llmp_clientloop_func         clientloop,
+                                              llmp_clientloop_func clientloop,
                                               void *               data);
 
 /* Kicks off all threaded clients in the brackground, using pthreads */
@@ -267,7 +270,9 @@ bool llmp_broker_register_local_server(llmp_broker_state_t *broker, int port);
 
 /* Adds a hook that gets called for each new message the broker touches.
 if the callback returns false, the message is not forwarded to the clients. */
-afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *broker, llmp_message_hook_func *hook, void *data);
+afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *   broker,
+                                       llmp_message_hook_func *hook,
+                                       void *                  data);
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  its own shared page.
@@ -282,7 +287,6 @@ void llmp_broker_run(llmp_broker_state_t *broker);
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page, once. */
 inline void llmp_broker_once(llmp_broker_state_t *broker);
-
 
 #endif                                                            /* LLMP_H */
 

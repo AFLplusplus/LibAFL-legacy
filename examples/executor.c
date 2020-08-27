@@ -87,8 +87,9 @@ typedef struct timeout_obs_channel {
 
 typedef struct thread_instance_args {
 
-  engine_t *engine;
-  char *    in_dir;
+  engine_t *           engine;
+  char *               in_dir;
+  llmp_client_state_t *client;
 
 } thread_instance_args_t;
 
@@ -101,12 +102,15 @@ static exit_type_t       fsrv_run_target(executor_t *fsrv_executor);
 static u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
 static afl_ret_t fsrv_start(executor_t *fsrv_executor);
 
+llmp_broker_state_t *llmp_broker;
+int                  broker_port;
 /* Functions related to the feedback defined above */
 // static float coverage_fbck_is_interesting(feedback_t *feedback,
 //                                           executor_t *fsrv);
 static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
                                                   size_t            size);
-static float __attribute__((hot)) coverage_fbck_is_interesting(feedback_t *feedback, executor_t * fsrv);
+static float __attribute__((hot))
+coverage_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
 /* static const u8 count_class_binary[256] = {
 
     [0] = 0,
@@ -569,23 +573,31 @@ void timeout_channel_post_exec(observation_channel_t *obs_channel,
 /* We'll implement a simple is_interesting function for the feedback, which
  * checks if new tuples have been hit in the map or hit count has increased*/
 
-static float __attribute__((hot)) coverage_fbck_is_interesting(feedback_t *feedback, executor_t * fsrv) {
+static float __attribute__((hot))
+coverage_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
   maximize_map_feedback_t *map_feedback = (maximize_map_feedback_t *)feedback;
 
   /* First get the observation channel */
 
   if (feedback->observation_idx == -1) {
+
     for (size_t i = 0; i < fsrv->observors_num; ++i) {
+
       if (fsrv->observors[i]->channel_id == MAP_CHANNEL_ID) {
+
         feedback->observation_idx = i;
         break;
+
       }
+
     }
+
   }
 
   map_based_channel_t *obs_channel =
-      (map_based_channel_t *)fsrv->funcs.get_observation_channels(fsrv, feedback->observation_idx);
+      (map_based_channel_t *)fsrv->funcs.get_observation_channels(
+          fsrv, feedback->observation_idx);
 
 #ifdef WORD_SIZE_64
 
@@ -662,7 +674,7 @@ static float __attribute__((hot)) coverage_fbck_is_interesting(feedback_t *feedb
 
   }
 
-  if (((ret == 0.5 ) || (ret == 1.0)) && feedback->queue) {
+  if (((ret == 0.5) || (ret == 1.0)) && feedback->queue) {
 
     raw_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
 
@@ -678,10 +690,10 @@ static float __attribute__((hot)) coverage_fbck_is_interesting(feedback_t *feedb
     return 0.0;
 
   }
+
   return ret;
 
 }
-
 
 /* Another feedback based on the exec time */
 
@@ -840,6 +852,7 @@ void *thread_run_instance(void *thread_args) {
       (thread_instance_args_t *)thread_args;
 
   engine_t *engine = (engine_t *)thread_instance_args->engine;
+  engine->llmp_client = thread_instance_args->client;
 
   afl_forkserver_t *   fsrv = (afl_forkserver_t *)engine->executor;
   map_based_channel_t *trace_bits_channel =
@@ -909,6 +922,23 @@ void *thread_run_instance(void *thread_args) {
 
 }
 
+void run_broker_thread() {
+
+  // Time for llmp POC :)
+  broker_port = 0XAF1;
+  llmp_broker = llmp_broker_new();
+  if (!llmp_broker) { FATAL("Broker creation failed"); }
+  if (!llmp_broker_register_local_server(llmp_broker, broker_port)) {
+
+    FATAL("Broker register failed");
+
+  }
+
+  OKF("Broker up now");
+  llmp_broker_run(llmp_broker);
+
+}
+
 /* Main entry point function */
 int main(int argc, char **argv) {
 
@@ -930,9 +960,21 @@ int main(int argc, char **argv) {
 
   }
 
+  pthread_t t1;
+  int       s = pthread_create(&t1, NULL, run_broker_thread, NULL);
+  if (s) { FATAL("Error creating thread"); }
+  sleep(2);
+
   for (int i = 0; i < thread_count; ++i) {
 
     char **target_args = afl_argv_cpy_dup(argc, argv);
+
+    llmp_client_state_t *client_state = llmp_client_new(broker_port);
+    if (!client_state) {
+
+      FATAL("Error connecting to broker at port %d", broker_port);
+
+    }
 
     engine_t *engine_instance =
         initialize_engine_instance(target_path, &target_args[3]);
@@ -940,6 +982,7 @@ int main(int argc, char **argv) {
         calloc(1, sizeof(thread_instance_args_t));
     thread_args->engine = engine_instance;
     thread_args->in_dir = in_dir;
+    thread_args->client = client_state;
     pthread_t t1;
     int       s = pthread_create(&t1, NULL, thread_run_instance, thread_args);
     if (!s) {

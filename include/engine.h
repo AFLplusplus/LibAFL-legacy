@@ -36,6 +36,7 @@
 #include "xxh3.h"
 #include "xxhash.h"
 #include "afl-rand.h"
+#include "llmp.h"
 
 #define MAX_FEEDBACKS 10
 
@@ -76,6 +77,7 @@ struct engine {
 
   u8 *                    buf;  // Reusable buf for realloc
   struct engine_functions funcs;
+  llmp_client_state_t *   llmp_client;  // Our IPC for fuzzer communication
 
 };
 

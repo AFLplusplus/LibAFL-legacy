@@ -115,3 +115,4 @@ static inline void afl_rand_deinit(afl_rand_t *rnd) {
 }
 
 #endif                                                        /* AFL_RAND_H */
+
