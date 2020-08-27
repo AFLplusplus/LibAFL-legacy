@@ -64,6 +64,9 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 /* We'll start of with a megabyte of maps for now(?) */
 #define LLMP_INITIAL_MAP_SIZE (1 << 20)
 
+/* llmp tags */
+#define LLMP_TAG_NEW_QUEUE_ENTRY (0xA1B2C3D)
+
 /* The actual message.
     Sender is the original client id.
     The buf can be cast to any content.

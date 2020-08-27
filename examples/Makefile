@@ -18,7 +18,6 @@ test: clean executor target
 	mkdir ./in || true
 	echo "AAAAAA" > ./in/a
 	echo "BBBBBB" > ./in/b
-	echo "CCCCCC" > ./in/c
 	LD_LIBRARY_PATH=.. ./executor ./in 2 ./target
 	rm -rf ./in
 	rm -rf ./out-*

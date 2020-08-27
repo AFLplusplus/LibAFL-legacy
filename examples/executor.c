@@ -1002,7 +1002,23 @@ int main(int argc, char **argv) {
 
   }
 
-  u64 time_elapsed = 1;
+  sleep(2);
+
+  u64                  time_elapsed = 1;
+  llmp_message_t *     message;
+  llmp_client_state_t *client_state = llmp_client_new(broker_port);
+  while (1) {
+
+    MEM_BARRIER();
+    message = llmp_client_recv_blocking(client_state);
+
+    if (message->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
+
+      printf("Got a random entry from the queue\n");
+
+    }
+
+  }
 
   while (true) {
 

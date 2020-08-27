@@ -206,6 +206,15 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   queue->queue_entries[queue->size] = entry;
 
+  /* We broadcast a message when new entry found */
+
+  llmp_client_state_t *llmp_client = queue->engine->llmp_client;
+  llmp_message_t *     msg =
+      llmp_client_alloc_next(llmp_client, sizeof(queue_entry_t));
+  msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY;
+  ((queue_entry_t *)msg->buf)[0] = *entry;
+  llmp_client_send(llmp_client, msg);
+
   queue->size++;
 
 }
