@@ -58,6 +58,7 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->funcs.execute = afl_execute_default;
   engine->funcs.load_testcases_from_dir = afl_load_testcases_from_dir_default;
   engine->funcs.loop = afl_loop_default;
+  engine->funcs.handle_new_message = afl_handle_new_message_default;
   afl_ret_t ret = afl_rand_init(&engine->rnd);
 
   engine->buf = NULL;
@@ -259,6 +260,28 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
 }
 
+void afl_handle_new_message_default(engine_t *engine, llmp_message_t *msg) {
+
+  /* Default implementation, handles only new queue entry messages. Users have
+   * liberty with this function */
+
+  if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
+
+    /* Users can experiment here, adding entries to different queues based on
+     * the message tag. Right now, let's just add it to all queues*/
+    size_t i = 0;
+    for (i = 0; i < engine->global_queue->feedback_queues_num; ++i) {
+
+      engine->global_queue->feedback_queues[i]->base.funcs.add_to_queue(
+          &engine->global_queue->feedback_queues[i]->base,
+          (queue_entry_t *)msg->buf);
+
+    }
+
+  }
+
+}
+
 u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
 
   size_t      i;
@@ -314,23 +337,16 @@ afl_ret_t afl_loop_default(engine_t *engine) {
 
     afl_ret_t fuzz_one_ret = engine->fuzz_one->funcs.perform(engine->fuzz_one);
 
-    /* Let's read the broadcasted messages now */
-    llmp_message_t *msg = llmp_client_recv(engine->llmp_client);
+    /* let's call this engine's message handler */
 
-    if (!msg) { continue; }  // No new messages
+    if (engine->funcs.handle_new_message) {
 
-    if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
+      /* Let's read the broadcasted messages now */
+      llmp_message_t *msg = llmp_client_recv(engine->llmp_client);
 
-      /* Users can experiment here, adding entries to different queues based on
-       * the message tag. Right now, let's just add it to all queues*/
-      size_t i = 0;
-      for (i = 0; i < engine->global_queue->feedback_queues_num; ++i) {
+      if (!msg) { continue; }  // No new messages
 
-        engine->global_queue->feedback_queues[i]->base.funcs.add_to_queue(
-            &engine->global_queue->feedback_queues[i]->base,
-            (queue_entry_t *)msg->buf);
-
-      }
+      engine->funcs.handle_new_message(engine, msg);
 
     }
 

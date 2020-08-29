@@ -52,6 +52,7 @@ struct engine_functions {
   void (*set_global_queue)(engine_t *, global_queue_t *);
 
   u8 (*execute)(engine_t *, raw_input_t *);
+  void (*handle_new_message)(engine_t *, llmp_message_t *);
   afl_ret_t (*load_testcases_from_dir)(
       engine_t *, char *, raw_input_t *(*custom_input_init)(u8 *buf));
   void (*load_zero_testcase)(size_t);
@@ -97,6 +98,7 @@ u8        afl_execute_default(engine_t *, raw_input_t *);
 afl_ret_t afl_load_testcases_from_dir_default(
     engine_t *, char *, raw_input_t *(*custom_input_init)());
 void afl_load_zero_testcase_default(size_t);
+void afl_handle_new_message_default(engine_t *, llmp_message_t *);
 
 afl_ret_t afl_loop_default(engine_t *);  // Not sure about this functions
                                          // use-case. Was in FFF though.
