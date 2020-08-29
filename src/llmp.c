@@ -586,27 +586,24 @@ inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
       DBG("Got EOP from client %d. Mapping new map.", client->client_state->id);
 
-      afl_shmem_t *old_map = client->cur_client_map;
-      client->cur_client_map = calloc(1, sizeof(afl_shmem_t));
-      if (!client->cur_client_map) {
+      /* We can reuse the map mem space, no need to free and calloc.
+      However, the pageinfo points to the map we're about to unmap. 
+      Copy the contents first. */
 
-        PFATAL("Faild to allocate mem for new client map");
+      llmp_payload_new_page_t pageinfo_cpy;
+      memcpy(&pageinfo_cpy, pageinfo, sizeof(llmp_payload_new_page_t));
 
-      }
+      afl_shmem_t *client_map = client->cur_client_map;
+      shmem2page(client_map)->save_to_unmap = true;
+      afl_shmem_deinit(client_map);
 
-      if (!afl_shmem_by_str(client->cur_client_map, pageinfo->shm_str,
-                            pageinfo->map_size)) {
+      if (!afl_shmem_by_str(client_map, pageinfo->shm_str,
+                        pageinfo->map_size)) {
 
         FATAL("Could not get shmem by str for map %s of size %ld",
               pageinfo->shm_str, pageinfo->map_size);
 
       }
-
-      /* tell the client it may free the shmap. this is the only broker write
-       * access to it. */
-      shmem2page(old_map)->save_to_unmap = true;
-      afl_shmem_deinit(old_map);
-      free(old_map);
 
     } else if (msg->tag == LLMP_TAG_CLIENT_ADDED_V1) {
 
@@ -819,7 +816,11 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
 
     } else if (msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
-      /* we have to allocate a new page */
+      /* we reached the end of the current page.
+      We'll init a new page but can reuse the mem are of the current map.
+      However, we cannot use the message if we deinit its page, so let's copy */
+      llmp_payload_new_page_t pageinfo_cpy;
+      afl_shmem_t *broadcast_map = client->current_broadcast_map;
 
       llmp_payload_new_page_t *pageinfo =
           LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
@@ -830,15 +831,12 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
 
       }
 
+      memcpy(&pageinfo_cpy, pageinfo, sizeof(llmp_payload_new_page_t));
+
       DBG("Got EOP from broker. Mapping new map.");
 
-      afl_shmem_t *old_map = client->current_broadcast_map;
-      client->current_broadcast_map = calloc(1, sizeof(afl_shmem_t));
-      if (!client->current_broadcast_map) {
-
-        PFATAL("Faild to allocate mem for new client map");
-
-      }
+      /* Never read by broker broker: shmem2page(map)->save_to_unmap = true; */
+      afl_shmem_deinit(broadcast_map);
 
       if (!afl_shmem_by_str(client->current_broadcast_map, pageinfo->shm_str,
                             pageinfo->map_size)) {
@@ -847,10 +845,6 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
               pageinfo->shm_str, pageinfo->map_size);
 
       }
-
-      /* Not needed for broker shmem2page(old_map)->save_to_unmap = true; */
-      afl_shmem_deinit(old_map);
-      free(old_map);
 
     } else {
 
