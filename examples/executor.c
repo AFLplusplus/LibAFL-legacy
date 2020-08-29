@@ -745,7 +745,8 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
 
 }
 
-engine_t *initialize_engine_instance(char *target_path, char **target_args) {
+engine_t *initialize_engine_instance(char *target_path, char *in_dir,
+                                     char **target_args) {
 
   /* Let's now create a simple map-based observation channel */
   map_based_channel_t *trace_bits_channel =
@@ -812,6 +813,7 @@ engine_t *initialize_engine_instance(char *target_path, char **target_args) {
 
   /* Let's build an engine now */
   engine_t *engine = afl_engine_create((executor_t *)fsrv, NULL, global_queue);
+  engine->in_dir = in_dir;
   if (!engine) { FATAL("Error initializing Engine"); }
   engine->funcs.add_feedback(engine, (feedback_t *)coverage_feedback);
   engine->funcs.add_feedback(engine, timeout_feedback);
@@ -846,13 +848,11 @@ engine_t *initialize_engine_instance(char *target_path, char **target_args) {
 
 }
 
-void *thread_run_instance(void *thread_args) {
+void thread_run_instance(llmp_client_state_t *client, void *data) {
 
-  thread_instance_args_t *thread_instance_args =
-      (thread_instance_args_t *)thread_args;
+  engine_t *engine = (engine_t *)data;
 
-  engine_t *engine = (engine_t *)thread_instance_args->engine;
-  engine->llmp_client = thread_instance_args->client;
+  engine->llmp_client = client;
 
   afl_forkserver_t *   fsrv = (afl_forkserver_t *)engine->executor;
   map_based_channel_t *trace_bits_channel =
@@ -870,8 +870,8 @@ void *thread_run_instance(void *thread_args) {
   /* Let's reduce the timeout initially to fill the queue */
   fsrv->exec_tmout = 20;
   /* Now we can simply load the testcases from the directory given */
-  afl_ret_t ret = engine->funcs.load_testcases_from_dir(
-      engine, thread_instance_args->in_dir, NULL);
+  afl_ret_t ret =
+      engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL);
   if (ret != AFL_RET_SUCCESS) {
 
     PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret));
@@ -918,24 +918,15 @@ void *thread_run_instance(void *thread_args) {
 
   afl_global_queue_delete(engine->global_queue);
   afl_engine_delete(engine);
-  return 0;
+  return;
 
 }
 
-void run_broker_thread() {
+void *run_broker_thread(void *data) {
 
-  // Time for llmp POC :)
-  broker_port = 0XAF1;
-  llmp_broker = llmp_broker_new();
-  if (!llmp_broker) { FATAL("Broker creation failed"); }
-  if (!llmp_broker_register_local_server(llmp_broker, broker_port)) {
-
-    FATAL("Broker register failed");
-
-  }
-
-  OKF("Broker up now");
+  (void)data;
   llmp_broker_run(llmp_broker);
+  return 0;
 
 }
 
@@ -960,65 +951,47 @@ int main(int argc, char **argv) {
 
   }
 
-  pthread_t t1;
-  int       s = pthread_create(&t1, NULL, run_broker_thread, NULL);
-  if (s) { FATAL("Error creating thread"); }
-  sleep(2);
+  // Time for llmp POC :)
+  broker_port = 0XAF1;
+  llmp_broker = llmp_broker_new();
+  if (!llmp_broker) { FATAL("Broker creation failed"); }
+  if (!llmp_broker_register_local_server(llmp_broker, broker_port)) {
+
+    FATAL("Broker register failed");
+
+  }
+
+  OKF("Broker created now");
 
   for (int i = 0; i < thread_count; ++i) {
 
     char **target_args = afl_argv_cpy_dup(argc, argv);
 
-    llmp_client_state_t *client_state = llmp_client_new(broker_port);
-    if (!client_state) {
+    engine_t *engine =
+        initialize_engine_instance(target_path, in_dir, target_args);
 
-      FATAL("Error connecting to broker at port %d", broker_port);
+    if (!llmp_broker_register_threaded_clientloop(
+            llmp_broker, thread_run_instance, engine)) {
 
-    }
+      FATAL("Error registering client");
 
-    engine_t *engine_instance =
-        initialize_engine_instance(target_path, &target_args[3]);
-    thread_instance_args_t *thread_args =
-        calloc(1, sizeof(thread_instance_args_t));
-    thread_args->engine = engine_instance;
-    thread_args->in_dir = in_dir;
-    thread_args->client = client_state;
-    pthread_t t1;
-    int       s = pthread_create(&t1, NULL, thread_run_instance, thread_args);
-    if (!s) {
+    };
 
-      OKF("Thread created with thread id %lu", t1);
-      if (afl_register_fuzz_worker(engine_instance) != AFL_RET_SUCCESS) {
+    if (afl_register_fuzz_worker(engine) != AFL_RET_SUCCESS) {
 
-        FATAL("Error registering fuzzing instance");
-
-      }
-
-    } else {
-
-      FATAL("Error creating thread");
+      FATAL("Error registering fuzzing instance");
 
     }
 
   }
 
-  sleep(2);
+  u64 time_elapsed = 1;
 
-  u64                  time_elapsed = 1;
-  llmp_message_t *     message;
-  llmp_client_state_t *client_state = llmp_client_new(broker_port);
-  while (1) {
+  pthread_t p1;
 
-    MEM_BARRIER();
-    message = llmp_client_recv_blocking(client_state);
+  int s = pthread_create(&p1, NULL, run_broker_thread, NULL);
 
-    if (message->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
-
-      printf("Got a random entry from the queue\n");
-
-    }
-
-  }
+  if (!s) { OKF("Broker started running"); }
 
   while (true) {
 

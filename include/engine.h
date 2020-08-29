@@ -70,8 +70,9 @@ struct engine {
       *feedbacks[MAX_FEEDBACKS];  // We're keeping a pointer of feedbacks here
                                   // to save memory, consideting the original
                                   // feedback would already be allocated
-  u64 executions, start_time, crashes, feedbacks_num;
-  u32 id;
+  u64   executions, start_time, crashes, feedbacks_num;
+  u32   id;
+  char *in_dir;  // Input corpus directory
 
   afl_rand_t rnd;
 
