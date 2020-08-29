@@ -2,6 +2,8 @@
 
 LibAFL is a fuzzing library/framework developed for building efficient fuzzers.
 
+**Disaclaimer: LibAFL is still very WIP, likely the API will change a lot, do not use it now. However, feel free to contribute also with ideas or requests opening an issue.**
+
 LibAFL is maintained by:
 * Marc "van Hauser" Heuse mh@mh-sec.de,
 * Heiko "hexcoder-" Eißfeldt heiko.eissfeldt@hexco.de,
