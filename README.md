@@ -11,8 +11,8 @@ GSOC mentors:
 
 ## Content
 1. Introduction
-3. Elements of Fuzzing
-2. Features
+2. Elements of Fuzzing
+3. Features
 4. Getting Started with LibAFL
 
 ## Introduction

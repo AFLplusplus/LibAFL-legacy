@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "thread": "c",
+        "bit": "cpp"
+    }
+}
