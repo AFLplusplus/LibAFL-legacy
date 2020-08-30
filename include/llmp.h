@@ -183,7 +183,7 @@ typedef struct llmp_message_hook_data {
 } llmp_message_hook_data_t;
 
 /* state of the main broker. Mostly internal stuff. */
-typedef struct llmp_broker_state {
+struct llmp_broker_state {
 
   llmp_message_t *last_msg_sent;
 
@@ -196,7 +196,7 @@ typedef struct llmp_broker_state {
   size_t                         llmp_client_count;
   llmp_broker_client_metadata_t *llmp_clients;
 
-} llmp_broker_state_t;
+};
 
 /* Get a message buf as type if size matches, else NULL */
 #define LLMP_MSG_BUF_AS(msg, type)                                    \

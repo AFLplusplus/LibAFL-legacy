@@ -34,8 +34,6 @@
 // This is based on both the FFF prototype and the custom mutators that we have
 // in AFL++ without the AFL++ specific parts
 
-typedef struct mutator mutator_t;
-
 struct mutator_functions {
 
   void (*init)(mutator_t *);  // Sort of like the afl_custom_init we have for
