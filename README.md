@@ -57,7 +57,11 @@ To try it out immediately:
 ```bash
 cd ./example
 make test
-``` 
+```
+Other examples are listed in (./example/README.md)[./example/README.md].
+
+If you want to build your own fuzzer, this is how to do it:
+
 All the "Elements" (described above) in LibAFL can be extended by the user to suit their needs. to extend a strucuture, just include it in your custom struct as the first member
 
 ```C

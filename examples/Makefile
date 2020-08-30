@@ -7,13 +7,13 @@ $(info AFL_PATH is $(AFL_PATH))
 
 all: clean target executor
 
-afl: ./AFLplusplus/afl-clang-fast
+afl:
 	git submodule init
 	git submodule update
 	make -C $(AFL_PATH)
 	make -C $(AFL_PATH)/llvm_mode
 	
-target: ./target.c afl
+target: afl ./target.c
 	$(AFL_CC) -g target.c -o target
 
 executor: ./executor.c
@@ -40,4 +40,4 @@ clean:
 	rm -rf ./out-*
 
 in-memory-fuzzer: in-memory-fuzzer.c afl
-	$(CC) in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o
+	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o

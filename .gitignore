@@ -39,6 +39,7 @@ examples/out-*
 
 examples/success
 llmp-main
+in-mem
 testcase
 test/unit_llmp
 test/unit_test
