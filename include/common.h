@@ -28,6 +28,7 @@
 #define LIBCOMMON_H
 
 #include <pthread.h>
+#include <unistd.h>
 
 #include "types.h"
 #include "alloc-inl.h"
@@ -100,6 +101,88 @@ static inline char **afl_argv_cpy_dup(int argc, char **argv) {
   ret[i] = NULL;
 
   return ret;
+
+}
+
+/* Get unix time in microseconds */
+#if !defined(__linux__)
+static u64 get_cur_time_us(void) {
+
+  struct timeval  tv;
+  struct timezone tz;
+
+  gettimeofday(&tv, &tz);
+
+  return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
+
+}
+
+#endif
+
+/* This function uses select calls to wait on a child process for given
+ * timeout_ms milliseconds and kills it if it doesn't terminate by that time */
+static inline u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
+
+  fd_set readfds;
+  FD_ZERO(&readfds);
+  FD_SET(fd, &readfds);
+  struct timeval timeout;
+  int            sret;
+  ssize_t        len_read;
+
+  timeout.tv_sec = (timeout_ms / 1000);
+  timeout.tv_usec = (timeout_ms % 1000) * 1000;
+#if !defined(__linux__)
+  u64 read_start = get_cur_time_us();
+#endif
+
+  /* set exceptfds as well to return when a child exited/closed the pipe. */
+restart_select:
+  sret = select(fd + 1, &readfds, NULL, NULL, &timeout);
+
+  if (likely(sret > 0)) {
+
+  restart_read:
+    len_read = read(fd, (u8 *)buf, 4);
+
+    if (likely(len_read == 4)) {  // for speed we put this first
+
+#if defined(__linux__)
+      u32 exec_ms = MIN(
+          timeout_ms,
+          ((u64)timeout_ms - (timeout.tv_sec * 1000 + timeout.tv_usec / 1000)));
+#else
+      u32 exec_ms = MIN(timeout_ms, get_cur_time_us() - read_start);
+#endif
+
+      // ensure to report 1 ms has passed (0 is an error)
+      return exec_ms > 0 ? exec_ms : 1;
+
+    } else if (unlikely(len_read == -1 && errno == EINTR)) {
+
+      goto restart_read;
+
+    } else if (unlikely(len_read < 4)) {
+
+      return 0;
+
+    }
+
+  } else if (unlikely(!sret)) {
+
+    *buf = -1;
+    return timeout_ms + 1;
+
+  } else if (unlikely(sret < 0)) {
+
+    if (likely(errno == EINTR)) goto restart_select;
+
+    *buf = -1;
+    return 0;
+
+  }
+
+  return 0;  // not reached
 
 }
 

@@ -1,7 +1,7 @@
 /* An in mmeory fuzzing example. Fuzzer for libpng library */
 
 #include <stdio.h>
-#include "inmemory-executor.h"
+#include "aflpp.h"
 #include "map-coverage-feedback.h"
 #include <png.h>
 
