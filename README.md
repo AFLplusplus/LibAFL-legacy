@@ -4,11 +4,10 @@ LibAFL is a fuzzing library/framework developed for building efficient fuzzers.
 
 **Disaclaimer: LibAFL is still very WIP, likely the API will change a lot, do not use it now. However, feel free to contribute also with ideas or requests opening an issue.**
 
-LibAFL is maintained by:
-* Marc "van Hauser" Heuse mh@mh-sec.de,
-* Heiko "hexcoder-" Eißfeldt heiko.eissfeldt@hexco.de,
-* Andrea Fioraldi andreafioraldi@gmail.com and
-* Dominik Maier mail@dmnk.co.
+LibAFL was initially developed as GSOC project by [rishi9101](https://github.com/rish9101)
+GSOC mentors: 
+* [hexcoder](https://github.com/hexcoder-)
+* [domenukk](https://github.com/domenukk)
 
 ## Content
 1. Introduction
@@ -17,38 +16,46 @@ LibAFL is maintained by:
 
 ## Introduction
 
-LibAFL is a framework to build fuzzers, with support for mutithreading. The main concept behind LibAFL is that we don't aim to build the "best" fuzzer, the best fuzzer is the fuzzer that you write for your target. We just want to give you all the pieces to do so easily and effectively.
+LibAFL is a framework to build fuzzers, with support for mutithreading. The main concept behind LibAFL is not to build the "best" fuzzer, but to give you the tools to craft the best fuzzer for your specific target with ease.
 
-LibAFL is supposed to be the fuzzing framework with all the pieces to build fuzzer, a sort of "LLVM of fuzzers".
+LibAFL contains all the pieces to build fuzzers, think "LLVM of fuzzers".
 
-LibAFL defines the different pieces of fuzzer as follows:
-1. Executor - Structure to run the target and collecct observation (code coverage, exec time etc from it). An example would be the forkserver in AFL++
-2. Observation Channel - Observation channel is the structure which holds the run result (depending on the context, e.g if we eant code-coverage metric or something else) for the last run.
-3. Feedback - Feedback is the structure which infers valuable information from the run result stored in the observation channel. It can be used to give score to the input being fuzzed (based on the context, that is if it was looking to maximise code-coverage, execution time or something else) and also add new entries to the queue.
-4. Queue - LibAFL supports two major types of queues.
-    - Feedback queue - This type of queue is feedback specific i.e it is filled by entries which performed well based on a given feedback metric (say code-coverage). It also has a scheduling policy for itself which it can use to get next entries.
-    - Global queue - This is the global queue for the fuzzer instance, it holds all the feedback queues, schedules one of the feedback queues for the next run. Also it has it's own queue which can also hold entries.
+## Elements of Fuzzing
 
-5. Fuzzone - This structure is inspired from AFL, with one fuzzone present in each fuzz instance, it holds all the stages of the fuzz instance and also handles the crashes/timeouts of the target.
+LibAFL defines the pieces of fuzzer as follows:
+1. *Executor* - Structure to run the target and collecct observation (code coverage, exec time, ...). One example in `./examples` uses the AFL++ forkserver, the other one an in-mem-executor.
+2. *Observation Channel* - Observation channel gives information about the last run of a target, depending on the context, e.g code-coverage metric and execution time.
+3. *Feedback* - Feedback is the structure which infers valuable information from the run result stored in the observation channel. It scores the input being fuzzed based on the observation channels, and adds new entries to the queue, if necessary.
+4. *Queue* - LibAFL supports two major types of queues.
+    - *Feedback queue* - This type of queue is feedback specific i.e it is filled by entries which performed well based on a given feedback metric (say code-coverage). It also has a scheduling policy for itself which it can use to get next entries.
+    - *Global queue* - This is the global queue for the fuzzer instance, it holds all the feedback queues, schedules one of the feedback queues for the next run. Also it has it's own queue which can also hold entries.
 
-6. Stage - There can be many fuzzing stages in a fuzzer (e.g AFL has three stages, deterministic, havoc and splicing) and each stage can have it's own mutator. Thus a fuzzer can have multiple stages depending on if it's finding new finds in the current stage (or for how long the stage has been running).
+5. *Fuzz one* - This executes the actual fuzzing - it holds all stages of the fuzz instance (see below), handles the crashes/timeouts of the target, etc.
 
-7. Mutators - Mutators have been defined to be as generic as possible with function pointers which can cover almost all mutators, (and if they don't, you can always extend them :) ). There are functions for mutating, trimming, post-process of the data which are called at appropriate places by the lib. Also, mutators also can define functions which decide if fuzzing a queue entry is beneficial or not. These mutator structures are largely inspired from AFL++ custom mutator API.
+6. *Stage* - There can be many fuzzing stages in a fuzzer (e.g AFL has three stages, deterministic, havoc and splicing) and each stage can have it's own mutators. Thus a fuzzer can have multiple stages depending on if it's finding new finds in the current stage (or for how long the stage has been running).
 
-8. Engine - Finally, the engine is the central cog of the fuzzer. It binds all the other pieces(like executor, feedbacks, fuzzone) together. Every engine is also associated with a global queue, whose entries can be shared with other engine instances.
+7. *Mutators* - Mutators have been defined to be as generic as possible with function pointers which can cover almost all mutators, (and if they don't, you can always extend them :) ). There are functions for mutating, trimming, post-process of the data which are called at appropriate places by the lib. Also, mutators also can define functions which decide if fuzzing a queue entry is beneficial or not. These mutator structures are largely inspired by AFL++'s custom mutator API.
+
+8. *Engine* - Finally, the engine is the central cog of the fuzzer. It binds all the other pieces(like executor, feedbacks, fuzzone) together. Every engine is also associated with a global queue, whose entries can be shared with other engine instances.
 
 ## Features
 
 As a fuzzing library, LibAFL packs with it large number of features which are very handy for fuzzing.
 
-1. Multithreaded in nature - Imagine that you built 2 fuzzers but want to share their results,You can define these 2 fuzzers, run the first one in a thread and run, e.g., 3 instances of the second running on 3 threads. All in the same process sharing results immediately.
-There are several multithreaded fuzzers, most notably honggfuzz, but our idea is to go further and have different configurations running in different threads, not simply a multithreaded fuzzer. This leads to fuzzing the same target in multiple contexts at the same time with great efficiency!
+1. Multithreaded by nature - Imagine that you built 2 fuzzers but want to share their results,You can define these 2 fuzzers, run the first one in a thread and run, e.g., 3 instances of the second running on 3 threads. They may even share results between process boundaries with very low overhead.
+There are several multithreaded fuzzers, most notably honggfuzz, but LibAFL goes even further with different configurations running in different threads and processes, not simply mutlithreading the same fuzzer. This means we are able to fuzz the same target in multiple contexts at the same time with great efficiency!
 
-2. Modular and pluggable - LibAFL is based on multiple "parts" that we think, consitute a fuzzer. Wrote a fuzzer and want to use it's target executor? Its' easy with LibAFL as you can just plug in the executor into the new fuzzer.
+2. Modular and pluggable - LibAFL is based on multiple "parts" that we think, consitutes a fuzzer. Did you ever write a fuzzer and want to use it's target executor? Just plug in the executor into the new fuzzer with LibAFL.
 
 ## Getting Started with LibAFL
 
-We have an example fuzzer ready at `example/executor.c` so we can follow that. All the "parts"(described above) in LibAFL can be extended by the user to suit their needs. to extend a strucuture, just include it in your custom struct as the first member
+We have an example fuzzer ready at `example/executor.c` so we can follow that.
+To try it out immediately:
+```bash
+cd ./example
+make test
+``` 
+All the "Elements" (described above) in LibAFL can be extended by the user to suit their needs. to extend a strucuture, just include it in your custom struct as the first member
 
 ```C
 struct custom_executor {
@@ -233,3 +240,5 @@ engine->funcs.load_testcases_from_dir(engine, dirpath); // Load the initial corp
 engine->funcs.loop()    // Fuzzing starts :)
 
 ```
+
+Enjoy!
