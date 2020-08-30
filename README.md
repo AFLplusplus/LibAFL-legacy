@@ -11,8 +11,8 @@ GSOC mentors:
 
 ## Content
 1. Introduction
-2. Features
 3. Elements of Fuzzing
+2. Features
 4. Getting Started with LibAFL
 
 ## Introduction
@@ -58,7 +58,7 @@ To try it out immediately:
 cd ./example
 make test
 ```
-Other examples are listed in (./example/README.md)[./example/README.md].
+Other examples are listed in [./example/README.md](./example/README.md).
 
 If you want to build your own fuzzer, this is how to do it:
 
