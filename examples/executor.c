@@ -70,6 +70,10 @@ static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
 static float __attribute__((hot))
 coverage_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
 
+/* A global array of all the registered engines */
+pthread_mutex_t fuzz_worker_array_lock;
+engine_t *      registered_fuzz_workers[MAX_WORKERS];
+u64             fuzz_workers_count;
 
 /* Execute target application, monitoring for timeouts. Return status
    information. The called program will update afl->fsrv->trace_bits. */
@@ -564,6 +568,31 @@ void *run_broker_thread(void *data) {
   return 0;
 
 }
+
+/* Function to register/add a fuzz worker (engine). To avoid race condition, add
+ * mutex here(Won't be performance problem). */
+static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
+
+  // Critical section. Needs a lock. Called very rarely, thus won't affect perf.
+  pthread_mutex_lock(&fuzz_worker_array_lock);
+
+  if (fuzz_workers_count >= MAX_WORKERS) {
+
+    pthread_mutex_unlock(&fuzz_worker_array_lock);
+    return AFL_RET_ARRAY_END;
+
+  }
+
+  registered_fuzz_workers[fuzz_workers_count] = engine;
+  fuzz_workers_count++;
+  // Unlock the mutex
+  pthread_mutex_unlock(&fuzz_worker_array_lock);
+  return AFL_RET_SUCCESS;
+
+}
+
+
+
 
 /* Main entry point function */
 int main(int argc, char **argv) {

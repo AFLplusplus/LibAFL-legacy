@@ -94,8 +94,6 @@ struct executor {
 
 };
 
-list_t afl_executor_list;  // We'll be maintaining a list of executors.
-
 afl_ret_t afl_executor_init(executor_t *);
 void      afl_executor_deinit(executor_t *);
 u8 afl_add_observation_channel_default(executor_t *, observation_channel_t *);

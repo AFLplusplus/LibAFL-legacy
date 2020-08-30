@@ -31,8 +31,6 @@ typedef void (*crash_handler_function)(exit_type_t type, void *data);
 
 void install_crash_handler(crash_handler_function callback);
 
-crash_handler_function crash_callback;
-
 typedef enum fork_result { FORK_FAILED, CHILD, PARENT } fork_result_t;
 
 typedef struct process {

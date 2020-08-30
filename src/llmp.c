@@ -548,7 +548,7 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
 }
 
 /* broker broadcast to its own page for all others to read */
-inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
+static inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
                                         llmp_broker_client_metadata_t *client) {
 
   // TODO: We could memcpy a range of pending messages, instead of one by one.

@@ -64,7 +64,6 @@ afl_ret_t afl_perform_default(fuzz_one_t *fuzz_one) {
   // sends it to stage.
   size_t i;
 
-  if (!fuzz_workers_count) { return AFL_RET_NO_FUZZ_WORKERS; }
   global_queue_t *global_queue = fuzz_one->engine->global_queue;
 
   queue_entry_t *queue_entry = global_queue->base.funcs.get_next_in_queue(
