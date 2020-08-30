@@ -436,6 +436,7 @@ void test_base_queue_get_next(void **state) {
 
   afl_base_queue_deinit(&queue);
   llmp_client_destroy(client);
+
 }
 
 int main(int argc, char **argv) {

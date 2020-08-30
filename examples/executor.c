@@ -31,17 +31,6 @@
 #define MAP_CHANNEL_ID 0x1
 #define TIMEOUT_CHANNEL_ID 0x2
 
-
-/* We implement a simple map maximising feedback here. */
-typedef struct maximize_map_feedback {
-
-  feedback_t base;
-
-  u8 *   virgin_bits;
-  size_t size;
-
-} maximize_map_feedback_t;
-
 typedef struct timeout_obs_channel {
 
   observation_channel_t base;
@@ -51,24 +40,8 @@ typedef struct timeout_obs_channel {
 
 } timeout_obs_channel_t;
 
-typedef struct thread_instance_args {
-
-  engine_t *           engine;
-  char *               in_dir;
-  llmp_client_state_t *client;
-
-} thread_instance_args_t;
-
-
 llmp_broker_state_t *llmp_broker;
 int                  broker_port;
-/* Functions related to the feedback defined above */
-// static float coverage_fbck_is_interesting(feedback_t *feedback,
-//                                           executor_t *fsrv);
-static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
-                                                  size_t            size);
-static float __attribute__((hot))
-coverage_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
 
 /* A global array of all the registered engines */
 pthread_mutex_t fuzz_worker_array_lock;
@@ -165,30 +138,6 @@ static exit_type_t fsrv_run_target_custom(executor_t *fsrv_executor) {
 
 }
 
-/* Init function for the feedback */
-static maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
-                                                  size_t            size) {
-
-  maximize_map_feedback_t *feedback =
-      calloc(1, sizeof(maximize_map_feedback_t));
-  if (!feedback) { return NULL; }
-  afl_feedback_init(&feedback->base, queue);
-  feedback->base.funcs.is_interesting = coverage_fbck_is_interesting;
-
-  feedback->virgin_bits = calloc(1, size);
-  if (!feedback->virgin_bits) {
-
-    free(feedback);
-    return NULL;
-
-  }
-
-  feedback->size = size;
-
-  return feedback;
-
-}
-
 void timeout_channel_reset(observation_channel_t *obs_channel) {
 
   timeout_obs_channel_t *timeout_channel = (timeout_obs_channel_t *)obs_channel;
@@ -205,131 +154,6 @@ void timeout_channel_post_exec(observation_channel_t *obs_channel,
   timeout_channel->avg_exec_time =
       (timeout_channel->avg_exec_time + timeout_channel->last_run_time) /
       (engine->executions);
-
-}
-
-/* We'll implement a simple is_interesting function for the feedback, which
- * checks if new tuples have been hit in the map or hit count has increased*/
-
-static float __attribute__((hot))
-coverage_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
-
-  maximize_map_feedback_t *map_feedback = (maximize_map_feedback_t *)feedback;
-
-  /* First get the observation channel */
-
-  if (feedback->observation_idx == -1) {
-
-    for (size_t i = 0; i < fsrv->observors_num; ++i) {
-
-      if (fsrv->observors[i]->channel_id == MAP_CHANNEL_ID) {
-
-        feedback->observation_idx = i;
-        break;
-
-      }
-
-    }
-
-  }
-
-  map_based_channel_t *obs_channel =
-      (map_based_channel_t *)fsrv->funcs.get_observation_channels(
-          fsrv, feedback->observation_idx);
-
-#ifdef WORD_SIZE_64
-
-  u64 *current = (u64 *)obs_channel->shared_map.map;
-  u64 *virgin = (u64 *)map_feedback->virgin_bits;
-
-  u32 i = (obs_channel->shared_map.map_size >> 3);
-
-#else
-
-  u32 *current = (u32 *)obs_channel->map.;
-  u32 *virgin = (u32 *)virgin_map;
-
-  u32 i = (obs_channel->shared_map.map_size >> 2);
-
-#endif                                                     /* ^WORD_SIZE_64 */
-  // the map size must be a minimum of 8 bytes.
-  // for variable/dynamic map sizes this is ensured in the forkserver
-
-  float ret = 0.0;
-
-  while (i--) {
-
-    /* Optimize for (*current & *virgin) == 0 - i.e., no bits in current bitmap
-       that have not been already cleared from the virgin map - since this will
-       almost always be the case. */
-
-    // the (*current) is unnecessary but speeds up the overall comparison
-    if (unlikely(*current) && unlikely(*current & *virgin)) {
-
-      if (likely(ret < 2)) {
-
-        u8 *cur = (u8 *)current;
-        u8 *vir = (u8 *)virgin;
-
-        /* Looks like we have not found any new bytes yet; see if any non-zero
-           bytes in current[] are pristine in virgin[]. */
-
-#ifdef WORD_SIZE_64
-
-        if (*virgin == 0xffffffffffffffff || (cur[0] && vir[0] == 0xff) ||
-            (cur[1] && vir[1] == 0xff) || (cur[2] && vir[2] == 0xff) ||
-            (cur[3] && vir[3] == 0xff) || (cur[4] && vir[4] == 0xff) ||
-            (cur[5] && vir[5] == 0xff) || (cur[6] && vir[6] == 0xff) ||
-            (cur[7] && vir[7] == 0xff)) {
-
-          ret = 1.0;
-
-        } else {
-
-          ret = 0.5;
-
-        }
-
-#else
-
-        if (*virgin == 0xffffffff || (cur[0] && vir[0] == 0xff) ||
-            (cur[1] && vir[1] == 0xff) || (cur[2] && vir[2] == 0xff) ||
-            (cur[3] && vir[3] == 0xff))
-          ret = 1.0;
-        else
-          ret = 0.5;
-
-#endif                                                     /* ^WORD_SIZE_64 */
-
-      }
-
-      *virgin &= ~*current;
-
-    }
-
-    ++current;
-    ++virgin;
-
-  }
-
-  if (((ret == 0.5) || (ret == 1.0)) && feedback->queue) {
-
-    raw_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
-
-    if (!input) { FATAL("Error creating a copy of input"); }
-
-    queue_entry_t *new_entry = afl_queue_entry_create(input);
-    // An incompatible ptr type warning has been suppresed here. We pass the
-    // feedback queue to the add_to_queue rather than the base_queue
-    feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
-
-    // Put the entry in the feedback queue and return 0.0 so that it isn't added
-    // to the global queue too
-    return 0.0;
-
-  }
-
-  return ret;
 
 }
 
@@ -590,9 +414,6 @@ static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
   return AFL_RET_SUCCESS;
 
 }
-
-
-
 
 /* Main entry point function */
 int main(int argc, char **argv) {

@@ -48,7 +48,6 @@ typedef struct executor executor_t;
 
 typedef struct mutator mutator_t;
 
-
 void *afl_insert_substring(
     u8 *buf, size_t len, void *token, size_t token_len,
     size_t offset);  // Returns new buf containing the substring token

@@ -149,7 +149,7 @@ typedef struct afl_forkserver {
   u32 exec_tmout;                       /* Configurable exec timeout (ms)   */
   u32 map_size;                         /* map size used by the target      */
 
-  u64 total_execs;                      /* How often fsrv_run_target was called */
+  u64 total_execs;                  /* How often fsrv_run_target was called */
 
   char *out_file,                       /* File to fuzz, if any             */
       *target_path;                     /* Path of the target               */
@@ -165,26 +165,26 @@ typedef struct afl_forkserver {
 /* Functions related to the forkserver defined above */
 afl_forkserver_t *fsrv_init(char *target_path, char **extra_target_args);
 exit_type_t       fsrv_run_target(executor_t *fsrv_executor);
-u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
+u8        fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
 afl_ret_t fsrv_start(executor_t *fsrv_executor);
-
 
 /* In-memory executor */
 
 /* Function ptr for the harness */
-typedef exit_type_t (*harness_function_type)(u8* data, size_t size);
+typedef exit_type_t (*harness_function_type)(u8 *data, size_t size);
 
 typedef struct in_memeory_executor {
-    
-    executor_t base;
-    harness_function_type harness;
+
+  executor_t            base;
+  harness_function_type harness;
 
 } in_memeory_executor_t;
 
-exit_type_t in_memory_run_target(executor_t * executor);
-u8 in_mem_executor_place_input(executor_t * executor, raw_input_t * input);
-exit_type_t in_memory_run_target(executor_t * executor);
-void in_memory_exeutor_init(in_memeory_executor_t * in_memeory_executor, harness_function_type harness);
+exit_type_t in_memory_run_target(executor_t *executor);
+u8 in_mem_executor_place_input(executor_t *executor, raw_input_t *input);
+exit_type_t in_memory_run_target(executor_t *executor);
+void        in_memory_exeutor_init(in_memeory_executor_t *in_memeory_executor,
+                                   harness_function_type  harness);
 
 #endif
 
