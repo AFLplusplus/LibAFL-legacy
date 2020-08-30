@@ -34,6 +34,9 @@
 executor
 target
 
+examples/in
+examples/out-*
+
 examples/success
 llmp-main
 testcase
