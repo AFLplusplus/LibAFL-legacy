@@ -1,3 +1,0 @@
-[submodule "unicorn_mode/unicornafl"]
-	path = unicorn_mode/unicornafl
-	url = https://github.com/AFLplusplus/unicornafl.git
