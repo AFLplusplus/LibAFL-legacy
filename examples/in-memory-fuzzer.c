@@ -14,6 +14,9 @@ typedef struct thread_instance_args {
 
 extern u8 *__afl_area_ptr;
 
+llmp_broker_state_t *llmp_broker;
+int                  broker_port;
+
 exit_type_t harness_func(u8 *input, size_t len) {
 
   /* Setting up trace bits to zero before running the target */
@@ -35,7 +38,7 @@ exit_type_t harness_func(u8 *input, size_t len) {
 
 }
 
-engine_t *initialize_fuzz_instance() {
+engine_t *initialize_fuzz_instance(char *in_dir) {
 
   /* Let's create an in-memory executor */
   in_memeory_executor_t *in_memory_executor =
@@ -47,6 +50,7 @@ engine_t *initialize_fuzz_instance() {
    * actually create a shared map */
   map_based_channel_t *trace_bits_channel =
       calloc(1, sizeof(map_based_channel_t));
+  afl_observation_channel_init(&trace_bits_channel->base, MAP_CHANNEL_ID);
   if (!trace_bits_channel) {
 
     FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC));
@@ -83,6 +87,7 @@ engine_t *initialize_fuzz_instance() {
   if (!engine) { FATAL("Error initializing Engine"); }
   engine->funcs.add_feedback(engine, (feedback_t *)coverage_feedback);
   engine->funcs.set_global_queue(engine, global_queue);
+  engine->in_dir = in_dir;
 
   fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
@@ -116,12 +121,10 @@ engine_t *initialize_fuzz_instance() {
 
 }
 
-void *thread_run_instance(void *thread_args) {
+void *thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
 
-  thread_instance_args_t *thread_instance_args =
-      (thread_instance_args_t *)thread_args;
-
-  engine_t *engine = (engine_t *)thread_instance_args->engine;
+  engine_t *engine = (engine_t *)data;
+  engine->llmp_client = llmp_client;
 
   map_based_channel_t *trace_bits_channel =
       (map_based_channel_t *)engine->executor->observors[0];
@@ -134,15 +137,13 @@ void *thread_run_instance(void *thread_args) {
       (maximize_map_feedback_t *)(engine->feedbacks[0]);
 
   /* Now we can simply load the testcases from the directory given */
-  afl_ret_t ret = engine->funcs.load_testcases_from_dir(
-      engine, thread_instance_args->in_dir, NULL);
+  afl_ret_t ret =
+      engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL);
   if (ret != AFL_RET_SUCCESS) {
 
     PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret));
 
   }
-
-  OKF("Processed %llu input files.", engine->executions);
 
   afl_ret_t fuzz_ret = engine->funcs.loop(engine);
 
@@ -185,19 +186,99 @@ void *thread_run_instance(void *thread_args) {
 
 }
 
+void *run_broker_thread(void *data) {
+
+  (void)data;
+  llmp_broker_run(llmp_broker);
+  return 0;
+
+}
+
 int main(int argc, char **argv) {
 
   (void)argc;
   (void)argv;
 
-  engine_t *engine = initialize_fuzz_instance();
+  if (argc < 3) {
 
-  raw_input_t *input = afl_input_create();
+    FATAL("Usage: ./in-mem /path/to/input/dir number_of_threads");
 
-  input->bytes = (u8 *)"\x89PNG\r\n\x1a\nBBBBBBBBBBBBBBBBBBBBB";
-  input->len = 29;
-  engine->executor->funcs.place_input_cb(engine->executor, input);
-  engine->executor->funcs.run_target_cb(engine->executor);
+  }
+
+  char *in_dir = argv[1];
+  int   thread_count = atoi(argv[2]);
+
+  if (thread_count <= 0) {
+
+    FATAL("Number of threads should be greater than 0");
+
+  }
+
+  broker_port = 0xAF1;
+  llmp_broker = llmp_broker_new();
+  if (!llmp_broker) { FATAL("Broker creation failed"); }
+  if (!llmp_broker_register_local_server(llmp_broker, broker_port)) {
+
+    FATAL("Broker register failed");
+
+  }
+
+  OKF("Broker created now");
+
+  for (int i = 0; i < thread_count; ++i) {
+
+    engine_t *engine = initialize_fuzz_instance(in_dir);
+
+    if (!llmp_broker_register_threaded_clientloop(
+            llmp_broker, thread_run_instance, engine)) {
+
+      FATAL("Error registering client");
+
+    };
+
+    if (afl_register_fuzz_worker(engine) != AFL_RET_SUCCESS) {
+
+      FATAL("Error registering fuzzing instance");
+
+    }
+
+  }
+
+  // Before we start the broker, we close the stderr file. Since the in-mem
+  // fuzzer runs in the same process, this is necessary for stats collection.
+
+  s32 dev_null_fd = open("/dev/null", O_WRONLY);
+
+  dup2(dev_null_fd, 2);
+
+  pthread_t p1;
+
+  int s = pthread_create(&p1, NULL, run_broker_thread, NULL);
+
+  if (!s) { OKF("Broker started running"); }
+
+  u64 time_elapsed = 1;
+
+  while (1) {
+
+    sleep(1);
+    u64 execs = 0;
+    u64 crashes = 0;
+    for (size_t i = 0; i < fuzz_workers_count; ++i) {
+
+      execs += registered_fuzz_workers[i]->executions;
+      crashes += registered_fuzz_workers[i]->crashes;
+
+    }
+
+    SAYF(
+        "Execs: %8llu\tCrashes: %4llu\tExecs per second: %5llu  time elapsed: "
+        "%8llu\r",
+        execs, crashes, execs / time_elapsed, time_elapsed);
+    time_elapsed++;
+    fflush(0);
+
+  }
 
   return 0;
 

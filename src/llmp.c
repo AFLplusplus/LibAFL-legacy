@@ -552,8 +552,8 @@ inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
   llmp_page_t *incoming = shmem2page(client->cur_client_map);
   u32          current_message_id = client->last_msg_broker_read
-                                        ? client->last_msg_broker_read->message_id
-                                        : 0;
+                               ? client->last_msg_broker_read->message_id
+                               : 0;
   while (current_message_id != incoming->current_msg_id) {
 
     llmp_message_t *msg = llmp_recv(incoming, client->last_msg_broker_read);
