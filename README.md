@@ -19,6 +19,8 @@ GSOC mentors:
 
 LibAFL is a framework to build fuzzers, with support for mutithreading. The main concept behind LibAFL is not to build the "best" fuzzer, but to give you the tools to craft the best fuzzer for your specific target with ease.
 
+We write this in C so you don't have to: eventually bindings for sane languages like rust will be added.
+
 LibAFL contains all the pieces to build fuzzers, think "LLVM of fuzzers".
 
 ## Elements of Fuzzing
