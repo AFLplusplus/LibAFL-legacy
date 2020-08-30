@@ -3,21 +3,19 @@ A PoC for low level message passing
 
 To send new messages, the clients place a new message at the end of their
 client_out_map. If the ringbuf is filled up, they start place a
-LLMP_AGE_END_OF_PAGE_V1 msg and start over placing msgs from the beginning. The
-broker _needs to_ always be fast enough to consume more than the clients
-produce. For our fuzzing scenario, with the target execution as bottleneck, this
-is always the case.
+LLMP_AGE_END_OF_PAGE_V1 msg and alloc a new shmap.
+Once the broker mapped a page, it flags it save for unmapping.
 
 [client0]        [client1]    ...    [clientN]
   |                  |                 /
-[out_ringbuf0] [out_ringbuf1] ... [out_ringbufN]
+[client0_out] [client1_out] ... [clientN_out]
   |                 /                /
   |________________/                /
   |________________________________/
  \|/
 [broker]
 
-After the broker received a new message for clientN, (out_ringbufN->current_id
+After the broker received a new message for clientN, (clientN_out->current_id
 != last_message->message_id) the broker will copy the message content to its
 own, centralized page.
 
@@ -42,6 +40,11 @@ current map.
 In the future, if we need zero copy, the current_broadcast_map could instead
 list the client_out_map ID an offset for each message. In that case, the clients
 also need to create new shmaps once their bufs are filled up.
+
+
+To use, you will have to create a broker using llmp_broker_new().
+Then register some clientloops using llmp_broker_register_threaded_clientloop
+(or launch them as seperate processes) and call llmp_broker_run();
 
 */
 
