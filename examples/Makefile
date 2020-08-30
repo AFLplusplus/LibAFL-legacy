@@ -1,20 +1,26 @@
 MAKEFILE_PATH := $(abspath .)
-AFL_PATH?=$(realpath $(MAKEFILE_PATH)/../../)
-AFL_CC:=afl-clang-fast
+AFL_PATH?=$(realpath $(MAKEFILE_PATH)/AFLplusplus)
+AFL_CC:=$(AFL_PATH)/afl-clang-fast
 CFLAGS+=-g -L.. -I../include -I$(AFL_PATH)/include -pthread -laflpp -lm -Wall -Wextra -Wshadow -Wno-variadic-macros -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector -fsanitize=address
 
 $(info AFL_PATH is $(AFL_PATH))
 
 all: clean target executor
 
-target: ./target.c
+afl: ./AFLplusplus/afl-clang-fast
+	git submodule init
+	git submodule update
+	make -C $(AFL_PATH)
+	make -C $(AFL_PATH)/llvm_mode
+	
+target: ./target.c afl
 	$(AFL_CC) -g target.c -o target
 
 executor: ./executor.c
-	gcc executor.c -o executor $(CFLAGS)
+	make -C ..
+	$(CC) executor.c -o executor $(CFLAGS)
 
 test: clean executor target
-	make -C ..
 	mkdir ./in || true
 	echo "AAAAAA" > ./in/a
 	echo "BBBBBB" > ./in/b
@@ -33,5 +39,5 @@ clean:
 	rm -rf ./llmp-main || true
 	rm -rf ./out-*
 
-in-memory-fuzzer: in-memory-fuzzer.c
-	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o
+in-memory-fuzzer: in-memory-fuzzer.c afl
+	$(CC) in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o

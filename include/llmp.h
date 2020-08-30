@@ -289,7 +289,7 @@ void llmp_broker_run(llmp_broker_state_t *broker);
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page, once. */
-inline void llmp_broker_once(llmp_broker_state_t *broker);
+void llmp_broker_once(llmp_broker_state_t *broker);
 
 #endif                                                            /* LLMP_H */
 
