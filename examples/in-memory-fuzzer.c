@@ -121,7 +121,7 @@ engine_t *initialize_fuzz_instance(char *in_dir) {
 
 }
 
-void *thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
+void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
 
   engine_t *engine = (engine_t *)data;
   engine->llmp_client = llmp_client;
@@ -182,7 +182,6 @@ void *thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
 
   afl_global_queue_delete(engine->global_queue);
   afl_engine_delete(engine);
-  return 0;
 
 }
 

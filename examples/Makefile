@@ -7,6 +7,9 @@ $(info AFL_PATH is $(AFL_PATH))
 
 all: clean target executor
 
+lib:
+	make -C ..
+
 afl:
 	git submodule init
 	git submodule update
@@ -16,8 +19,7 @@ afl:
 target: afl ./target.c
 	$(AFL_CC) -g target.c -o target
 
-executor: ./executor.c
-	make -C ..
+executor: lib ./executor.c
 	$(CC) executor.c -o executor $(CFLAGS)
 
 test: clean executor target
@@ -29,7 +31,7 @@ test: clean executor target
 	rm -rf ./out-*
 	rm -rf ./crashes-* 2>/dev/null || trues
 
-llmp-main: ./llmp-main.c
+llmp-main: lib ./llmp-main.c
 	$(CC) llmp-main.c -o llmp-main $(CFLAGS)
 
 clean:
@@ -39,5 +41,5 @@ clean:
 	rm -rf ./llmp-main || true
 	rm -rf ./out-*
 
-in-memory-fuzzer: in-memory-fuzzer.c afl
+in-memory-fuzzer: lib afl in-memory-fuzzer.c
 	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o
