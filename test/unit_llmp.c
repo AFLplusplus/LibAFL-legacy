@@ -58,7 +58,6 @@ static void test_llmp_client(void **state) {
 
 }
 
-
 int main(int argc, char **argv) {
 
   const struct CMUnitTest tests[] = {

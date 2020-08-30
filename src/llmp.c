@@ -552,8 +552,8 @@ inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
 
   llmp_page_t *incoming = shmem2page(client->cur_client_map);
   u32          current_message_id = client->last_msg_broker_read
-                               ? client->last_msg_broker_read->message_id
-                               : 0;
+                                        ? client->last_msg_broker_read->message_id
+                                        : 0;
   while (current_message_id != incoming->current_msg_id) {
 
     llmp_message_t *msg = llmp_recv(incoming, client->last_msg_broker_read);
@@ -587,7 +587,7 @@ inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
       DBG("Got EOP from client %d. Mapping new map.", client->client_state->id);
 
       /* We can reuse the map mem space, no need to free and calloc.
-      However, the pageinfo points to the map we're about to unmap. 
+      However, the pageinfo points to the map we're about to unmap.
       Copy the contents first. */
 
       llmp_payload_new_page_t pageinfo_cpy;
@@ -598,7 +598,7 @@ inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
       afl_shmem_deinit(client_map);
 
       if (!afl_shmem_by_str(client_map, pageinfo->shm_str,
-                        pageinfo->map_size)) {
+                            pageinfo->map_size)) {
 
         FATAL("Could not get shmem by str for map %s of size %ld",
               pageinfo->shm_str, pageinfo->map_size);
@@ -820,7 +820,7 @@ llmp_message_t *llmp_client_recv(llmp_client_state_t *client) {
       We'll init a new page but can reuse the mem are of the current map.
       However, we cannot use the message if we deinit its page, so let's copy */
       llmp_payload_new_page_t pageinfo_cpy;
-      afl_shmem_t *broadcast_map = client->current_broadcast_map;
+      afl_shmem_t *           broadcast_map = client->current_broadcast_map;
 
       llmp_payload_new_page_t *pageinfo =
           LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
