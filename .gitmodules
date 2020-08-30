@@ -1,0 +1,6 @@
+[submodule "AFLplusplus"]
+	path = AFLplusplus
+	url = https://github.com/AFLplusplus/AFLplusplus.git
+[submodule "examples/AFLplusplus"]
+	path = examples/AFLplusplus
+	url = https://github.com/AFLplusplus/AFLplusplus.git
