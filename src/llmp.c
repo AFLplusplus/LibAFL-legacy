@@ -1259,7 +1259,7 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
     reuse the client_state struct as they share the heap. If we were to
     treat threads and processes differently, it'd get too complex, so
     let's just map the sharedmem twice into this process, and be done */
-  afl_shmem_t client_map = {.map=0};
+  afl_shmem_t client_map = {.map = NULL};
 
   if (!llmp_new_page_shmem(&client_map, broker->llmp_client_count,
                            LLMP_INITIAL_MAP_SIZE)) {

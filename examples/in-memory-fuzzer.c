@@ -4,7 +4,6 @@
 #include "aflpp.h"
 #include <png.h>
 
-
 extern u8 *__afl_area_ptr;
 
 llmp_broker_state_t *llmp_broker;
