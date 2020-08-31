@@ -25,7 +25,7 @@ LibAFL contains all the pieces to build fuzzers, think "LLVM of fuzzers".
 
 ## Elements of Fuzzing
 
-LibAFL defines the pieces of fuzzer as follows:
+LibAFL defines the pieces of fuzzer as follows (based on work by [andreafioraldi](https://github.com/andreafioraldi)):
 1. *Executor* - Structure to run the target and collecct observation (code coverage, exec time, ...). One example in `./examples` uses the AFL++ forkserver, the other one an in-mem-executor.
 2. *Observation Channel* - Observation channel gives information about the last run of a target, depending on the context, e.g code-coverage metric and execution time.
 3. *Feedback* - Feedback is the structure which infers valuable information from the run result stored in the observation channel. It scores the input being fuzzed based on the observation channels, and adds new entries to the queue, if necessary.
