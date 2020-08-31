@@ -29,6 +29,9 @@
 
 #include <pthread.h>
 #include <unistd.h>
+#if !defined(__linux__)
+#include <sys/time.h>
+#endif
 
 #include "types.h"
 #include "alloc-inl.h"
