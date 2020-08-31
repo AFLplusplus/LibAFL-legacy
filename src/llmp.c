@@ -548,15 +548,15 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
 }
 
 /* broker broadcast to its own page for all others to read */
-static inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *          broker,
-                                        llmp_broker_client_metadata_t *client) {
+static inline void llmp_broker_handle_new_msgs(
+    llmp_broker_state_t *broker, llmp_broker_client_metadata_t *client) {
 
   // TODO: We could memcpy a range of pending messages, instead of one by one.
 
   llmp_page_t *incoming = shmem2page(client->cur_client_map);
   u32          current_message_id = client->last_msg_broker_read
-                                        ? client->last_msg_broker_read->message_id
-                                        : 0;
+                               ? client->last_msg_broker_read->message_id
+                               : 0;
   while (current_message_id != incoming->current_msg_id) {
 
     llmp_message_t *msg = llmp_recv(incoming, client->last_msg_broker_read);

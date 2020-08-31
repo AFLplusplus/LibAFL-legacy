@@ -2,15 +2,8 @@
 
 #include <stdio.h>
 #include "aflpp.h"
-#include "map-coverage-feedback.h"
 #include <png.h>
 
-typedef struct thread_instance_args {
-
-  engine_t *engine;
-  char *    in_dir;
-
-} thread_instance_args_t;
 
 extern u8 *__afl_area_ptr;
 

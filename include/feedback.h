@@ -90,7 +90,23 @@ static inline void afl_feedback_delete(feedback_t *feedback) {
 
 }
 
-/* TODO: Add MaximizeMapFeedback implementation */
+/* Simple MaximizeMapFeedback implementation */
+
+#define MAP_CHANNEL_ID 0x1
+
+typedef struct maximize_map_feedback {
+
+  feedback_t base;
+
+  u8 *   virgin_bits;
+  size_t size;
+
+} maximize_map_feedback_t;
+
+maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
+                                           size_t            size);
+
+float map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
 
 #endif
 

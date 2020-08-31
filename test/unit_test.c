@@ -403,7 +403,8 @@ void test_base_queue_get_next(void **state) {
 
   engine_t engine;
   afl_engine_init(&engine, NULL, NULL, NULL);
-
+  llmp_client_state_t *client = llmp_client_new_unconnected();
+  engine.llmp_client = client;
   base_queue_t queue;
   afl_base_queue_init(&queue);
   queue.engine = &engine;
@@ -434,6 +435,7 @@ void test_base_queue_get_next(void **state) {
   assert_int_equal(queue.size, 2);
 
   afl_base_queue_deinit(&queue);
+  llmp_client_destroy(client);
 
 }
 
