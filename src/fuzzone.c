@@ -97,7 +97,7 @@ afl_ret_t afl_add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
   if (!stage || !fuzz_one) { return AFL_RET_NULL_PTR; }
 
-  if (fuzz_one->stages_num >= MAX_STAGES) return AFL_RET_ARRAY_END;
+  if (fuzz_one->stages_num >= MAX_STAGES_PER_FUZZONE) return AFL_RET_ARRAY_END;
 
   fuzz_one->stages_num++;
 

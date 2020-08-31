@@ -43,7 +43,6 @@
 #include "os.h"
 #include "afl-returns.h"
 
-#define MAX_OBS_CHANNELS 5
 
 /*
 This is the generic forkserver interface that we have, in order to use the

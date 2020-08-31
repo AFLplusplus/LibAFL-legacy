@@ -28,7 +28,6 @@
 #include "common.h"
 #include "list.h"
 
-#define MAX_STAGES 5
 
 struct fuzz_one_functions {
 
@@ -41,7 +40,7 @@ struct fuzz_one_functions {
 struct fuzz_one {
 
   engine_t *engine;
-  stage_t * stages[MAX_STAGES];
+  stage_t * stages[MAX_STAGES_PER_FUZZONE];
   size_t    stages_num;
 
   struct fuzz_one_functions funcs;

@@ -80,7 +80,7 @@ afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage,
 
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
-  if (stage->mutators_count >= MAX_STAGE_MUTATORS) { return AFL_RET_ARRAY_END; }
+  if (stage->mutators_count >= MAX_MUTATORS_PER_STAGE) { return AFL_RET_ARRAY_END; }
 
   stage->mutators[stage->mutators_count] = mutator;
   stage->mutators_count++;

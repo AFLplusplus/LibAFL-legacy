@@ -23,7 +23,6 @@
 #ifndef LIBSTAGE_H
 #define LIBSTAGE_H
 
-#define MAX_STAGE_MUTATORS 10
 
 #include "input.h"
 #include "list.h"
@@ -90,7 +89,7 @@ struct fuzzing_stage {
 
   stage_t base;  // Standard "inheritence" from stage
 
-  mutator_t *mutators[MAX_STAGE_MUTATORS];  // The list of mutator operators
+  mutator_t *mutators[MAX_MUTATORS_PER_STAGE];  // The list of mutator operators
                                             // that this stage has
 
   struct fuzzing_stage_functions funcs;
