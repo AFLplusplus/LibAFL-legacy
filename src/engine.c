@@ -25,6 +25,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <time.h>
+#include <limits.h>
 
 #include "engine.h"
 #include "aflpp.h"
@@ -332,6 +333,16 @@ u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
 }
 
 afl_ret_t afl_loop_default(engine_t *engine) {
+
+  /* Just before looping, we find the observation channels for every feedback */
+
+  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+
+    engine->feedbacks[i]->channel =
+        engine->executor->funcs.get_observation_channels(
+            engine->executor, engine->feedbacks[i]->channel_id);
+
+  }
 
   while (true) {
 

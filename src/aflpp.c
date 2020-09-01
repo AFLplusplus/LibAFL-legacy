@@ -74,11 +74,19 @@ u8 afl_add_observation_channel_default(executor_t *           executor,
 }
 
 observation_channel_t *afl_get_observation_channels_default(
-    executor_t *executor, size_t idx) {
+    executor_t *executor, size_t channel_id) {
 
-  if (executor->observors_num <= idx) { return NULL; }
+  for (size_t i = 0; i < executor->observors_num; ++i) {
 
-  return executor->observors[idx];
+    if (executor->observors[i]->channel_id == channel_id) {
+
+      return executor->observors[i];
+
+    }
+
+  }
+
+  return NULL;
 
 }
 

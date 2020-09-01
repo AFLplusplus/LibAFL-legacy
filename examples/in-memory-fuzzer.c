@@ -97,7 +97,8 @@ engine_t *initialize_fuzz_instance(char *in_dir) {
 
   /* Coverage Feedback initialization */
   maximize_map_feedback_t *coverage_feedback = map_feedback_init(
-      coverage_feedback_queue, trace_bits_channel->shared_map.map_size);
+      coverage_feedback_queue, trace_bits_channel->shared_map.map_size,
+      MAP_CHANNEL_ID);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
 
   /* Let's build an engine now */

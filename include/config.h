@@ -47,7 +47,6 @@
 #define MAX_MUTATORS_PER_STAGE 10
 #define MAX_STAGES_PER_FUZZONE 5
 
-
 /* If you want to have the original afl internal memory corruption checks.
    Disabled by default for speed. it is better to use "make ASAN_BUILD=1". */
 

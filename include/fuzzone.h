@@ -28,7 +28,6 @@
 #include "common.h"
 #include "list.h"
 
-
 struct fuzz_one_functions {
 
   afl_ret_t (*perform)(fuzz_one_t *);

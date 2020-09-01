@@ -46,7 +46,7 @@ struct observation_channel_functions {
 struct observation_channel {
 
   // Can we have anything else here?
-  size_t                               channel_id;
+  size_t                               channel_id;  // MUST be unique
   struct observation_channel_functions funcs;
 
 };

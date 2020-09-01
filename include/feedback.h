@@ -28,6 +28,7 @@
 #define LIBFEEDBACK_H
 
 #include "queue.h"
+#include "observationchannel.h"
 
 typedef struct feedback feedback_t;
 
@@ -47,7 +48,11 @@ struct feedback {
                                          struct here. What do you guys say? */
 
   struct feedback_functions funcs;
-  int                       observation_idx;
+  size_t channel_id;  // ID of the observation channel this feedback is watching
+  observation_channel_t
+      *channel;  // This array holds the observation channels the feedback is
+                 // looking at. Specific fpr each feedback. btw, Better name for
+                 // this? :p
 
 };
 
@@ -60,19 +65,20 @@ typedef struct feedback_metadata {
 
 // Default implementation of the vtables functions
 
-/*TODO: Can we have a similiar implementation for the is_interesting function?*/
 void afl_set_feedback_queue_default(feedback_t *, feedback_queue_t *);
 feedback_queue_t *afl_get_feedback_queue_default(feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
 void      afl_feedback_deinit(feedback_t *);
-afl_ret_t afl_feedback_init(feedback_t *, feedback_queue_t *);
+afl_ret_t afl_feedback_init(feedback_t *, feedback_queue_t *,
+                            size_t channel_id);
 
-static inline feedback_t *afl_feedback_create(feedback_queue_t *queue) {
+static inline feedback_t *afl_feedback_create(feedback_queue_t *queue,
+                                              size_t            channel_id) {
 
   feedback_t *feedback = calloc(1, sizeof(feedback_t));
   if (!feedback) return NULL;
-  if (afl_feedback_init(feedback, queue) != AFL_RET_SUCCESS) {
+  if (afl_feedback_init(feedback, queue, channel_id) != AFL_RET_SUCCESS) {
 
     free(feedback);
     return NULL;
@@ -103,8 +109,8 @@ typedef struct maximize_map_feedback {
 
 } maximize_map_feedback_t;
 
-maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
-                                           size_t            size);
+maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size,
+                                           size_t channel_id);
 
 float map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
 

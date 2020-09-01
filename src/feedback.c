@@ -28,14 +28,16 @@
 #include "observationchannel.h"
 #include "aflpp.h"
 
-afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue) {
+afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue,
+                            size_t channel_id) {
 
   feedback->queue = queue;
 
   feedback->funcs.set_feedback_queue = afl_set_feedback_queue_default;
   feedback->funcs.get_feedback_queue = afl_get_feedback_queue_default;
 
-  feedback->observation_idx = -1;  // Initialize this to a negative index
+  feedback->channel_id = channel_id;  // Channel id for the observation channel
+                                      // this feedback is looking at
 
   return AFL_RET_SUCCESS;
 
@@ -73,13 +75,13 @@ feedback_queue_t *afl_get_feedback_queue_default(feedback_t *feedback) {
 
 /* Map feedback. Can be easily used with a tracebits map similar to AFL++ */
 
-maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue,
-                                           size_t            size) {
+maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size,
+                                           size_t channel_id) {
 
   maximize_map_feedback_t *feedback =
       calloc(1, sizeof(maximize_map_feedback_t));
   if (!feedback) { return NULL; }
-  afl_feedback_init(&feedback->base, queue);
+  afl_feedback_init(&feedback->base, queue, channel_id);
 
   feedback->base.funcs.is_interesting = map_fbck_is_interesting;
 
@@ -104,24 +106,14 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
   /* First get the observation channel */
 
-  if (feedback->observation_idx == -1) {
+  if (!feedback->channel) {
 
-    for (size_t i = 0; i < fsrv->observors_num; ++i) {
-
-      if (fsrv->observors[i]->channel_id == MAP_CHANNEL_ID) {
-
-        feedback->observation_idx = i;
-        break;
-
-      }
-
-    }
+    feedback->channel =
+        fsrv->funcs.get_observation_channels(fsrv, feedback->channel_id);
 
   }
 
-  map_based_channel_t *obs_channel =
-      (map_based_channel_t *)fsrv->funcs.get_observation_channels(
-          fsrv, feedback->observation_idx);
+  map_based_channel_t *obs_channel = (map_based_channel_t *)feedback->channel;
 
 #ifdef WORD_SIZE_64
 

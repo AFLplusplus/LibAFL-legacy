@@ -165,25 +165,15 @@ static float timeout_fbck_is_interesting(feedback_t *feedback,
   afl_forkserver_t *fsrv = (afl_forkserver_t *)executor;
   u32               exec_timeout = fsrv->exec_tmout;
 
-  // We find the related observation channel here
-  if (feedback->observation_idx == -1) {
+  if (!feedback->channel) {
 
-    for (size_t i = 0; i < executor->observors_num; ++i) {
-
-      if (executor->observors[i]->channel_id == TIMEOUT_CHANNEL_ID) {
-
-        feedback->observation_idx = i;
-        break;
-
-      }
-
-    }
+    feedback->channel = executor->funcs.get_observation_channels(
+        executor, feedback->channel_id);
 
   }
 
   timeout_obs_channel_t *timeout_channel =
-      (timeout_obs_channel_t *)fsrv->base.funcs.get_observation_channels(
-          &fsrv->base, 1);
+      (timeout_obs_channel_t *)feedback->channel;
 
   u32 last_run_time = timeout_channel->last_run_time;
 
@@ -264,12 +254,14 @@ engine_t *initialize_engine_instance(char *target_path, char *in_dir,
 
   /* Coverage Feedback initialization */
   maximize_map_feedback_t *coverage_feedback = map_feedback_init(
-      coverage_feedback_queue, trace_bits_channel->shared_map.map_size);
+      coverage_feedback_queue, trace_bits_channel->shared_map.map_size,
+      MAP_CHANNEL_ID);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
   coverage_feedback_queue->feedback = &coverage_feedback->base;
 
   /* Timeout Feedback initialization */
-  feedback_t *timeout_feedback = afl_feedback_create(timeout_feedback_queue);
+  feedback_t *timeout_feedback =
+      afl_feedback_create(timeout_feedback_queue, TIMEOUT_CHANNEL_ID);
   if (!timeout_feedback) { FATAL("Error initializing feedback"); }
   timeout_feedback_queue->feedback = timeout_feedback;
   timeout_feedback->funcs.is_interesting = timeout_fbck_is_interesting;

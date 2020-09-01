@@ -43,7 +43,6 @@
 #include "os.h"
 #include "afl-returns.h"
 
-
 /*
 This is the generic forkserver interface that we have, in order to use the
 library to build something, agin "inherit" from this struct (yes, we'll be
