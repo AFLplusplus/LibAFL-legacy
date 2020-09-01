@@ -158,11 +158,11 @@ executor->funcs.add_observation_channel(executor, &tmout_base);
 4. You probably want to build a simple feedback for the observation channel, which reduces the observation channels input to a float (0.0 to 1.0) to decide the "score" of input in the context of that observation channel (e.g more code coverage, greater execution time means higher score). This feedback also decides if an input should be put in a feedback specific queue, global queue or both.
 
 ```C
-feedback_t * example feedback = afl_feedback_create(NULL);  // We can add the feedback queue instead of NULL here, but we'll add them later.
+feedback_t * example feedback = afl_feedback_create(NULL, timeout_channel_id);  // We can add the feedback queue instead of NULL here, but we'll add them later.
 
 float is_interesting(feedback_t * feedback, executor_t * executor) {
-    // First we grab the correct observation channel from the executor.
-
+    
+    observation_channel_t * obs_channel = feedback->channel;
     // Every feedback "should" store the correct idx of the observation channel in the array. 
     
     //We can use the channel's unique tag to identify them. See example/executor.c for this.
