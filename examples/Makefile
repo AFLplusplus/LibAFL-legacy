@@ -2,6 +2,7 @@ MAKEFILE_PATH := $(abspath .)
 AFL_PATH?=$(realpath $(MAKEFILE_PATH)/AFLplusplus)
 AFL_CC:=$(AFL_PATH)/afl-clang-fast
 CFLAGS+=-g -L.. -I../include -I$(AFL_PATH)/include -pthread -laflpp -lm -Wall -Wextra -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 #-fstack-protector-strong -fsanitize=address -fno-omit-frame-pointer 
+LIBPNG_URL=http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?download
 
 $(info AFL_PATH is $(AFL_PATH))
 
@@ -17,9 +18,10 @@ afl:
 	make -C $(AFL_PATH)/llvm_mode
 
 libpng:
-	test -f libpng-1.6.37.tar.gz || wget http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?download -O libpng-1.6.37.tar.gz
+	test -f libpng-1.6.37.tar.gz || wget $(LIBPNG_URL) -O libpng-1.6.37.tar.gz
 	tar -xvzf ./libpng-1.6.37.tar.gz
-	cd libpng-1.6.37 && ./configure && make
+	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure && make
+	cp libpng-1.6.37/.libs/libpng16.a ./
 
 target: afl ./target.c
 	$(AFL_CC) -g target.c -o target
@@ -44,7 +46,8 @@ clean:
 	rm -rf ./in 2>/dev/null	|| true
 	rm -rf ./crashes-* 2>/dev/null || true
 	rm -rf ./llmp-main || true
-	rm -rf ./out-*
+	rm -rf ./out-* || true
+	rm -rf ./libpng-1.6.37 libpng16.a 2>/dev/null || true
 
 in-memory-fuzzer: lib libpng afl in-memory-fuzzer.c
-	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L. -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o
+	clang in-memory-fuzzer.c ./libpng16.a -g $(CFLAGS) -L. -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o
