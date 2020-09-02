@@ -15,7 +15,12 @@ afl:
 	git submodule update
 	make -C $(AFL_PATH)
 	make -C $(AFL_PATH)/llvm_mode
-	
+
+libpng:
+	test -f libpng-1.6.37.tar.gz || wget http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?download -O libpng-1.6.37.tar.gz
+	tar -xvzf ./libpng-1.6.37.tar.gz
+	cd libpng-1.6.37 && ./configure && make
+
 target: afl ./target.c
 	$(AFL_CC) -g target.c -o target
 
@@ -41,5 +46,5 @@ clean:
 	rm -rf ./llmp-main || true
 	rm -rf ./out-*
 
-in-memory-fuzzer: lib afl in-memory-fuzzer.c
-	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L.  -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o
+in-memory-fuzzer: lib libpng afl in-memory-fuzzer.c
+	clang in-memory-fuzzer.c ./libpng.a -g $(CFLAGS) -L. -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -laflpp -o in-mem -lz -lm  $(AFL_PATH)/afl-llvm-rt.o

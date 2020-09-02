@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include "aflpp.h"
-#include <png.h>
+#include "png.h"
 
 extern u8 *__afl_area_ptr;
 
