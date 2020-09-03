@@ -35,6 +35,7 @@ afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue,
 
   feedback->funcs.set_feedback_queue = afl_set_feedback_queue_default;
   feedback->funcs.get_feedback_queue = afl_get_feedback_queue_default;
+  feedback->funcs.is_interesting = NULL;
 
   feedback->channel_id = channel_id;  // Channel id for the observation channel
                                       // this feedback is looking at
@@ -197,9 +198,16 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
     if (!input) { FATAL("Error creating a copy of input"); }
 
     queue_entry_t *new_entry = afl_queue_entry_create(input);
-    // An incompatible ptr type warning has been suppresed here. We pass the
-    // feedback queue to the add_to_queue rather than the base_queue
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
+
+    /* We broadcast a message when new entry found -- only if this is the fuzz instance which found it!*/
+
+    llmp_client_state_t *llmp_client = feedback->queue->base.engine->llmp_client;
+    llmp_message_t *     msg =
+        llmp_client_alloc_next(llmp_client, sizeof(queue_entry_t));
+    msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY;
+    ((queue_entry_t *)msg->buf)[0] = *new_entry;
+    llmp_client_send(llmp_client, msg);
 
     // Put the entry in the feedback queue and return 0.0 so that it isn't added
     // to the global queue too
