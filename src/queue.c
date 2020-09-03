@@ -209,14 +209,17 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   /* Let's save the entry to disk */
   if (queue->save_to_files && queue->dirpath) {
-    
-    u64 input_data_checksum =
-      XXH64(entry->input->bytes, entry->input->len, afl_rand_below(&queue->engine->rnd, 0xFFFF));
-    
-    snprintf(entry->filename, FILENAME_LEN_MAX - 1, "%s/entry-%llx", queue->dirpath, input_data_checksum);
 
-    if (entry->input->funcs.save_to_file(entry->input, entry->filename) != AFL_RET_SUCCESS) {
-      
+    u64 input_data_checksum =
+        XXH64(entry->input->bytes, entry->input->len,
+              afl_rand_below(&queue->engine->rnd, 0xFFFF));
+
+    snprintf(entry->filename, FILENAME_LEN_MAX - 1, "%s/entry-%llx",
+             queue->dirpath, input_data_checksum);
+
+    if (entry->input->funcs.save_to_file(entry->input, entry->filename) !=
+        AFL_RET_SUCCESS) {
+
       WARNF("Error writing queue entry");
       return;
 
@@ -276,14 +279,15 @@ void afl_set_dirpath_default(base_queue_t *queue, char *new_dirpath) {
     /* Let's create the directory if it's not already created */
     struct stat dir;
 
-    if (!((stat(queue->dirpath, &dir) == 0 ) && (S_ISDIR(dir.st_mode)))) {
+    if (!((stat(queue->dirpath, &dir) == 0) && (S_ISDIR(dir.st_mode)))) {
 
       if (mkdir(queue->dirpath, 0777) != 0) {
+
         WARNF("Error creating queue directory");
+
       };
 
     }
-
 
   } else {
 

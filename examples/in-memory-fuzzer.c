@@ -88,7 +88,8 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
   feedback_queue_t *coverage_feedback_queue =
       afl_feedback_queue_create(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
-  coverage_feedback_queue->base.funcs.set_dirpath(&coverage_feedback_queue->base, queue_dirpath);
+  coverage_feedback_queue->base.funcs.set_dirpath(
+      &coverage_feedback_queue->base, queue_dirpath);
 
   /* Global queue creation */
   global_queue_t *global_queue = afl_global_queue_create();
@@ -96,7 +97,7 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
   global_queue->extra_funcs.add_feedback_queue(global_queue,
                                                coverage_feedback_queue);
   global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
-  
+
   /* Coverage Feedback initialization */
   maximize_map_feedback_t *coverage_feedback = map_feedback_init(
       coverage_feedback_queue, trace_bits_channel->shared_map.map_size,
@@ -219,7 +220,9 @@ int main(int argc, char **argv) {
 
   if (argc < 4) {
 
-    FATAL("Usage: ./in-memory-fuzzer  number_of_threads /path/to/input/dir /path/to/queue/dir");
+    FATAL(
+        "Usage: ./in-memory-fuzzer  number_of_threads /path/to/input/dir "
+        "/path/to/queue/dir");
 
   }
 

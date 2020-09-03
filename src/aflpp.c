@@ -429,7 +429,7 @@ exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
 /* An in-mem executor we have */
 
 void in_memory_executor_init(in_memeory_executor_t *in_memeory_executor,
-                            harness_function_type  harness) {
+                             harness_function_type  harness) {
 
   afl_executor_init(&in_memeory_executor->base);
   in_memeory_executor->harness = harness;
