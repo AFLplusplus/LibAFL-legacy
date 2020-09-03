@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
 
   if (argc < 3) {
 
-    FATAL("Usage: ./in-mem /path/to/input/dir number_of_threads");
+    FATAL("Usage: ./in-memory-fuzzer /path/to/input/dir number_of_threads");
 
   }
 
