@@ -181,7 +181,7 @@ typedef struct in_memeory_executor {
 exit_type_t in_memory_run_target(executor_t *executor);
 u8 in_mem_executor_place_input(executor_t *executor, raw_input_t *input);
 exit_type_t in_memory_run_target(executor_t *executor);
-void        in_memory_exeutor_init(in_memeory_executor_t *in_memeory_executor,
+void        in_memory_executor_init(in_memeory_executor_t *in_memeory_executor,
                                    harness_function_type  harness);
 
 #endif

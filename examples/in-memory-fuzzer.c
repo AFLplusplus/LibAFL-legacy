@@ -63,7 +63,7 @@ engine_t *initialize_fuzz_instance(char *in_dir) {
   in_memeory_executor_t *in_memory_executor =
       calloc(1, sizeof(in_memeory_executor_t));
   if (!in_memory_executor) { FATAL("%s", afl_ret_stringify(AFL_RET_ALLOC)); }
-  in_memory_exeutor_init(in_memory_executor, harness_func);
+  in_memory_executor_init(in_memory_executor, harness_func);
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
