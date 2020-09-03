@@ -1,12 +1,12 @@
-CFLAGS +=-g -fPIC -I./include -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 #-fno-omit-frame-pointer -fstack-protector-strong -fsanitize=address -DLLMP_DEBUG=1
-LDFLAGS +=-shared
+CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 # -O3 -fno-omit-frame-pointer -fstack-protector-strong -fsanitize=address -DLLMP_DEBUG=1
+LDFLAGS += -shared
 
-all:	libaflpp.so libaflpp.a example-fuzzer
+all:	libaflpp.so libaflpp.a example-fuzzer examples libaflfuzzer.a examples/libaflfuzzer-test
 
 clean:
-	rm -f ./src/*.o
-	rm -f ./*.so /libaflpp.a
-	rm -f example-fuzzer
+	rm -f src/*.o examples/*.o
+	rm -f libaflpp.so libaflpp.a libaflfuzzer.a
+	rm -f example-fuzzer examples/libaflfuzzer-test
 
 # Compiling the common  file
 common.o: ./src/common.c ./include/common.h
@@ -70,6 +70,17 @@ libaflpp.so: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzo
 libaflpp.a: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
 	@rm -f libaflpp.a
 	ar -crs libaflpp.a src/*.o
+
+libaflfuzzer.a: libaflpp.a
+	@rm -f libaflpp.a
+	clang $(CFLAGS) -c -o examples/libaflfuzzer.o examples/libaflfuzzer.c
+	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
+
+examples/libaflfuzzer-test:	libaflfuzzer.a
+	clang -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test /prg/AFLplusplus/branches/llvm_merge/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o  -pthread
+
+examples:
+	make -C examples
 
 example-fuzzer: libaflpp.a
 	$(CC) $(CFLAGS) -o example-fuzzer ./examples/executor.c libaflpp.a -pthread

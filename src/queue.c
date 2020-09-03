@@ -211,10 +211,9 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
   if (queue->save_to_files && queue->dirpath) {
 
     u64 input_data_checksum =
-        XXH64(entry->input->bytes, entry->input->len,
-              afl_rand_below(&queue->engine->rnd, 0xFFFF));
+        XXH64(entry->input->bytes, entry->input->len, HASH_CONST);
 
-    snprintf(entry->filename, FILENAME_LEN_MAX - 1, "%s/entry-%llx",
+    snprintf(entry->filename, FILENAME_LEN_MAX - 1, "%s/queue-%016llx",
              queue->dirpath, input_data_checksum);
 
     if (entry->input->funcs.save_to_file(entry->input, entry->filename) !=

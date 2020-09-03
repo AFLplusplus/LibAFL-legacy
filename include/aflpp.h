@@ -169,7 +169,7 @@ afl_ret_t fsrv_start(executor_t *fsrv_executor);
 /* In-memory executor */
 
 /* Function ptr for the harness */
-typedef exit_type_t (*harness_function_type)(u8 *data, size_t size);
+typedef exit_type_t (*harness_function_type)(u8 *, size_t);
 
 typedef struct in_memeory_executor {
 
