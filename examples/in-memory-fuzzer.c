@@ -57,7 +57,7 @@ exit_type_t harness_func(u8 *input, size_t len) {
 
 }
 
-engine_t *initialize_fuzz_instance(char *in_dir) {
+engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
 
   /* Let's create an in-memory executor */
   in_memeory_executor_t *in_memory_executor =
@@ -88,13 +88,15 @@ engine_t *initialize_fuzz_instance(char *in_dir) {
   feedback_queue_t *coverage_feedback_queue =
       afl_feedback_queue_create(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
+  coverage_feedback_queue->base.funcs.set_dirpath(&coverage_feedback_queue->base, queue_dirpath);
 
   /* Global queue creation */
   global_queue_t *global_queue = afl_global_queue_create();
   if (!global_queue) { FATAL("Error initializing global queue"); }
   global_queue->extra_funcs.add_feedback_queue(global_queue,
                                                coverage_feedback_queue);
-
+  global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
+  
   /* Coverage Feedback initialization */
   maximize_map_feedback_t *coverage_feedback = map_feedback_init(
       coverage_feedback_queue, trace_bits_channel->shared_map.map_size,
@@ -215,17 +217,15 @@ void *run_broker_thread(void *data) {
 
 int main(int argc, char **argv) {
 
-  (void)argc;
-  (void)argv;
+  if (argc < 4) {
 
-  if (argc < 3) {
-
-    FATAL("Usage: ./in-memory-fuzzer /path/to/input/dir number_of_threads");
+    FATAL("Usage: ./in-memory-fuzzer  number_of_threads /path/to/input/dir /path/to/queue/dir");
 
   }
 
-  char *in_dir = argv[1];
-  int   thread_count = atoi(argv[2]);
+  char *in_dir = argv[2];
+  int   thread_count = atoi(argv[1]);
+  char *queue_dirpath = argv[3];
 
   if (thread_count <= 0) {
 
@@ -246,7 +246,7 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < thread_count; ++i) {
 
-    engine_t *engine = initialize_fuzz_instance(in_dir);
+    engine_t *engine = initialize_fuzz_instance(in_dir, queue_dirpath);
 
     if (!llmp_broker_register_threaded_clientloop(
             llmp_broker, thread_run_instance, engine)) {

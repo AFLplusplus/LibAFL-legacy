@@ -43,6 +43,8 @@
 
 /* Constants that we use throughtout the library */
 
+#define FILENAME_LEN_MAX 4120
+
 #define MAX_OBS_CHANNELS 5
 #define MAX_MUTATORS_PER_STAGE 10
 #define MAX_STAGES_PER_FUZZONE 5

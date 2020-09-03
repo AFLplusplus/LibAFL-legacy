@@ -29,10 +29,12 @@
 
 #define MAX_FEEDBACK_QUEUES 10
 
+#include <stdbool.h>
+#include <limits.h>
+
 #include "input.h"
 #include "list.h"
 #include "afl-shmem.h"
-#include <stdbool.h>
 
 /*
 This is the generic interface implementation for the queue and queue entries.
@@ -63,7 +65,7 @@ struct queue_entry {
 
   raw_input_t *       input;
   bool                on_disk;
-  char *              filename;
+  char                filename[FILENAME_LEN_MAX];
   struct base_queue * queue;
   struct queue_entry *next;
   struct queue_entry *prev;
@@ -123,7 +125,7 @@ struct base_queue_functions {
   size_t (*get_names_id)(base_queue_t *);
   bool (*get_save_to_files)(base_queue_t *);
 
-  void (*set_directory)(base_queue_t *, char *);
+  void (*set_dirpath)(base_queue_t *, char *);
   void (*set_engine)(base_queue_t *, engine_t *);
 
 };
@@ -138,7 +140,7 @@ struct base_queue {
   engine_t *                  engine;
   queue_entry_t *             end;
   size_t                      size;
-  char *                      dirpath;
+  char                        dirpath[PATH_MAX];
   size_t                      names_id;
   bool                        save_to_files;
   bool                        fuzz_started;
@@ -160,7 +162,7 @@ size_t         afl_get_base_queue_size_default(base_queue_t *);
 char *         afl_get_dirpath_default(base_queue_t *);
 size_t         afl_get_names_id_default(base_queue_t *);
 bool           afl_get_save_to_files_default(base_queue_t *);
-void           afl_set_directory_default(base_queue_t *, char *);
+void           afl_set_dirpath_default(base_queue_t *, char *);
 void           afl_set_engine_base_queue_default(base_queue_t *, engine_t *);
 queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
                                                int           engine_id);
