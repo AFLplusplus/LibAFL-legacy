@@ -85,7 +85,7 @@ examples/libaflfuzzer-test:	libaflfuzzer.a
 
 .PHONY: make-examples
 make-examples:
-	make -C examples
+	$(MAKE) -C examples
 
 example-fuzzer: libaflpp.a
 	$(CC) $(CFLAGS) -o example-fuzzer ./examples/executor.c libaflpp.a -pthread

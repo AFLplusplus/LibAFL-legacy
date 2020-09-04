@@ -1,6 +1,7 @@
 /* An in mmeory fuzzing example. Fuzzer for libpng library */
 
 #include <stdio.h>
+#include <signal.h>
 #include "aflpp.h"
 
 extern u8 *__afl_area_ptr;
@@ -8,15 +9,17 @@ extern u8 *__afl_area_ptr;
 static llmp_broker_state_t *llmp_broker;
 static int                  broker_port;
 static int                  debug;
-
-/* A global array of all the registered engines */
-static pthread_mutex_t fuzz_worker_array_lock;
-static engine_t *      registered_fuzz_workers[MAX_WORKERS];
-static u64             fuzz_workers_count;
+static int                  loop;
 
 int                       LLVMFuzzerTestOneInput(const uint8_t *, size_t);
 __attribute__((weak)) int LLVMFuzzerInitialize(int *argc, char ***argv);
-// TODO: we still have to put LLVMFuzzerInitialize here
+
+void child_gone(int signal) {
+
+  if (loop) loop = 0;
+  (void)(signal);
+
+}
 
 int debug_LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
@@ -53,35 +56,18 @@ static afl_ret_t in_memory_fuzzer_start(executor_t *executor) {
 
 }
 
-/* Function to register/add a fuzz worker (engine). To avoid race condition, add
- * mutex here(Won't be performance problem). */
-static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
-
-  // Critical section. Needs a lock. Called very rarely, thus won't affect perf.
-  pthread_mutex_lock(&fuzz_worker_array_lock);
-
-  if (fuzz_workers_count >= MAX_WORKERS) {
-
-    pthread_mutex_unlock(&fuzz_worker_array_lock);
-    return AFL_RET_ARRAY_END;
-
-  }
-
-  registered_fuzz_workers[fuzz_workers_count] = engine;
-  fuzz_workers_count++;
-  // Unlock the mutex
-  pthread_mutex_unlock(&fuzz_worker_array_lock);
-  return AFL_RET_SUCCESS;
-
-}
-
 engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir,
                                    char *queue_dirpath) {
 
   /* Let's create an in-memory executor */
   in_memory_executor_t *in_memory_executor =
       calloc(1, sizeof(in_memory_executor_t));
-  if (!in_memory_executor) { FATAL("%s", afl_ret_stringify(AFL_RET_ALLOC)); }
+  if (!in_memory_executor) {
+
+    FATAL("%s", afl_ret_stringify(AFL_RET_ALLOC));
+    exit(-1);
+
+  }
 
   if (debug)
     in_memory_executor_init(
@@ -103,13 +89,13 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir,
   if (!trace_bits_channel) {
 
     FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC));
+    exit(-1);
 
   }
 
   /* Since we don't use map_channel_create function, we have to add reset
    * function manually */
   trace_bits_channel->base.funcs.reset = afl_map_channel_reset;
-
   trace_bits_channel->shared_map.map = __afl_area_ptr;  // Coverage map
   trace_bits_channel->shared_map.map_size = MAP_SIZE;
   trace_bits_channel->shared_map.shm_id =
@@ -120,13 +106,25 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir,
   /* We create a simple feedback queue for coverage here*/
   feedback_queue_t *coverage_feedback_queue =
       afl_feedback_queue_create(NULL, (char *)"Coverage feedback queue");
-  if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
+  if (!coverage_feedback_queue) {
+
+    FATAL("Error initializing feedback queue");
+    exit(-1);
+
+  }
+
   coverage_feedback_queue->base.funcs.set_dirpath(
       &coverage_feedback_queue->base, queue_dirpath);
 
   /* Global queue creation */
   global_queue_t *global_queue = afl_global_queue_create();
-  if (!global_queue) { FATAL("Error initializing global queue"); }
+  if (!global_queue) {
+
+    FATAL("Error initializing global queue");
+    exit(-1);
+
+  }
+
   global_queue->extra_funcs.add_feedback_queue(global_queue,
                                                coverage_feedback_queue);
   global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
@@ -135,24 +133,45 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir,
   maximize_map_feedback_t *coverage_feedback = map_feedback_init(
       coverage_feedback_queue, trace_bits_channel->shared_map.map_size,
       MAP_CHANNEL_ID);
-  if (!coverage_feedback) { FATAL("Error initializing feedback"); }
+  if (!coverage_feedback) {
+
+    FATAL("Error initializing feedback");
+    exit(-1);
+
+  }
 
   /* Let's build an engine now */
   engine_t *engine =
       afl_engine_create(&in_memory_executor->base, NULL, global_queue);
-  if (!engine) { FATAL("Error initializing Engine"); }
+  if (!engine) {
+
+    FATAL("Error initializing Engine");
+    exit(-1);
+
+  }
+
   engine->funcs.add_feedback(engine, (feedback_t *)coverage_feedback);
   engine->funcs.set_global_queue(engine, global_queue);
   engine->in_dir = in_dir;
 
   fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
-  if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
+  if (!fuzz_one) {
+
+    FATAL("Error initializing fuzz_one");
+    exit(-1);
+
+  }
 
   // We also add the fuzzone to the engine here.
   engine->funcs.set_fuzz_one(engine, fuzz_one);
 
   scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_create(NULL, 8);
-  if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
+  if (!mutators_havoc) {
+
+    FATAL("Error initializing Mutators");
+    exit(-1);
+
+  }
 
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_byte_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
@@ -170,14 +189,20 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir,
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_mutation);
 
   fuzzing_stage_t *stage = afl_fuzzing_stage_create(engine);
-  if (!stage) { FATAL("Error creating fuzzing stage"); }
+  if (!stage) {
+
+    FATAL("Error creating fuzzing stage");
+    exit(-1);
+
+  }
+
   stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
 
   return engine;
 
 }
 
-void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
+void run_instance(llmp_client_state_t *llmp_client, void *data) {
 
   engine_t *engine = (engine_t *)data;
   engine->llmp_client = llmp_client;
@@ -198,6 +223,7 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
   if (ret != AFL_RET_SUCCESS) {
 
     PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret));
+    exit(-1);
 
   }
 
@@ -206,6 +232,7 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
   if (fuzz_ret != AFL_RET_SUCCESS) {
 
     PFATAL("Error fuzzing the target: %s", afl_ret_stringify(fuzz_ret));
+    exit(-1);
 
   }
 
@@ -257,6 +284,7 @@ int main(int argc, char **argv) {
         "Usage: %s number_of_threads /path/to/input/dir "
         "/path/to/queue/dir",
         argv[0]);
+    exit(-1);
 
   }
 
@@ -267,84 +295,110 @@ int main(int argc, char **argv) {
 
   }
 
+  int   pid, i;
   char *in_dir = argv[2];
-  int   thread_count = atoi(argv[1]);
+  int   client_count = atoi(argv[1]);
   char *queue_dirpath = argv[3];
 
-  if (thread_count <= 0) {
+  if (client_count <= 0) {
 
     FATAL("Number of threads should be greater than 0");
+    exit(-1);
 
   }
 
   broker_port = 0xAF1;
   llmp_broker = llmp_broker_new();
-  if (!llmp_broker) { FATAL("Broker creation failed"); }
+  if (!llmp_broker) {
+
+    FATAL("Broker creation failed");
+    exit(-1);
+
+  }
+
   if (!llmp_broker_register_local_server(llmp_broker, broker_port)) {
 
-    FATAL("Broker register failed");
+    FATAL("Broker register on port %d/tcp failed", broker_port);
+    exit(-1);
 
   }
 
-  OKF("Broker created now");
+  OKF("Broker created.");
 
-  for (int i = 0; i < thread_count; ++i) {
-
-    engine_t *engine =
-        initialize_fuzz_instance(argc, argv, in_dir, queue_dirpath);
-
-    if (!llmp_broker_register_threaded_clientloop(
-            llmp_broker, thread_run_instance, engine)) {
-
-      FATAL("Error registering client");
-
-    };
-
-    if (afl_register_fuzz_worker(engine) != AFL_RET_SUCCESS) {
-
-      FATAL("Error registering fuzzing instance");
-
-    }
-
-  }
-
-  // Before we start the broker, we close the stderr file. Since the in-mem
-  // fuzzer runs in the same process, this is necessary for stats collection.
-
-  if (!debug) {
-
-    s32 dev_null_fd = open("/dev/null", O_WRONLY);
-
-    dup2(dev_null_fd, 2);
-
-  }
-
-  pthread_t p1;
-
-  int s = pthread_create(&p1, NULL, run_broker_thread, NULL);
-
-  if (!s) { OKF("Broker started running"); }
-
-  u64 time_elapsed = 1;
+  (void)signal(SIGCHLD, child_gone);
+  u32 clients_started = 0;
+  // u64 time_elapsed = 1;
 
   while (1) {
 
-    sleep(1);
-    u64 execs = 0;
-    u64 crashes = 0;
-    for (size_t i = 0; i < fuzz_workers_count; ++i) {
+    for (i = clients_started; i < client_count; i++) {
 
-      execs += registered_fuzz_workers[i]->executions;
-      crashes += registered_fuzz_workers[i]->crashes;
+      if ((pid = fork()) < 0) {
+
+        PFATAL("fork failed.");
+        exit(-1);
+
+      }
+
+      if (!pid) {  // child
+
+        llmp_client_state_t *llmp_client = llmp_client_new(broker_port);
+
+        if (!llmp_client) {
+
+          FATAL("Error registering client");
+          llmp_client_destroy(llmp_client);
+          exit(-1);
+
+        }
+
+        if (!debug) {
+
+          s32 dev_null_fd = open("/dev/null", O_WRONLY);
+          dup2(dev_null_fd, 2);
+          dup2(dev_null_fd, 1);
+          dup2(dev_null_fd, 0);
+
+        }
+
+        engine_t *engine =
+            initialize_fuzz_instance(argc, argv, in_dir, queue_dirpath);
+
+        run_instance(llmp_client, engine);
+
+        llmp_client_destroy(llmp_client);
+
+        exit(0);
+
+      }
 
     }
 
-    u64 paths = registered_fuzz_workers[0]->global_queue->feedback_queues_num;
+    loop = 1;
+    while (loop) {
 
-    SAYF("execs=%llu  execs/s=%llu  paths=%llu  crashes=%llu  elapsed=%llu\r",
-         execs, execs / time_elapsed, paths, crashes, time_elapsed);
-    time_elapsed++;
-    fflush(0);
+      sleep(1);
+      /*
+            u64 execs = 0;
+            u64 crashes = 0;
+            for (i = 0; i < fuzz_workers_count; ++i) {
+
+              execs += registered_fuzz_workers[i]->executions;
+              crashes += registered_fuzz_workers[i]->crashes;
+
+            }
+
+            u64 paths =
+         registered_fuzz_workers[0]->global_queue->feedback_queues_num;
+
+            SAYF("execs=%llu  execs/s=%llu  paths=%llu  crashes=%llu
+         elapsed=%llu\r", execs, execs / time_elapsed, paths, crashes,
+         time_elapsed); time_elapsed++; fflush(0);
+      */
+
+    }
+
+    clients_started--;  // sigchild makes us exit the loop
 
   }
 

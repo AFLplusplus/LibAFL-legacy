@@ -14,8 +14,8 @@ $(AFL_PATH)/llvm_mode/afl-llvm-rt.c:
 	-git submodule update 2> /dev/null
 	test -d $(AFL_PATH) || git clone https://github.com/$(AFL_PATH)/AFLplusplus
 	cd AFLplusplus && git stash && git pull && git checkout dev
-	make -C $(AFL_PATH)
-	make -C $(AFL_PATH)/llvm_mode
+	$(MAKE) -C $(AFL_PATH)
+	$(MAKE) -C $(AFL_PATH)/llvm_mode
 
 $(AFL_PATH)/afl-llvm-rt.o:	$(AFL_PATH)/llvm_mode/afl-llvm-rt.c
 
@@ -24,7 +24,7 @@ libpng-1.6.37.tar.gz:
 
 libpng16.a:	libpng-1.6.37.tar.gz
 	tar -xvzf ./libpng-1.6.37.tar.gz || rm -f ./libpng-1.6.37.tar.gz
-	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure --disable-shared && make
+	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure --disable-shared && $(MAKE)
 	cp libpng-1.6.37/.libs/libpng16.a ./
 
 target: $(AFL_PATH)/afl-llvm-rt.o ./target.c
