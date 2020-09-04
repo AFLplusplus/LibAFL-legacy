@@ -40,6 +40,7 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->fuzz_one = fuzz_one;
   engine->global_queue = global_queue;
   engine->feedbacks_num = 0;
+  engine->executions = 0;
 
   if (global_queue) {
 
@@ -179,7 +180,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
   /* Since, this'll be the first execution, Let's start up the executor here */
 
-  if (engine->executor->funcs.init_cb) {
+  if ( (engine->executions == 0) && engine->executor->funcs.init_cb) {
 
     afl_ret_t ret = engine->executor->funcs.init_cb(engine->executor);
     if (ret != AFL_RET_SUCCESS) {
