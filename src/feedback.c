@@ -200,10 +200,12 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
     queue_entry_t *new_entry = afl_queue_entry_create(input);
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
 
-    /* We broadcast a message when new entry found -- only if this is the fuzz instance which found it!*/
+    /* We broadcast a message when new entry found -- only if this is the fuzz
+     * instance which found it!*/
 
-    llmp_client_state_t *llmp_client = feedback->queue->base.engine->llmp_client;
-    llmp_message_t *     msg =
+    llmp_client_state_t *llmp_client =
+        feedback->queue->base.engine->llmp_client;
+    llmp_message_t *msg =
         llmp_client_alloc_next(llmp_client, sizeof(queue_entry_t));
     msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY;
     ((queue_entry_t *)msg->buf)[0] = *new_entry;

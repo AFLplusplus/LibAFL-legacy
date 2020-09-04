@@ -6,15 +6,16 @@
 
 extern u8 *__afl_area_ptr;
 
-llmp_broker_state_t *llmp_broker;
-int                  broker_port;
+static llmp_broker_state_t *llmp_broker;
+static int                  broker_port;
+static int                  debug;
 
 /* A global array of all the registered engines */
-pthread_mutex_t fuzz_worker_array_lock;
-engine_t *      registered_fuzz_workers[MAX_WORKERS];
-u64             fuzz_workers_count;
+static pthread_mutex_t fuzz_worker_array_lock;
+static engine_t *      registered_fuzz_workers[MAX_WORKERS];
+static u64             fuzz_workers_count;
 
-int LLVMFuzzerTestOneInput(const uint8_t, size_t);
+int                       LLVMFuzzerTestOneInput(const uint8_t, size_t);
 __attribute__((weak)) int LLVMFuzzerInitialize(int *argc, char ***argv);
 // TODO: we still have to put LLVMFuzzerInitialize here
 
@@ -46,7 +47,8 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
   in_memeory_executor_t *in_memory_executor =
       calloc(1, sizeof(in_memeory_executor_t));
   if (!in_memory_executor) { FATAL("%s", afl_ret_stringify(AFL_RET_ALLOC)); }
-  in_memory_executor_init(in_memory_executor, (harness_function_type) LLVMFuzzerTestOneInput);
+  in_memory_executor_init(in_memory_executor,
+                          (harness_function_type)LLVMFuzzerTestOneInput);
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
@@ -59,7 +61,7 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
 
   }
 
-  trace_bits_channel->shared_map.map =  __afl_area_ptr;  // Coverage map
+  trace_bits_channel->shared_map.map = __afl_area_ptr;  // Coverage map
   trace_bits_channel->shared_map.map_size = MAP_SIZE;
   trace_bits_channel->shared_map.shm_id =
       -1;  // Just a simple erronous value :)
@@ -203,10 +205,14 @@ int main(int argc, char **argv) {
   if (argc < 4) {
 
     FATAL(
-        "Usage: ./in-memory-fuzzer  number_of_threads /path/to/input/dir "
-        "/path/to/queue/dir");
+        "Usage: %s number_of_threads /path/to/input/dir "
+        "/path/to/queue/dir",
+        argv[0]);
 
   }
+
+  if (getenv("DEBUG") || getenv("AFL_DEBUG") || getenv("LIBAFL_DEBUG"))
+    debug = 1;
 
   char *in_dir = argv[2];
   int   thread_count = atoi(argv[1]);
@@ -251,9 +257,13 @@ int main(int argc, char **argv) {
   // Before we start the broker, we close the stderr file. Since the in-mem
   // fuzzer runs in the same process, this is necessary for stats collection.
 
-  s32 dev_null_fd = open("/dev/null", O_WRONLY);
+  if (!debug) {
 
-  dup2(dev_null_fd, 2);
+    s32 dev_null_fd = open("/dev/null", O_WRONLY);
+
+    dup2(dev_null_fd, 2);
+
+  }
 
   pthread_t p1;
 
@@ -275,10 +285,10 @@ int main(int argc, char **argv) {
 
     }
 
-    SAYF(
-        "Execs: %8llu\tCrashes: %4llu\tExecs per second: %5llu  time elapsed: "
-        "%8llu\r",
-        execs, crashes, execs / time_elapsed, time_elapsed);
+    u64 paths = registered_fuzz_workers[0]->global_queue->feedback_queues_num;
+
+    SAYF("execs=%llu  execs/s=%llu  paths=%llu  crashes=%llu  elapsed=%llu\r",
+         execs, execs / time_elapsed, paths, crashes, time_elapsed);
     time_elapsed++;
     fflush(0);
 

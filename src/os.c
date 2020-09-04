@@ -18,7 +18,8 @@ afl_ret_t dump_crash_to_file(raw_input_t *data, engine_t *engine) {
   /* TODO: This filename should be replaced by "crashes-SHA_OF_BYTES" later */
 
   u64 input_data_checksum = XXH64(data->bytes, data->len, HASH_CONST);
-  snprintf(filename, sizeof(filename) - 1, "crashes-%016llx", input_data_checksum);
+  snprintf(filename, sizeof(filename) - 1, "crashes-%016llx",
+           input_data_checksum);
 
   FILE *f = fopen(filename, "w+");
   if (!f) { return AFL_RET_FILE_OPEN_ERROR; }
