@@ -1,6 +1,10 @@
 CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 # -O3 -fno-omit-frame-pointer -fstack-protector-strong -fsanitize=address -DLLMP_DEBUG=1
 LDFLAGS += -shared
 
+ifdef DEBUG
+  CFLAGS += -DDEBUG -g
+endif
+
 all:	libaflpp.so libaflpp.a example-fuzzer examples libaflfuzzer.a examples/libaflfuzzer-test
 
 clean:
@@ -77,7 +81,7 @@ libaflfuzzer.a: libaflpp.a
 	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
 
 examples/libaflfuzzer-test:	libaflfuzzer.a
-	clang -fsanitize-coverage=trace-pc-guard -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o  -pthread
+	clang -fsanitize-coverage=trace-pc-guard -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o -pthread
 
 examples:
 	make -C examples

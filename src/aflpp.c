@@ -102,10 +102,7 @@ void afl_reset_observation_channel_default(executor_t *executor) {
   for (i = 0; i < executor->observors_num; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
-    if (obs_channel->funcs.reset) {
-      obs_channel->funcs.reset(obs_channel);
-
-    }
+    if (obs_channel->funcs.reset) { obs_channel->funcs.reset(obs_channel); }
 
   }
 
@@ -428,7 +425,7 @@ exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
 /* An in-mem executor we have */
 
 void in_memory_executor_init(in_memory_executor_t *in_memory_executor,
-                             harness_function_type  harness) {
+                             harness_function_type harness) {
 
   afl_executor_init(&in_memory_executor->base);
   in_memory_executor->harness = harness;
@@ -450,8 +447,7 @@ u8 in_mem_executor_place_input(executor_t *executor, raw_input_t *input) {
 
 exit_type_t in_memory_run_target(executor_t *executor) {
 
-  in_memory_executor_t *in_memory_executor =
-      (in_memory_executor_t *)executor;
+  in_memory_executor_t *in_memory_executor = (in_memory_executor_t *)executor;
 
   raw_input_t *input = in_memory_executor->base.current_input;
 

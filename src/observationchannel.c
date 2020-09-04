@@ -80,6 +80,7 @@ afl_ret_t afl_map_channel_init(map_based_channel_t *map_channel,
     return AFL_RET_ERROR_INITIALIZE;
 
   }
+
   map_channel->base.funcs.reset = afl_map_channel_reset;
 
   map_channel->extra_funcs.get_map_size = afl_get_map_size_default;
@@ -97,9 +98,9 @@ void afl_map_channel_deinit(map_based_channel_t *map_channel) {
 
 }
 
-void afl_map_channel_reset(observation_channel_t * channel) {
+void afl_map_channel_reset(observation_channel_t *channel) {
 
-  map_based_channel_t * map_channel = (map_based_channel_t *)channel;
+  map_based_channel_t *map_channel = (map_based_channel_t *)channel;
 
   memset(map_channel->shared_map.map, 0, map_channel->shared_map.map_size);
 

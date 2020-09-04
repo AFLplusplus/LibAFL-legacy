@@ -169,6 +169,10 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
 
     }
 
+#ifdef DEBUG
+    fprintf(stderr, "[DEBUG] new queue entry!\n");
+#endif
+
     /* If the input is interesting and there is a global queue add the input to
      * the queue */
     if (add_to_queue && stage->engine->global_queue) {

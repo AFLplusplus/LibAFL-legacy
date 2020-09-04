@@ -94,6 +94,7 @@ maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size,
 
   }
 
+  memset(feedback->virgin_bits, 0xff, size);
   feedback->size = size;
 
   return feedback;
@@ -125,8 +126,8 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
 #else
 
-  u32 *current = (u32 *)obs_channel->map.;
-  u32 *virgin = (u32 *)virgin_map;
+  u32 *current = (u32 *)obs_channel->shared_map.map;
+  u32 *virgin = (u32 *)map_feedback->virgin_bits;
 
   u32 i = (obs_channel->shared_map.map_size >> 2);
 
@@ -190,6 +191,15 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
     ++virgin;
 
   }
+
+#ifdef DEBUG
+  fprintf(stderr, "[DEBUG] MAP: %p %lu ", obs_channel->shared_map.map,
+          obs_channel->shared_map.map_size);
+  for (u32 j = 0; j < obs_channel->shared_map.map_size; j++)
+    if (obs_channel->shared_map.map[j])
+      fprintf(stderr, " %02x=%02x", j, obs_channel->shared_map.map[j]);
+  fprintf(stderr, " ret=%f\n", ret);
+#endif
 
   if (((ret == 0.5) || (ret == 1.0)) && feedback->queue) {
 

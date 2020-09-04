@@ -72,7 +72,9 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
     FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC));
 
   }
-  /* Since we don't use map_channel_create function, we have to add reset function manually */
+
+  /* Since we don't use map_channel_create function, we have to add reset
+   * function manually */
   trace_bits_channel->base.funcs.reset = afl_map_channel_reset;
 
   trace_bits_channel->shared_map.map =
