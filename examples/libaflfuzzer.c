@@ -347,7 +347,6 @@ int main(int argc, char **argv) {
         if (!llmp_client) {
 
           FATAL("Error registering client");
-          llmp_client_destroy(llmp_client);
           exit(-1);
 
         }
