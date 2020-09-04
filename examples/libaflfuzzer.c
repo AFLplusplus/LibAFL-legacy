@@ -2,17 +2,56 @@
 
 #include <stdio.h>
 #include "aflpp.h"
-#include "png.h"
 
 extern u8 *__afl_area_ptr;
 
-llmp_broker_state_t *llmp_broker;
-int                  broker_port;
+static llmp_broker_state_t *llmp_broker;
+static int                  broker_port;
+static int                  debug;
 
 /* A global array of all the registered engines */
-pthread_mutex_t fuzz_worker_array_lock;
-engine_t *      registered_fuzz_workers[MAX_WORKERS];
-u64             fuzz_workers_count;
+static pthread_mutex_t fuzz_worker_array_lock;
+static engine_t *      registered_fuzz_workers[MAX_WORKERS];
+static u64             fuzz_workers_count;
+
+int                       LLVMFuzzerTestOneInput(const uint8_t *, size_t);
+__attribute__((weak)) int LLVMFuzzerInitialize(int *argc, char ***argv);
+// TODO: we still have to put LLVMFuzzerInitialize here
+
+int debug_LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+
+  u32 i;
+  fprintf(stderr, "Enter harness function %p %lu\n", data, size);
+  for (i = 0; i < 65536; i++)
+    if (__afl_area_ptr[i])
+      fprintf(stderr, "Error: map unclean before harness: map[%04x]=0x%02x\n",
+              i, __afl_area_ptr[i]);
+
+  int ret = LLVMFuzzerTestOneInput(data, size);
+
+  fprintf(stderr, "MAP:");
+  for (i = 0; i < 65536; i++)
+    if (__afl_area_ptr[i])
+      fprintf(stderr, " map[%04x]=0x%02x", i, __afl_area_ptr[i]);
+  fprintf(stderr, "\n");
+
+  return ret;
+
+}
+
+static afl_ret_t in_memory_fuzzer_start(executor_t *executor) {
+
+  in_memory_executor_t *in_memory_fuzzer = (in_memory_executor_t *)executor;
+
+  if (LLVMFuzzerInitialize) {
+
+    LLVMFuzzerInitialize(&in_memory_fuzzer->argc, &in_memory_fuzzer->argv);
+
+  }
+
+  return AFL_RET_SUCCESS;
+
+}
 
 /* Function to register/add a fuzz worker (engine). To avoid race condition, add
  * mutex here(Won't be performance problem). */
@@ -36,31 +75,25 @@ static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
 
 }
 
-exit_type_t harness_func(u8 *input, size_t len) {
-
-  png_structp png_ptr =
-      png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-
-  png_set_user_limits(png_ptr, 65535, 65535);
-  png_infop info_ptr = png_create_info_struct(png_ptr);
-  png_set_crc_action(png_ptr, PNG_CRC_QUIET_USE, PNG_CRC_QUIET_USE);
-
-  if (setjmp(png_jmpbuf(png_ptr))) { return NORMAL; }
-
-  png_set_progressive_read_fn(png_ptr, NULL, NULL, NULL, NULL);
-  png_process_data(png_ptr, info_ptr, input, len);
-
-  return NORMAL;
-
-}
-
-engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
+engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir,
+                                   char *queue_dirpath) {
 
   /* Let's create an in-memory executor */
   in_memory_executor_t *in_memory_executor =
       calloc(1, sizeof(in_memory_executor_t));
   if (!in_memory_executor) { FATAL("%s", afl_ret_stringify(AFL_RET_ALLOC)); }
-  in_memory_executor_init(in_memory_executor, harness_func);
+
+  if (debug)
+    in_memory_executor_init(
+        in_memory_executor,
+        (harness_function_type)debug_LLVMFuzzerTestOneInput);
+  else
+    in_memory_executor_init(in_memory_executor,
+                            (harness_function_type)LLVMFuzzerTestOneInput);
+
+  in_memory_executor->argc = argc;
+  in_memory_executor->argv = afl_argv_cpy_dup(argc, argv);
+  in_memory_executor->base.funcs.init_cb = in_memory_fuzzer_start;
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
@@ -77,8 +110,7 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
    * function manually */
   trace_bits_channel->base.funcs.reset = afl_map_channel_reset;
 
-  trace_bits_channel->shared_map.map =
-      __afl_area_ptr;  // Coverage "Map" we have
+  trace_bits_channel->shared_map.map = __afl_area_ptr;  // Coverage map
   trace_bits_channel->shared_map.map_size = MAP_SIZE;
   trace_bits_channel->shared_map.shm_id =
       -1;  // Just a simple erronous value :)
@@ -222,8 +254,16 @@ int main(int argc, char **argv) {
   if (argc < 4) {
 
     FATAL(
-        "Usage: ./in-memory-fuzzer  number_of_threads /path/to/input/dir "
-        "/path/to/queue/dir");
+        "Usage: %s number_of_threads /path/to/input/dir "
+        "/path/to/queue/dir",
+        argv[0]);
+
+  }
+
+  if (getenv("DEBUG") || getenv("AFL_DEBUG") || getenv("LIBAFL_DEBUG")) {
+
+    debug = 1;
+    fprintf(stderr, "Map ptr: %p\n", __afl_area_ptr);
 
   }
 
@@ -250,7 +290,8 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < thread_count; ++i) {
 
-    engine_t *engine = initialize_fuzz_instance(in_dir, queue_dirpath);
+    engine_t *engine =
+        initialize_fuzz_instance(argc, argv, in_dir, queue_dirpath);
 
     if (!llmp_broker_register_threaded_clientloop(
             llmp_broker, thread_run_instance, engine)) {
@@ -270,9 +311,13 @@ int main(int argc, char **argv) {
   // Before we start the broker, we close the stderr file. Since the in-mem
   // fuzzer runs in the same process, this is necessary for stats collection.
 
-  s32 dev_null_fd = open("/dev/null", O_WRONLY);
+  if (!debug) {
 
-  dup2(dev_null_fd, 2);
+    s32 dev_null_fd = open("/dev/null", O_WRONLY);
+
+    dup2(dev_null_fd, 2);
+
+  }
 
   pthread_t p1;
 
@@ -294,10 +339,10 @@ int main(int argc, char **argv) {
 
     }
 
-    SAYF(
-        "Execs: %8llu\tCrashes: %4llu\tExecs per second: %5llu  time elapsed: "
-        "%8llu\r",
-        execs, crashes, execs / time_elapsed, time_elapsed);
+    u64 paths = registered_fuzz_workers[0]->global_queue->feedback_queues_num;
+
+    SAYF("execs=%llu  execs/s=%llu  paths=%llu  crashes=%llu  elapsed=%llu\r",
+         execs, execs / time_elapsed, paths, crashes, time_elapsed);
     time_elapsed++;
     fflush(0);
 

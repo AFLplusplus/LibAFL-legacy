@@ -118,6 +118,7 @@ size_t afl_get_map_size_default(map_based_channel_t *obs_channel);
 
 afl_ret_t afl_map_channel_init(map_based_channel_t *, size_t, size_t);
 void      afl_map_channel_deinit(map_based_channel_t *);
+void      afl_map_channel_reset(observation_channel_t *);
 
 static inline map_based_channel_t *afl_map_channel_create(size_t map_size,
                                                           size_t channel_id) {

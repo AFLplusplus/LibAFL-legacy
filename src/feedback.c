@@ -35,6 +35,7 @@ afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue,
 
   feedback->funcs.set_feedback_queue = afl_set_feedback_queue_default;
   feedback->funcs.get_feedback_queue = afl_get_feedback_queue_default;
+  feedback->funcs.is_interesting = NULL;
 
   feedback->channel_id = channel_id;  // Channel id for the observation channel
                                       // this feedback is looking at
@@ -93,6 +94,7 @@ maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size,
 
   }
 
+  memset(feedback->virgin_bits, 0xff, size);
   feedback->size = size;
 
   return feedback;
@@ -124,8 +126,8 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
 #else
 
-  u32 *current = (u32 *)obs_channel->map.;
-  u32 *virgin = (u32 *)virgin_map;
+  u32 *current = (u32 *)obs_channel->shared_map.map;
+  u32 *virgin = (u32 *)map_feedback->virgin_bits;
 
   u32 i = (obs_channel->shared_map.map_size >> 2);
 
@@ -190,6 +192,15 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
   }
 
+#ifdef DEBUG
+  fprintf(stderr, "[DEBUG] MAP: %p %lu ", obs_channel->shared_map.map,
+          obs_channel->shared_map.map_size);
+  for (u32 j = 0; j < obs_channel->shared_map.map_size; j++)
+    if (obs_channel->shared_map.map[j])
+      fprintf(stderr, " %02x=%02x", j, obs_channel->shared_map.map[j]);
+  fprintf(stderr, " ret=%f\n", ret);
+#endif
+
   if (((ret == 0.5) || (ret == 1.0)) && feedback->queue) {
 
     raw_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
@@ -197,9 +208,18 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
     if (!input) { FATAL("Error creating a copy of input"); }
 
     queue_entry_t *new_entry = afl_queue_entry_create(input);
-    // An incompatible ptr type warning has been suppresed here. We pass the
-    // feedback queue to the add_to_queue rather than the base_queue
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
+
+    /* We broadcast a message when new entry found -- only if this is the fuzz
+     * instance which found it!*/
+
+    llmp_client_state_t *llmp_client =
+        feedback->queue->base.engine->llmp_client;
+    llmp_message_t *msg =
+        llmp_client_alloc_next(llmp_client, sizeof(queue_entry_t));
+    msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY;
+    ((queue_entry_t *)msg->buf)[0] = *new_entry;
+    llmp_client_send(llmp_client, msg);
 
     // Put the entry in the feedback queue and return 0.0 so that it isn't added
     // to the global queue too

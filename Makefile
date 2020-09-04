@@ -1,76 +1,93 @@
-CFLAGS+=-g -fPIC -I./include -I../include -I../AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 #-fno-omit-frame-pointer -fstack-protector-strong -fsanitize=address -DLLMP_DEBUG=1
-LDFLAGS+=-shared
+CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 # -O3 -fno-omit-frame-pointer -fstack-protector-strong -fsanitize=address -DLLMP_DEBUG=1
+LDFLAGS += -shared
 
-all:	libaflpp.so
+ifdef DEBUG
+  CFLAGS += -DDEBUG -g
+endif
+
+all:	libaflpp.so libaflpp.a example-fuzzer examples libaflfuzzer.a examples/libaflfuzzer-test
 
 clean:
-	rm ./src/*.o || true
-	rm ./*.so || true
-	rm example-fuzzer || true
+	rm -f src/*.o examples/*.o
+	rm -f libaflpp.so libaflpp.a libaflfuzzer.a
+	rm -f example-fuzzer examples/libaflfuzzer-test
 
 # Compiling the common  file
 common.o: ./src/common.c ./include/common.h
-	$(CC) ./src/common.c -o common.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/common.c -c -o common.o
 
 
 # Compiling the input  file
 input.o: ./src/input.c ./include/input.h ./include/common.h
-	$(CC) ./src/input.c -o input.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/input.c -c -o input.o
 
 
 # Compiling the observation channel  file
 observationchannel.o: ./src/observationchannel.c ./include/observationchannel.h ./include/common.h
-	$(CC) ./src/observationchannel.c -o observationchannel.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/observationchannel.c -c -o observationchannel.o
 
 
 # Compiling the queue  file
 queue.o: ./src/queue.c ./include/queue.h ./src/input.o ./src/common.o
-	$(CC) ./src/queue.c -o queue.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/queue.c -c -o queue.o
 
 
 # Compiling the mutator  file
 mutator.o: ./src/mutator.c ./include/mutator.h ./src/common.o ./src/input.o
-	$(CC) ./src/mutator.c -o mutator.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/mutator.c -c -o mutator.o
 
 
 # Compiling the feedback library
 feedback.o: ./src/feedback.c ./include/feedback.h ./src/common.o ./src/queue.o
-	$(CC) ./src/feedback.c -o feedback.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/feedback.c -c -o feedback.o
 
 
 # Compiling the fuzzone library
 fuzzone.o: ./src/fuzzone.c ./include/fuzzone.h ./src/common.o
-	$(CC) ./src/fuzzone.c -o fuzzone.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/fuzzone.c -c -o fuzzone.o
 
 
 # Compiling the Stage library
 stage.o: ./src/stage.c ./include/stage.h ./src/input.o
-	$(CC) ./src/stage.c -o stage.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/stage.c -c -o stage.o
 
 
 # Compiling the engine library
 engine.o: ./src/engine.c ./include/engine.h ./src/feedback.o ./src/queue.o ./src/common.o ./include/aflpp.h
-	$(CC) ./src/engine.c -o engine.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/engine.c -c -o engine.o
 
 # Compiling the OS helper  for the library
 os.o: ./src/os.c ./include/os.h ./src/common.o ./src/input.o
-	$(CC) ./src/os.c -o os.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/os.c -c -o os.o
 
 # Compiling the OS helper  for the library
 llmp.o: ./src/llmp.c ./include/llmp.h
-	$(CC) ./src/os.c -o llmp.o $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/os.c -c -o llmp.o
 
 # Compiling the final library
 aflpp.o: ./src/aflpp.c ./include/aflpp.h ./src/observationchannel.o ./src/input.observation
-	$(CC) ./src/aflpp.c -o aflpp.so $(CFLAGS)
+	$(CC) $(CFLAGS) ./src/aflpp.c -c -o aflpp.o
 
 libaflpp.so: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
-	$(CC) ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o -o libaflpp.so $(CFLAGS) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(LDFLAGS) ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o -o libaflpp.so
 
-example-fuzzer: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
-	$(CC) ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o ./examples/executor.c -o example-fuzzer $(CFLAGS)
+libaflpp.a: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
+	@rm -f libaflpp.a
+	ar -crs libaflpp.a src/*.o
 
+libaflfuzzer.a: libaflpp.a
+	@rm -f libaflpp.a
+	clang $(CFLAGS) -c -o examples/libaflfuzzer.o examples/libaflfuzzer.c
+	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
 
+examples/libaflfuzzer-test:	libaflfuzzer.a
+	clang -fsanitize-coverage=trace-pc-guard -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o -pthread
+
+examples:
+	make -C examples
+
+example-fuzzer: libaflpp.a
+	$(CC) $(CFLAGS) -o example-fuzzer ./examples/executor.c libaflpp.a -pthread
 
 code-format:
 	./.custom-format.py -i src/*.c

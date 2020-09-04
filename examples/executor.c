@@ -213,11 +213,7 @@ engine_t *initialize_engine_instance(char *target_path, char *in_dir,
   timeout_channel->base.funcs.reset = timeout_channel_reset;
 
   /* We initialize the forkserver we want to use here. */
-  // (void)out_file;
-  char *output_file = calloc(50, 1);
-  /* This rand is not good, we will want to use afl_rand_... functions
-  after the engine is created */
-  snprintf(output_file, 50, "out-%d", rand());
+
   afl_forkserver_t *fsrv = fsrv_init(target_path, target_args);
   fsrv->base.funcs.run_target_cb = fsrv_run_target_custom;
   if (!fsrv) { FATAL("Could not initialize forkserver!"); }

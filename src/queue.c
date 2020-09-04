@@ -24,6 +24,8 @@
 
  */
 
+#include <sys/stat.h>
+
 #include "queue.h"
 #include "feedback.h"
 #include "engine.h"
@@ -35,6 +37,7 @@
 afl_ret_t afl_queue_entry_init(queue_entry_t *entry, raw_input_t *input) {
 
   entry->input = input;
+  memset(entry->filename, 0, FILENAME_LEN_MAX);
 
   entry->funcs.get_input = afl_get_input_default;
   entry->funcs.get_next = afl_get_next_default;
@@ -57,7 +60,6 @@ void afl_queue_entry_deinit(queue_entry_t *entry) {
   entry->prev = NULL;
   entry->queue = NULL;
   entry->parent = NULL;
-  entry->filename = NULL;
 
   /* Clear all the children entries?? */
   if (entry->children_num) {
@@ -103,11 +105,11 @@ queue_entry_t *afl_get_parent_default(queue_entry_t *entry) {
 afl_ret_t afl_base_queue_init(base_queue_t *queue) {
 
   queue->save_to_files = false;
-  queue->dirpath = NULL;
   queue->fuzz_started = false;
   queue->size = 0;
   queue->base = NULL;
   queue->current = 0;
+  memset(queue->dirpath, 0, PATH_MAX);
 
   queue->funcs.add_to_queue = afl_add_to_queue_default;
   queue->funcs.get_queue_base = afl_get_queue_base_default;
@@ -115,7 +117,7 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->funcs.get_dirpath = afl_get_dirpath_default;
   queue->funcs.get_names_id = afl_get_names_id_default;
   queue->funcs.get_save_to_files = afl_get_save_to_files_default;
-  queue->funcs.set_directory = afl_set_directory_default;
+  queue->funcs.set_dirpath = afl_set_dirpath_default;
   queue->funcs.set_engine = afl_set_engine_base_queue_default;
   queue->funcs.get_next_in_queue = afl_get_next_base_queue_default;
   queue->shared_mem = calloc(1, sizeof(afl_shmem_t));
@@ -156,7 +158,6 @@ void afl_base_queue_deinit(base_queue_t *queue) {
   queue->base = NULL;
   queue->current = 0;
   queue->size = 0;
-  queue->dirpath = NULL;
   queue->fuzz_started = false;
 
   afl_shmem_deinit(queue->shared_mem);
@@ -206,14 +207,20 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   queue->queue_entries[queue->size] = entry;
 
-  /* We broadcast a message when new entry found */
+  /* Let's save the entry to disk */
+  if (queue->save_to_files && queue->dirpath && !entry->on_disk) {
 
-  llmp_client_state_t *llmp_client = queue->engine->llmp_client;
-  llmp_message_t *     msg =
-      llmp_client_alloc_next(llmp_client, sizeof(queue_entry_t));
-  msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY;
-  ((queue_entry_t *)msg->buf)[0] = *entry;
-  llmp_client_send(llmp_client, msg);
+    u64 input_data_checksum =
+        XXH64(entry->input->bytes, entry->input->len, HASH_CONST);
+
+    snprintf(entry->filename, FILENAME_LEN_MAX - 1, "%s/queue-%016llx",
+             queue->dirpath, input_data_checksum);
+
+    entry->input->funcs.save_to_file(entry->input, entry->filename);
+
+    entry->on_disk = true;
+
+  }
 
   queue->size++;
 
@@ -249,21 +256,34 @@ bool afl_get_save_to_files_default(base_queue_t *queue) {
 
 }
 
-void afl_set_directory_default(base_queue_t *queue, char *new_dirpath) {
+void afl_set_dirpath_default(base_queue_t *queue, char *new_dirpath) {
 
   if (new_dirpath) {
 
-    queue->dirpath = new_dirpath;
+    strcpy(queue->dirpath, new_dirpath);
+
+    /* Let's create the directory if it's not already created */
+    struct stat dir;
+
+    if (!((stat(queue->dirpath, &dir) == 0) && (S_ISDIR(dir.st_mode)))) {
+
+      if (mkdir(queue->dirpath, 0777) != 0) {
+
+        WARNF("Error creating queue directory");
+
+      };
+
+    }
 
   } else {
 
-    queue->dirpath = (char *)"";  // We are unsetting the directory path
+    memset(queue->dirpath, 0, PATH_MAX);  // We are unsetting the directory path
 
   }
 
   queue->save_to_files = true;
   // If the dirpath is empty, we make the save_to_files bool as false
-  if (!strcmp(queue->dirpath, "")) queue->save_to_files = false;
+  if (!queue->dirpath) { queue->save_to_files = false; }
 
 }
 

@@ -382,13 +382,13 @@ void test_queue_set_directory(void **state) {
   }
 
   /* Testing for an empty dirpath */
-  queue.funcs.set_directory(&queue, NULL);
+  queue.funcs.set_dirpath(&queue, NULL);
 
   assert_string_equal(queue.dirpath, "");
 
   /* Testing for normal directory */
   char *new_dirpath = "/some/dir";
-  queue.funcs.set_directory(&queue, new_dirpath);
+  queue.funcs.set_dirpath(&queue, new_dirpath);
 
   assert_string_equal(queue.dirpath, new_dirpath);
 
