@@ -5,7 +5,7 @@ ifdef DEBUG
   CFLAGS += -DDEBUG -g
 endif
 
-all:	libaflpp.so libaflpp.a example-fuzzer examples libaflfuzzer.a examples/libaflfuzzer-test
+all:	libaflpp.so libaflpp.a make-examples example-fuzzer libaflfuzzer.a examples/libaflfuzzer-test
 
 clean:
 	rm -f src/*.o examples/*.o
@@ -75,7 +75,7 @@ libaflpp.a: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzon
 	@rm -f libaflpp.a
 	ar -crs libaflpp.a src/*.o
 
-libaflfuzzer.a: libaflpp.a
+libaflfuzzer.a: libaflpp.a examples
 	@rm -f libaflpp.a
 	clang $(CFLAGS) -c -o examples/libaflfuzzer.o examples/libaflfuzzer.c
 	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
@@ -83,7 +83,8 @@ libaflfuzzer.a: libaflpp.a
 examples/libaflfuzzer-test:	libaflfuzzer.a
 	clang -fsanitize-coverage=trace-pc-guard -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o -pthread
 
-examples:
+.PHONY: make-examples
+make-examples:
 	make -C examples
 
 example-fuzzer: libaflpp.a
