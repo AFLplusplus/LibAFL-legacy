@@ -38,9 +38,6 @@ static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
 
 exit_type_t harness_func(u8 *input, size_t len) {
 
-  /* Setting up trace bits to zero before running the target */
-  memset(__afl_area_ptr, 0, MAP_SIZE);
-
   png_structp png_ptr =
       png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
@@ -60,8 +57,8 @@ exit_type_t harness_func(u8 *input, size_t len) {
 engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
 
   /* Let's create an in-memory executor */
-  in_memeory_executor_t *in_memory_executor =
-      calloc(1, sizeof(in_memeory_executor_t));
+  in_memory_executor_t *in_memory_executor =
+      calloc(1, sizeof(in_memory_executor_t));
   if (!in_memory_executor) { FATAL("%s", afl_ret_stringify(AFL_RET_ALLOC)); }
   in_memory_executor_init(in_memory_executor, harness_func);
 
@@ -75,6 +72,8 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
     FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC));
 
   }
+  /* Since we don't use map_channel_create function, we have to add reset function manually */
+  trace_bits_channel->base.funcs.reset = afl_map_channel_reset;
 
   trace_bits_channel->shared_map.map =
       __afl_area_ptr;  // Coverage "Map" we have

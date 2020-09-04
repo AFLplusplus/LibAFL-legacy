@@ -2,7 +2,6 @@
 
 #include <stdio.h>
 #include "aflpp.h"
-#include "png.h"
 
 extern u8 *__afl_area_ptr;
 
@@ -18,6 +17,16 @@ static u64             fuzz_workers_count;
 int                       LLVMFuzzerTestOneInput(const uint8_t, size_t);
 __attribute__((weak)) int LLVMFuzzerInitialize(int *argc, char ***argv);
 // TODO: we still have to put LLVMFuzzerInitialize here
+
+static afl_ret_t in_memory_fuzzer_start(executor_t * executor) {
+
+  in_memory_executor_t * in_memory_fuzzer = (in_memory_executor_t *)executor;
+
+  if ( LLVMFuzzerInitialize ) { LLVMFuzzerInitialize(&in_memory_fuzzer->argc, &in_memory_fuzzer->argv); }
+
+  return AFL_RET_SUCCESS;
+  
+}
 
 /* Function to register/add a fuzz worker (engine). To avoid race condition, add
  * mutex here(Won't be performance problem). */
@@ -41,14 +50,18 @@ static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
 
 }
 
-engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
+engine_t *initialize_fuzz_instance(int argc, char ** argv, char *in_dir, char *queue_dirpath) {
 
   /* Let's create an in-memory executor */
-  in_memeory_executor_t *in_memory_executor =
-      calloc(1, sizeof(in_memeory_executor_t));
+  in_memory_executor_t *in_memory_executor =
+      calloc(1, sizeof(in_memory_executor_t));
   if (!in_memory_executor) { FATAL("%s", afl_ret_stringify(AFL_RET_ALLOC)); }
   in_memory_executor_init(in_memory_executor,
                           (harness_function_type)LLVMFuzzerTestOneInput);
+
+  in_memory_executor->argc = argc;
+  in_memory_executor->argv = afl_argv_cpy_dup(argc, argv);
+  in_memory_executor->base.funcs.init_cb = in_memory_fuzzer_start;
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
@@ -61,7 +74,10 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
 
   }
 
-  trace_bits_channel->shared_map.map = __afl_area_ptr;  // Coverage map
+  /* Since we don't use map_channel_create function, we have to add reset function manually */
+  trace_bits_channel->base.funcs.reset = afl_map_channel_reset;
+
+  trace_bits_channel->shared_map.map =  __afl_area_ptr;  // Coverage map
   trace_bits_channel->shared_map.map_size = MAP_SIZE;
   trace_bits_channel->shared_map.shm_id =
       -1;  // Just a simple erronous value :)
@@ -237,7 +253,7 @@ int main(int argc, char **argv) {
 
   for (int i = 0; i < thread_count; ++i) {
 
-    engine_t *engine = initialize_fuzz_instance(in_dir, queue_dirpath);
+    engine_t *engine = initialize_fuzz_instance(argc, argv, in_dir, queue_dirpath);
 
     if (!llmp_broker_register_threaded_clientloop(
             llmp_broker, thread_run_instance, engine)) {

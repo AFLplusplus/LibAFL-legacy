@@ -208,7 +208,7 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
   queue->queue_entries[queue->size] = entry;
 
   /* Let's save the entry to disk */
-  if (queue->save_to_files && queue->dirpath) {
+  if (queue->save_to_files && queue->dirpath && !entry->on_disk) {
 
     u64 input_data_checksum =
         XXH64(entry->input->bytes, entry->input->len, HASH_CONST);
@@ -216,13 +216,9 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
     snprintf(entry->filename, FILENAME_LEN_MAX - 1, "%s/queue-%016llx",
              queue->dirpath, input_data_checksum);
 
-    if (entry->input->funcs.save_to_file(entry->input, entry->filename) !=
-        AFL_RET_SUCCESS) {
+    entry->input->funcs.save_to_file(entry->input, entry->filename);
 
-      WARNF("Error writing queue entry");
-      return;
-
-    };
+    entry->on_disk = true;
 
   }
 

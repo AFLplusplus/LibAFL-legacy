@@ -102,9 +102,8 @@ void afl_reset_observation_channel_default(executor_t *executor) {
   for (i = 0; i < executor->observors_num; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
-    if (obs_channel->funcs.post_exec) {
-
-      obs_channel->funcs.reset(executor->observors[i]);
+    if (obs_channel->funcs.reset) {
+      obs_channel->funcs.reset(obs_channel);
 
     }
 
@@ -356,7 +355,7 @@ exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
      must prevent any earlier operations from venturing into that
      territory. */
 
-  memset(fsrv->trace_bits, 0, fsrv->map_size);
+  // memset(fsrv->trace_bits, 0, fsrv->map_size);
 
   MEM_BARRIER();
 
@@ -428,13 +427,16 @@ exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
 
 /* An in-mem executor we have */
 
-void in_memory_executor_init(in_memeory_executor_t *in_memeory_executor,
+void in_memory_executor_init(in_memory_executor_t *in_memory_executor,
                              harness_function_type  harness) {
 
-  afl_executor_init(&in_memeory_executor->base);
-  in_memeory_executor->harness = harness;
-  in_memeory_executor->base.funcs.run_target_cb = in_memory_run_target;
-  in_memeory_executor->base.funcs.place_input_cb = in_mem_executor_place_input;
+  afl_executor_init(&in_memory_executor->base);
+  in_memory_executor->harness = harness;
+  in_memory_executor->argv = NULL;
+  in_memory_executor->argc = 0;
+
+  in_memory_executor->base.funcs.run_target_cb = in_memory_run_target;
+  in_memory_executor->base.funcs.place_input_cb = in_mem_executor_place_input;
   return;
 
 }
@@ -448,15 +450,15 @@ u8 in_mem_executor_place_input(executor_t *executor, raw_input_t *input) {
 
 exit_type_t in_memory_run_target(executor_t *executor) {
 
-  in_memeory_executor_t *in_memeory_executor =
-      (in_memeory_executor_t *)executor;
+  in_memory_executor_t *in_memory_executor =
+      (in_memory_executor_t *)executor;
 
-  raw_input_t *input = in_memeory_executor->base.current_input;
+  raw_input_t *input = in_memory_executor->base.current_input;
 
   u8 *data =
       (input->funcs.serialize) ? (input->funcs.serialize(input)) : input->bytes;
 
-  exit_type_t run_result = in_memeory_executor->harness(data, input->len);
+  exit_type_t run_result = in_memory_executor->harness(data, input->len);
 
   return run_result;
 
