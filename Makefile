@@ -77,7 +77,7 @@ libaflfuzzer.a: libaflpp.a
 	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
 
 examples/libaflfuzzer-test:	libaflfuzzer.a
-	clang -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o  -pthread
+	clang -fsanitize-coverage=trace-pc-guard -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o  -pthread
 
 examples:
 	make -C examples
