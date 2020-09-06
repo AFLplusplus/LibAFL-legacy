@@ -86,7 +86,7 @@ static exit_type_t fsrv_run_target_custom(executor_t *fsrv_executor) {
   if (fsrv->child_pid <= 0) { FATAL("Fork server is misbehaving (OOM?)"); }
 
   exec_ms =
-      read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, fsrv->exec_tmout);
+      afl_read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, fsrv->exec_tmout);
 
   /* Update the timeout observation channel */
   timeout_obs_channel_t *timeout_channel =

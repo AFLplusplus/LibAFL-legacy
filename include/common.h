@@ -29,9 +29,7 @@
 
 #include <pthread.h>
 #include <unistd.h>
-#if !defined(__linux__)
-  #include <sys/time.h>
-#endif
+#include <sys/time.h>
 
 #include "types.h"
 #include "alloc-inl.h"
@@ -83,23 +81,14 @@ static inline char **afl_argv_cpy_dup(int argc, char **argv) {
 }
 
 /* Get unix time in microseconds */
-#if !defined(__linux__)
-static u64 get_cur_time_us(void) {
+u64 afl_get_cur_time_us(void);
 
-  struct timeval  tv;
-  struct timezone tz;
-
-  gettimeofday(&tv, &tz);
-
-  return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
-
-}
-
-#endif
+/* Get unix time in seconds */
+u64 afl_get_cur_time(void);
 
 /* This function uses select calls to wait on a child process for given
  * timeout_ms milliseconds and kills it if it doesn't terminate by that time */
-static inline u32 read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
+static inline u32 afl_read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
 
   fd_set readfds;
   FD_ZERO(&readfds);

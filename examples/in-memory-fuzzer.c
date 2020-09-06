@@ -4,6 +4,13 @@
 #include "aflpp.h"
 #include "png.h"
 
+/* stats about the current run */
+typedef struct fuzzer_stats {
+
+  u64 queue_entry_count;
+
+} fuzzer_stats_t;
+
 extern u8 *__afl_area_ptr;
 
 llmp_broker_state_t *llmp_broker;
@@ -209,13 +216,18 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
 
 }
 
-void *run_broker_thread(void *data) {
+/* A hook to keep stats in the broker thread */
+bool message_hook(llmp_broker_state_t *broker, llmp_message_t *msg, void *data) {
 
-  (void)data;
-  llmp_broker_run(llmp_broker);
-  return 0;
+  (void)broker;
+  if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
+    ((fuzzer_stats_t *)data)->queue_entry_count++;
+  }
+  return true;
 
 }
+
+
 
 int main(int argc, char **argv) {
 
@@ -248,6 +260,9 @@ int main(int argc, char **argv) {
 
   OKF("Broker created now");
 
+  fuzzer_stats_t fuzzer_stats = {0};
+  llmp_broker_add_message_hook(llmp_broker, message_hook, &fuzzer_stats);
+
   for (int i = 0; i < thread_count; ++i) {
 
     engine_t *engine = initialize_fuzz_instance(in_dir, queue_dirpath);
@@ -257,7 +272,7 @@ int main(int argc, char **argv) {
 
       FATAL("Error registering client");
 
-    };
+    }
 
     if (afl_register_fuzz_worker(engine) != AFL_RET_SUCCESS) {
 
@@ -274,32 +289,32 @@ int main(int argc, char **argv) {
 
   dup2(dev_null_fd, 2);
 
-  pthread_t p1;
+  u64 time_prev = 0;
+  u64 time_initial = afl_get_cur_time();
+  u64 time_cur = time_initial;
 
-  int s = pthread_create(&p1, NULL, run_broker_thread, NULL);
+  llmp_broker_launch_clientloops(llmp_broker);
 
-  if (!s) { OKF("Broker started running"); }
-
-  u64 time_elapsed = 1;
+  OKF("Clients started running");
 
   while (1) {
 
-    sleep(1);
-    u64 execs = 0;
-    u64 crashes = 0;
-    for (size_t i = 0; i < fuzz_workers_count; ++i) {
+    /* Forward all messages that arrived in the meantime */
+    llmp_broker_once(llmp_broker);
+    usleep(50);
 
-      execs += registered_fuzz_workers[i]->executions;
-      crashes += registered_fuzz_workers[i]->crashes;
+    /* Paint ui every few seconds */
+    if ((time_cur = afl_get_cur_time()) > time_prev + 3) {
+
+      u64 time_elapsed = time_cur - time_initial;
+
+      /* TODO: Send heartbeat messages from clients for more stats :) */
+
+      SAYF("Paths: %llu, time elapsed: %8llu\r", fuzzer_stats.queue_entry_count, time_elapsed / 1000);
+
+      fflush(stdout);
 
     }
-
-    SAYF(
-        "Execs: %8llu\tCrashes: %4llu\tExecs per second: %5llu  time elapsed: "
-        "%8llu\r",
-        execs, crashes, execs / time_elapsed, time_elapsed);
-    time_elapsed++;
-    fflush(0);
 
   }
 

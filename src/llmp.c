@@ -122,7 +122,7 @@ typedef struct llmp_payload_new_page {
 /* We need at least this much space at the end of each page to notify about the
  * next page/restart */
 #define LLMP_MSG_END_OF_PAGE_LEN \
-  (sizeof(llmp_message_t) + sizeof(llmp_payload_new_page_t))
+  (llmp_align(sizeof(llmp_message_t) + sizeof(llmp_payload_new_page_t)))
 
 /* If a msg is contained in the current page */
 bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg) {
@@ -137,6 +137,14 @@ static inline llmp_page_t *shmem2page(afl_shmem_t *afl_shmem) {
 
   return (llmp_page_t *)afl_shmem->map;
 
+}
+
+/* allign to LLMP_ALIGNNMENT bytes */
+static inline size_t llmp_align(size_t to_align) {
+  if (LLMP_ALIGNMENT == 0 || (to_align % LLMP_ALIGNMENT == 0)) {
+    return to_align;
+  }
+  return to_align + (LLMP_ALIGNMENT - (to_align % LLMP_ALIGNMENT));
 }
 
 /* In case we don't have enough space, make sure the next page will be large
@@ -276,7 +284,7 @@ llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
 llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
                                 size_t buf_len) {
 
-  size_t complete_msg_size = sizeof(llmp_message_t) + buf_len;
+  size_t complete_msg_size = llmp_align(sizeof(llmp_message_t) + buf_len);
 
   /* In case we don't have enough space, make sure the next page will be large
    * enough */
@@ -308,6 +316,10 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
     /* We start fresh */
     ret = page->messages;
+    /* The initial message may not be alligned, so we at least align the end of it.
+    Technically, size_t can be smaller than a pointer, then who knows what happens */
+    size_t base_addr = (size_t)ret;
+    buf_len = llmp_align(base_addr + buf_len) - base_addr;
     /* We need to start with 1 for ids, as current message id is initialized
      * with 0... */
     ret->message_id = last_msg ? last_msg->message_id + 1 : 1;
@@ -634,6 +646,7 @@ static inline void llmp_broker_handle_new_msgs(
               pageinfo->shm_str);
 
       }
+      client->client_type = LLMP_CLIENT_TYPE_FOREIGN_PROCESS;
 
       /* find client again */
       client = &broker->llmp_clients[client_id];
@@ -735,9 +748,32 @@ bool llmp_broker_launch_clientloops(llmp_broker_state_t *broker) {
 
   size_t i;
 
+  /* We never want pthread clients before we fork, libraries may do mutexes, etc... */
   for (i = 0; i < broker->llmp_client_count; i++) {
 
-    if (broker->llmp_clients[i].pthread != NULL) {
+    if (broker->llmp_clients[i].client_type == LLMP_CLIENT_TYPE_CHILD_PROCESS) {
+      int child_id = fork();
+      if (child_id < 0) {
+        PFATAL("Could not fork");
+      } else if (child_id == 0) {
+        /* in the child, start loop, exit afterwards. */
+        DBG("LLMP child process started");
+        _llmp_client_wrapped_loop(&broker->llmp_clients[i]);
+        DBG("Fork child loop exited");
+        exit(1);
+      } else {
+
+        broker->llmp_clients[i].pid=child_id;
+
+      }
+    }
+
+  }
+
+  /* Now spawn pthread clients */
+  for (i = 0; i < broker->llmp_client_count; i++) {
+
+    if (broker->llmp_clients[i].client_type == LLMP_CLIENT_TYPE_PTHREAD) {
 
       /* Got a pthread -> threaded client. Spwan. :) */
       int s =
@@ -1246,7 +1282,59 @@ error:
 
 }
 
-/* Client thread will be called with llmp_client_state_t client, containing
+/* Register a new forked/child client.
+Client thread will be called with llmp_client_state_t client, containing
+the data in ->data. This will register a client to be spawned up as soon as
+broker_loop() starts. Clients can also be added later via
+llmp_broker_register_remote(..) or the local_tcp_client
+*/
+bool llmp_broker_register_childprocess_clientloop(llmp_broker_state_t *broker,
+                                              llmp_clientloop_func clientloop,
+                                              void *               data) {
+                                              
+  
+  afl_shmem_t client_map = {.map = NULL};
+
+  if (!llmp_new_page_shmem(&client_map, broker->llmp_client_count,
+                           LLMP_INITIAL_MAP_SIZE)) {
+
+    DBG("Failed to set up shmem for new client.");
+    return false;
+
+  }
+
+  llmp_broker_client_metadata_t *client = llmp_broker_register_client(
+      broker, client_map.shm_str, client_map.map_size);
+  if (!client) {
+
+    DBG("Could not register threaded client");
+    afl_shmem_deinit(&client_map);
+    return false;
+
+  }
+
+  client->clientloop = clientloop;
+  client->data = data;
+  client->client_type = LLMP_CLIENT_TYPE_CHILD_PROCESS;
+
+  memcpy(client->client_state->out_maps, &client_map, sizeof(afl_shmem_t));
+  client->client_state->out_map_count = 1;
+
+  /* Each client starts with the very first map.
+  They should then iterate through all maps once and work on all old messages.
+  */
+  client->client_state->current_broadcast_map = &broker->broadcast_maps[0];
+  client->client_state->out_map_count = 1;
+
+  DBG("Registered threaded client with id %d (loop func at %p)",
+      client->client_state->id, client->clientloop);
+
+  return true;
+
+}
+
+/* Register a new pthread/threaded client.
+Client thread will be called with llmp_client_state_t client, containing
 the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
@@ -1292,6 +1380,7 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
   client->clientloop = clientloop;
   client->data = data;
   client->pthread = pthread;
+  client->client_type = LLMP_CLIENT_TYPE_PTHREAD;
 
   /* Copy the already allocated shmem to the client state */
   if (!afl_realloc((void *)&client->client_state->out_maps,

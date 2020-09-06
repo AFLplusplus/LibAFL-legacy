@@ -200,6 +200,25 @@ u8 *afl_shmem_by_str(afl_shmem_t *shm, char *shm_str, size_t map_size) {
 
 }
 
+/* Get unix time in microseconds */
+inline u64 afl_get_cur_time_us(void) {
+
+  struct timeval  tv;
+  struct timezone tz;
+
+  gettimeofday(&tv, &tz);
+
+  return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
+
+}
+
+/* Get unix time in seconds */
+u64 afl_get_cur_time(void) {
+
+  return afl_get_cur_time_us() / 1000;
+
+}
+
 /* Few helper functions */
 
 void *afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len,

@@ -62,6 +62,9 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 /* We'll start of with a megabyte of maps for now(?) */
 #define LLMP_INITIAL_MAP_SIZE (1 << 20)
 
+/* What byte count llmp messages should be aligned to */
+#define LLMP_ALIGNMENT (64)
+
 /* llmp tags */
 #define LLMP_TAG_NEW_QUEUE_ENTRY (0xA1B2C3D)
 
@@ -148,13 +151,27 @@ typedef void (*llmp_clientloop_func)(llmp_client_state_t *client_state,
 If return is false, message will not be delivered to clients.
 This is synchronous, if you need long-running message handlers, register a
 client instead. */
-typedef bool (*llmp_message_hook_func)(llmp_broker_state_t *broker,
+typedef bool (llmp_message_hook_func)(llmp_broker_state_t *broker,
                                        llmp_message_t *msg, void *data);
+
+enum LLMP_CLIENT_TYPE {
+  /* Unknown type, no special handling needed */
+  LLMP_CLIENT_TYPE_UNKNOWN,
+  /* threaded client */
+  LLMP_CLIENT_TYPE_PTHREAD,
+  /* child process */
+  LLMP_CLIENT_TYPE_CHILD_PROCESS,
+  /* foreign process, with shared local shmap */
+  LLMP_CLIENT_TYPE_FOREIGN_PROCESS,
+};
 
 /* For the broker, internal: to keep track of the client */
 typedef struct llmp_broker_client_metadata {
 
-  /* infos about this client */
+  /* client type */
+  enum LLMP_CLIENT_TYPE client_type;
+
+  /* further infos about this client */
   llmp_client_state_t *client_state;
 
   /* The client map we're currently reading from */
@@ -167,6 +184,8 @@ typedef struct llmp_broker_client_metadata {
 
   /* pthread associated to this client, if we have a threaded client */
   pthread_t *pthread;
+  /* process ID, if the client is a process */
+  int pid;
   /* the client loop function */
   llmp_clientloop_func clientloop;
   /* Additional data for this client loop */
@@ -252,6 +271,16 @@ void llmp_clientloop_tcp(llmp_client_state_t *client_state, void *data);
 /* Allocate and set up the new broker instance. Afterwards, run with broker_run.
  */
 llmp_broker_state_t *llmp_broker_new();
+
+/* Register a new forked/child client.
+Client thread will be called with llmp_client_state_t client, containing
+the data in ->data. This will register a client to be spawned up as soon as
+broker_loop() starts. Clients can also be added later via
+llmp_broker_register_remote(..) or the local_tcp_client
+*/
+bool llmp_broker_register_childprocess_clientloop(llmp_broker_state_t *broker,
+                                              llmp_clientloop_func clientloop,
+                                              void *               data);
 
 /* Client thread will be called with llmp_client_state_t client, containing the
 data in ->data. This will register a client to be spawned up as soon as

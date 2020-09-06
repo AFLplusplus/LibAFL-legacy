@@ -1,11 +1,11 @@
-CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 # -O3 -fno-omit-frame-pointer -fstack-protector-strong -fsanitize=address -DLLMP_DEBUG=1
-LDFLAGS += -shared
+CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 -fno-omit-frame-pointer -fstack-protector-strong -fsanitize=address #-DLLMP_DEBUG=1
+LDFLAGS += -fsanitize=address
 
 ifdef DEBUG
   CFLAGS += -DDEBUG -g
 endif
 
-all:	libaflpp.so libaflpp.a example-fuzzer examples libaflfuzzer.a examples/libaflfuzzer-test
+all:	libaflpp.so libaflpp.a example-fuzzer examples libaflfuzzer.a
 
 clean:
 	rm -f src/*.o examples/*.o
@@ -69,7 +69,7 @@ aflpp.o: ./src/aflpp.c ./include/aflpp.h ./src/observationchannel.o ./src/input.
 	$(CC) $(CFLAGS) ./src/aflpp.c -c -o aflpp.o
 
 libaflpp.so: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
-	$(CC) $(CFLAGS) $(LDFLAGS) ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o -o libaflpp.so
+	$(CC) $(CFLAGS) $(LDFLAGS) -shared ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o -o libaflpp.so
 
 libaflpp.a: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
 	@rm -f libaflpp.a
@@ -77,7 +77,7 @@ libaflpp.a: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzon
 
 libaflfuzzer.a: libaflpp.a
 	@rm -f libaflpp.a
-	clang $(CFLAGS) -c -o examples/libaflfuzzer.o examples/libaflfuzzer.c
+	clang $(CFLAGS) $(LDFLAGS) -c -o examples/libaflfuzzer.o examples/libaflfuzzer.c
 	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
 
 examples/libaflfuzzer-test:	libaflfuzzer.a
