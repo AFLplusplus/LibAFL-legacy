@@ -45,3 +45,9 @@ in-mem
 testcase
 test/unit_llmp
 test/unit_test
+
+
+example-fuzzer
+examples/in-memory-fuzzer
+llvm.prof
+out
