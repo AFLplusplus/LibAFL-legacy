@@ -1,5 +1,5 @@
 CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3  -fstack-protector-strong #-fsanitize=address #-DLLMP_DEBUG=1 -fno-omit-frame-pointer
-#LDFLAGS += -shared #-fsanitize=address
+LDFLAGS += #-shared #-fsanitize=address
 
 ifdef DEBUG
   CFLAGS += -DDEBUG -g
@@ -46,6 +46,8 @@ feedback.o: ./src/feedback.c ./include/feedback.h ./src/common.o ./src/queue.o
 fuzzone.o: ./src/fuzzone.c ./include/fuzzone.h ./src/common.o
 	$(CC) $(CFLAGS) ./src/fuzzone.c -c -o fuzzone.o
 
+shmem.o: ./src/shmem.c ./include/afl-shmem.h
+	$(CC) $(CFLAGS) ./src/shmem.c -c -o shmem.o
 
 # Compiling the Stage library
 stage.o: ./src/stage.c ./include/stage.h ./src/input.o
@@ -68,10 +70,10 @@ llmp.o: ./src/llmp.c ./include/llmp.h
 aflpp.o: ./src/aflpp.c ./include/aflpp.h ./src/observationchannel.o ./src/input.observation
 	$(CC) $(CFLAGS) ./src/aflpp.c -c -o aflpp.o
 
-libaflpp.so: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
+libaflpp.so: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o ./src/shmem.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -shared ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o -o libaflpp.so
 
-libaflpp.a: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o
+libaflpp.a: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o ./src/shmem.o
 	@rm -f libaflpp.a
 	ar -crs libaflpp.a src/*.o
 
@@ -81,14 +83,14 @@ libaflfuzzer.a: libaflpp.a examples
 	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
 
 examples/libaflfuzzer-test:	libaflfuzzer.a
-	clang -fsanitize-coverage=trace-pc-guard -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o -pthread
+	clang -fsanitize-coverage=trace-pc-guard -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o -pthread $(LDFLAGS) -lrt
 
 .PHONY: make-examples
 make-examples:
 	$(MAKE) -C examples
 
 example-fuzzer: libaflpp.a
-	$(CC) $(CFLAGS) -o example-fuzzer ./examples/executor.c libaflpp.a -pthread
+	$(CC) $(CFLAGS) -o example-fuzzer ./examples/executor.c libaflpp.a -pthread $(LDFLAGS) -lrt
 
 code-format:
 	./.custom-format.py -i src/*.c

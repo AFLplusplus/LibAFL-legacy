@@ -1,21 +1,21 @@
 MAKEFILE_PATH := $(abspath .)
 AFL_DIR:=$(realpath $(MAKEFILE_PATH)/../../)
 AFL_CC:=$(AFL_DIR)/AFLplusplus/afl-clang
-CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -laflpp -lm -Wall -Wextra -Wshadow -Werror -Wno-unused-parameter -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong -fsanitize=address 
+CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include -laflpp -lm -Wall -Wextra -Wshadow -Werror -fno-omit-frame-pointer -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong -fsanitize=address 
 
 all: test
 
 unit_test.o: ./unit_test.c
-	$(CC) ./unit_test.c -o ./unit_test -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS)
+	$(CC) ./unit_test.c -o ./unit_test.o -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
 
 unit_test:	unit_test.o
-	$(CC) ./unit_test.c -o ./unit_test -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS)
+	$(CC) ./unit_test.o -o ./unit_test -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
 
 unit_llmp.: ./unit_llmp.c
-	$(CC) ./unit_llmp.c -o ./unit_llmp.o -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS)
+	$(CC) ./unit_llmp.c -o ./unit_llmp.o -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
 
 unit_llmp: unit_llmp.o
-	$(CC) ./unit_llmp.o -o ./unit_llmp -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS)
+	$(CC) ./unit_llmp.o -o ./unit_llmp -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
 
 test: unit_test unit_llmp
 	make -C ..
@@ -25,5 +25,5 @@ test: unit_test unit_llmp
 
 clean:
 	rm -rf ./testcases || true
-	rm unit_test
-	rm unit_llmp
+	rm unit_test || true
+	rm unit_llmp || true
