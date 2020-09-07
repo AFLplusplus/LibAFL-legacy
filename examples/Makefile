@@ -1,5 +1,5 @@
 MAKEFILE_PATH := $(abspath .)
-AFL_PATH ?= $(realpath $(MAKEFILE_PATH)/AFLplusplus)
+AFL_PATH ?= $(MAKEFILE_PATH)/AFLplusplus
 AFL_CC := $(AFL_PATH)/afl-clang-fast
 CFLAGS += -g -L.. -I../include -I$(AFL_PATH)/include -lm -Wall -Wextra -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong -fsanitize=address -fno-omit-frame-pointer 
 LDFLAGS += ../libaflpp.a -lpthread -lm -fsanitize=address
@@ -9,35 +9,34 @@ $(info AFL_PATH is $(AFL_PATH))
 
 all: target executor in-memory-fuzzer
 
-lib:
-	make -C ..
-	make -C .. libaflpp.a
+$(AFL_PATH)/llvm_mode/afl-llvm-rt.c:
+	-git submodule init 2> /dev/null
+	-git submodule update 2> /dev/null
+	test -d $(AFL_PATH) || git clone https://github.com/$(AFL_PATH)/AFLplusplus
+	cd AFLplusplus && git stash && git pull && git checkout dev
+	$(MAKE) -C $(AFL_PATH)
+	$(MAKE) -C $(AFL_PATH)/llvm_mode
 
-afl:
-	-git submodule init
-	-git submodule update
-	test -d $(AFL_PATH) || git clone https://github.com/AFLplusplus/AFLplusplus
-	make -C $(AFL_PATH)
-	make -C $(AFL_PATH)/llvm_mode
+$(AFL_PATH)/afl-llvm-rt.o:	$(AFL_PATH)/llvm_mode/afl-llvm-rt.c
 
 libpng-1.6.37.tar.gz:
 	wget -c $(LIBPNG_URL) -O libpng-1.6.37.tar.gz
 
 libpng16.a:	libpng-1.6.37.tar.gz
 	tar -xvzf ./libpng-1.6.37.tar.gz || rm -f ./libpng-1.6.37.tar.gz
-	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure --disable-shared && make
+	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure --disable-shared && $(MAKE)
 	cp libpng-1.6.37/.libs/libpng16.a ./
 
-target: afl ./target.c
+target: $(AFL_PATH)/afl-llvm-rt.o ./target.c
 	$(AFL_CC) -g target.c -o target
 
-executor: lib ./executor.c
+executor: ./executor.c
 	$(CC) $(CFLAGS) executor.c -o executor $(LDFLAGS)
 
-llmp-main: lib ./llmp-main.c
+llmp-main: ./llmp-main.c
 	$(CC) $(CFLAGS) llmp-main.c -o llmp-main $(LDFLAGS)
 
-in-memory-fuzzer: lib libpng16.a afl in-memory-fuzzer.c
+in-memory-fuzzer: libpng16.a $(AFL_PATH)/afl-llvm-rt.o in-memory-fuzzer.c
 	clang in-memory-fuzzer.c ./libpng16.a -g $(CFLAGS) -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -o in-memory-fuzzer $(AFL_PATH)/afl-llvm-rt.o $(LDFLAGS) -lz
 
 test: clean executor target
