@@ -1,8 +1,8 @@
 MAKEFILE_PATH := $(abspath .)
 AFL_PATH ?= $(MAKEFILE_PATH)/AFLplusplus
 AFL_CC := $(AFL_PATH)/afl-clang-fast
-CFLAGS += -g -L.. -I../include -I$(AFL_PATH)/include -lm -Wall -Wextra -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong -fsanitize=address -fno-omit-frame-pointer 
-LDFLAGS += ../libaflpp.a -lpthread -lm -fsanitize=address
+CFLAGS += -g -L.. -I../include -I$(AFL_PATH)/include -lm -Wall -Wextra -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong #-fsanitize=address -fno-omit-frame-pointer 
+LDFLAGS += ../libaflpp.a -lpthread -lm
 LIBPNG_URL = http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?download
 
 $(info AFL_PATH is $(AFL_PATH))
@@ -13,7 +13,6 @@ $(AFL_PATH)/llvm_mode/afl-llvm-rt.c:
 	-git submodule init 2> /dev/null
 	-git submodule update 2> /dev/null
 	test -d $(AFL_PATH) || git clone https://github.com/$(AFL_PATH)/AFLplusplus
-	cd AFLplusplus && git stash && git pull && git checkout dev
 	$(MAKE) -C $(AFL_PATH)
 	$(MAKE) -C $(AFL_PATH)/llvm_mode
 

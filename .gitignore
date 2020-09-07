@@ -51,3 +51,4 @@ example-fuzzer
 examples/in-memory-fuzzer
 llvm.prof
 out
+libaflfuzzer-test

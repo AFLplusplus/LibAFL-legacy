@@ -1,5 +1,5 @@
-CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 -fno-omit-frame-pointer -fstack-protector-strong -fsanitize=address #-DLLMP_DEBUG=1
-LDFLAGS += -fsanitize=address
+CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3  -fstack-protector-strong #-fsanitize=address #-DLLMP_DEBUG=1 -fno-omit-frame-pointer
+#LDFLAGS += -shared #-fsanitize=address
 
 ifdef DEBUG
   CFLAGS += -DDEBUG -g
