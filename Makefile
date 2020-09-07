@@ -1,8 +1,15 @@
-CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3  -fstack-protector-strong #-fsanitize=address #-DLLMP_DEBUG=1 -fno-omit-frame-pointer
+override CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fstack-protector-strong #-fsanitize=address #-DLLMP_DEBUG=1 -fno-omit-frame-pointer
 LDFLAGS += #-shared #-fsanitize=address
 
 ifdef DEBUG
-  CFLAGS += -DDEBUG -g
+  override CFLAGS += -DDEBUG -ggdb -Og
+endif
+ifndef DEBUG
+  override CFLAGS += -D_FORTIFY_SOURCE=2 -O3
+endif
+ifdef ASAN
+  override CFLAGS += -fsanitize=address
+  override LDFLAGS += -fsanitize=address
 endif
 
 all:	libaflpp.so libaflpp.a make-examples example-fuzzer libaflfuzzer.a examples/libaflfuzzer-test

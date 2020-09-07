@@ -49,7 +49,7 @@ int        __wrap_printf(const char *format, ...) {
 
 #include "llmp.h"
 
-static void test_llmp_client(void **state) {
+static inline void test_llmp_client(void **state) {
 
   (void)state;
 
@@ -62,13 +62,34 @@ static void test_llmp_client(void **state) {
 
 }
 
+static void test_client_eop(void **state) {
+
+  (void)state;
+
+  llmp_client_state_t *client = llmp_client_new_unconnected();
+
+  u32 i;
+  for (i = 0; i < 5000; i++) {
+
+    llmp_message_t *last_msg = llmp_client_alloc_next(client, LLMP_INITIAL_MAP_SIZE / 3);
+    assert(last_msg && "Last_msg was null :(");
+    last_msg->tag = 0x7357;
+    llmp_client_send(client, last_msg);
+
+  }
+
+  llmp_client_destroy(client);
+
+}
+
 int main(int argc, char **argv) {
 
   (void)argc;
   (void)argv;
   const struct CMUnitTest tests[] = {
 
-      cmocka_unit_test(test_llmp_client),
+      //cmocka_unit_test(test_llmp_client),
+      cmocka_unit_test(test_client_eop),
 
   };
 

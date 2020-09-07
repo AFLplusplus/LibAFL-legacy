@@ -81,7 +81,6 @@ typedef struct llmp_message {
   u32 sender;
   /* unique id for this msg */
   u32 message_id;
-
   /* the length of the payload */
   size_t buf_len;
   /* the actual content (syntax needs c99) */
