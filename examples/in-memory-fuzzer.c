@@ -4,10 +4,13 @@
 #include "aflpp.h"
 #include "png.h"
 
+#define LLMP_TAG_EXEC_STATS 0x30
+
 /* stats about the current run */
 typedef struct fuzzer_stats {
 
   u64 queue_entry_count;
+  u64 total_execs;
 
 } fuzzer_stats_t;
 
@@ -58,6 +61,65 @@ exit_type_t harness_func(u8 *input, size_t len) {
   png_process_data(png_ptr, info_ptr, input, len);
 
   return NORMAL;
+
+}
+
+u8 execute_default(engine_t *engine, raw_input_t *input) {
+
+  size_t      i;
+  executor_t *executor = engine->executor;
+
+  executor->funcs.reset_observation_channels(executor);
+
+  executor->funcs.place_input_cb(executor, input);
+
+  if (engine->start_time == 0) { engine->start_time = time(NULL); }
+
+  exit_type_t run_result = executor->funcs.run_target_cb(executor);
+
+  engine->executions++;
+
+  /* We've run the target with the executor, we can now simply postExec call the
+   * observation channels*/
+
+  if (engine->executions % 100000) {
+
+    llmp_client_state_t *llmp_client = engine->llmp_client;
+    llmp_message_t *msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
+    msg->tag = LLMP_TAG_EXEC_STATS;
+    ((u8 *)msg->buf)[0] = engine->executions;
+    llmp_client_send(llmp_client, msg);
+
+  }
+
+  for (i = 0; i < executor->observors_num; ++i) {
+
+    observation_channel_t *obs_channel = executor->observors[i];
+    if (obs_channel->funcs.post_exec) {
+
+      obs_channel->funcs.post_exec(executor->observors[i], engine);
+
+    }
+
+  }
+
+  // Now based on the return of executor's run target, we basically return an
+  // afl_ret_t type to the callee
+
+  switch (run_result) {
+
+    case NORMAL:
+    case TIMEOUT:
+      return AFL_RET_SUCCESS;
+    default: {
+
+      engine->crashes++;
+      dump_crash_to_file(executor->current_input, engine);  // Crash written
+      return AFL_RET_WRITE_TO_CRASH;
+
+    }
+
+  }
 
 }
 
@@ -119,6 +181,7 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
   engine->funcs.add_feedback(engine, (feedback_t *)coverage_feedback);
   engine->funcs.set_global_queue(engine, global_queue);
   engine->in_dir = in_dir;
+  engine->funcs.execute = execute_default;
 
   fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
@@ -222,6 +285,8 @@ bool message_hook(llmp_broker_state_t *broker, llmp_message_t *msg, void *data) 
   (void)broker;
   if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
     ((fuzzer_stats_t *)data)->queue_entry_count++;
+  } else if (msg->tag == LLMP_TAG_EXEC_STATS) {
+    ((fuzzer_stats_t *)data)->total_execs += 100000;
   }
   return true;
 
@@ -310,7 +375,7 @@ int main(int argc, char **argv) {
 
       /* TODO: Send heartbeat messages from clients for more stats :) */
 
-      SAYF("Paths: %llu, time elapsed: %8llu\r", fuzzer_stats.queue_entry_count, time_elapsed / 1000);
+      SAYF("Execs: %llu\t Paths: %llu\t time elapsed: %8llu\r",fuzzer_stats.total_execs, fuzzer_stats.queue_entry_count, time_elapsed / 1000);
 
       fflush(stdout);
 
