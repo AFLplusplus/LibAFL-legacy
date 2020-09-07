@@ -23,6 +23,7 @@ extern void mock_assert(const int result, const char *const expression,
   mock_assert((int)(expression), #expression, __FILE__, __LINE__);
 
 #include "common.h"
+#include "afl-shmem.h"
 #include "aflpp.h"
 
 /* remap exit -> assert, then use cmocka's mock_assert
@@ -32,6 +33,7 @@ extern void __real_exit(int status);
 void        __wrap_exit(int status);
 void        __wrap_exit(int status) {
 
+  (void)status;
   assert(0);
 
 }
@@ -43,6 +45,7 @@ extern int __real_printf(const char *format, ...);
 int        __wrap_printf(const char *format, ...);
 int        __wrap_printf(const char *format, ...) {
 
+  (void)format;
   return 1;
 
 }
@@ -103,6 +106,7 @@ static void test_erase_bytes(void **state) {
 #include "input.h"
 
 void test_input_copy(void **state) {
+  (void)state;
 
   raw_input_t input;
   afl_input_init(&input);
@@ -186,6 +190,9 @@ void test_input_save_to_file(void **state) {
 #include <fcntl.h>
 
 u8 engine_mock_execute(engine_t *engine, raw_input_t *input) {
+
+  (void)engine;
+  (void)input;
 
   return AFL_RET_SUCCESS;
 
@@ -371,6 +378,7 @@ void test_basic_mutator_functions(void **state) {
 #include "queue.h"
 
 void test_queue_set_directory(void **state) {
+  (void)state;
 
   base_queue_t queue;
   afl_ret_t    ret;
@@ -440,6 +448,8 @@ void test_base_queue_get_next(void **state) {
 }
 
 int main(int argc, char **argv) {
+  (void)argc;
+  (void)argv;
 
   const struct CMUnitTest tests[] = {
 
