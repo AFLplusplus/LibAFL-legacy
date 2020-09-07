@@ -30,6 +30,7 @@ extern void __real_exit(int status);
 void        __wrap_exit(int status);
 void        __wrap_exit(int status) {
 
+  (void)status;
   assert(0);
 
 }
@@ -41,6 +42,7 @@ extern int __real_printf(const char *format, ...);
 int        __wrap_printf(const char *format, ...);
 int        __wrap_printf(const char *format, ...) {
 
+  (void)format;
   return 1;
 
 }
@@ -48,6 +50,8 @@ int        __wrap_printf(const char *format, ...) {
 #include "llmp.h"
 
 static void test_llmp_client(void **state) {
+
+  (void)state;
 
   llmp_client_state_t *client = llmp_client_new_unconnected();
   llmp_client_alloc_next(client, LLMP_INITIAL_MAP_SIZE + 10);
@@ -60,6 +64,8 @@ static void test_llmp_client(void **state) {
 
 int main(int argc, char **argv) {
 
+  (void)argc;
+  (void)argv;
   const struct CMUnitTest tests[] = {
 
       cmocka_unit_test(test_llmp_client),

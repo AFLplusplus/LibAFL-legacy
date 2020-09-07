@@ -5,17 +5,11 @@ CFLAGS+=-g -L$(AFL_DIR)/LibAFL -I$(AFL_DIR)/LibAFL/include -I$(AFL_DIR)/include 
 
 all: test
 
-unit_test.o: ./unit_test.c
-	$(CC) ./unit_test.c -o ./unit_test.o -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
+unit_test: ./unit_test.c
+	$(CC) ./unit_test.c -o ./unit_test -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
 
-unit_test:	unit_test.o
-	$(CC) ./unit_test.o -o ./unit_test -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
-
-unit_llmp.: ./unit_llmp.c
-	$(CC) ./unit_llmp.c -o ./unit_llmp.o -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
-
-unit_llmp: unit_llmp.o
-	$(CC) ./unit_llmp.o -o ./unit_llmp -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
+unit_llmp: ./unit_llmp.c
+	$(CC) ./unit_llmp.c -o ./unit_llmp -Wl,--wrap=exit -Wl,--wrap=printf -lcmocka $(CFLAGS) -lrt
 
 test: unit_test unit_llmp
 	make -C ..

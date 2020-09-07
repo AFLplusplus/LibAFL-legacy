@@ -71,11 +71,11 @@ aflpp.o: ./src/aflpp.c ./include/aflpp.h ./src/observationchannel.o ./src/input.
 	$(CC) $(CFLAGS) ./src/aflpp.c -c -o aflpp.o
 
 libaflpp.so: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o ./src/shmem.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -shared ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o -o libaflpp.so
+	$(CC) $(CFLAGS) $(LDFLAGS) -shared $^ -o libaflpp.so
 
 libaflpp.a: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o ./src/shmem.o
 	@rm -f libaflpp.a
-	ar -crs libaflpp.a src/*.o
+	ar -crs libaflpp.a $^
 
 libaflfuzzer.a: libaflpp.a examples
 	@rm -f libaflpp.a
