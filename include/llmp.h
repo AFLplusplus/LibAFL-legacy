@@ -59,8 +59,8 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 #include "afl-shmem.h"  // for sharedmem
 #include "types.h"
 
-/* We'll start of with 64 megabyte per fuzzer */
-#define LLMP_INITIAL_MAP_SIZE (1 << 26)
+/* We'll start of with 256 megabyte per fuzzer */
+#define LLMP_INITIAL_MAP_SIZE (1 << 28)
 
 /* What byte count llmp messages should be aligned to */
 #define LLMP_ALIGNMENT (64)
