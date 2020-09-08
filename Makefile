@@ -1,5 +1,4 @@
-override CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fstack-protector-strong -fsanitize=address -DLLMP_DEBUG=1
-LDFLAGS += -fsanitize=address
+override CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fstack-protector-strong -DLLMP_DEBUG=1
 
 ifdef DEBUG
   override CFLAGS += -DDEBUG -ggdb -Og
@@ -8,7 +7,7 @@ ifndef DEBUG
   override CFLAGS += -D_FORTIFY_SOURCE=2 -O3
 endif
 ifdef ASAN
-  override CFLAGS += -fsanitize=address
+  override CFLAGS += -fsanitize=address -fno-omit-frame-pointer
   override LDFLAGS += -fsanitize=address
 endif
 
@@ -87,7 +86,7 @@ examples/libaflfuzzer-test:	libaflfuzzer.a
 
 .PHONY: make-examples
 make-examples:
-	$(MAKE) -C examples
+	$(MAKE) -C examples "CFLAGS=$(CFLAGS)" "LDFLAGS=$(LDFLAGS)"
 
 example-fuzzer: libafl.a
 	$(CC) $(CFLAGS) -o example-fuzzer examples/executor.c libafl.a -pthread $(LDFLAGS) -lrt
