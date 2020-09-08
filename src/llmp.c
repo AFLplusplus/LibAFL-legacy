@@ -417,31 +417,32 @@ llmp_page_t *llmp_new_page_shmem(afl_shmem_t *uninited_afl_shmem, size_t sender,
 
 /* This function handles EOP by creating a new shared page and informing the
   listener about it using a EOP message. */
-static afl_ret_t llmp_handle_out_eop(afl_shmem_t **maps_p, size_t *map_count_p,
+static afl_shmem_t *llmp_handle_out_eop(afl_shmem_t *maps, size_t *map_count_p,
                                      llmp_message_t **last_msg_p) {
 
   u32          map_count = *map_count_p;
-  llmp_page_t *old_map = shmem2page(maps_p[map_count - 1]);
+  llmp_page_t *old_map = shmem2page(&maps[map_count - 1]);
 
-  if (!(*maps_p = afl_realloc((void *)*maps_p, (map_count + 1) * sizeof(afl_shmem_t)))) {
+  if (!(maps = afl_realloc((void *)maps, (map_count + 1) * sizeof(afl_shmem_t)))) {
 
     DBG("Unable to alloc space for broker map");
-    return AFL_RET_ALLOC;
+    return NULL;
 
   }
 
   /* Broadcast a new, large enough, message. Also sorry for that c ptr stuff! */
   llmp_page_t *new_map =
-      llmp_new_page_shmem(&(*maps_p)[map_count], old_map->sender,
+      llmp_new_page_shmem(&maps[map_count], old_map->sender,
                           new_map_size(old_map->max_alloc_size));
   if (!new_map) {
 
     DBG("Unable to initialize new broker page");
-    return AFL_RET_ALLOC;
+    afl_free(maps);
+    return NULL;
 
   }
   /* Realloc may have changed the location of maps_p (and old_map) in memory :/ */
-  old_map = shmem2page(maps_p[map_count - 1]);
+  old_map = shmem2page(&maps[map_count - 1]);
 
   *map_count_p = map_count + 1;
 
@@ -457,8 +458,8 @@ static afl_ret_t llmp_handle_out_eop(afl_shmem_t **maps_p, size_t *map_count_p,
   llmp_payload_new_page_t *new_page_msg = (llmp_payload_new_page_t *)out->buf;
 
   /* copy the infos to the message we're going to send on the old buf */
-  new_page_msg->map_size = (*maps_p)[map_count].map_size;
-  memcpy(new_page_msg->shm_str, (*maps_p)[map_count].shm_str,
+  new_page_msg->map_size = maps[map_count].map_size;
+  memcpy(new_page_msg->shm_str, maps[map_count].shm_str,
          AFL_SHMEM_STRLEN_MAX);
 
   // We never sent a msg on the new buf */
@@ -468,11 +469,12 @@ static afl_ret_t llmp_handle_out_eop(afl_shmem_t **maps_p, size_t *map_count_p,
   if (!llmp_send(old_map, out)) {
 
     DBG("Could not inform the broker!");
-    return AFL_RET_UNKNOWN_ERROR;
+    free(maps);
+    return NULL;
 
   }
 
-  return AFL_RET_SUCCESS;
+  return maps;
 
 }
 
@@ -480,9 +482,10 @@ static afl_ret_t llmp_handle_out_eop(afl_shmem_t **maps_p, size_t *map_count_p,
 afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
   DBG("Broadcasting broker EOP");
-  return (llmp_handle_out_eop(&broker->broadcast_maps,
+  broker->broadcast_maps = llmp_handle_out_eop(broker->broadcast_maps,
                               &broker->broadcast_map_count,
-                              &broker->last_msg_sent) != AFL_RET_SUCCESS);
+                              &broker->last_msg_sent);
+  return broker->broadcast_maps ? AFL_RET_SUCCESS : AFL_RET_ALLOC;
 
 }
 
@@ -858,8 +861,8 @@ static bool llmp_client_handle_out_eop(llmp_client_state_t *client) {
 
   DBG("Sending client EOP for client %d", client->id);
 
-  if (llmp_handle_out_eop(&client->out_maps, &client->out_map_count,
-                          &client->last_msg_sent) != AFL_RET_SUCCESS) {
+  if (!(client->out_maps = llmp_handle_out_eop(client->out_maps, &client->out_map_count,
+                          &client->last_msg_sent))) {
 
     DBG("An error occurred when handling client eop");
     return false;
