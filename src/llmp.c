@@ -317,20 +317,6 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
   // page->size_used, complete_msg_size, LLMP_MSG_END_OF_PAGE_LEN,
   // page->size_total); fflush(stdout);
 
-  /* Still space for the new message plus the additional "we're full" message?
-   */
-  if (page->size_used + complete_msg_size + LLMP_MSG_END_OF_PAGE_LEN >
-      page->size_total) {
-
-    DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: %ld, "
-        "total size %ld). Returning NULL",
-        buf_len, page->size_used, page->size_total);
-
-    /* We're full. */
-    return NULL;
-
-  }
-
   llmp_message_t *ret = NULL;
 
   if (!last_msg || last_msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
@@ -344,6 +330,21 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
     buf_len = llmp_align(base_addr + complete_msg_size) - base_addr -
               sizeof(llmp_message_t);
     complete_msg_size = buf_len + sizeof(llmp_message_t);
+    
+    /* Still space for the new message plus the additional "we're full" message?
+    */
+    if (page->size_used + complete_msg_size + LLMP_MSG_END_OF_PAGE_LEN >
+        page->size_total) {
+
+      DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: %ld, "
+          "total size %ld). Returning NULL",
+          buf_len, page->size_used, page->size_total);
+
+      /* We're full. */
+      return NULL;
+
+    }
+
     /* We need to start with 1 for ids, as current message id is initialized
      * with 0... */
     ret->message_id = last_msg ? last_msg->message_id + 1 : 1;
@@ -358,6 +359,20 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
   } else {
 
+    /* Still space for the new message plus the additional "we're full" message?
+    */
+    if (page->size_used + complete_msg_size + LLMP_MSG_END_OF_PAGE_LEN >
+        page->size_total) {
+
+      DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: %ld, "
+          "total size %ld). Returning NULL",
+          buf_len, page->size_used, page->size_total);
+
+      /* We're full. */
+      return NULL;
+
+    }
+
     ret = _llmp_next_msg_ptr(last_msg);
     ret->message_id = last_msg->message_id + 1;
 
@@ -369,9 +384,9 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
       ((size_t)((u8 *)ret - (u8 *)page->messages) != page->size_used)) {
 
     FATAL(
-        "Allocated new message without calling send() inbetween. ret: %p, "
+        "Allocated new message without calling send() inbetween. last_msg: %p, ret: %p, "
         "page: %p, complete_msg_size: %ld, size_used: %ld",
-        ret, page, buf_len, page->size_used);
+        last_msg, ret, page, buf_len, page->size_used);
 
   }
 
