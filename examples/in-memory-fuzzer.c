@@ -73,7 +73,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 
   }
 
-  for (i = 0; i < executor->observors_num; ++i) {
+  for (i = 0; i < executor->observors_count; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) {
@@ -243,13 +243,13 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
   afl_fuzz_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
   free(coverage_feedback->virgin_bits);
-  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+  for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     afl_feedback_delete((feedback_t *)engine->feedbacks[i]);
 
   }
 
-  for (size_t i = 0; i < engine->global_queue->feedback_queues_num; ++i) {
+  for (size_t i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
     afl_feedback_queue_delete(engine->global_queue->feedback_queues[i]);
 

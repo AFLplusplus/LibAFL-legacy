@@ -89,15 +89,24 @@ void afl_scheduled_mutator_deinit(scheduled_mutator_t *sched_mut) {
 
   }
 
+  afl_free(sched_mut->mutations);
+  sched_mut->mutations = NULL;
+
   sched_mut->mutators_count = 0;
 
 }
 
-void afl_add_mutator_default(scheduled_mutator_t *mutator,
+afl_ret_t afl_add_mutator_default(scheduled_mutator_t *mutator,
                              mutator_func_type    mutator_func) {
 
-  mutator->mutations[mutator->mutators_count] = mutator_func;
   mutator->mutators_count++;
+  mutator->mutations = afl_realloc(mutator->mutations, mutator->mutators_count * sizeof(mutator_func));
+  if (!mutator->mutations) {
+    mutator->mutators_count = 0;
+    return AFL_RET_ALLOC;
+  }
+  mutator->mutations[mutator->mutators_count - 1] = mutator_func;
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -393,11 +402,11 @@ retry_splicing:
   do {
 
     size_t random_queue_idx = afl_rand_below(
-        &engine->rnd, global_queue->feedback_queues_num +
+        &engine->rnd, global_queue->feedback_queues_count +
                           1);  // +1 so that we can also grab a queue entry from
                                // the global_queue
 
-    if (random_queue_idx < global_queue->feedback_queues_num) {
+    if (random_queue_idx < global_queue->feedback_queues_count) {
 
       // Grab a random entry from the random feedback queue
       feedback_queue_t *random_fbck_queue =

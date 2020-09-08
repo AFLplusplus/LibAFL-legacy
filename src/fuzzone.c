@@ -24,7 +24,6 @@
 #include "fuzzone.h"
 #include "engine.h"
 #include "stage.h"
-#include "list.h"
 
 afl_ret_t afl_fuzz_one_init(fuzz_one_t *fuzz_one, engine_t *engine) {
 
@@ -48,13 +47,15 @@ void afl_fuzz_one_deinit(fuzz_one_t *fuzz_one) {
 
   /* TODO: Should we deinitialize the stages or just remove the reference of
    * fuzzone from them? */
-  for (i = 0; i < fuzz_one->stages_num; ++i) {
+  for (i = 0; i < fuzz_one->stages_count; ++i) {
 
     fuzz_one->stages[i] = NULL;
 
   }
 
-  fuzz_one->stages_num = 0;
+  afl_free(fuzz_one->stages);
+  fuzz_one->stages = NULL;
+  fuzz_one->stages_count = 0;
 
 }
 
@@ -72,7 +73,7 @@ afl_ret_t afl_perform_default(fuzz_one_t *fuzz_one) {
   if (!queue_entry) { return AFL_RET_NULL_QUEUE_ENTRY; }
 
   /* Fuzz the entry with every stage */
-  for (i = 0; i < fuzz_one->stages_num; ++i) {
+  for (i = 0; i < fuzz_one->stages_count; ++i) {
 
     stage_t * current_stage = fuzz_one->stages[i];
     afl_ret_t stage_ret =
@@ -97,11 +98,14 @@ afl_ret_t afl_add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
 
   if (!stage || !fuzz_one) { return AFL_RET_NULL_PTR; }
 
-  if (fuzz_one->stages_num >= MAX_STAGES_PER_FUZZONE) return AFL_RET_ARRAY_END;
+  fuzz_one->stages_count++;
+  fuzz_one->stages = afl_realloc(fuzz_one->stages, fuzz_one->stages_count * sizeof(stage_t *));
+  if (!fuzz_one->stages) {
+    return AFL_RET_ALLOC;
+  }
 
-  fuzz_one->stages_num++;
+  fuzz_one->stages[fuzz_one->stages_count - 1] = stage;
 
-  fuzz_one->stages[(fuzz_one->stages_num - 1)] = stage;
   stage->engine = fuzz_one->engine;
 
   return AFL_RET_SUCCESS;
@@ -115,7 +119,7 @@ afl_ret_t afl_set_engine_default(fuzz_one_t *fuzz_one, engine_t *engine) {
 
   if (engine) { engine->fuzz_one = fuzz_one; }
 
-  for (i = 0; i < fuzz_one->stages_num; ++i) {
+  for (i = 0; i < fuzz_one->stages_count; ++i) {
 
     fuzz_one->stages[i]->engine = engine;
 

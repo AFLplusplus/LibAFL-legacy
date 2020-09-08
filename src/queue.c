@@ -61,14 +61,6 @@ void afl_queue_entry_deinit(queue_entry_t *entry) {
   entry->queue = NULL;
   entry->parent = NULL;
 
-  /* Clear all the children entries?? */
-  if (entry->children_num) {
-
-    LIST_FOREACH_CLEAR(&(entry->children), queue_entry_t,
-                       { afl_queue_entry_deinit(el); })
-
-  }
-
   /* we also delete the input associated with it */
   afl_input_delete(entry->input);
   entry->input = NULL;
@@ -120,17 +112,6 @@ afl_ret_t afl_base_queue_init(base_queue_t *queue) {
   queue->funcs.set_dirpath = afl_set_dirpath_default;
   queue->funcs.set_engine = afl_set_engine_base_queue_default;
   queue->funcs.get_next_in_queue = afl_get_next_base_queue_default;
-  queue->shared_mem = calloc(1, sizeof(afl_shmem_t));
-  if (!queue->shared_mem) { return AFL_RET_ALLOC; }
-
-  queue->queue_entries =
-      (queue_entry_t **)afl_shmem_init(queue->shared_mem, MAP_SIZE);
-  if (!queue->queue_entries) {
-
-    free(queue->shared_mem);
-    return AFL_RET_ALLOC;
-
-  }
 
   return AFL_RET_SUCCESS;
 
@@ -160,9 +141,6 @@ void afl_base_queue_deinit(base_queue_t *queue) {
   queue->size = 0;
   queue->fuzz_started = false;
 
-  afl_shmem_deinit(queue->shared_mem);
-  free(queue->shared_mem);
-
 }
 
 /* *** Possible error cases here? *** */
@@ -186,7 +164,7 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
   if (fuzz_one) {
 
     size_t i;
-    for (i = 0; i < fuzz_one->stages_num; ++i) {
+    for (i = 0; i < fuzz_one->stages_count; ++i) {
 
       fuzzing_stage_t *stage = (fuzzing_stage_t *)fuzz_one->stages[i];
       size_t           j;
@@ -360,7 +338,7 @@ afl_ret_t afl_global_queue_init(global_queue_t *global_queue) {
 
   afl_base_queue_init(&(global_queue->base));
 
-  global_queue->feedback_queues_num = 0;
+  global_queue->feedback_queues_count = 0;
 
   global_queue->base.funcs.set_engine = afl_set_engine_global_queue_default;
 
@@ -380,24 +358,32 @@ void afl_global_queue_deinit(global_queue_t *global_queue) {
 
   afl_base_queue_deinit(&global_queue->base);
 
-  for (i = 0; i < global_queue->feedback_queues_num; ++i) {
+  for (i = 0; i < global_queue->feedback_queues_count; ++i) {
 
     global_queue->feedback_queues[i] = NULL;
 
   }
 
-  global_queue->feedback_queues_num = 0;
+  afl_free(global_queue->feedback_queues);
+  global_queue->feedback_queues = NULL;
+  global_queue->feedback_queues_count = 0;
 
 }
 
-void afl_add_feedback_queue_default(global_queue_t *  global_queue,
+afl_ret_t afl_add_feedback_queue_default(global_queue_t *  global_queue,
                                     feedback_queue_t *feedback_queue) {
 
-  global_queue->feedback_queues[global_queue->feedback_queues_num] =
+  global_queue->feedback_queues_count++;
+  global_queue->feedback_queues = afl_realloc(global_queue->feedback_queues, global_queue->feedback_queues_count * sizeof(feedback_queue_t *));
+  if (!global_queue->feedback_queues) {
+    global_queue->feedback_queues_count = 0;
+    return AFL_RET_ALLOC;
+  }
+  global_queue->feedback_queues[global_queue->feedback_queues_count - 1] =
       feedback_queue;
   engine_t *engine = global_queue->base.engine;
   feedback_queue->base.funcs.set_engine(&feedback_queue->base, engine);
-  global_queue->feedback_queues_num++;
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -442,7 +428,7 @@ queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
 
 int afl_global_schedule_default(global_queue_t *queue) {
 
-  return afl_rand_below(&queue->base.engine->rnd, queue->feedback_queues_num);
+  return afl_rand_below(&queue->base.engine->rnd, queue->feedback_queues_count);
 
 }
 
@@ -459,7 +445,7 @@ void afl_set_engine_global_queue_default(base_queue_t *global_queue_base,
 
   if (engine) { engine->global_queue = global_queue; }
 
-  for (i = 0; i < global_queue->feedback_queues_num; ++i) {
+  for (i = 0; i < global_queue->feedback_queues_count; ++i) {
 
     // Set this engine to every feedback queue in global queue
     global_queue->feedback_queues[i]->base.funcs.set_engine(

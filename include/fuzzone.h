@@ -26,7 +26,6 @@
 #define LIBFUZZONE_H
 
 #include "common.h"
-#include "list.h"
 
 struct fuzz_one_functions {
 
@@ -39,8 +38,8 @@ struct fuzz_one_functions {
 struct fuzz_one {
 
   engine_t *engine;
-  stage_t * stages[MAX_STAGES_PER_FUZZONE];
-  size_t    stages_num;
+  stage_t **stages;
+  size_t    stages_count;
 
   struct fuzz_one_functions funcs;
 

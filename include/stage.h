@@ -86,10 +86,10 @@ struct fuzzing_stage_functions {
 
 struct fuzzing_stage {
 
-  stage_t base;  // Standard "inheritence" from stage
-
-  mutator_t *mutators[MAX_MUTATORS_PER_STAGE];  // The list of mutator operators
-                                                // that this stage has
+  /* Standard "inheritence" from stage */
+  stage_t base;
+  /* The list of mutator operators that this stage has */
+  mutator_t **mutators;
 
   struct fuzzing_stage_functions funcs;
   size_t                         mutators_count;
