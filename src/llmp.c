@@ -762,7 +762,7 @@ static inline void llmp_broker_handle_new_msgs(
       for (i = 0; i < broker->msg_hook_count; i++) {
 
         llmp_message_hook_data_t *msg_hook = &broker->msg_hooks[i];
-        forward_msg &= (*msg_hook->func)(broker, msg, msg_hook->data);
+        forward_msg &= (*msg_hook->func)(broker, client->client_state, msg, msg_hook->data);
 
       }
 
@@ -844,6 +844,7 @@ static void *_llmp_client_wrapped_loop(void *llmp_client_broker_metadata_ptr) {
 
   llmp_broker_client_metadata_t *metadata =
       (llmp_broker_client_metadata_t *)llmp_client_broker_metadata_ptr;
+  if (metadata->clientinit) metadata->clientinit(metadata->client_state, metadata->data);
   metadata->clientloop(metadata->client_state, metadata->data);
 
   WARNF("Client loop exited for client %d", metadata->client_state->id);
