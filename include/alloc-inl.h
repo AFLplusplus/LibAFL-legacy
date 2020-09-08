@@ -623,6 +623,9 @@ static inline size_t next_pow2(size_t in) {
 
 }
 
+
+#define AFL_REALLOC_MAGIC (0xAF1A110C)
+
 /* AFL alloc buffer, the struct is here so we don't need to do fancy ptr
  * arithmetics */
 struct afl_alloc_buf {
@@ -630,10 +633,13 @@ struct afl_alloc_buf {
   /* The complete allocated size, including the header of len
    * AFL_ALLOC_SIZE_OFFSET */
   size_t complete_size;
+  /* Make sure this is an alloc_buf */
+  size_t magic;
   /* ptr to the first element of the actual buffer */
   u8 buf[0];
 
 };
+
 
 #define AFL_ALLOC_SIZE_OFFSET (offsetof(struct afl_alloc_buf, buf))
 
@@ -659,25 +665,28 @@ static inline size_t afl_alloc_bufsize(void *buf) {
  Will return NULL and free *buf if size_needed is <1 or realloc failed.
  @return For convenience, this function returns *buf.
  */
-static inline void *afl_realloc(void **buf, size_t size_needed) {
+static inline void *afl_realloc(void *buf, size_t size_needed) {
 
   struct afl_alloc_buf *new_buf = NULL;
 
   size_t current_size = 0;
   size_t next_size = 0;
 
-  size_needed += AFL_ALLOC_SIZE_OFFSET;
-
-  if (likely(buf && *buf)) {
+  if (likely(buf)) {
 
     /* the size is always stored at buf - 1*size_t */
-    new_buf = afl_alloc_bufptr(*buf);
+    new_buf = afl_alloc_bufptr(buf);
+    if (unlikely(new_buf->magic != AFL_REALLOC_MAGIC)) {
+      FATAL("Illegal, non-null pointer passed to afl_realloc");
+    }
     current_size = new_buf->complete_size;
 
-    /* No need to realloc */
-    if (likely(current_size >= size_needed)) { return *buf; }
-
   }
+
+  size_needed += AFL_ALLOC_SIZE_OFFSET;
+
+  /* No need to realloc */
+  if (likely(current_size >= size_needed)) { return buf; }
 
   /* No initial size was set */
   if (size_needed < INITIAL_GROWTH_SIZE) {
@@ -698,16 +707,16 @@ static inline void *afl_realloc(void **buf, size_t size_needed) {
   new_buf = realloc(new_buf, next_size);
   if (unlikely(!new_buf)) {
 
-    *buf = NULL;
     return NULL;
 
   }
 
   new_buf->complete_size = next_size;
-  if (likely(buf)) { *buf = (void *)(new_buf->buf); }
-  return (void *)new_buf->buf;
+  new_buf->magic = AFL_REALLOC_MAGIC;
+  return new_buf->buf;
 
 }
+
 
 static inline void afl_free(void *buf) {
 
