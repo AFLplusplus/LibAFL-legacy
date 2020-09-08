@@ -12,7 +12,7 @@ all: target executor in-memory-fuzzer
 $(AFL_PATH)/llvm_mode/afl-llvm-rt.c:
 	-git submodule init 2> /dev/null
 	-git submodule update 2> /dev/null
-	test -d $(AFL_PATH) || git clone https://github.com/$(AFL_PATH)/AFLplusplus
+	test -d $(AFL_PATH) || git clone https://github.com/AFLplusplus/AFLplusplus
 	$(MAKE) -C $(AFL_PATH)
 	$(MAKE) -C $(AFL_PATH)/llvm_mode
 
