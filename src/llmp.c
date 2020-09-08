@@ -174,6 +174,7 @@ static void _llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
   page->size_used = 0;
   page->messages->message_id = 0;
   page->messages->tag = LLMP_TAG_UNALLOCATED_V1;
+  page->save_to_unmap = false;
 
 }
 
@@ -826,6 +827,32 @@ void llmp_broker_run(llmp_broker_state_t *broker) {
 
 }
 
+/*
+ For non zero-copy, we want to get rid of old pages with duplicate messages
+ eventually. This function This funtion sees if we can unallocate older pages.
+ The broker would have informed us by setting the save_to_unmap-flag.
+*/
+static void llmp_client_prune_old_pages(llmp_client_state_t *client) {
+  
+  u8 *current_map = client->out_maps[client->out_map_count - 1].map;
+  /* look for pages that are save_to_unmap, then unmap them. */
+  while (client->out_maps[0].map != current_map &&
+         shmem2page(&client->out_maps[0])->save_to_unmap) {
+
+    DBG("Page %ld is save to unmap. Unmapping...", shmem2page(&client->out_maps[0])->current_msg_id);
+    /* This page is save to unmap. The broker already reads or read it. */
+
+    DBG("Unmap shared map %s from client", client->out_maps[0].shm_str);
+    afl_shmem_deinit(&client->out_maps[0]);
+    /* We remove at the start, move the other pages back. */
+    memmove(client->out_maps, client->out_maps + 1,
+            (client->out_map_count - 1) * sizeof(afl_shmem_t));
+    client->out_map_count--;
+
+  }
+
+}
+
 /* We don't have any space. Send eop, the reset to beginning of ringbuf */
 static bool llmp_client_handle_out_eop(llmp_client_state_t *client) {
 
@@ -839,21 +866,11 @@ static bool llmp_client_handle_out_eop(llmp_client_state_t *client) {
 
   }
 
-  u8 *current_map = client->out_maps[client->out_map_count - 1].map;
-
-  /* This is a good time to see if we can unallocate older pages.
-  The broker would have informed us by setting the flag
+  /* Prune old pages!
+    This is a good time to see if we can unallocate older pages.
+    The broker would have informed us by setting the flag
   */
-  while (client->out_maps[0].map != current_map &&
-         shmem2page(&client->out_maps[0])->save_to_unmap) {
-
-    /* This page is save to unmap. The broker already reads or read it. */
-
-    DBG("Unmap shared map %s from client", client->out_maps[0].shm_str);
-    memmove(client->out_maps, client->out_maps + 1,
-            (client->out_map_count - 1) * sizeof(afl_shmem_t));
-
-  }
+  llmp_client_prune_old_pages(client);
 
   return true;
 
@@ -985,6 +1002,8 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
 
   if (!msg) {
 
+    size_t last_map_count = client->out_map_count;
+
     /* Page is full -> Tell broker and start from the beginning.
     Also, pray the broker got all messaes we're overwriting. :) */
     if (!llmp_client_handle_out_eop(client)) {
@@ -993,13 +1012,16 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
       return NULL;
 
     }
+    if(client->out_map_count == last_map_count || shmem2page(&client->out_maps[client->out_map_count - 1])->messages->tag != LLMP_TAG_UNALLOCATED_V1) {
+      FATAL("Error in handle_out_eop");
+    }
 
     /* The client_out_map will have been changed by llmp_handle_out_eop. Don't
      * alias.
      */
     msg = llmp_alloc_next(
         shmem2page(&client->out_maps[client->out_map_count - 1]),
-        client->last_msg_sent, size);
+        NULL, size);
     if (!msg) {
 
       DBG("BUG: Something went wrong allocating a msg in the shmap");
@@ -1013,6 +1035,8 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
   msg->message_id =
       client->last_msg_sent ? client->last_msg_sent->message_id + 1 : 1;
 
+  DBG("Allocated message at loc %p with buflen %ld", msg, msg->buf_len);
+
   return msg;
 
 }
@@ -1020,7 +1044,7 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client,
 /* Commits a msg to the client's out ringbuf */
 bool llmp_client_send(llmp_client_state_t *client_state, llmp_message_t *msg) {
 
-  DBG("Client %d sends new msg with tag 0x%X and size %ld", client_state->id,
+  DBG("Client %d sends new msg at %p with tag 0x%X and size %ld", client_state->id, msg,
       msg->tag, msg->buf_len);
 
   llmp_page_t *page =
