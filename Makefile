@@ -11,12 +11,15 @@ ifdef ASAN
   override LDFLAGS += -fsanitize=address
 endif
 
-all:	libafl.so libafl.a make-examples example-fuzzer libaflfuzzer.a examples/libaflfuzzer-test
+all:	libafl.so libafl.a examples libaflfuzzer.a examples/libaflfuzzer-test
 
 clean:
-	rm -f src/*.o examples/*.o
+	rm -f src/*.o
 	rm -f libafl.so libafl.a libaflfuzzer.a
-	rm -f example-fuzzer examples/libaflfuzzer-test examples/in-memory-fuzzer examples/executor examples/target
+	$(MAKE) -C examples clean
+
+deepclean: clean
+	$(MAKE) -C examples deepclean
 
 # Compiling the common  file
 src/common.o: src/common.c include/common.h
@@ -85,12 +88,9 @@ libaflfuzzer.a: libafl.a examples
 examples/libaflfuzzer-test:	libaflfuzzer.a
 	clang -fsanitize-coverage=trace-pc-guard -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o -pthread $(LDFLAGS) -lrt
 
-.PHONY: make-examples
-make-examples:
+.PHONY: examples
+examples:
 	$(MAKE) -C examples "CFLAGS=$(CFLAGS)" "LDFLAGS=$(LDFLAGS)"
-
-example-fuzzer: libafl.a
-	$(CC) $(CFLAGS) -o example-fuzzer examples/executor.c libafl.a -pthread $(LDFLAGS) -lrt
 
 code-format:
 	./.custom-format.py -i src/*.c

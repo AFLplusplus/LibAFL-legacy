@@ -49,6 +49,7 @@ test/unit_test
 
 example-fuzzer
 examples/in-memory-fuzzer
+examples/forking-fuzzer
 llvm.prof
 out
 libaflfuzzer-test
