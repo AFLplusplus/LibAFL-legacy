@@ -218,12 +218,13 @@ struct llmp_broker_state {
 
 };
 
-/* Get a message buf as type if size matches, else NULL */
+/* Get a message buf as type if size matches (larger than, due to align),
+else NULL */
 #define LLMP_MSG_BUF_AS(msg, type)                                    \
   ({                                                                  \
                                                                       \
     llmp_message_t *_msg = msg;                                       \
-    ((type *)((_msg)->buf_len == sizeof(type) ? (_msg)->buf : NULL)); \
+    ((type *)((_msg)->buf_len >= sizeof(type) ? (_msg)->buf : NULL)); \
                                                                       \
   })
 
@@ -232,7 +233,7 @@ struct llmp_broker_state {
   ({                                                                \
                                                                     \
     llmp_message_t *_msg = msg;                                     \
-    ((type *)(((msg)->tag == tag && (msg)->buf_len == sizeof(type)) \
+    ((type *)(((msg)->tag == tag && (msg)->buf_len >= sizeof(type)) \
                   ? (msg)->buf                                      \
                   : NULL));                                         \
                                                                     \
