@@ -134,6 +134,7 @@ typedef struct llmp_payload_new_page {
 /* If a msg is contained in the current page */
 bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg) {
 
+  DBG("llmp_msg_in_page %p within %p-%p\n", msg, page, page + page->size_total);
   return ((u8 *)page < (u8 *)msg &&
           ((u8 *)page + page->size_total) > (u8 *)msg);
 
@@ -142,6 +143,7 @@ bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg) {
 /* Gets the llmp page struct from the shmem map */
 static inline llmp_page_t *shmem2page(afl_shmem_t *afl_shmem) {
 
+  DBG("shmem2page %p->%p\n", afl_shmem, afl_shmem->map);
   return (llmp_page_t *)afl_shmem->map;
 
 }
@@ -172,7 +174,7 @@ static inline size_t new_map_size(size_t max_alloc) {
 /* Initialize a new llmp_page_t. size should be relative to
  * llmp_page_t->messages */
 static void _llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
-
+  DBG("_llmp_page_init %p %u %lu\n", page, sender, size);
   page->sender = sender;
   page->current_msg_id = 0;
   page->max_alloc_size = 0;
@@ -186,7 +188,7 @@ static void _llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
 
 /* Pointer to the message behind the last message */
 static inline llmp_message_t *_llmp_next_msg_ptr(llmp_message_t *last_msg) {
-
+  DBG("_llmp_next_msg_ptr %p %lu\n", last_msg, last_msg->buf_len);
   return (llmp_message_t *)((u8 *)last_msg + sizeof(llmp_message_t) +
                             last_msg->buf_len);
 
@@ -194,6 +196,7 @@ static inline llmp_message_t *_llmp_next_msg_ptr(llmp_message_t *last_msg) {
 
 /* Read next message. */
 llmp_message_t *llmp_recv(llmp_page_t *page, llmp_message_t *last_msg) {
+  DBG("llmp_recv %p %p\n", page, last_msg);
 
   MEM_BARRIER();
   if (!page->current_msg_id) {
@@ -1402,6 +1405,19 @@ bool llmp_broker_register_childprocess_clientloop(
   client->clientloop = clientloop;
   client->data = data;
   client->client_type = LLMP_CLIENT_TYPE_CHILD_PROCESS;
+
+  /* Copy the already allocated shmem to the client state */
+  if (!(client->client_state->out_maps = afl_realloc(
+            (void *)client->client_state->out_maps, sizeof(afl_shmem_t)))) {
+
+    DBG("Could not alloc mem for client map");
+    afl_shmem_deinit(&client_map);
+    afl_shmem_deinit(client->cur_client_map);
+    /* "Unregister" by subtracting the client from count */
+    broker->llmp_client_count--;
+    return false;
+
+  }
 
   memcpy(client->client_state->out_maps, &client_map, sizeof(afl_shmem_t));
   client->client_state->out_map_count = 1;

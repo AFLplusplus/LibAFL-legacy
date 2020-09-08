@@ -1,7 +1,7 @@
 override CFLAGS  += -g -fPIC -Iinclude -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fstack-protector-strong 
 
 ifdef DEBUG
-  override CFLAGS += -DDEBUG -ggdb -Og
+  override CFLAGS += -DDEBUG -ggdb -O0 -DLLMP_DEBUG=1
 endif
 ifndef DEBUG
   override CFLAGS += -D_FORTIFY_SOURCE=2 -O3
@@ -16,7 +16,7 @@ all:	libafl.so libafl.a make-examples example-fuzzer libaflfuzzer.a examples/lib
 clean:
 	rm -f src/*.o examples/*.o
 	rm -f libafl.so libafl.a libaflfuzzer.a
-	rm -f example-fuzzer examples/libaflfuzzer-test
+	rm -f example-fuzzer examples/libaflfuzzer-test examples/in-memory-fuzzer examples/executor examples/target
 
 # Compiling the common  file
 common.o: src/common.c include/common.h
