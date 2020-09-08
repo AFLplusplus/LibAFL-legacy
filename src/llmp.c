@@ -188,7 +188,7 @@ static void _llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
 
 /* Pointer to the message behind the last message */
 static inline llmp_message_t *_llmp_next_msg_ptr(llmp_message_t *last_msg) {
-  DBG("_llmp_next_msg_ptr %p %lu\n", last_msg, last_msg->buf_len);
+  DBG("_llmp_next_msg_ptr %p %lu + %lu\n", last_msg, last_msg->buf_len, sizeof(llmp_message_t));
   return (llmp_message_t *)((u8 *)last_msg + sizeof(llmp_message_t) +
                             last_msg->buf_len);
 
@@ -377,19 +377,21 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
     ret = _llmp_next_msg_ptr(last_msg);
     ret->message_id = last_msg->message_id + 1;
-    DBG("ret %p id %u\n", ret, ret->message_id);
+    DBG("XXX ret %p id %u\n", ret, ret->message_id);
 
   }
 
   /* The beginning of our message should be messages + size_used, else nobody
    * sent the last msg! */
+
+  DBG("XXX ret %p - page->messages %p = %lu != %lu, will add %lu -> %p\n", ret, page->messages, (size_t)((u8 *)ret - (u8 *)page->messages), page->size_used, complete_msg_size, ret + complete_msg_size);
   if ((!last_msg && page->size_used) ||
       ((size_t)((u8 *)ret - (u8 *)page->messages) != page->size_used)) {
 
     FATAL(
-        "Allocated new message without calling send() inbetween. last_msg: %p, ret: %p, "
-        "page_ptr: %p, messages_ptr: %p, complete_msg_size: %ld, size_used: %ld",
-        last_msg, ret, page, (void *)page->messages, complete_msg_size, page->size_used);
+        "Allocated new message without calling send() inbetween. ret: %p, "
+        "page: %p, complete_msg_size: %ld, size_used: %ld, last_msg: %p, page->messages %p",
+        ret, page, buf_len, page->size_used, last_msg, page->messages);
 
   }
 

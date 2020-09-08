@@ -29,13 +29,13 @@ libpng16.a:	libpng-1.6.37.tar.gz
 target: $(AFL_PATH)/afl-llvm-rt.o target.c
 	$(AFL_CC) -g target.c -o target
 
-executor: ./executor.c
+executor: ./executor.c ../libafl.a
 	$(CC) $(CFLAGS) executor.c -o executor $(LDFLAGS)
 
-llmp-main: ./llmp-main.c
+llmp-main: ./llmp-main.c  ../libafl.a
 	$(CC) $(CFLAGS) llmp-main.c -o llmp-main $(LDFLAGS)
 
-in-memory-fuzzer: libpng16.a $(AFL_PATH)/afl-llvm-rt.o in-memory-fuzzer.c
+in-memory-fuzzer: libpng16.a $(AFL_PATH)/afl-llvm-rt.o in-memory-fuzzer.c ../libafl.a
 	clang in-memory-fuzzer.c ./libpng16.a -g $(CFLAGS) -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -o in-memory-fuzzer $(AFL_PATH)/afl-llvm-rt.o $(LDFLAGS) -lz
 
 test: clean executor target
