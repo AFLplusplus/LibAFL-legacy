@@ -6,11 +6,17 @@
 
 #define LLMP_TAG_EXEC_STATS 0x30
 
+typedef struct client_stats {
+
+  u64 total_execs;
+
+} client_stats_t;
+
 /* stats about the current run */
 typedef struct fuzzer_stats {
 
   u64 queue_entry_count;
-  u64 total_execs;
+  struct client_stats **clients;
 
 } fuzzer_stats_t;
 
@@ -40,10 +46,13 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
   executor_t *executor = engine->executor;
 
   executor->funcs.reset_observation_channels(executor);
-
   executor->funcs.place_input_cb(executor, input);
 
-  if (engine->start_time == 0) { engine->start_time = time(NULL); }
+  // TODO move to execute_init()
+  if (unlikely(engine->start_time == 0)) {
+    engine->start_time = afl_get_cur_time();
+    engine->last_update = afl_get_cur_time_s();
+  }
 
   exit_type_t run_result = executor->funcs.run_target_cb(executor);
 
@@ -52,13 +61,14 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
   /* We've run the target with the executor, we can now simply postExec call the
    * observation channels*/
 
-  if (engine->executions % 100000) {
+  if (engine->executions % 12345 && engine->last_update < afl_get_cur_time_s() ) {
 
     llmp_client_state_t *llmp_client = engine->llmp_client;
     llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
     msg->tag = LLMP_TAG_EXEC_STATS;
     ((u8 *)msg->buf)[0] = engine->executions;
     llmp_client_send(llmp_client, msg);
+    engine->last_update = afl_get_cur_time_s();
 
   }
 
@@ -250,7 +260,7 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
 }
 
 /* A hook to keep stats in the broker thread */
-bool message_hook(llmp_broker_state_t *broker, llmp_message_t *msg,
+bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client, llmp_message_t *msg,
                   void *data) {
 
   (void)broker;
@@ -260,7 +270,7 @@ bool message_hook(llmp_broker_state_t *broker, llmp_message_t *msg,
 
   } else if (msg->tag == LLMP_TAG_EXEC_STATS) {
 
-    ((fuzzer_stats_t *)data)->total_execs += 100000;
+    ((fuzzer_stats_t *)data)->clients[client->id]->total_execs = (u64)*msg->buf;
 
   }
 
@@ -304,6 +314,7 @@ int main(int argc, char **argv) {
 
   fuzzer_stats_t fuzzer_stats = {0};
   llmp_broker_add_message_hook(llmp_broker, message_hook, &fuzzer_stats);
+  fuzzer_stats.clients = malloc(thread_count * sizeof(size_t));
 
   for (int i = 0; i < thread_count; ++i) {
 
@@ -316,6 +327,9 @@ int main(int argc, char **argv) {
 
     }
 
+    fuzzer_stats.clients[i] = malloc(sizeof(client_stats_t));
+    fuzzer_stats.clients[i]->total_execs = 0;
+
   }
 
   // Before we start the broker, we close the stderr file. Since the in-mem
@@ -326,28 +340,35 @@ int main(int argc, char **argv) {
   if (!getenv("DEBUG") && !getenv("AFL_DEBUG")) dup2(dev_null_fd, 2);
 
   u64 time_prev = 0;
-  u64 time_initial = afl_get_cur_time();
+  u64 time_initial = afl_get_cur_time_s();
   u64 time_cur = time_initial;
 
   llmp_broker_launch_clientloops(llmp_broker);
 
   OKF("Clients started running");
+  sleep(1);
 
   while (1) {
+    int i;
 
     /* Forward all messages that arrived in the meantime */
     llmp_broker_once(llmp_broker);
-    usleep(50);
+    usleep(100);
 
     /* Paint ui every few seconds */
-    if ((time_cur = afl_get_cur_time()) > time_prev + 3) {
+    if ((time_cur = afl_get_cur_time_s()) > time_prev) {
 
-      u64 time_elapsed = time_cur - time_initial;
+      u64 time_elapsed = (time_cur - time_initial);
+      time_prev = time_cur;
+      u64 total_execs = 0;
+      for (i = 0; i < thread_count; i++)
+        total_execs += fuzzer_stats.clients[i]->total_execs;
 
       /* TODO: Send heartbeat messages from clients for more stats :) */
 
-      SAYF("Execs=%llu  Paths=%llu  elapsed=%llu\r", fuzzer_stats.total_execs,
-           fuzzer_stats.queue_entry_count, time_elapsed / 1000);
+      SAYF("threads=%u  execs=%llu  exec/s=%llu  paths=%llu  elapsed=%llu\r",
+           thread_count, total_execs, total_execs / time_elapsed,  fuzzer_stats.queue_entry_count,
+           time_elapsed);
 
       fflush(stdout);
 
@@ -358,4 +379,3 @@ int main(int argc, char **argv) {
   return 0;
 
 }
-

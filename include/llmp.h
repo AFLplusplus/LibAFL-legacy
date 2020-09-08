@@ -151,6 +151,7 @@ If return is false, message will not be delivered to clients.
 This is synchronous, if you need long-running message handlers, register a
 client instead. */
 typedef bool(llmp_message_hook_func)(llmp_broker_state_t *broker,
+llmp_client_state_t *client,
                                      llmp_message_t *msg, void *data);
 
 enum LLMP_CLIENT_TYPE {
