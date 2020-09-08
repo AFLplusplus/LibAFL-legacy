@@ -63,6 +63,7 @@ static inline process_t *afl_process_init(process_t *process,
   else {
 
     new_process = calloc(1, sizeof(process_t));
+    if (!new_process) { return NULL; }
     _afl_process_init_internal(new_process);
     new_process->handler_process = (handler_pid);
 

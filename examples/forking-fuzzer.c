@@ -439,6 +439,7 @@ int main(int argc, char **argv) {
   for (int i = 0; i < thread_count; ++i) {
 
     char **target_args = afl_argv_cpy_dup(argc, argv);
+    if (!target_args) { PFATAL("Error allocating args"); }
 
     engine_t *engine =
         initialize_engine_instance(target_path, in_dir, target_args);

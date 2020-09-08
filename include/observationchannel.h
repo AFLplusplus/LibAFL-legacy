@@ -70,7 +70,7 @@ static inline observation_channel_t *afl_observation_channel_create(
 
   observation_channel_t *new_obs_channel =
       calloc(1, sizeof(observation_channel_t));
-  if (!new_obs_channel) return NULL;
+  if (!new_obs_channel) { return NULL; }
   if (afl_observation_channel_init(new_obs_channel, channel_id) !=
       AFL_RET_SUCCESS) {
 

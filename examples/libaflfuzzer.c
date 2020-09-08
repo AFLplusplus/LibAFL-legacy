@@ -79,14 +79,16 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir,
 
   in_memory_executor->argc = argc;
   in_memory_executor->argv = afl_argv_cpy_dup(argc, argv);
+  if (!in_memory_executor->argv) { FATAL("Error allocating argv"); }
   in_memory_executor->base.funcs.init_cb = in_memory_fuzzer_start;
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
   map_based_channel_t *trace_bits_channel =
       calloc(1, sizeof(map_based_channel_t));
-  afl_observation_channel_init(&trace_bits_channel->base, MAP_CHANNEL_ID);
-  if (!trace_bits_channel) {
+  if (!trace_bits_channel ||
+      afl_observation_channel_init(&trace_bits_channel->base, MAP_CHANNEL_ID) !=
+          AFL_RET_SUCCESS) {
 
     FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC));
     exit(-1);

@@ -67,6 +67,7 @@ static inline char **afl_argv_cpy_dup(int argc, char **argv) {
   int i = 0;
 
   char **ret = calloc(1, (argc + 1) * sizeof(char *));
+  if (!ret) { return NULL; }
 
   for (i = 0; i < argc; i++) {
 
