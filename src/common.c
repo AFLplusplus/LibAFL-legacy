@@ -39,9 +39,21 @@ inline u64 afl_get_cur_time_us(void) {
 }
 
 /* Get unix time in seconds */
-u64 afl_get_cur_time(void) {
+inline u64 afl_get_cur_time(void) {
 
   return afl_get_cur_time_us() / 1000;
+
+}
+
+/* Get unix time in microseconds */
+inline u64 afl_get_cur_time_s(void) {
+
+  struct timeval  tv;
+  struct timezone tz;
+
+  gettimeofday(&tv, &tz);
+
+  return tv.tv_sec;
 
 }
 

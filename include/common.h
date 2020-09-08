@@ -83,8 +83,11 @@ static inline char **afl_argv_cpy_dup(int argc, char **argv) {
 /* Get unix time in microseconds */
 u64 afl_get_cur_time_us(void);
 
-/* Get unix time in seconds */
+/* Get unix time in microseconds */
 u64 afl_get_cur_time(void);
+
+/* Get unix time in seconds */
+u64 afl_get_cur_time_s(void);
 
 /* This function uses select calls to wait on a child process for given
  * timeout_ms milliseconds and kills it if it doesn't terminate by that time */
