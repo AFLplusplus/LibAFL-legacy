@@ -2,7 +2,7 @@ MAKEFILE_PATH := $(abspath .)
 AFL_PATH ?= $(MAKEFILE_PATH)/AFLplusplus
 AFL_CC := $(AFL_PATH)/afl-clang-fast
 CFLAGS += -g -Wall -Wextra -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong
-override CFLAGS += -L.. -I../include -I$(AFL_PATH)/include -lm 
+override CFLAGS += -L.. -I../include -lm 
 override LDFLAGS += ../libaflpp.a -lpthread -lm -lrt
 LIBPNG_URL = http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?download
 
@@ -24,8 +24,9 @@ libpng-1.6.37.tar.gz:
 
 libpng16.a:	libpng-1.6.37.tar.gz
 	tar -xvzf ./libpng-1.6.37.tar.gz || rm -f ./libpng-1.6.37.tar.gz
-	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure CFLAGS= LDFLAGS= --disable-shared && $(MAKE)
+	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure CFLAGS=-D_DEFAULT_SOURCE LDFLAGS= --disable-shared && $(MAKE) CFLAGS=-D_DEFAULT_SOURCE LDFLAGS=
 	cp libpng-1.6.37/.libs/libpng16.a ./
+	rm -rf libpng-1.6.37
 
 target: $(AFL_PATH)/afl-llvm-rt.o ./target.c
 	$(AFL_CC) -g target.c -o target
