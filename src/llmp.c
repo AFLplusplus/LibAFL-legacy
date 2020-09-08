@@ -227,6 +227,8 @@ llmp_message_t *llmp_recv(llmp_page_t *page, llmp_message_t *last_msg) {
 llmp_message_t *llmp_recv_blocking(llmp_page_t *   page,
                                    llmp_message_t *last_msg) {
 
+  DBG("llmp_recv_blocking %p %p page->current_msg_id %lu last_msg->message_id %u\n", page, last_msg, page->current_msg_id, last_msg->message_id);
+
   u32 current_msg_id = 0;
   if (last_msg != NULL) {
 
@@ -307,6 +309,8 @@ llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
 llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
                                 size_t buf_len) {
 
+  DBG("llmp_alloc_next %p %p %lu\n", page, last_msg, buf_len);
+
   size_t complete_msg_size = llmp_align(sizeof(llmp_message_t) + buf_len);
 
   /* In case we don't have enough space, make sure the next page will be large
@@ -332,6 +336,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
   }
 
   llmp_message_t *ret = NULL;
+
+  DBG("last_msg %p %d (%d)\n", last_msg, last_msg ? (int)last_msg->tag : -1, (int)LLMP_TAG_END_OF_PAGE_V1);
 
   if (!last_msg || last_msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
@@ -360,6 +366,7 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
     ret = _llmp_next_msg_ptr(last_msg);
     ret->message_id = last_msg->message_id + 1;
+    DBG("ret %p id %u\n", ret, ret->message_id);
 
   }
 
@@ -370,8 +377,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
     FATAL(
         "Allocated new message without calling send() inbetween. ret: %p, "
-        "page: %p, complete_msg_size: %ld, size_used: %ld",
-        ret, page, buf_len, page->size_used);
+        "page: %p, complte_msg_size: %ld, size_used: %ld, last_msg: %p, page->messages %p",
+        ret, page, buf_len, page->size_used, last_msg, page->messages);
 
   }
 
@@ -396,6 +403,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
  */
 bool llmp_send(llmp_page_t *page, llmp_message_t *msg) {
 
+  DBG("llmp_send %p %p message_id %u\n", page, msg, msg->message_id);
+
   if (msg->tag == LLMP_TAG_UNALLOCATED_V1) {
 
     FATAL("No tag set on message with id %d!", msg->message_id);
@@ -419,6 +428,7 @@ bool llmp_send(llmp_page_t *page, llmp_message_t *msg) {
 static inline afl_shmem_t *_llmp_broker_current_broadcast_map(
     llmp_broker_state_t *broker_state) {
 
+  DBG("_llmp_broker_current_broadcast_map %p [%u]-> %p\n", broker_state, (u32)broker_state->broadcast_map_count - 1, &broker_state->broadcast_maps[broker_state->broadcast_map_count - 1]);
   return &broker_state->broadcast_maps[broker_state->broadcast_map_count - 1];
 
 }
@@ -432,6 +442,7 @@ llmp_page_t *llmp_new_page_shmem(afl_shmem_t *uninited_afl_shmem, size_t sender,
                               (size_t)LLMP_INITIAL_MAP_SIZE));
   if (!afl_shmem_init(uninited_afl_shmem, size)) { return NULL; }
   _llmp_page_init(shmem2page(uninited_afl_shmem), sender, size_requested);
+  DBG("llmp_new_page_shmem %p %lu %lu -> size %lu\n", uninited_afl_shmem, sender, size_requested, size);
   return shmem2page(uninited_afl_shmem);
 
 }
@@ -440,6 +451,7 @@ llmp_page_t *llmp_new_page_shmem(afl_shmem_t *uninited_afl_shmem, size_t sender,
   listener about it using a EOP message. */
 static afl_shmem_t *llmp_handle_out_eop(afl_shmem_t *maps, size_t *map_count_p,
                                         llmp_message_t **last_msg_p) {
+  DBG("llmp_handle_out_eop %p %p=%lu %p=%p\n", maps, map_count_p, *map_count_p, last_msg_p, *last_msg_p);
 
   u32          map_count = *map_count_p;
   llmp_page_t *old_map = shmem2page(&maps[map_count - 1]);
