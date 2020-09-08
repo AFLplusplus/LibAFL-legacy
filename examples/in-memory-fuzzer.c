@@ -323,7 +323,8 @@ int main(int argc, char **argv) {
 
   s32 dev_null_fd = open("/dev/null", O_WRONLY);
 
-  dup2(dev_null_fd, 2);
+  if (!getenv("DEBUG") && !getenv("AFL_DEBUG"))
+    dup2(dev_null_fd, 2);
 
   u64 time_prev = 0;
   u64 time_initial = afl_get_cur_time();
@@ -346,7 +347,7 @@ int main(int argc, char **argv) {
 
       /* TODO: Send heartbeat messages from clients for more stats :) */
 
-      SAYF("Execs: %llu\t Paths: %llu\t time elapsed: %8llu\r",
+      SAYF("Execs=%llu  Paths=%llu  elapsed=%llu\r",
            fuzzer_stats.total_execs, fuzzer_stats.queue_entry_count,
            time_elapsed / 1000);
 
