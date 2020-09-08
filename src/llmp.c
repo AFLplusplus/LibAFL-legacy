@@ -317,10 +317,6 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
    * enough */
   page->max_alloc_size = MAX(page->max_alloc_size, complete_msg_size);
 
-  // printf("alloc size_used %ld, new_size %ld, pl %ld, size_total %ld\n",
-  // page->size_used, complete_msg_size, LLMP_MSG_END_OF_PAGE_LEN,
-  // page->size_total); fflush(stdout);
-
   llmp_message_t *ret = NULL;
 
   DBG("last_msg %p %d (%d)\n", last_msg, last_msg ? (int)last_msg->tag : -1, (int)LLMP_TAG_END_OF_PAGE_V1);

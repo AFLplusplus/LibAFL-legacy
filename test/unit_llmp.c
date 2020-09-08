@@ -69,10 +69,10 @@ static void test_client_eop(void **state) {
   llmp_client_state_t *client = llmp_client_new_unconnected();
 
   u32 i;
-  for (i = 0; i < 5000; i++) {
+  for (i = 0; i < 1500000; i++) {
 
     llmp_message_t *last_msg =
-        llmp_client_alloc_next(client, LLMP_INITIAL_MAP_SIZE / 3);
+        llmp_client_alloc_next(client, i);
     assert(last_msg && "Last_msg was null :(");
     last_msg->tag = 0x7357;
     llmp_client_send(client, last_msg);
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
   (void)argv;
   const struct CMUnitTest tests[] = {
 
-      // cmocka_unit_test(test_llmp_client),
+      cmocka_unit_test(test_llmp_client),
       cmocka_unit_test(test_client_eop),
 
   };
