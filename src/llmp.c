@@ -844,7 +844,6 @@ static void *_llmp_client_wrapped_loop(void *llmp_client_broker_metadata_ptr) {
 
   llmp_broker_client_metadata_t *metadata =
       (llmp_broker_client_metadata_t *)llmp_client_broker_metadata_ptr;
-  if (metadata->clientinit) metadata->clientinit(metadata->client_state, metadata->data);
   metadata->clientloop(metadata->client_state, metadata->data);
 
   WARNF("Client loop exited for client %d", metadata->client_state->id);
@@ -869,6 +868,12 @@ bool llmp_broker_launch_clientloops(llmp_broker_state_t *broker) {
         PFATAL("Could not fork");
 
       } else if (child_id == 0) {
+
+/*
+s32 dev_null_fd = open("/dev/null", O_WRONLY);
+dup2(dev_null_fd, 2);
+close(dev_null_fd);
+*/
 
         /* in the child, start loop, exit afterwards. */
         DBG("LLMP child process started");

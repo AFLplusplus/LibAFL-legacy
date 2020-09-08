@@ -61,12 +61,13 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
   /* We've run the target with the executor, we can now simply postExec call the
    * observation channels*/
 
-  if (engine->executions % 12345 && engine->last_update < afl_get_cur_time_s() ) {
+  if (engine->executions % 12345 && engine->last_update < afl_get_cur_time_s()) {
 
     llmp_client_state_t *llmp_client = engine->llmp_client;
     llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
     msg->tag = LLMP_TAG_EXEC_STATS;
-    ((u8 *)msg->buf)[0] = engine->executions;
+    u64 *x = (u64 *)msg->buf;
+    *x = engine->executions;
     llmp_client_send(llmp_client, msg);
     engine->last_update = afl_get_cur_time_s();
 
@@ -270,7 +271,7 @@ bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client, llmp
 
   } else if (msg->tag == LLMP_TAG_EXEC_STATS) {
 
-    ((fuzzer_stats_t *)data)->clients[client->id]->total_execs = (u64)*msg->buf;
+    ((fuzzer_stats_t *)data)->clients[client->id - 1]->total_execs = *(u64 *)msg->buf;
 
   }
 
@@ -366,9 +367,9 @@ int main(int argc, char **argv) {
 
       /* TODO: Send heartbeat messages from clients for more stats :) */
 
-      SAYF("threads=%u  execs=%llu  exec/s=%llu  paths=%llu  elapsed=%llu\r",
-           thread_count, total_execs, total_execs / time_elapsed,  fuzzer_stats.queue_entry_count,
-           time_elapsed);
+      SAYF("threads=%u  paths=%llu  elapsed=%llu  execs=%llu  exec/s=%llu\r",
+           thread_count,  fuzzer_stats.queue_entry_count,
+           time_elapsed, total_execs, total_execs / time_elapsed);
 
       fflush(stdout);
 
