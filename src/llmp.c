@@ -385,8 +385,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
     FATAL(
         "Allocated new message without calling send() inbetween. last_msg: %p, ret: %p, "
-        "page: %p, complete_msg_size: %ld, size_used: %ld",
-        last_msg, ret, page, buf_len, page->size_used);
+        "page_ptr: %p, messages_ptr: %p, complete_msg_size: %ld, size_used: %ld",
+        last_msg, ret, page, (void *)page->messages, complete_msg_size, page->size_used);
 
   }
 
