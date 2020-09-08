@@ -423,7 +423,7 @@ static afl_ret_t llmp_handle_out_eop(afl_shmem_t **maps_p, size_t *map_count_p,
   u32          map_count = *map_count_p;
   llmp_page_t *old_map = shmem2page(maps_p[map_count - 1]);
 
-  if (!afl_realloc((void **)maps_p, (map_count + 1) * sizeof(afl_shmem_t))) {
+  if (!(*maps_p = afl_realloc((void *)*maps_p, (map_count + 1) * sizeof(afl_shmem_t)))) {
 
     DBG("Unable to alloc space for broker map");
     return AFL_RET_ALLOC;
@@ -525,9 +525,9 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
     llmp_broker_state_t *broker, char *shm_str, size_t map_size) {
 
   /* make space for a new client and calculate its id */
-  if (!afl_realloc((void **)&broker->llmp_clients,
+  if (!(broker->llmp_clients = afl_realloc((void *)broker->llmp_clients,
                    (broker->llmp_client_count + 1) *
-                       sizeof(llmp_broker_client_metadata_t))) {
+                       sizeof(llmp_broker_client_metadata_t)))) {
 
     return NULL;
 
@@ -1176,7 +1176,7 @@ llmp_client_state_t *llmp_client_new_unconnected() {
 
   }
 
-  if (!afl_realloc((void **)&client_state->out_maps, 1 * sizeof(afl_shmem_t))) {
+  if (!(client_state->out_maps = afl_realloc((void *)client_state->out_maps, 1 * sizeof(afl_shmem_t)))) {
 
     DBG("Could not allocate memory");
     free(client_state->current_broadcast_map);
@@ -1237,7 +1237,7 @@ llmp_client_state_t *llmp_client_new(int port) {
 
   }
 
-  if (!afl_realloc((void **)&client_state->out_maps, 1 * sizeof(afl_shmem_t))) {
+  if (!(client_state->out_maps = afl_realloc((void *)client_state->out_maps, 1 * sizeof(afl_shmem_t)))) {
 
     DBG("Could not allocate memory");
     free(client_state->current_broadcast_map);
@@ -1430,8 +1430,8 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker,
   client->client_type = LLMP_CLIENT_TYPE_PTHREAD;
 
   /* Copy the already allocated shmem to the client state */
-  if (!afl_realloc((void *)&client->client_state->out_maps,
-                   sizeof(afl_shmem_t))) {
+  if (!(client->client_state->out_maps = afl_realloc((void *)client->client_state->out_maps,
+                   sizeof(afl_shmem_t)))) {
 
     DBG("Could not alloc mem for client map");
     afl_shmem_deinit(&client_map);
@@ -1481,9 +1481,9 @@ afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *   broker,
                                        llmp_message_hook_func *hook,
                                        void *                  data) {
 
-  if (!afl_realloc(
+  if (!(broker->msg_hooks = afl_realloc(
           (void **)&broker->msg_hooks,
-          (broker->msg_hook_count + 1) * sizeof(llmp_message_hook_data_t))) {
+          (broker->msg_hook_count + 1) * sizeof(llmp_message_hook_data_t)))) {
 
     DBG("realloc for msg hooks failed");
     return AFL_RET_ALLOC;
@@ -1507,7 +1507,7 @@ llmp_broker_state_t *llmp_broker_new() {
   if (!broker) { FATAL("Could not allocate broker mem"); }
 
   /* let's create some space for outgoing maps */
-  if (!afl_realloc((void **)&broker->broadcast_maps, 1 * sizeof(afl_shmem_t))) {
+  if (!(broker->broadcast_maps = afl_realloc((void *)broker->broadcast_maps, 1 * sizeof(afl_shmem_t)))) {
 
     free(broker);
     return NULL;
