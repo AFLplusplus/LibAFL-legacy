@@ -10,10 +10,12 @@ $(info AFL_PATH is $(AFL_PATH))
 
 all: target executor in-memory-fuzzer llmp-main
 
-$(AFL_PATH)/afl-llvm-rt.o: $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c
+ $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c:
 	-git submodule init 2> /dev/null
 	-git submodule update 2> /dev/null
 	test -d $(AFL_PATH) || git clone https://github.com/AFLplusplus/AFLplusplus
+
+$(AFL_PATH)/afl-llvm-rt.o: $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c
 	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)
 	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)/llvm_mode
 
