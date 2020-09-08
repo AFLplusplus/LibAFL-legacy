@@ -78,7 +78,7 @@ afl.o: ./src/aflpp.c ./include/aflpp.h ./src/observationchannel.o ./src/input.ob
 	$(CC) $(CFLAGS) ./src/aflpp.c -c -o aflpp.o
 
 libafl.so: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o ./src/shmem.o
-	$(CC) $(CFLAGS) $(LDFLAGS) -shared $^ -o libaflpp.so
+	$(CC) $(CFLAGS) $(LDFLAGS) -shared $^ -o libafl.so
 
 libafl.a: ./src/llmp.o ./src/aflpp.o ./src/engine.o ./src/stage.o ./src/fuzzone.o ./src/feedback.o ./src/mutator.o ./src/queue.o ./src/observationchannel.o ./src/input.o ./src/common.o ./src/os.o ./src/shmem.o
 	@rm -f libafl.a
