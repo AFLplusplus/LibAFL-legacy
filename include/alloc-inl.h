@@ -676,7 +676,10 @@ static inline void *afl_realloc(void *buf, size_t size_needed) {
     new_buf = afl_alloc_bufptr(buf);
     if (unlikely(new_buf->magic != AFL_REALLOC_MAGIC)) {
 
-      FATAL("Illegal, non-null pointer passed to afl_realloc (buf 0x%p, magic 0x%x)", new_buf, (unsigned)new_buf->magic);
+      FATAL(
+          "Illegal, non-null pointer passed to afl_realloc (buf 0x%p, magic "
+          "0x%x)",
+          new_buf, (unsigned)new_buf->magic);
 
     }
 

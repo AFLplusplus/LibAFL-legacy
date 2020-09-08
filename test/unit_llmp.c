@@ -71,8 +71,7 @@ static void test_client_eop(void **state) {
   u32 i;
   for (i = 0; i < 1500000; i++) {
 
-    llmp_message_t *last_msg =
-        llmp_client_alloc_next(client, i);
+    llmp_message_t *last_msg = llmp_client_alloc_next(client, i);
     assert(last_msg && "Last_msg was null :(");
     last_msg->tag = 0x7357;
     llmp_client_send(client, last_msg);

@@ -174,6 +174,7 @@ static inline size_t new_map_size(size_t max_alloc) {
 /* Initialize a new llmp_page_t. size should be relative to
  * llmp_page_t->messages */
 static void _llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
+
   DBG("_llmp_page_init %p %u %lu\n", page, sender, size);
   page->sender = sender;
   page->current_msg_id = 0;
@@ -188,7 +189,9 @@ static void _llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
 
 /* Pointer to the message behind the last message */
 static inline llmp_message_t *_llmp_next_msg_ptr(llmp_message_t *last_msg) {
-  DBG("_llmp_next_msg_ptr %p %lu + %lu\n", last_msg, last_msg->buf_len, sizeof(llmp_message_t));
+
+  DBG("_llmp_next_msg_ptr %p %lu + %lu\n", last_msg, last_msg->buf_len,
+      sizeof(llmp_message_t));
   return (llmp_message_t *)((u8 *)last_msg + sizeof(llmp_message_t) +
                             last_msg->buf_len);
 
@@ -196,6 +199,7 @@ static inline llmp_message_t *_llmp_next_msg_ptr(llmp_message_t *last_msg) {
 
 /* Read next message. */
 llmp_message_t *llmp_recv(llmp_page_t *page, llmp_message_t *last_msg) {
+
   DBG("llmp_recv %p %p\n", page, last_msg);
 
   MEM_BARRIER();
@@ -227,7 +231,9 @@ llmp_message_t *llmp_recv(llmp_page_t *page, llmp_message_t *last_msg) {
 llmp_message_t *llmp_recv_blocking(llmp_page_t *   page,
                                    llmp_message_t *last_msg) {
 
-  DBG("llmp_recv_blocking %p %p page->current_msg_id %lu last_msg->message_id %u\n", page, last_msg, page->current_msg_id, last_msg->message_id);
+  DBG("llmp_recv_blocking %p %p page->current_msg_id %lu last_msg->message_id "
+      "%u\n",
+      page, last_msg, page->current_msg_id, last_msg->message_id);
 
   u32 current_msg_id = 0;
   if (last_msg != NULL) {
@@ -312,6 +318,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
   DBG("llmp_alloc_next %p %p %lu\n", page, last_msg, buf_len);
 
   size_t complete_msg_size = llmp_align(sizeof(llmp_message_t) + buf_len);
+  DBG("XXX complete_msg_size %lu (h: %lu)\n", complete_msg_size,
+      sizeof(llmp_message_t));
 
   /* In case we don't have enough space, make sure the next page will be large
    * enough */
@@ -319,7 +327,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
   llmp_message_t *ret = NULL;
 
-  DBG("last_msg %p %d (%d)\n", last_msg, last_msg ? (int)last_msg->tag : -1, (int)LLMP_TAG_END_OF_PAGE_V1);
+  DBG("last_msg %p %d (%d)\n", last_msg, last_msg ? (int)last_msg->tag : -1,
+      (int)LLMP_TAG_END_OF_PAGE_V1);
 
   if (!last_msg || last_msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
@@ -332,13 +341,15 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
     buf_len = llmp_align(base_addr + complete_msg_size) - base_addr -
               sizeof(llmp_message_t);
     complete_msg_size = buf_len + sizeof(llmp_message_t);
-    
+    DBG("XXX complete_msg_size NEW %lu\n", complete_msg_size);
+
     /* Still space for the new message plus the additional "we're full" message?
-    */
+     */
     if (page->size_used + complete_msg_size + LLMP_MSG_END_OF_PAGE_LEN >
         page->size_total) {
 
-      DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: %ld, "
+      DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: "
+          "%ld, "
           "total size %ld). Returning NULL",
           buf_len, page->size_used, page->size_total);
 
@@ -361,12 +372,15 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
   } else {
 
+    buf_len = complete_msg_size - sizeof(llmp_message_t);
+
     /* Still space for the new message plus the additional "we're full" message?
-    */
+     */
     if (page->size_used + complete_msg_size + LLMP_MSG_END_OF_PAGE_LEN >
         page->size_total) {
 
-      DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: %ld, "
+      DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: "
+          "%ld, "
           "total size %ld). Returning NULL",
           buf_len, page->size_used, page->size_total);
 
@@ -377,20 +391,24 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
     ret = _llmp_next_msg_ptr(last_msg);
     ret->message_id = last_msg->message_id + 1;
-    DBG("XXX ret %p id %u\n", ret, ret->message_id);
+    DBG("XXX ret %p id %u buf_len %lu complete_msg_size %lu\n", ret,
+        ret->message_id, buf_len, complete_msg_size);
 
   }
 
   /* The beginning of our message should be messages + size_used, else nobody
    * sent the last msg! */
 
-  DBG("XXX ret %p - page->messages %p = %lu != %lu, will add %lu -> %p\n", ret, page->messages, (size_t)((u8 *)ret - (u8 *)page->messages), page->size_used, complete_msg_size, ret + complete_msg_size);
+  DBG("XXX ret %p - page->messages %p = %lu != %lu, will add %lu -> %p\n", ret,
+      page->messages, (size_t)((u8 *)ret - (u8 *)page->messages),
+      page->size_used, complete_msg_size, ((u8 *)ret) + complete_msg_size);
   if ((!last_msg && page->size_used) ||
       ((size_t)((u8 *)ret - (u8 *)page->messages) != page->size_used)) {
 
     FATAL(
         "Allocated new message without calling send() inbetween. ret: %p, "
-        "page: %p, complete_msg_size: %ld, size_used: %ld, last_msg: %p, page->messages %p",
+        "page: %p, complete_msg_size: %ld, size_used: %ld, last_msg: %p, "
+        "page->messages %p",
         ret, page, buf_len, page->size_used, last_msg, page->messages);
 
   }
@@ -441,7 +459,9 @@ bool llmp_send(llmp_page_t *page, llmp_message_t *msg) {
 static inline afl_shmem_t *_llmp_broker_current_broadcast_map(
     llmp_broker_state_t *broker_state) {
 
-  DBG("_llmp_broker_current_broadcast_map %p [%u]-> %p\n", broker_state, (u32)broker_state->broadcast_map_count - 1, &broker_state->broadcast_maps[broker_state->broadcast_map_count - 1]);
+  DBG("_llmp_broker_current_broadcast_map %p [%u]-> %p\n", broker_state,
+      (u32)broker_state->broadcast_map_count - 1,
+      &broker_state->broadcast_maps[broker_state->broadcast_map_count - 1]);
   return &broker_state->broadcast_maps[broker_state->broadcast_map_count - 1];
 
 }
@@ -455,7 +475,8 @@ llmp_page_t *llmp_new_page_shmem(afl_shmem_t *uninited_afl_shmem, size_t sender,
                               (size_t)LLMP_INITIAL_MAP_SIZE));
   if (!afl_shmem_init(uninited_afl_shmem, size)) { return NULL; }
   _llmp_page_init(shmem2page(uninited_afl_shmem), sender, size_requested);
-  DBG("llmp_new_page_shmem %p %lu %lu -> size %lu\n", uninited_afl_shmem, sender, size_requested, size);
+  DBG("llmp_new_page_shmem %p %lu %lu -> size %lu\n", uninited_afl_shmem,
+      sender, size_requested, size);
   return shmem2page(uninited_afl_shmem);
 
 }
@@ -464,7 +485,9 @@ llmp_page_t *llmp_new_page_shmem(afl_shmem_t *uninited_afl_shmem, size_t sender,
   listener about it using a EOP message. */
 static afl_shmem_t *llmp_handle_out_eop(afl_shmem_t *maps, size_t *map_count_p,
                                         llmp_message_t **last_msg_p) {
-  DBG("llmp_handle_out_eop %p %p=%lu %p=%p\n", maps, map_count_p, *map_count_p, last_msg_p, *last_msg_p);
+
+  DBG("llmp_handle_out_eop %p %p=%lu %p=%p\n", maps, map_count_p, *map_count_p,
+      last_msg_p, *last_msg_p);
 
   u32          map_count = *map_count_p;
   llmp_page_t *old_map = shmem2page(&maps[map_count - 1]);
@@ -640,6 +663,8 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(
 static inline void llmp_broker_handle_new_msgs(
     llmp_broker_state_t *broker, llmp_broker_client_metadata_t *client) {
 
+  DBG("llmp_broker_handle_new_msgs %p %p->%u\n", broker, client,
+      client->client_state->id);
   // TODO: We could memcpy a range of pending messages, instead of one by one.
 
   llmp_page_t *incoming = shmem2page(client->cur_client_map);
@@ -650,7 +675,8 @@ static inline void llmp_broker_handle_new_msgs(
 
     llmp_message_t *msg = llmp_recv(incoming, client->last_msg_broker_read);
 
-    DBG("Our current_message_id for client %d (at ptr %p) is %d%s, now "
+    DBG("Broker send: our current_message_id for client %d (at ptr %p) is "
+        "%d%s, now "
         "processing msg id "
         "%d with tag 0x%X",
         client->client_state->id, client, current_message_id,
@@ -755,7 +781,11 @@ static inline void llmp_broker_handle_new_msgs(
         /* Copy over the whole message.
         If we should need zero copy, we could instead post a link to the
         original msg with the map_id and offset. */
+        DBG("broker memcpy %p->%lu %p->%lu copy %lu\n", out, out->buf_len, msg,
+            msg->buf_len, sizeof(llmp_message_t) + msg->buf_len);
+        size_t actual_size = out->buf_len;
         memcpy(out, msg, sizeof(llmp_message_t) + msg->buf_len);
+        out->buf_len = actual_size;
 
         /* We need to replace the message ID with our own */
         llmp_page_t *out_page =
