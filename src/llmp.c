@@ -370,7 +370,7 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg,
 
     FATAL(
         "Allocated new message without calling send() inbetween. ret: %p, "
-        "page: %p, complte_msg_size: %ld, size_used: %ld",
+        "page: %p, complete_msg_size: %ld, size_used: %ld",
         ret, page, buf_len, page->size_used);
 
   }
