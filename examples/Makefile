@@ -3,7 +3,7 @@ AFL_PATH ?= $(MAKEFILE_PATH)/AFLplusplus
 AFL_CC := $(AFL_PATH)/afl-clang-fast
 CFLAGS += -g -Wall -Wextra -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong
 override CFLAGS += -L.. -I../include -I$(AFL_PATH)/include -lm 
-override LDFLAGS += ../libaflpp.a -lpthread -lm -lrt
+override LDFLAGS += ../libafl.a -lpthread -lm -lrt
 LIBPNG_URL = http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?download
 
 $(info AFL_PATH is $(AFL_PATH))
