@@ -8,7 +8,7 @@ LIBPNG_URL = http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?down
 
 $(info AFL_PATH is $(AFL_PATH))
 
-all: target executor in-memory-fuzzer
+all: target executor in-memory-fuzzer llmp-main
 
 $(AFL_PATH)/afl-llvm-rt.o: $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c
 	-git submodule init 2> /dev/null
