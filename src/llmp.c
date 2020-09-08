@@ -1521,7 +1521,7 @@ afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *   broker,
                                        void *                  data) {
 
   if (!(broker->msg_hooks = afl_realloc(
-            (void **)&broker->msg_hooks,
+            (void *)broker->msg_hooks,
             (broker->msg_hook_count + 1) * sizeof(llmp_message_hook_data_t)))) {
 
     DBG("realloc for msg hooks failed");
