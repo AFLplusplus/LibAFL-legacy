@@ -10,14 +10,12 @@ $(info AFL_PATH is $(AFL_PATH))
 
 all: target executor in-memory-fuzzer
 
-$(AFL_PATH)/llvm_mode/afl-llvm-rt.c:
+$(AFL_PATH)/afl-llvm-rt.o: $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c
 	-git submodule init 2> /dev/null
 	-git submodule update 2> /dev/null
 	test -d $(AFL_PATH) || git clone https://github.com/AFLplusplus/AFLplusplus
-	$(MAKE) -C $(AFL_PATH)
-	$(MAKE) -C $(AFL_PATH)/llvm_mode
-
-$(AFL_PATH)/afl-llvm-rt.o:	$(AFL_PATH)/llvm_mode/afl-llvm-rt.c
+	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)
+	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)/llvm_mode
 
 libpng-1.6.37.tar.gz:
 	wget -c $(LIBPNG_URL) -O libpng-1.6.37.tar.gz
@@ -28,7 +26,7 @@ libpng16.a:	libpng-1.6.37.tar.gz
 	cp libpng-1.6.37/.libs/libpng16.a ./
 	rm -rf libpng-1.6.37
 
-target: $(AFL_PATH)/afl-llvm-rt.o ./target.c
+target: $(AFL_PATH)/afl-llvm-rt.o target.c
 	$(AFL_CC) -g target.c -o target
 
 executor: ./executor.c
@@ -50,9 +48,9 @@ test: clean executor target
 	rm -rf ./crashes-* 2>/dev/null || trues
 
 clean:
-	rm out ./executor ./target ./success ./in-mem 2>/dev/null || true
-	rm -rf ./in 2>/dev/null	|| true
-	rm -rf ./crashes-* 2>/dev/null || true
-	rm -rf ./llmp-main || true
-	rm -rf ./out-* || true
-	rm -rf ./libpng-1.6.37 libpng16.a 2>/dev/null || true
+	rm out executor target success in-memory-fuzzer 2>/dev/null || true
+	rm -rf in 2>/dev/null	|| true
+	rm -rf crashes-* 2>/dev/null || true
+	rm -rf llmp-main || true
+	rm -rf out-* || true
+	#rm -rf libpng-1.6.37 libpng16.a 2>/dev/null || true
