@@ -2,7 +2,7 @@
 
 This folder contains all examples we curated so far.
 
-# `executor.c`
+# `forking-fuzzer.c`
 To run the main one, a multi-threaded AFL++ clone, run `make test`. This will get aflpp (for its compilers), compile `target.c`, build the lib, then build and run `executor.c`, the actual fuzzer.
 
 # `in-memory-fuzzer.c`

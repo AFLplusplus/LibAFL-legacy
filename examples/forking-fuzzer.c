@@ -409,7 +409,7 @@ int main(int argc, char **argv) {
   if (argc < 4) {
 
     FATAL(
-        "Usage: ./executor /input/directory number_of_threads "
+        "Usage: ./forking-fuzzer /input/directory number_of_threads "
         "target [target_args]");
 
   }
