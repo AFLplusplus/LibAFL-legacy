@@ -74,10 +74,11 @@ libafl.so: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/fee
 	$(CC) $(CFLAGS) $(LDFLAGS) -shared $^ -o libafl.so
 
 libafl.a: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/feedback.o src/mutator.o src/queue.o src/observationchannel.o src/input.o src/common.o src/os.o src/shmem.o
+	@rm -f libafl.a
 	ar -crs libafl.a $^
 
 libaflfuzzer.a: libafl.a examples
-	@rm -f libafl.a
+	@rm -f libaflfuzzer.a
 	clang $(CFLAGS) $(LDFLAGS) -c -o examples/libaflfuzzer.o examples/libaflfuzzer.c
 	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
 
