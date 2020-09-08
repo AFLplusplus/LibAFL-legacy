@@ -623,7 +623,6 @@ static inline size_t next_pow2(size_t in) {
 
 }
 
-
 #define AFL_REALLOC_MAGIC (0xAF1A110C)
 
 /* AFL alloc buffer, the struct is here so we don't need to do fancy ptr
@@ -639,7 +638,6 @@ struct afl_alloc_buf {
   u8 buf[0];
 
 };
-
 
 #define AFL_ALLOC_SIZE_OFFSET (offsetof(struct afl_alloc_buf, buf))
 
@@ -677,8 +675,11 @@ static inline void *afl_realloc(void *buf, size_t size_needed) {
     /* the size is always stored at buf - 1*size_t */
     new_buf = afl_alloc_bufptr(buf);
     if (unlikely(new_buf->magic != AFL_REALLOC_MAGIC)) {
+
       FATAL("Illegal, non-null pointer passed to afl_realloc");
+
     }
+
     current_size = new_buf->complete_size;
 
   }
@@ -705,18 +706,13 @@ static inline void *afl_realloc(void *buf, size_t size_needed) {
 
   /* alloc */
   new_buf = realloc(new_buf, next_size);
-  if (unlikely(!new_buf)) {
-
-    return NULL;
-
-  }
+  if (unlikely(!new_buf)) { return NULL; }
 
   new_buf->complete_size = next_size;
   new_buf->magic = AFL_REALLOC_MAGIC;
   return new_buf->buf;
 
 }
-
 
 static inline void afl_free(void *buf) {
 

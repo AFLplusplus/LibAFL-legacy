@@ -85,7 +85,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
   if (engine->executions % 100000) {
 
     llmp_client_state_t *llmp_client = engine->llmp_client;
-    llmp_message_t *msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
+    llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
     msg->tag = LLMP_TAG_EXEC_STATS;
     ((u8 *)msg->buf)[0] = engine->executions;
     llmp_client_send(llmp_client, msg);
@@ -280,19 +280,23 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
 }
 
 /* A hook to keep stats in the broker thread */
-bool message_hook(llmp_broker_state_t *broker, llmp_message_t *msg, void *data) {
+bool message_hook(llmp_broker_state_t *broker, llmp_message_t *msg,
+                  void *data) {
 
   (void)broker;
   if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
+
     ((fuzzer_stats_t *)data)->queue_entry_count++;
+
   } else if (msg->tag == LLMP_TAG_EXEC_STATS) {
+
     ((fuzzer_stats_t *)data)->total_execs += 100000;
+
   }
+
   return true;
 
 }
-
-
 
 int main(int argc, char **argv) {
 
@@ -375,7 +379,9 @@ int main(int argc, char **argv) {
 
       /* TODO: Send heartbeat messages from clients for more stats :) */
 
-      SAYF("Execs: %llu\t Paths: %llu\t time elapsed: %8llu\r",fuzzer_stats.total_execs, fuzzer_stats.queue_entry_count, time_elapsed / 1000);
+      SAYF("Execs: %llu\t Paths: %llu\t time elapsed: %8llu\r",
+           fuzzer_stats.total_execs, fuzzer_stats.queue_entry_count,
+           time_elapsed / 1000);
 
       fflush(stdout);
 

@@ -106,6 +106,7 @@ static void test_erase_bytes(void **state) {
 #include "input.h"
 
 void test_input_copy(void **state) {
+
   (void)state;
 
   raw_input_t input;
@@ -378,6 +379,7 @@ void test_basic_mutator_functions(void **state) {
 #include "queue.h"
 
 void test_queue_set_directory(void **state) {
+
   (void)state;
 
   base_queue_t queue;
@@ -448,6 +450,7 @@ void test_base_queue_get_next(void **state) {
 }
 
 int main(int argc, char **argv) {
+
   (void)argc;
   (void)argv;
 

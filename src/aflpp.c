@@ -266,7 +266,7 @@ afl_ret_t fsrv_start(executor_t *fsrv_executor) {
   if (fsrv->exec_tmout) {
 
     u32 time_ms = afl_read_s32_timed(fsrv->fsrv_st_fd, &status,
-                                 fsrv->exec_tmout * FORK_WAIT_MULT);
+                                     fsrv->exec_tmout * FORK_WAIT_MULT);
 
     if (!time_ms) {
 
@@ -375,8 +375,8 @@ exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
 
   if (fsrv->child_pid <= 0) { FATAL("Fork server is misbehaving (OOM?)"); }
 
-  exec_ms =
-      afl_read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, fsrv->exec_tmout);
+  exec_ms = afl_read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status,
+                               fsrv->exec_tmout);
 
   if (exec_ms > fsrv->exec_tmout) {
 

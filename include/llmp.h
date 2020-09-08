@@ -150,10 +150,11 @@ typedef void (*llmp_clientloop_func)(llmp_client_state_t *client_state,
 If return is false, message will not be delivered to clients.
 This is synchronous, if you need long-running message handlers, register a
 client instead. */
-typedef bool (llmp_message_hook_func)(llmp_broker_state_t *broker,
-                                       llmp_message_t *msg, void *data);
+typedef bool(llmp_message_hook_func)(llmp_broker_state_t *broker,
+                                     llmp_message_t *msg, void *data);
 
 enum LLMP_CLIENT_TYPE {
+
   /* Unknown type, no special handling needed */
   LLMP_CLIENT_TYPE_UNKNOWN,
   /* threaded client */
@@ -162,6 +163,7 @@ enum LLMP_CLIENT_TYPE {
   LLMP_CLIENT_TYPE_CHILD_PROCESS,
   /* foreign process, with shared local shmap */
   LLMP_CLIENT_TYPE_FOREIGN_PROCESS,
+
 };
 
 /* For the broker, internal: to keep track of the client */
@@ -277,9 +279,8 @@ the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also be added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
-bool llmp_broker_register_childprocess_clientloop(llmp_broker_state_t *broker,
-                                              llmp_clientloop_func clientloop,
-                                              void *               data);
+bool llmp_broker_register_childprocess_clientloop(
+    llmp_broker_state_t *broker, llmp_clientloop_func clientloop, void *data);
 
 /* Client thread will be called with llmp_client_state_t client, containing the
 data in ->data. This will register a client to be spawned up as soon as

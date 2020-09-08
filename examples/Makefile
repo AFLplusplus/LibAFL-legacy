@@ -24,7 +24,7 @@ libpng-1.6.37.tar.gz:
 
 libpng16.a:	libpng-1.6.37.tar.gz
 	tar -xvzf ./libpng-1.6.37.tar.gz || rm -f ./libpng-1.6.37.tar.gz
-	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure --disable-shared && $(MAKE)
+	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure CFLAGS= LDFLAGS= --disable-shared && $(MAKE)
 	cp libpng-1.6.37/.libs/libpng16.a ./
 
 target: $(AFL_PATH)/afl-llvm-rt.o ./target.c

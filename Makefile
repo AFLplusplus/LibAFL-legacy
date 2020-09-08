@@ -1,4 +1,4 @@
-override CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fstack-protector-strong -DLLMP_DEBUG=1
+override CFLAGS  += -g -fPIC -Iinclude -Iexamples/AFLplusplus/include -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fstack-protector-strong 
 
 ifdef DEBUG
   override CFLAGS += -DDEBUG -ggdb -Og
