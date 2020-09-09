@@ -108,7 +108,7 @@ typedef struct base_queue base_queue_t;
 
 struct base_queue_functions {
 
-  void (*add_to_queue)(base_queue_t *, queue_entry_t *);
+  afl_ret_t (*add_to_queue)(base_queue_t *, queue_entry_t *);
   void (*remove_from_queue)(base_queue_t *);
 
   queue_entry_t *(*get)(base_queue_t *);
@@ -146,7 +146,7 @@ struct base_queue {
 afl_ret_t afl_base_queue_init(base_queue_t *);
 void      afl_base_queue_deinit(base_queue_t *);
 
-void           afl_add_to_queue_default(base_queue_t *, queue_entry_t *);
+afl_ret_t afl_add_to_queue_default(base_queue_t *, queue_entry_t *);
 queue_entry_t *afl_get_queue_base_default(base_queue_t *);
 size_t         afl_get_base_queue_size_default(base_queue_t *);
 char *         afl_get_dirpath_default(base_queue_t *);

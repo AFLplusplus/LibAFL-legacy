@@ -144,13 +144,13 @@ void afl_base_queue_deinit(base_queue_t *queue) {
 }
 
 /* *** Possible error cases here? *** */
-void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
+afl_ret_t afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   if (!entry->input) {
 
     // Never add an entry with NULL input, something's wrong!
     WARNF("Queue entry with NULL input");
-    return;
+    return AFL_RET_NULL_PTR;
 
   }
 
@@ -183,6 +183,12 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   }
 
+  queue->size++;
+  queue->queue_entries = afl_realloc(queue->queue_entries, queue->size * sizeof(queue_entry_t *));
+  if (!queue->queue_entries) {
+    return AFL_RET_ALLOC;
+  }
+
   queue->queue_entries[queue->size] = entry;
 
   /* Let's save the entry to disk */
@@ -200,7 +206,7 @@ void afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
   }
 
-  queue->size++;
+  return AFL_RET_SUCCESS;
 
 }
 

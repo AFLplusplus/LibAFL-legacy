@@ -2,10 +2,21 @@ MAKEFILE_PATH := $(abspath .)
 AFL_PATH ?= $(MAKEFILE_PATH)/AFLplusplus
 LIBAFL_PATH := $(MAKEFILE_PATH)/..
 AFL_CC := $(AFL_PATH)/afl-clang-fast
-CFLAGS += -g -Wall -Wextra -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong
+CFLAGS += -g -Wall -Wextra -Wshadow -Wno-variadic-macros -fstack-protector-strong
 override CFLAGS += -L.. -I../include -lm 
 override LDFLAGS += ../libafl.a -lpthread -lm -lrt
 LIBPNG_URL = http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?download
+
+ifdef DEBUG
+  override CFLAGS += -DDEBUG -ggdb -O0 -DLLMP_DEBUG=1
+endif
+ifndef DEBUG
+  override CFLAGS += -D_FORTIFY_SOURCE=2 -O3
+endif
+ifdef ASAN
+  override CFLAGS += -fsanitize=address -fno-omit-frame-pointer
+  override LDFLAGS += -fsanitize=address
+endif
 
 $(info AFL_PATH is $(AFL_PATH))
 
@@ -22,7 +33,7 @@ $(AFL_PATH)/afl-llvm-rt.o: $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c
 
 .PHONY: ../libafl.a
 ../libafl.a:
-	$(MAKE) -C $(LIBAFL_PATH) libafl.a
+	$(MAKE) -C $(LIBAFL_PATH) "CFLAGS=$(CFLAGS)" "LDFLAGS=$(LDFLAGS)" "ASAN=$(ASAN)" "DEBUG=$(DEBUG)" libafl.a
 
 libpng-1.6.37.tar.gz:
 	wget -c $(LIBPNG_URL) -O libpng-1.6.37.tar.gz

@@ -461,15 +461,17 @@ int main(int argc, char **argv) {
 
   u64 time_elapsed = 1;
 
-  pthread_t p1;
+  if (!llmp_broker_launch_clientloops(llmp_broker)) {
+    FATAL("Error running broker clientloops");
+  }
 
-  int s = pthread_create(&p1, NULL, run_broker_thread, NULL);
-
-  if (!s) { OKF("Broker started running"); }
+  OKF("Broker started running");
 
   while (true) {
 
-    sleep(1);
+    llmp_broker_once(llmp_broker);
+
+    usleep(500);
     u64 execs = 0;
     u64 crashes = 0;
     for (size_t i = 0; i < fuzz_workers_count; ++i) {
