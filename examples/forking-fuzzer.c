@@ -476,6 +476,7 @@ int main(int argc, char **argv) {
     u64 crashes = 0;
     for (size_t i = 0; i < fuzz_workers_count; ++i) {
 
+      // TODO: As in-mem-fuzzer
       execs += registered_fuzz_workers[i]->executions;
       crashes += registered_fuzz_workers[i]->crashes;
 

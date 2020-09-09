@@ -291,18 +291,18 @@ void test_basic_mutator_functions(void **state) {
 
   (void)state;
 
-  engine_t   engine;
-  stage_t    stage;
-  fuzz_one_t fuzz_one;
+  engine_t   engine = {0};
+  stage_t    stage = {0};
+  fuzz_one_t fuzz_one = {0};
   afl_engine_init(&engine, NULL, NULL, NULL);
   afl_fuzz_one_init(&fuzz_one, &engine);
   afl_stage_init(&stage, &engine);
 
-  mutator_t mutator;
+  mutator_t mutator = {0};
   afl_mutator_init(&mutator, &stage);
 
   /* First let's create a basic inputs */
-  raw_input_t  input;
+  raw_input_t  input = {0};
   raw_input_t *copy = NULL;
   afl_input_init(&input);
 
@@ -382,12 +382,12 @@ void test_queue_set_directory(void **state) {
 
   (void)state;
 
-  base_queue_t queue;
-  afl_ret_t    ret;
+  base_queue_t queue = {0};
+  afl_ret_t    ret = {0};
   if ((ret = afl_base_queue_init(&queue)) != AFL_RET_SUCCESS) {
 
     WARNF("Could not init queue: %s", afl_ret_stringify(ret));
-    assert(0);
+    assert(0 && "COULD_NOT_INIT_QUEUE");
 
   }
 
@@ -402,20 +402,17 @@ void test_queue_set_directory(void **state) {
 
   assert_string_equal(queue.dirpath, new_dirpath);
 
-  afl_shmem_deinit(queue.shared_mem);
-  free(queue.shared_mem);
-
 }
 
 void test_base_queue_get_next(void **state) {
 
   (void)state;
 
-  engine_t engine;
+  engine_t engine = {0};
   afl_engine_init(&engine, NULL, NULL, NULL);
   llmp_client_state_t *client = llmp_client_new_unconnected();
   engine.llmp_client = client;
-  base_queue_t queue;
+  base_queue_t queue = {0};
   afl_base_queue_init(&queue);
   queue.engine = &engine;
   queue.engine_id = engine.id;
@@ -423,14 +420,14 @@ void test_base_queue_get_next(void **state) {
   /* When queue is empty we should get NULL */
   assert_null(queue.funcs.get_next_in_queue(&queue, engine.id));
 
-  raw_input_t input;
+  raw_input_t input = {0};
 
-  queue_entry_t first_entry;
+  queue_entry_t first_entry = {0};
   afl_queue_entry_init(&first_entry, &input);
 
   queue.funcs.add_to_queue(&queue, &first_entry);
 
-  queue_entry_t second_entry;
+  queue_entry_t second_entry = {0};
   afl_queue_entry_init(&second_entry, &input);
 
   queue.funcs.add_to_queue(&queue, &second_entry);
