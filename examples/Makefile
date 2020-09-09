@@ -1,5 +1,6 @@
 MAKEFILE_PATH := $(abspath .)
 AFL_PATH ?= $(MAKEFILE_PATH)/AFLplusplus
+LIBAFL_PATH := $(MAKEFILE_PATH)/..
 AFL_CC := $(AFL_PATH)/afl-clang-fast
 CFLAGS += -g -Wall -Wextra -Wshadow -Wno-variadic-macros -D_FORTIFY_SOURCE=2 -O3 -fstack-protector-strong
 override CFLAGS += -L.. -I../include -lm 
@@ -18,6 +19,10 @@ all: target forking-fuzzer in-memory-fuzzer llmp-main
 $(AFL_PATH)/afl-llvm-rt.o: $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c
 	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)
 	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)/llvm_mode
+
+.PHONY: ../libafl.a
+../libafl.a:
+	$(MAKE) -C $(LIBAFL_PATH) libafl.a
 
 libpng-1.6.37.tar.gz:
 	wget -c $(LIBPNG_URL) -O libpng-1.6.37.tar.gz
