@@ -1,6 +1,9 @@
 /* An in mmeory fuzzing example. Fuzzer for libpng library */
 
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include "aflpp.h"
 #include "png.h"
 
@@ -290,7 +293,7 @@ int main(int argc, char **argv) {
   }
 
   llmp_broker_state_t *llmp_broker;
-  int                  broker_port;
+  int                  broker_port, i, status, pid;
 
   char *in_dir = argv[2];
   int   thread_count = atoi(argv[1]);
@@ -317,7 +320,7 @@ int main(int argc, char **argv) {
   llmp_broker_add_message_hook(llmp_broker, message_hook, &fuzzer_stats);
   fuzzer_stats.clients = malloc(thread_count * sizeof(size_t));
 
-  for (int i = 0; i < thread_count; ++i) {
+  for (i = 0; i < thread_count; ++i) {
 
     engine_t *engine = initialize_fuzz_instance(in_dir, queue_dirpath);
 
@@ -350,7 +353,6 @@ int main(int argc, char **argv) {
   sleep(1);
 
   while (1) {
-    int i;
 
     /* Forward all messages that arrived in the meantime */
     llmp_broker_once(llmp_broker);
@@ -372,6 +374,17 @@ int main(int argc, char **argv) {
            time_elapsed, total_execs, total_execs / time_elapsed);
 
       fflush(stdout);
+
+      if ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+      
+        // this pid is gone
+        // restart it
+        // clean shm?
+
+        // TODO      
+        fprintf(stderr, "TODO: implement child re-fork\n");
+      
+      }
 
     }
 
