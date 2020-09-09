@@ -5,7 +5,7 @@
 
 typedef struct afl_rand_state {
 
-  u32  rand_cnt;                                    /* Random number counter*/
+  u32  rand_cnt;                                                                            /* Random number counter*/
   u64  rand_seed[4];
   s32  dev_urandom_fd;
   s64  init_seed;
@@ -22,8 +22,7 @@ static inline u64 afl_rand_rotl(const u64 x, int k) {
 static inline void afl_rand_set_seed(afl_rand_t *rnd, s64 init_seed) {
 
   rnd->init_seed = init_seed;
-  rnd->rand_seed[0] =
-      XXH64((u8 *)&rnd->init_seed, sizeof(rnd->init_seed), HASH_CONST);
+  rnd->rand_seed[0] = XXH64((u8 *)&rnd->init_seed, sizeof(rnd->init_seed), HASH_CONST);
   rnd->rand_seed[1] = rnd->rand_seed[0] ^ 0x1234567890abcdef;
   rnd->rand_seed[2] = rnd->rand_seed[0] & 0x0123456789abcdef;
   rnd->rand_seed[3] = rnd->rand_seed[0] | 0x01abcde43f567908;
@@ -33,9 +32,7 @@ static inline void afl_rand_set_seed(afl_rand_t *rnd, s64 init_seed) {
 /* get the next random number */
 static inline u64 afl_rand_next(afl_rand_t *rnd) {
 
-  const uint64_t result =
-      afl_rand_rotl(rnd->rand_seed[0] + rnd->rand_seed[3], 23) +
-      rnd->rand_seed[0];
+  const uint64_t result = afl_rand_rotl(rnd->rand_seed[0] + rnd->rand_seed[3], 23) + rnd->rand_seed[0];
 
   const uint64_t t = rnd->rand_seed[1] << 17;
 
@@ -61,8 +58,7 @@ static inline u64 afl_rand_below(afl_rand_t *rnd, u64 limit) {
      we need to ensure the result uniformity. */
   if (unlikely(!rnd->rand_cnt--) && likely(!rnd->fixed_seed)) {
 
-    int read_len =
-        read(rnd->dev_urandom_fd, &rnd->rand_seed, sizeof(rnd->rand_seed));
+    int read_len = read(rnd->dev_urandom_fd, &rnd->rand_seed, sizeof(rnd->rand_seed));
     (void)read_len;
     rnd->rand_cnt = (RESEED_RNG / 2) + (rnd->rand_seed[1] % RESEED_RNG);
 
@@ -85,8 +81,7 @@ static inline u64 afl_rand_below(afl_rand_t *rnd, u64 limit) {
 }
 
 /* initialize with a fixed seed (for reproducability) */
-static inline afl_ret_t afl_rand_init_fixed_seed(afl_rand_t *rnd,
-                                                 s64         init_seed) {
+static inline afl_ret_t afl_rand_init_fixed_seed(afl_rand_t *rnd, s64 init_seed) {
 
   memset(rnd, 0, sizeof(afl_rand_t));
   rnd->fixed_seed = true;
@@ -114,5 +109,5 @@ static inline void afl_rand_deinit(afl_rand_t *rnd) {
 
 }
 
-#endif                                                        /* AFL_RAND_H */
+#endif                                                                                                /* AFL_RAND_H */
 

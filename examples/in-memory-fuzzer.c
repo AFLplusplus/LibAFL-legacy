@@ -27,8 +27,7 @@ extern u8 *__afl_area_ptr;
 
 exit_type_t harness_func(u8 *input, size_t len) {
 
-  png_structp png_ptr =
-      png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+  png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
   png_set_user_limits(png_ptr, 65535, 65535);
   png_infop info_ptr = png_create_info_struct(png_ptr);
@@ -66,8 +65,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
   /* We've run the target with the executor, we can now simply postExec call the
    * observation channels*/
 
-  if (engine->executions % 12345 &&
-      engine->last_update < afl_get_cur_time_s()) {
+  if (engine->executions % 12345 && engine->last_update < afl_get_cur_time_s()) {
 
     llmp_client_state_t *llmp_client = engine->llmp_client;
     llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
@@ -82,11 +80,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
   for (i = 0; i < executor->observors_count; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
-    if (obs_channel->funcs.post_exec) {
-
-      obs_channel->funcs.post_exec(executor->observors[i], engine);
-
-    }
+    if (obs_channel->funcs.post_exec) { obs_channel->funcs.post_exec(executor->observors[i], engine); }
 
   }
 
@@ -113,57 +107,43 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
 
   /* Let's create an in-memory executor */
-  in_memory_executor_t *in_memory_executor =
-      calloc(1, sizeof(in_memory_executor_t));
+  in_memory_executor_t *in_memory_executor = calloc(1, sizeof(in_memory_executor_t));
   if (!in_memory_executor) { FATAL("%s", afl_ret_stringify(AFL_RET_ALLOC)); }
   in_memory_executor_init(in_memory_executor, harness_func);
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
-  map_based_channel_t *trace_bits_channel =
-      calloc(1, sizeof(map_based_channel_t));
+  map_based_channel_t *trace_bits_channel = calloc(1, sizeof(map_based_channel_t));
   afl_observation_channel_init(&trace_bits_channel->base, MAP_CHANNEL_ID);
-  if (!trace_bits_channel) {
-
-    FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC));
-
-  }
+  if (!trace_bits_channel) { FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC)); }
 
   /* Since we don't use map_channel_create function, we have to add reset
    * function manually */
   trace_bits_channel->base.funcs.reset = afl_map_channel_reset;
 
-  trace_bits_channel->shared_map.map =
-      __afl_area_ptr;  // Coverage "Map" we have
+  trace_bits_channel->shared_map.map = __afl_area_ptr;  // Coverage "Map" we have
   trace_bits_channel->shared_map.map_size = MAP_SIZE;
-  trace_bits_channel->shared_map.shm_id =
-      -1;  // Just a simple erronous value :)
-  in_memory_executor->base.funcs.add_observation_channel(
-      &in_memory_executor->base, &trace_bits_channel->base);
+  trace_bits_channel->shared_map.shm_id = -1;  // Just a simple erronous value :)
+  in_memory_executor->base.funcs.add_observation_channel(&in_memory_executor->base, &trace_bits_channel->base);
 
   /* We create a simple feedback queue for coverage here*/
-  feedback_queue_t *coverage_feedback_queue =
-      afl_feedback_queue_create(NULL, (char *)"Coverage feedback queue");
+  feedback_queue_t *coverage_feedback_queue = afl_feedback_queue_create(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
-  coverage_feedback_queue->base.funcs.set_dirpath(
-      &coverage_feedback_queue->base, queue_dirpath);
+  coverage_feedback_queue->base.funcs.set_dirpath(&coverage_feedback_queue->base, queue_dirpath);
 
   /* Global queue creation */
   global_queue_t *global_queue = afl_global_queue_create();
   if (!global_queue) { FATAL("Error initializing global queue"); }
-  global_queue->extra_funcs.add_feedback_queue(global_queue,
-                                               coverage_feedback_queue);
+  global_queue->extra_funcs.add_feedback_queue(global_queue, coverage_feedback_queue);
   global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
 
   /* Coverage Feedback initialization */
-  maximize_map_feedback_t *coverage_feedback = map_feedback_init(
-      coverage_feedback_queue, trace_bits_channel->shared_map.map_size,
-      MAP_CHANNEL_ID);
+  maximize_map_feedback_t *coverage_feedback =
+      map_feedback_init(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
 
   /* Let's build an engine now */
-  engine_t *engine =
-      afl_engine_create(&in_memory_executor->base, NULL, global_queue);
+  engine_t *engine = afl_engine_create(&in_memory_executor->base, NULL, global_queue);
   if (!engine) { FATAL("Error initializing Engine"); }
   engine->funcs.add_feedback(engine, (feedback_t *)coverage_feedback);
   engine->funcs.set_global_queue(engine, global_queue);
@@ -180,18 +160,14 @@ engine_t *initialize_fuzz_instance(char *in_dir, char *queue_dirpath) {
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_byte_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          flip_2_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          flip_4_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          delete_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_2_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_4_bytes_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, delete_bytes_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, clone_bytes_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_bit_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_2_bits_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_4_bits_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc,
-                                          random_byte_add_sub_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_add_sub_mutation);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_mutation);
 
   fuzzing_stage_t *stage = afl_fuzzing_stage_create(engine);
@@ -207,36 +183,22 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
   engine_t *engine = (engine_t *)data;
   engine->llmp_client = llmp_client;
 
-  map_based_channel_t *trace_bits_channel =
-      (map_based_channel_t *)engine->executor->observors[0];
+  map_based_channel_t *trace_bits_channel = (map_based_channel_t *)engine->executor->observors[0];
 
   fuzzing_stage_t *    stage = (fuzzing_stage_t *)engine->fuzz_one->stages[0];
-  scheduled_mutator_t *mutators_havoc =
-      (scheduled_mutator_t *)stage->mutators[0];
+  scheduled_mutator_t *mutators_havoc = (scheduled_mutator_t *)stage->mutators[0];
 
-  maximize_map_feedback_t *coverage_feedback =
-      (maximize_map_feedback_t *)(engine->feedbacks[0]);
+  maximize_map_feedback_t *coverage_feedback = (maximize_map_feedback_t *)(engine->feedbacks[0]);
 
   /* Now we can simply load the testcases from the directory given */
-  afl_ret_t ret =
-      engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL);
-  if (ret != AFL_RET_SUCCESS) {
-
-    PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret));
-
-  }
+  afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL);
+  if (ret != AFL_RET_SUCCESS) { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret)); }
 
   afl_ret_t fuzz_ret = engine->funcs.loop(engine);
 
-  if (fuzz_ret != AFL_RET_SUCCESS) {
+  if (fuzz_ret != AFL_RET_SUCCESS) { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(fuzz_ret)); }
 
-    PFATAL("Error fuzzing the target: %s", afl_ret_stringify(fuzz_ret));
-
-  }
-
-  SAYF(
-      "Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n",
-      engine->executions);
+  SAYF("Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n", engine->executions);
 
   /* Let's free everything now. Note that if you've extended any structure,
    * which now contains pointers to any dynamically allocated region, you have
@@ -267,8 +229,7 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
 }
 
 /* A hook to keep stats in the broker thread */
-bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client,
-                  llmp_message_t *msg, void *data) {
+bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client, llmp_message_t *msg, void *data) {
 
   (void)broker;
   if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
@@ -277,8 +238,7 @@ bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client,
 
   } else if (msg->tag == LLMP_TAG_EXEC_STATS) {
 
-    ((fuzzer_stats_t *)data)->clients[client->id - 1]->total_execs =
-        *(u64 *)msg->buf;
+    ((fuzzer_stats_t *)data)->clients[client->id - 1]->total_execs = *(u64 *)msg->buf;
 
   }
 
@@ -303,20 +263,12 @@ int main(int argc, char **argv) {
   int   thread_count = atoi(argv[1]);
   char *queue_dirpath = argv[3];
 
-  if (thread_count <= 0) {
-
-    FATAL("Number of threads should be greater than 0");
-
-  }
+  if (thread_count <= 0) { FATAL("Number of threads should be greater than 0"); }
 
   broker_port = 0xAF1;
   llmp_broker = llmp_broker_new();
   if (!llmp_broker) { FATAL("Broker creation failed"); }
-  if (!llmp_broker_register_local_server(llmp_broker, broker_port)) {
-
-    FATAL("Broker register failed");
-
-  }
+  if (!llmp_broker_register_local_server(llmp_broker, broker_port)) { FATAL("Broker register failed"); }
 
   OKF("Broker created now");
 
@@ -328,8 +280,7 @@ int main(int argc, char **argv) {
 
     engine_t *engine = initialize_fuzz_instance(in_dir, queue_dirpath);
 
-    if (!llmp_broker_register_childprocess_clientloop(
-            llmp_broker, thread_run_instance, engine)) {
+    if (!llmp_broker_register_childprocess_clientloop(llmp_broker, thread_run_instance, engine)) {
 
       FATAL("Error registering client");
 
@@ -373,9 +324,8 @@ int main(int argc, char **argv) {
 
       /* TODO: Send heartbeat messages from clients for more stats :) */
 
-      SAYF("threads=%u  paths=%llu  elapsed=%llu  execs=%llu  exec/s=%llu\r",
-           thread_count, fuzzer_stats.queue_entry_count, time_elapsed,
-           total_execs, total_execs / time_elapsed);
+      SAYF("threads=%u  paths=%llu  elapsed=%llu  execs=%llu  exec/s=%llu\r", thread_count,
+           fuzzer_stats.queue_entry_count, time_elapsed, total_execs, total_execs / time_elapsed);
 
       fflush(stdout);
 

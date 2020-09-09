@@ -43,9 +43,8 @@ struct mutator_functions {
                  raw_input_t *);  // The params here are in_buf and out_buf.
 
   size_t (*mutate)(mutator_t *, raw_input_t *);  // Mutate function
-  afl_ret_t (*custom_queue_get)(
-      mutator_t *,
-      raw_input_t *);  // Checks if the queue entry is to be fuzzed or not
+  afl_ret_t (*custom_queue_get)(mutator_t *,
+                                raw_input_t *);  // Checks if the queue entry is to be fuzzed or not
   void (*custom_queue_new_entry)(mutator_t *, queue_entry_t *);
   void (*post_process)(mutator_t *, raw_input_t *);  // Post process API AFL++
 
@@ -125,13 +124,11 @@ size_t    afl_mutate_scheduled_mutator_default(mutator_t *, raw_input_t *);
 afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *, stage_t *, size_t);
 void      afl_scheduled_mutator_deinit(scheduled_mutator_t *);
 
-static inline scheduled_mutator_t *afl_scheduled_mutator_create(
-    stage_t *stage, size_t max_iterations) {
+static inline scheduled_mutator_t *afl_scheduled_mutator_create(stage_t *stage, size_t max_iterations) {
 
   scheduled_mutator_t *sched_mut = calloc(1, sizeof(scheduled_mutator_t));
 
-  if (afl_scheduled_mutator_init(sched_mut, stage, max_iterations) !=
-      AFL_RET_SUCCESS) {
+  if (afl_scheduled_mutator_init(sched_mut, stage, max_iterations) != AFL_RET_SUCCESS) {
 
     free(sched_mut);
     return NULL;
@@ -142,8 +139,7 @@ static inline scheduled_mutator_t *afl_scheduled_mutator_create(
 
 }
 
-static inline void afl_scheduled_mutator_delete(
-    scheduled_mutator_t *sched_mut) {
+static inline void afl_scheduled_mutator_delete(scheduled_mutator_t *sched_mut) {
 
   afl_scheduled_mutator_deinit(sched_mut);
   free(sched_mut);

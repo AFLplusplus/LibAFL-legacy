@@ -53,8 +53,7 @@ void __sanitizer_cov_trace_pc_guard_init(uint32_t *start, uint32_t *stop) {
   #pragma weak __sanitizer_cov_trace_const_cmp4 = __sanitizer_cov_trace_cmp4
   #pragma weak __sanitizer_cov_trace_const_cmp8 = __sanitizer_cov_trace_cmp8
 #else
-void __sanitizer_cov_trace_const_cmp1(uint8_t arg1, uint8_t arg2)
-    __attribute__((alias("__sanitizer_cov_trace_cmp1")));
+void __sanitizer_cov_trace_const_cmp1(uint8_t arg1, uint8_t arg2) __attribute__((alias("__sanitizer_cov_trace_cmp1")));
 void __sanitizer_cov_trace_const_cmp2(uint16_t arg1, uint16_t arg2)
     __attribute__((alias("__sanitizer_cov_trace_cmp2")));
 void __sanitizer_cov_trace_const_cmp4(uint32_t arg1, uint32_t arg2)
@@ -68,8 +67,7 @@ void __sanitizer_cov_trace_cmp1(uint8_t arg1, uint8_t arg2) {
   uintptr_t k = (uintptr_t)__builtin_return_address(0);
   k = (k >> 4) ^ (k << 8);
   k &= MAP_SIZE - 1;
-  __lafl_cmp_map[k] =
-      MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
+  __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
 
 }
 
@@ -78,8 +76,7 @@ void __sanitizer_cov_trace_cmp2(uint16_t arg1, uint16_t arg2) {
   uintptr_t k = (uintptr_t)__builtin_return_address(0);
   k = (k >> 4) ^ (k << 8);
   k &= MAP_SIZE - 1;
-  __lafl_cmp_map[k] =
-      MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
+  __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
 
 }
 
@@ -88,8 +85,7 @@ void __sanitizer_cov_trace_cmp4(uint32_t arg1, uint32_t arg2) {
   uintptr_t k = (uintptr_t)__builtin_return_address(0);
   k = (k >> 4) ^ (k << 8);
   k &= MAP_SIZE - 1;
-  __lafl_cmp_map[k] =
-      MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
+  __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcount(~(arg1 ^ arg2))));
 
 }
 
@@ -98,8 +94,7 @@ void __sanitizer_cov_trace_cmp8(uint64_t arg1, uint64_t arg2) {
   uintptr_t k = (uintptr_t)__builtin_return_address(0);
   k = (k >> 4) ^ (k << 8);
   k &= MAP_SIZE - 1;
-  __lafl_cmp_map[k] =
-      MAX(__lafl_cmp_map[k], (__builtin_popcountll(~(arg1 ^ arg2))));
+  __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcountll(~(arg1 ^ arg2))));
 
 }
 
@@ -113,8 +108,7 @@ void __sanitizer_cov_trace_switch(uint64_t val, uint64_t *cases) {
       uintptr_t k = rt + i;
       k = (k >> 4) ^ (k << 8);
       k &= MAP_SIZE - 1;
-      __lafl_cmp_map[k] =
-          MAX(__lafl_cmp_map[k], (__builtin_popcountll(~(val ^ cases[i + 2]))));
+      __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcountll(~(val ^ cases[i + 2]))));
 
     }
 
@@ -125,8 +119,7 @@ void __sanitizer_cov_trace_switch(uint64_t val, uint64_t *cases) {
       uintptr_t k = rt + i;
       k = (k >> 4) ^ (k << 8);
       k &= MAP_SIZE - 1;
-      __lafl_cmp_map[k] =
-          MAX(__lafl_cmp_map[k], (__builtin_popcount(~(val ^ cases[i + 2]))));
+      __lafl_cmp_map[k] = MAX(__lafl_cmp_map[k], (__builtin_popcount(~(val ^ cases[i + 2]))));
 
     }
 

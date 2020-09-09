@@ -33,8 +33,7 @@
 #include "fuzzone.h"
 #include "os.h"
 
-afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
-                          fuzz_one_t *fuzz_one, global_queue_t *global_queue) {
+afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor, fuzz_one_t *fuzz_one, global_queue_t *global_queue) {
 
   engine->executor = executor;
   engine->fuzz_one = fuzz_one;
@@ -42,11 +41,7 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->feedbacks_count = 0;
   engine->executions = 0;
 
-  if (global_queue) {
-
-    global_queue->base.funcs.set_engine(&global_queue->base, engine);
-
-  }
+  if (global_queue) { global_queue->base.funcs.set_engine(&global_queue->base, engine); }
 
   engine->funcs.get_queue = afl_get_queue_default;
   engine->funcs.get_execs = afl_get_execs_default;
@@ -129,32 +124,22 @@ void afl_set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
   engine->fuzz_one = fuzz_one;
 
-  if (fuzz_one) {
-
-    fuzz_one->funcs.set_engine_default(engine->fuzz_one, engine);
-
-  }
+  if (fuzz_one) { fuzz_one->funcs.set_engine_default(engine->fuzz_one, engine); }
 
 }
 
-void afl_set_global_queue_default(engine_t *      engine,
-                                  global_queue_t *global_queue) {
+void afl_set_global_queue_default(engine_t *engine, global_queue_t *global_queue) {
 
   engine->global_queue = global_queue;
 
-  if (global_queue) {
-
-    global_queue->base.funcs.set_engine(&global_queue->base, engine);
-
-  }
+  if (global_queue) { global_queue->base.funcs.set_engine(&global_queue->base, engine); }
 
 }
 
 afl_ret_t afl_add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
   engine->feedbacks_count++;
-  engine->feedbacks = afl_realloc(
-      engine->feedbacks, engine->feedbacks_count * sizeof(feedback_t *));
+  engine->feedbacks = afl_realloc(engine->feedbacks, engine->feedbacks_count * sizeof(feedback_t *));
   if (!engine->feedbacks) { return AFL_RET_ALLOC; }
 
   engine->feedbacks[engine->feedbacks_count - 1] = feedback;
@@ -163,8 +148,7 @@ afl_ret_t afl_add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
 }
 
-afl_ret_t afl_load_testcases_from_dir_default(
-    engine_t *engine, char *dirpath, raw_input_t *(*custom_input_create)()) {
+afl_ret_t afl_load_testcases_from_dir_default(engine_t *engine, char *dirpath, raw_input_t *(*custom_input_create)()) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
@@ -174,11 +158,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
   raw_input_t *input;
   size_t       dir_name_size = strlen(dirpath);
 
-  if (dirpath[dir_name_size - 1] == '/') {
-
-    dirpath[dir_name_size - 1] = '\x00';
-
-  }
+  if (dirpath[dir_name_size - 1] == '/') { dirpath[dir_name_size - 1] = '\x00'; }
 
   if (!(dir_in = opendir(dirpath))) { return AFL_RET_FILE_OPEN_ERROR; }
 
@@ -219,11 +199,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
     if (!input) {
 
       closedir(dir_in);
-      if (engine->executor->funcs.destroy_cb) {
-
-        engine->executor->funcs.destroy_cb(engine->executor);
-
-      };
+      if (engine->executor->funcs.destroy_cb) { engine->executor->funcs.destroy_cb(engine->executor); };
 
       return AFL_RET_ALLOC;
 
@@ -244,16 +220,11 @@ afl_ret_t afl_load_testcases_from_dir_default(
       if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
       queue_entry_t *entry = afl_queue_entry_create(copy);
-      engine->feedbacks[i]->queue->base.funcs.add_to_queue(
-          &engine->feedbacks[i]->queue->base, entry);
+      engine->feedbacks[i]->queue->base.funcs.add_to_queue(&engine->feedbacks[i]->queue->base, entry);
 
     }
 
-    if (run_result == AFL_RET_WRITE_TO_CRASH) {
-
-      SAYF("Crashing input found in initial corpus\n");
-
-    }
+    if (run_result == AFL_RET_WRITE_TO_CRASH) { SAYF("Crashing input found in initial corpus\n"); }
 
     afl_input_delete(input);
     input = NULL;
@@ -278,9 +249,8 @@ void afl_handle_new_message_default(engine_t *engine, llmp_message_t *msg) {
     size_t i = 0;
     for (i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
-      engine->global_queue->feedback_queues[i]->base.funcs.add_to_queue(
-          &engine->global_queue->feedback_queues[i]->base,
-          (queue_entry_t *)msg->buf);
+      engine->global_queue->feedback_queues[i]->base.funcs.add_to_queue(&engine->global_queue->feedback_queues[i]->base,
+                                                                        (queue_entry_t *)msg->buf);
 
     }
 
@@ -309,11 +279,7 @@ u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
   for (i = 0; i < executor->observors_count; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
-    if (obs_channel->funcs.post_exec) {
-
-      obs_channel->funcs.post_exec(executor->observors[i], engine);
-
-    }
+    if (obs_channel->funcs.post_exec) { obs_channel->funcs.post_exec(executor->observors[i], engine); }
 
   }
 
@@ -344,8 +310,7 @@ afl_ret_t afl_loop_default(engine_t *engine) {
   for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     engine->feedbacks[i]->channel =
-        engine->executor->funcs.get_observation_channels(
-            engine->executor, engine->feedbacks[i]->channel_id);
+        engine->executor->funcs.get_observation_channels(engine->executor, engine->feedbacks[i]->channel_id);
 
   }
 

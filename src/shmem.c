@@ -91,8 +91,7 @@ u8 *afl_shmem_init(afl_shmem_t *shm, size_t map_size) {
   }
 
   /* map the shared memory segment to the address space of the process */
-  shm->map =
-      mmap(0, map_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm->g_shm_fd, 0);
+  shm->map = mmap(0, map_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm->g_shm_fd, 0);
   if (shm->map == MAP_FAILED || shm->map == ((void *)-1) || !shm->map) {
 
     close(shm->g_shm_fd);
@@ -156,8 +155,7 @@ u8 *afl_shmem_by_str(afl_shmem_t *shm, char *shm_str, size_t map_size) {
   }
 
   /* map the shared memory segment to the address space of the process */
-  shm_base = mmap(0, shm->map_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-                  shm->g_shm_fd, 0);
+  shm_base = mmap(0, shm->map_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm->g_shm_fd, 0);
   if (shm_base == MAP_FAILED) {
 
     close(shm->g_shm_fd);

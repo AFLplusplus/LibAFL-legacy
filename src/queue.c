@@ -172,8 +172,7 @@ afl_ret_t afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
 
         if (stage->mutators[j]->funcs.custom_queue_new_entry) {
 
-          stage->mutators[j]->funcs.custom_queue_new_entry(stage->mutators[j],
-                                                           entry);
+          stage->mutators[j]->funcs.custom_queue_new_entry(stage->mutators[j], entry);
 
         }
 
@@ -184,8 +183,7 @@ afl_ret_t afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
   }
 
   queue->size++;
-  queue->queue_entries =
-      afl_realloc(queue->queue_entries, queue->size * sizeof(queue_entry_t *));
+  queue->queue_entries = afl_realloc(queue->queue_entries, queue->size * sizeof(queue_entry_t *));
   if (!queue->queue_entries) { return AFL_RET_ALLOC; }
 
   queue->queue_entries[queue->size] = entry;
@@ -193,11 +191,9 @@ afl_ret_t afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
   /* Let's save the entry to disk */
   if (queue->save_to_files && queue->dirpath && !entry->on_disk) {
 
-    u64 input_data_checksum =
-        XXH64(entry->input->bytes, entry->input->len, HASH_CONST);
+    u64 input_data_checksum = XXH64(entry->input->bytes, entry->input->len, HASH_CONST);
 
-    snprintf(entry->filename, FILENAME_LEN_MAX - 1, "%s/queue-%016llx",
-             queue->dirpath, input_data_checksum);
+    snprintf(entry->filename, FILENAME_LEN_MAX - 1, "%s/queue-%016llx", queue->dirpath, input_data_checksum);
 
     entry->input->funcs.save_to_file(entry->input, entry->filename);
 
@@ -250,11 +246,7 @@ void afl_set_dirpath_default(base_queue_t *queue, char *new_dirpath) {
 
     if (!((stat(queue->dirpath, &dir) == 0) && (S_ISDIR(dir.st_mode)))) {
 
-      if (mkdir(queue->dirpath, 0777) != 0) {
-
-        WARNF("Error creating queue directory");
-
-      };
+      if (mkdir(queue->dirpath, 0777) != 0) { WARNF("Error creating queue directory"); };
 
     }
 
@@ -277,8 +269,7 @@ void afl_set_engine_base_queue_default(base_queue_t *queue, engine_t *engine) {
 
 }
 
-queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
-                                               int           engine_id) {
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id) {
 
   if (queue->size) {
 
@@ -314,8 +305,7 @@ queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
 
 }
 
-afl_ret_t afl_feedback_queue_init(feedback_queue_t *feedback_queue,
-                                  struct feedback *feedback, char *name) {
+afl_ret_t afl_feedback_queue_init(feedback_queue_t *feedback_queue, struct feedback *feedback, char *name) {
 
   afl_base_queue_init(&(feedback_queue->base));
   feedback_queue->feedback = feedback;
@@ -349,8 +339,7 @@ afl_ret_t afl_global_queue_init(global_queue_t *global_queue) {
 
   global_queue->extra_funcs.add_feedback_queue = afl_add_feedback_queue_default;
   global_queue->extra_funcs.schedule = afl_global_schedule_default;
-  global_queue->base.funcs.get_next_in_queue =
-      afl_get_next_global_queue_default;
+  global_queue->base.funcs.get_next_in_queue = afl_get_next_global_queue_default;
 
   return AFL_RET_SUCCESS;
 
@@ -375,13 +364,11 @@ void afl_global_queue_deinit(global_queue_t *global_queue) {
 
 }
 
-afl_ret_t afl_add_feedback_queue_default(global_queue_t *  global_queue,
-                                         feedback_queue_t *feedback_queue) {
+afl_ret_t afl_add_feedback_queue_default(global_queue_t *global_queue, feedback_queue_t *feedback_queue) {
 
   global_queue->feedback_queues_count++;
-  global_queue->feedback_queues = afl_realloc(
-      global_queue->feedback_queues,
-      global_queue->feedback_queues_count * sizeof(feedback_queue_t *));
+  global_queue->feedback_queues =
+      afl_realloc(global_queue->feedback_queues, global_queue->feedback_queues_count * sizeof(feedback_queue_t *));
   if (!global_queue->feedback_queues) {
 
     global_queue->feedback_queues_count = 0;
@@ -389,16 +376,14 @@ afl_ret_t afl_add_feedback_queue_default(global_queue_t *  global_queue,
 
   }
 
-  global_queue->feedback_queues[global_queue->feedback_queues_count - 1] =
-      feedback_queue;
+  global_queue->feedback_queues[global_queue->feedback_queues_count - 1] = feedback_queue;
   engine_t *engine = global_queue->base.engine;
   feedback_queue->base.funcs.set_engine(&feedback_queue->base, engine);
   return AFL_RET_SUCCESS;
 
 }
 
-queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
-                                                 int           engine_id) {
+queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue, int engine_id) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
@@ -410,8 +395,7 @@ queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
   if (fbck_idx != -1) {
 
     feedback_queue_t *feedback_queue = global_queue->feedback_queues[fbck_idx];
-    queue_entry_t *   next_entry = feedback_queue->base.funcs.get_next_in_queue(
-        &(feedback_queue->base), engine_id);
+    queue_entry_t *   next_entry = feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base), engine_id);
 
     if (next_entry) {
 
@@ -442,8 +426,7 @@ int afl_global_schedule_default(global_queue_t *queue) {
 
 }
 
-void afl_set_engine_global_queue_default(base_queue_t *global_queue_base,
-                                         engine_t *    engine) {
+void afl_set_engine_global_queue_default(base_queue_t *global_queue_base, engine_t *engine) {
 
   size_t          i;
   global_queue_t *global_queue = (global_queue_t *)global_queue_base;
@@ -458,8 +441,7 @@ void afl_set_engine_global_queue_default(base_queue_t *global_queue_base,
   for (i = 0; i < global_queue->feedback_queues_count; ++i) {
 
     // Set this engine to every feedback queue in global queue
-    global_queue->feedback_queues[i]->base.funcs.set_engine(
-        &(global_queue->feedback_queues[i]->base), engine);
+    global_queue->feedback_queues[i]->base.funcs.set_engine(&(global_queue->feedback_queues[i]->base), engine);
 
   }
 

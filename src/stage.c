@@ -44,14 +44,9 @@ void afl_stage_deinit(stage_t *stage) {
 
 }
 
-afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *fuzz_stage,
-                                 engine_t *       engine) {
+afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *fuzz_stage, engine_t *engine) {
 
-  if (afl_stage_init(&(fuzz_stage->base), engine) != AFL_RET_SUCCESS) {
-
-    return AFL_RET_ERROR_INITIALIZE;
-
-  }
+  if (afl_stage_init(&(fuzz_stage->base), engine) != AFL_RET_SUCCESS) { return AFL_RET_ERROR_INITIALIZE; }
 
   fuzz_stage->funcs.add_mutator_to_stage = afl_add_mutator_to_stage_default;
   fuzz_stage->base.funcs.perform = afl_perform_stage_default;
@@ -78,14 +73,12 @@ void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
 
 }
 
-afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage,
-                                           mutator_t *      mutator) {
+afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage, mutator_t *mutator) {
 
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
   stage->mutators_count++;
-  stage->mutators =
-      afl_realloc(stage->mutators, stage->mutators_count * sizeof(mutator_t *));
+  stage->mutators = afl_realloc(stage->mutators, stage->mutators_count * sizeof(mutator_t *));
   if (!stage->mutators) { return AFL_RET_ALLOC; }
 
   stage->mutators[stage->mutators_count - 1] = mutator;
@@ -149,11 +142,7 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
 
       mutator_t *mutator = fuzz_stage->mutators[j];
 
-      if (mutator->funcs.post_process) {
-
-        mutator->funcs.post_process(mutator, copy);
-
-      }
+      if (mutator->funcs.post_process) { mutator->funcs.post_process(mutator, copy); }
 
     }
 
@@ -164,9 +153,8 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
 
     for (j = 0; j < stage->engine->feedbacks_count; ++j) {
 
-      add_to_queue = add_to_queue ||
-                     stage->engine->feedbacks[j]->funcs.is_interesting(
-                         stage->engine->feedbacks[j], stage->engine->executor);
+      add_to_queue = add_to_queue || stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j],
+                                                                                       stage->engine->executor);
 
     }
 

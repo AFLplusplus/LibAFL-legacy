@@ -7,20 +7,16 @@
 #include <fcntl.h>
 /* cmocka < 1.0 didn't support these features we need */
 #ifndef assert_ptr_equal
-  #define assert_ptr_equal(a, b)                                      \
-    _assert_int_equal(cast_ptr_to_largest_integral_type(a),           \
-                      cast_ptr_to_largest_integral_type(b), __FILE__, \
-                      __LINE__)
+  #define assert_ptr_equal(a, b) \
+    _assert_int_equal(cast_ptr_to_largest_integral_type(a), cast_ptr_to_largest_integral_type(b), __FILE__, __LINE__)
   #define CMUnitTest UnitTest
   #define cmocka_unit_test unit_test
   #define cmocka_run_group_tests(t, setup, teardown) run_tests(t)
 #endif
 
-extern void mock_assert(const int result, const char *const expression,
-                        const char *const file, const int line);
+extern void mock_assert(const int result, const char *const expression, const char *const file, const int line);
 #undef assert
-#define assert(expression) \
-  mock_assert((int)(expression), #expression, __FILE__, __LINE__);
+#define assert(expression) mock_assert((int)(expression), #expression, __FILE__, __LINE__);
 
 #include "common.h"
 #include "afl-shmem.h"
@@ -62,8 +58,7 @@ static void test_insert_substring(void **state) {
   u8 s[100];
   strcpy((char *)s, "This is a string");
 
-  u8 *new_string = afl_insert_substring(s, strlen((char *)s), test_token,
-                                        strlen(test_token), 10);
+  u8 *new_string = afl_insert_substring(s, strlen((char *)s), test_token, strlen(test_token), 10);
 
   assert_string_equal(new_string, test_string);
   free(new_string);
@@ -236,8 +231,7 @@ void test_engine_load_testcase_from_dir_default(void **state) {
   }
 
   // Let's first test for empty directory
-  engine.funcs.load_testcases_from_dir(&engine, "testcases",
-                                       custom_input_create);
+  engine.funcs.load_testcases_from_dir(&engine, "testcases", custom_input_create);
 
   // Let's test it with a few files in the directory
   int fd = open("testcases/test1", O_RDWR | O_CREAT, 0600);
@@ -262,17 +256,12 @@ void test_engine_load_testcase_from_dir_default(void **state) {
   }
 
   close(fd);
-  afl_ret_t result = engine.funcs.load_testcases_from_dir(&engine, "testcases",
-                                                          custom_input_create);
+  afl_ret_t result = engine.funcs.load_testcases_from_dir(&engine, "testcases", custom_input_create);
 
   assert_int_equal(result, AFL_RET_SUCCESS);
 
   /* Let's now remove the directory */
-  if (unlink("testcases/test1") || unlink("testcases/test2")) {
-
-    FATAL("Error removing corpus files");
-
-  }
+  if (unlink("testcases/test1") || unlink("testcases/test2")) { FATAL("Error removing corpus files"); }
 
   if (rmdir("testcases")) { FATAL("Error removing directory"); }
 
@@ -433,11 +422,9 @@ void test_base_queue_get_next(void **state) {
   queue.funcs.add_to_queue(&queue, &second_entry);
 
   /* Let's tell the queue with two entries now */
-  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id),
-                   &first_entry);
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &first_entry);
 
-  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id),
-                   &second_entry);
+  assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &second_entry);
 
   assert_int_equal(queue.size, 2);
 

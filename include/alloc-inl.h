@@ -214,9 +214,9 @@ static inline u8 *DFL_ck_strdup(u8 *str) {
 
   /* Magic tokens used to mark used / freed chunks. */
 
-  #define ALLOC_MAGIC_C1 0xFF00FF00                   /* Used head (dword)  */
-  #define ALLOC_MAGIC_F 0xFE00FE00                    /* Freed head (dword) */
-  #define ALLOC_MAGIC_C2 0xF0                         /* Used tail (byte)   */
+  #define ALLOC_MAGIC_C1 0xFF00FF00                                                           /* Used head (dword)  */
+  #define ALLOC_MAGIC_F 0xFE00FE00                                                            /* Freed head (dword) */
+  #define ALLOC_MAGIC_C2 0xF0                                                                 /* Used tail (byte)   */
 
   /* Positions of guard tokens in relation to the user-visible pointer. */
 
@@ -229,24 +229,23 @@ static inline u8 *DFL_ck_strdup(u8 *str) {
 
   /* Sanity-checking macros for pointers. */
 
-  #define CHECK_PTR(_p)                            \
-    do {                                           \
-                                                   \
-      if (_p) {                                    \
-                                                   \
-        if (ALLOC_C1(_p) ^ ALLOC_MAGIC_C1) {       \
-                                                   \
-          if (ALLOC_C1(_p) == ALLOC_MAGIC_F)       \
-            ABORT("Use after free.");              \
-          else                                     \
-            ABORT("Corrupted head alloc canary."); \
-                                                   \
-        }                                          \
-        if (ALLOC_C2(_p) ^ ALLOC_MAGIC_C2)         \
-          ABORT("Corrupted tail alloc canary.");   \
-                                                   \
-      }                                            \
-                                                   \
+  #define CHECK_PTR(_p)                                                           \
+    do {                                                                          \
+                                                                                  \
+      if (_p) {                                                                   \
+                                                                                  \
+        if (ALLOC_C1(_p) ^ ALLOC_MAGIC_C1) {                                      \
+                                                                                  \
+          if (ALLOC_C1(_p) == ALLOC_MAGIC_F)                                      \
+            ABORT("Use after free.");                                             \
+          else                                                                    \
+            ABORT("Corrupted head alloc canary.");                                \
+                                                                                  \
+        }                                                                         \
+        if (ALLOC_C2(_p) ^ ALLOC_MAGIC_C2) ABORT("Corrupted tail alloc canary."); \
+                                                                                  \
+      }                                                                           \
+                                                                                  \
     } while (0)
 
   #define CHECK_PTR_EXPR(_p)  \
@@ -307,7 +306,7 @@ static inline void DFL_ck_free(void *mem) {
   /* Catch pointer issues sooner. */
   memset(mem, 0xFF, ALLOC_S(mem));
 
-  #endif                                                     /* DEBUG_BUILD */
+  #endif                                                                                             /* DEBUG_BUILD */
 
   ALLOC_C1(mem) = ALLOC_MAGIC_F;
 
@@ -337,7 +336,7 @@ static inline void *DFL_ck_realloc(void *orig, u32 size) {
 
   #ifndef DEBUG_BUILD
     ALLOC_C1(orig) = ALLOC_MAGIC_F;
-  #endif                                                    /* !DEBUG_BUILD */
+  #endif                                                                                            /* !DEBUG_BUILD */
 
     old_size = ALLOC_S(orig);
     orig -= ALLOC_OFF_HEAD;
@@ -372,7 +371,7 @@ static inline void *DFL_ck_realloc(void *orig, u32 size) {
 
   }
 
-  #endif                                                   /* ^!DEBUG_BUILD */
+  #endif                                                                                           /* ^!DEBUG_BUILD */
 
   ret += ALLOC_OFF_HEAD;
 
@@ -455,7 +454,7 @@ extern u32             TRK_cnt[ALLOC_BUCKETS];
 
       #define alloc_report()
 
-    #endif                                                     /* ^AFL_MAIN */
+    #endif                                                                                             /* ^AFL_MAIN */
 
     /* Bucket-assigning function for a given pointer: */
 
@@ -463,8 +462,7 @@ extern u32             TRK_cnt[ALLOC_BUCKETS];
 
 /* Add a new entry to the list of allocated objects. */
 
-static inline void TRK_alloc_buf(void *ptr, const char *file, const char *func,
-                                 u32 line) {
+static inline void TRK_alloc_buf(void *ptr, const char *file, const char *func, u32 line) {
 
   u32 i, bucket;
 
@@ -488,8 +486,7 @@ static inline void TRK_alloc_buf(void *ptr, const char *file, const char *func,
 
   /* No space available - allocate more. */
 
-  TRK[bucket] = DFL_ck_realloc(TRK[bucket],
-                               (TRK_cnt[bucket] + 1) * sizeof(struct TRK_obj));
+  TRK[bucket] = DFL_ck_realloc(TRK[bucket], (TRK_cnt[bucket] + 1) * sizeof(struct TRK_obj));
 
   TRK[bucket][i].ptr = ptr;
   TRK[bucket][i].file = (char *)file;
@@ -502,8 +499,7 @@ static inline void TRK_alloc_buf(void *ptr, const char *file, const char *func,
 
 /* Remove entry from the list of allocated objects. */
 
-static inline void TRK_free_buf(void *ptr, const char *file, const char *func,
-                                u32 line) {
+static inline void TRK_free_buf(void *ptr, const char *file, const char *func, u32 line) {
 
   u32 i, bucket;
 
@@ -522,8 +518,7 @@ static inline void TRK_free_buf(void *ptr, const char *file, const char *func,
 
     }
 
-  WARNF("ALLOC: Attempt to free non-allocated memory in %s (%s:%u)", func, file,
-        line);
+  WARNF("ALLOC: Attempt to free non-allocated memory in %s (%s:%u)", func, file, line);
 
 }
 
@@ -538,15 +533,14 @@ static inline void TRK_report(void) {
   for (bucket = 0; bucket < ALLOC_BUCKETS; bucket++)
     for (i = 0; i < TRK_cnt[bucket]; i++)
       if (TRK[bucket][i].ptr)
-        WARNF("ALLOC: Memory never freed, created in %s (%s:%u)",
-              TRK[bucket][i].func, TRK[bucket][i].file, TRK[bucket][i].line);
+        WARNF("ALLOC: Memory never freed, created in %s (%s:%u)", TRK[bucket][i].func, TRK[bucket][i].file,
+              TRK[bucket][i].line);
 
 }
 
 /* Simple wrappers for non-debugging functions: */
 
-static inline void *TRK_ck_alloc(u32 size, const char *file, const char *func,
-                                 u32 line) {
+static inline void *TRK_ck_alloc(u32 size, const char *file, const char *func, u32 line) {
 
   void *ret = DFL_ck_alloc(size);
   TRK_alloc_buf(ret, file, func, line);
@@ -554,8 +548,7 @@ static inline void *TRK_ck_alloc(u32 size, const char *file, const char *func,
 
 }
 
-static inline void *TRK_ck_realloc(void *orig, u32 size, const char *file,
-                                   const char *func, u32 line) {
+static inline void *TRK_ck_realloc(void *orig, u32 size, const char *file, const char *func, u32 line) {
 
   void *ret = DFL_ck_realloc(orig, size);
   TRK_free_buf(orig, file, func, line);
@@ -564,8 +557,7 @@ static inline void *TRK_ck_realloc(void *orig, u32 size, const char *file,
 
 }
 
-static inline void *TRK_ck_strdup(u8 *str, const char *file, const char *func,
-                                  u32 line) {
+static inline void *TRK_ck_strdup(u8 *str, const char *file, const char *func, u32 line) {
 
   void *ret = DFL_ck_strdup(str);
   TRK_alloc_buf(ret, file, func, line);
@@ -573,8 +565,7 @@ static inline void *TRK_ck_strdup(u8 *str, const char *file, const char *func,
 
 }
 
-static inline void TRK_ck_free(void *ptr, const char *file, const char *func,
-                               u32 line) {
+static inline void TRK_ck_free(void *ptr, const char *file, const char *func, u32 line) {
 
   TRK_free_buf(ptr, file, func, line);
   DFL_ck_free(ptr);
@@ -585,19 +576,17 @@ static inline void TRK_ck_free(void *ptr, const char *file, const char *func,
 
     #define ck_alloc(_p1) TRK_ck_alloc(_p1, __FILE__, __FUNCTION__, __LINE__)
 
-    #define ck_alloc_nozero(_p1) \
-      TRK_ck_alloc(_p1, __FILE__, __FUNCTION__, __LINE__)
+    #define ck_alloc_nozero(_p1) TRK_ck_alloc(_p1, __FILE__, __FUNCTION__, __LINE__)
 
-    #define ck_realloc(_p1, _p2) \
-      TRK_ck_realloc(_p1, _p2, __FILE__, __FUNCTION__, __LINE__)
+    #define ck_realloc(_p1, _p2) TRK_ck_realloc(_p1, _p2, __FILE__, __FUNCTION__, __LINE__)
 
     #define ck_strdup(_p1) TRK_ck_strdup(_p1, __FILE__, __FUNCTION__, __LINE__)
 
     #define ck_free(_p1) TRK_ck_free(_p1, __FILE__, __FUNCTION__, __LINE__)
 
-  #endif                                                   /* ^!DEBUG_BUILD */
+  #endif                                                                                           /* ^!DEBUG_BUILD */
 
-#endif                                          /* _WANT_ORIGINAL_AFL_ALLOC */
+#endif                                                                                  /* _WANT_ORIGINAL_AFL_ALLOC */
 
 /* This function calculates the next power of 2 greater or equal its argument.
  @return The rounded up power of 2 (if no overflow) or 0 on overflow.
@@ -725,5 +714,5 @@ static inline void afl_free(void *buf) {
 
 #undef INITIAL_GROWTH_SIZE
 
-#endif                                               /* ! _HAVE_ALLOC_INL_H */
+#endif                                                                                       /* ! _HAVE_ALLOC_INL_H */
 

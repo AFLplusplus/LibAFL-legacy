@@ -67,8 +67,8 @@ afl_ret_t afl_perform_default(fuzz_one_t *fuzz_one) {
 
   global_queue_t *global_queue = fuzz_one->engine->global_queue;
 
-  queue_entry_t *queue_entry = global_queue->base.funcs.get_next_in_queue(
-      (base_queue_t *)global_queue, fuzz_one->engine->id);
+  queue_entry_t *queue_entry =
+      global_queue->base.funcs.get_next_in_queue((base_queue_t *)global_queue, fuzz_one->engine->id);
 
   if (!queue_entry) { return AFL_RET_NULL_QUEUE_ENTRY; }
 
@@ -76,8 +76,7 @@ afl_ret_t afl_perform_default(fuzz_one_t *fuzz_one) {
   for (i = 0; i < fuzz_one->stages_count; ++i) {
 
     stage_t * current_stage = fuzz_one->stages[i];
-    afl_ret_t stage_ret =
-        current_stage->funcs.perform(current_stage, queue_entry->input);
+    afl_ret_t stage_ret = current_stage->funcs.perform(current_stage, queue_entry->input);
 
     switch (stage_ret) {
 
@@ -99,8 +98,7 @@ afl_ret_t afl_add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
   if (!stage || !fuzz_one) { return AFL_RET_NULL_PTR; }
 
   fuzz_one->stages_count++;
-  fuzz_one->stages =
-      afl_realloc(fuzz_one->stages, fuzz_one->stages_count * sizeof(stage_t *));
+  fuzz_one->stages = afl_realloc(fuzz_one->stages, fuzz_one->stages_count * sizeof(stage_t *));
   if (!fuzz_one->stages) { return AFL_RET_ALLOC; }
 
   fuzz_one->stages[fuzz_one->stages_count - 1] = stage;

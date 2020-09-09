@@ -36,9 +36,9 @@
 
 typedef enum prealloc_status {
 
-  PRE_STATUS_UNUSED = 0,                                     /* free in buf */
-  PRE_STATUS_USED,                                           /* used in buf */
-  PRE_STATUS_MALLOC                                        /* system malloc */
+  PRE_STATUS_UNUSED = 0,                                                                             /* free in buf */
+  PRE_STATUS_USED,                                                                                   /* used in buf */
+  PRE_STATUS_MALLOC                                                                                /* system malloc */
 
 } pre_status_t;
 
@@ -88,54 +88,46 @@ typedef enum prealloc_status {
 
 /* Take a chosen (free) element from the prealloc_buf directly */
 
-#define PRE_ALLOC_FORCE(el_ptr, prealloc_counter)              \
-  do {                                                         \
-                                                               \
-    if ((el_ptr)->pre_status != PRE_STATUS_UNUSED) {           \
-                                                               \
-      FATAL("BUG: PRE_ALLOC_FORCE element already allocated"); \
-                                                               \
-    }                                                          \
-    (el_ptr)->pre_status = PRE_STATUS_USED;                    \
-    (prealloc_counter)++;                                      \
-                                                               \
+#define PRE_ALLOC_FORCE(el_ptr, prealloc_counter)                                                               \
+  do {                                                                                                          \
+                                                                                                                \
+    if ((el_ptr)->pre_status != PRE_STATUS_UNUSED) { FATAL("BUG: PRE_ALLOC_FORCE element already allocated"); } \
+    (el_ptr)->pre_status = PRE_STATUS_USED;                                                                     \
+    (prealloc_counter)++;                                                                                       \
+                                                                                                                \
   } while (0);
 
 /* free an preallocated element */
 
-#define PRE_FREE(el_ptr, prealloc_counter)             \
-  do {                                                 \
-                                                       \
-    switch ((el_ptr)->pre_status) {                    \
-                                                       \
-      case PRE_STATUS_USED: {                          \
-                                                       \
-        (el_ptr)->pre_status = PRE_STATUS_UNUSED;      \
-        (prealloc_counter)--;                          \
-        if ((prealloc_counter) < 0) {                  \
-                                                       \
-          FATAL("BUG: Inconsistent data in PRE_FREE"); \
-                                                       \
-        }                                              \
-        break;                                         \
-                                                       \
-      }                                                \
-      case PRE_STATUS_MALLOC: {                        \
-                                                       \
-        (el_ptr)->pre_status = PRE_STATUS_UNUSED;      \
-        free((el_ptr));                                \
-        break;                                         \
-                                                       \
-      }                                                \
-      default: {                                       \
-                                                       \
-        FATAL("BUG: Double Free Detected");            \
-        break;                                         \
-                                                       \
-      }                                                \
-                                                       \
-    }                                                  \
-                                                       \
+#define PRE_FREE(el_ptr, prealloc_counter)                                           \
+  do {                                                                               \
+                                                                                     \
+    switch ((el_ptr)->pre_status) {                                                  \
+                                                                                     \
+      case PRE_STATUS_USED: {                                                        \
+                                                                                     \
+        (el_ptr)->pre_status = PRE_STATUS_UNUSED;                                    \
+        (prealloc_counter)--;                                                        \
+        if ((prealloc_counter) < 0) { FATAL("BUG: Inconsistent data in PRE_FREE"); } \
+        break;                                                                       \
+                                                                                     \
+      }                                                                              \
+      case PRE_STATUS_MALLOC: {                                                      \
+                                                                                     \
+        (el_ptr)->pre_status = PRE_STATUS_UNUSED;                                    \
+        free((el_ptr));                                                              \
+        break;                                                                       \
+                                                                                     \
+      }                                                                              \
+      default: {                                                                     \
+                                                                                     \
+        FATAL("BUG: Double Free Detected");                                          \
+        break;                                                                       \
+                                                                                     \
+      }                                                                              \
+                                                                                     \
+    }                                                                                \
+                                                                                     \
   } while (0);
 
 #endif

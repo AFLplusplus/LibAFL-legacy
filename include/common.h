@@ -51,16 +51,14 @@ typedef struct executor executor_t;
 
 typedef struct mutator mutator_t;
 
-void *afl_insert_substring(
-    u8 *buf, size_t len, void *token, size_t token_len,
-    size_t offset);  // Returns new buf containing the substring token
-size_t afl_erase_bytes(
-    u8 *buf, size_t len, size_t offset,
-    size_t remove_len);  // Erases remove_len number of bytes from offset
-u8 *afl_insert_bytes(u8 *buf, size_t len, u8 byte,
-                     size_t insert_len,  // Inserts a certain length of a byte
-                                         // value (byte) at offset in buf
-                     size_t offset);
+void * afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
+                            size_t offset);  // Returns new buf containing the substring token
+size_t afl_erase_bytes(u8 *buf, size_t len, size_t offset,
+                       size_t remove_len);  // Erases remove_len number of bytes from offset
+u8 *   afl_insert_bytes(u8 *buf, size_t len, u8 byte,
+                        size_t insert_len,  // Inserts a certain length of a byte
+                                            // value (byte) at offset in buf
+                        size_t offset);
 
 static inline char **afl_argv_cpy_dup(int argc, char **argv) {
 
@@ -119,9 +117,7 @@ restart_select:
     if (likely(len_read == 4)) {  // for speed we put this first
 
 #if defined(__linux__)
-      u32 exec_ms = MIN(
-          timeout_ms,
-          ((u64)timeout_ms - (timeout.tv_sec * 1000 + timeout.tv_usec / 1000)));
+      u32 exec_ms = MIN(timeout_ms, ((u64)timeout_ms - (timeout.tv_sec * 1000 + timeout.tv_usec / 1000)));
 #else
       u32 exec_ms = MIN(timeout_ms, get_cur_time_us() - read_start);
 #endif

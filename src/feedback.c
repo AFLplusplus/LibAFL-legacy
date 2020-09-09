@@ -28,8 +28,7 @@
 #include "observationchannel.h"
 #include "aflpp.h"
 
-afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue,
-                            size_t channel_id) {
+afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue, size_t channel_id) {
 
   feedback->queue = queue;
 
@@ -59,8 +58,7 @@ void afl_feedback_deinit(feedback_t *feedback) {
 
 }
 
-void afl_set_feedback_queue_default(feedback_t *      feedback,
-                                    feedback_queue_t *queue) {
+void afl_set_feedback_queue_default(feedback_t *feedback, feedback_queue_t *queue) {
 
   feedback->queue = queue;
 
@@ -76,11 +74,9 @@ feedback_queue_t *afl_get_feedback_queue_default(feedback_t *feedback) {
 
 /* Map feedback. Can be easily used with a tracebits map similar to AFL++ */
 
-maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size,
-                                           size_t channel_id) {
+maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size, size_t channel_id) {
 
-  maximize_map_feedback_t *feedback =
-      calloc(1, sizeof(maximize_map_feedback_t));
+  maximize_map_feedback_t *feedback = calloc(1, sizeof(maximize_map_feedback_t));
   if (!feedback) { return NULL; }
   afl_feedback_init(&feedback->base, queue, channel_id);
 
@@ -101,19 +97,13 @@ maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size,
 
 }
 
-float __attribute__((hot))
-map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
+float __attribute__((hot)) map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
   maximize_map_feedback_t *map_feedback = (maximize_map_feedback_t *)feedback;
 
   /* First get the observation channel */
 
-  if (!feedback->channel) {
-
-    feedback->channel =
-        fsrv->funcs.get_observation_channels(fsrv, feedback->channel_id);
-
-  }
+  if (!feedback->channel) { feedback->channel = fsrv->funcs.get_observation_channels(fsrv, feedback->channel_id); }
 
   map_based_channel_t *obs_channel = (map_based_channel_t *)feedback->channel;
 
@@ -131,7 +121,7 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
   u32 i = (obs_channel->shared_map.map_size >> 2);
 
-#endif                                                     /* ^WORD_SIZE_64 */
+#endif                                                                                             /* ^WORD_SIZE_64 */
   // the map size must be a minimum of 8 bytes.
   // for variable/dynamic map sizes this is ensured in the forkserver
 
@@ -156,11 +146,9 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
 #ifdef WORD_SIZE_64
 
-        if (*virgin == 0xffffffffffffffff || (cur[0] && vir[0] == 0xff) ||
-            (cur[1] && vir[1] == 0xff) || (cur[2] && vir[2] == 0xff) ||
-            (cur[3] && vir[3] == 0xff) || (cur[4] && vir[4] == 0xff) ||
-            (cur[5] && vir[5] == 0xff) || (cur[6] && vir[6] == 0xff) ||
-            (cur[7] && vir[7] == 0xff)) {
+        if (*virgin == 0xffffffffffffffff || (cur[0] && vir[0] == 0xff) || (cur[1] && vir[1] == 0xff) ||
+            (cur[2] && vir[2] == 0xff) || (cur[3] && vir[3] == 0xff) || (cur[4] && vir[4] == 0xff) ||
+            (cur[5] && vir[5] == 0xff) || (cur[6] && vir[6] == 0xff) || (cur[7] && vir[7] == 0xff)) {
 
           ret = 1.0;
 
@@ -172,14 +160,13 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
 
 #else
 
-        if (*virgin == 0xffffffff || (cur[0] && vir[0] == 0xff) ||
-            (cur[1] && vir[1] == 0xff) || (cur[2] && vir[2] == 0xff) ||
-            (cur[3] && vir[3] == 0xff))
+        if (*virgin == 0xffffffff || (cur[0] && vir[0] == 0xff) || (cur[1] && vir[1] == 0xff) ||
+            (cur[2] && vir[2] == 0xff) || (cur[3] && vir[3] == 0xff))
           ret = 1.0;
         else
           ret = 0.5;
 
-#endif                                                     /* ^WORD_SIZE_64 */
+#endif                                                                                             /* ^WORD_SIZE_64 */
 
       }
 
@@ -193,11 +180,9 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
   }
 
 #ifdef DEBUG
-  fprintf(stderr, "[DEBUG] MAP: %p %lu ", obs_channel->shared_map.map,
-          obs_channel->shared_map.map_size);
+  fprintf(stderr, "[DEBUG] MAP: %p %lu ", obs_channel->shared_map.map, obs_channel->shared_map.map_size);
   for (u32 j = 0; j < obs_channel->shared_map.map_size; j++)
-    if (obs_channel->shared_map.map[j])
-      fprintf(stderr, " %02x=%02x", j, obs_channel->shared_map.map[j]);
+    if (obs_channel->shared_map.map[j]) fprintf(stderr, " %02x=%02x", j, obs_channel->shared_map.map[j]);
   fprintf(stderr, " ret=%f\n", ret);
 #endif
 
@@ -213,10 +198,8 @@ map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
     /* We broadcast a message when new entry found -- only if this is the fuzz
      * instance which found it!*/
 
-    llmp_client_state_t *llmp_client =
-        feedback->queue->base.engine->llmp_client;
-    llmp_message_t *msg =
-        llmp_client_alloc_next(llmp_client, sizeof(queue_entry_t));
+    llmp_client_state_t *llmp_client = feedback->queue->base.engine->llmp_client;
+    llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(queue_entry_t));
     msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY;
     ((queue_entry_t *)msg->buf)[0] = *new_entry;
     llmp_client_send(llmp_client, msg);

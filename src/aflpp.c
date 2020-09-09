@@ -36,11 +36,9 @@ afl_ret_t afl_executor_init(executor_t *executor) {
   executor->funcs.place_input_cb = NULL;
   executor->funcs.run_target_cb = NULL;
   executor->funcs.add_observation_channel = afl_add_observation_channel_default;
-  executor->funcs.get_observation_channels =
-      afl_get_observation_channels_default;
+  executor->funcs.get_observation_channels = afl_get_observation_channels_default;
   executor->funcs.get_current_input = afl_get_current_input_default;
-  executor->funcs.reset_observation_channels =
-      afl_reset_observation_channel_default;
+  executor->funcs.reset_observation_channels = afl_reset_observation_channel_default;
 
   return AFL_RET_SUCCESS;
 
@@ -65,14 +63,11 @@ void afl_executor_deinit(executor_t *executor) {
 
 }
 
-afl_ret_t afl_add_observation_channel_default(
-    executor_t *executor, observation_channel_t *obs_channel) {
+afl_ret_t afl_add_observation_channel_default(executor_t *executor, observation_channel_t *obs_channel) {
 
   executor->observors_count++;
 
-  executor->observors =
-      afl_realloc(executor->observors,
-                  executor->observors_count * sizeof(observation_channel_t *));
+  executor->observors = afl_realloc(executor->observors, executor->observors_count * sizeof(observation_channel_t *));
   if (!executor->observors) { return AFL_RET_ALLOC; }
   executor->observors[executor->observors_count - 1] = obs_channel;
 
@@ -80,16 +75,11 @@ afl_ret_t afl_add_observation_channel_default(
 
 }
 
-observation_channel_t *afl_get_observation_channels_default(
-    executor_t *executor, size_t channel_id) {
+observation_channel_t *afl_get_observation_channels_default(executor_t *executor, size_t channel_id) {
 
   for (size_t i = 0; i < executor->observors_count; ++i) {
 
-    if (executor->observors[i]->channel_id == channel_id) {
-
-      return executor->observors[i];
-
-    }
+    if (executor->observors[i]->channel_id == channel_id) { return executor->observors[i]; }
 
   }
 
@@ -145,8 +135,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char **target_args) {
     if (!strcmp(*target_args_copy, "@@")) {
 
       fsrv->use_stdin = 0;
-      *target_args_copy =
-          fsrv->out_file;  // Replace @@ with the output file name
+      *target_args_copy = fsrv->out_file;  // Replace @@ with the output file name
       break;
 
     }
@@ -191,7 +180,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char **target_args) {
 
   /* exec related stuff */
   fsrv->child_pid = -1;
-  fsrv->exec_tmout = 0;                          /* Default exec time in ms */
+  fsrv->exec_tmout = 0;                                                                  /* Default exec time in ms */
 
   return fsrv;
 
@@ -272,8 +261,7 @@ afl_ret_t fsrv_start(executor_t *fsrv_executor) {
   rlen = 0;
   if (fsrv->exec_tmout) {
 
-    u32 time_ms = afl_read_s32_timed(fsrv->fsrv_st_fd, &status,
-                                     fsrv->exec_tmout * FORK_WAIT_MULT);
+    u32 time_ms = afl_read_s32_timed(fsrv->fsrv_st_fd, &status, fsrv->exec_tmout * FORK_WAIT_MULT);
 
     if (!time_ms) {
 
@@ -323,19 +311,11 @@ u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input) {
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
-  if (!fsrv->use_stdin) {
-
-    fsrv->out_fd = open(fsrv->out_file, O_RDWR | O_CREAT | O_EXCL, 00600);
-
-  }
+  if (!fsrv->use_stdin) { fsrv->out_fd = open(fsrv->out_file, O_RDWR | O_CREAT | O_EXCL, 00600); }
 
   ssize_t write_len = write(fsrv->out_fd, input->bytes, input->len);
 
-  if (write_len < 0 || (size_t)write_len != input->len) {
-
-    FATAL("Short Write");
-
-  }
+  if (write_len < 0 || (size_t)write_len != input->len) { FATAL("Short Write"); }
 
   fsrv->base.current_input = input;
 
@@ -382,8 +362,7 @@ exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
 
   if (fsrv->child_pid <= 0) { FATAL("Fork server is misbehaving (OOM?)"); }
 
-  exec_ms = afl_read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status,
-                               fsrv->exec_tmout);
+  exec_ms = afl_read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, fsrv->exec_tmout);
 
   if (exec_ms > fsrv->exec_tmout) {
 
@@ -415,11 +394,7 @@ exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
 
     fsrv->last_kill_signal = WTERMSIG(fsrv->child_status);
 
-    if (fsrv->last_run_timed_out && fsrv->last_kill_signal == SIGKILL) {
-
-      return TIMEOUT;
-
-    }
+    if (fsrv->last_run_timed_out && fsrv->last_kill_signal == SIGKILL) { return TIMEOUT; }
 
     return CRASH;
 
@@ -431,8 +406,7 @@ exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
 
 /* An in-mem executor we have */
 
-void in_memory_executor_init(in_memory_executor_t *in_memory_executor,
-                             harness_function_type harness) {
+void in_memory_executor_init(in_memory_executor_t *in_memory_executor, harness_function_type harness) {
 
   afl_executor_init(&in_memory_executor->base);
   in_memory_executor->harness = harness;
@@ -458,8 +432,7 @@ exit_type_t in_memory_run_target(executor_t *executor) {
 
   raw_input_t *input = in_memory_executor->base.current_input;
 
-  u8 *data =
-      (input->funcs.serialize) ? (input->funcs.serialize(input)) : input->bytes;
+  u8 *data = (input->funcs.serialize) ? (input->funcs.serialize(input)) : input->bytes;
 
   exit_type_t run_result = in_memory_executor->harness(data, input->len);
 

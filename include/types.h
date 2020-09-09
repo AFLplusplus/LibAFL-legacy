@@ -52,8 +52,7 @@ typedef uint32_t u32;
 // FS_OPT_MAX_MAPSIZE is 8388608 = 0x800000 = 2^23 = 1 << 22
 #define FS_OPT_MAX_MAPSIZE ((0x00fffffe >> 1) + 1)
 #define FS_OPT_GET_MAPSIZE(x) (((x & 0x00fffffe) >> 1) + 1)
-#define FS_OPT_SET_MAPSIZE(x) \
-  (x <= 1 || x > FS_OPT_MAX_MAPSIZE ? 0 : ((x - 1) << 1))
+#define FS_OPT_SET_MAPSIZE(x) (x <= 1 || x > FS_OPT_MAX_MAPSIZE ? 0 : ((x - 1) << 1))
 
 typedef unsigned long long u64;
 
@@ -81,7 +80,7 @@ typedef int64_t s64;
                               \
     })
 
-#endif                                                              /* !MIN */
+#endif                                                                                                      /* !MIN */
 
 #define SWAP16(_x)                    \
   ({                                  \
@@ -91,27 +90,23 @@ typedef int64_t s64;
                                       \
   })
 
-#define SWAP32(_x)                                                   \
-  ({                                                                 \
-                                                                     \
-    u32 _ret = (_x);                                                 \
-    (u32)((_ret << 24) | (_ret >> 24) | ((_ret << 8) & 0x00FF0000) | \
-          ((_ret >> 8) & 0x0000FF00));                               \
-                                                                     \
+#define SWAP32(_x)                                                                                \
+  ({                                                                                              \
+                                                                                                  \
+    u32 _ret = (_x);                                                                              \
+    (u32)((_ret << 24) | (_ret >> 24) | ((_ret << 8) & 0x00FF0000) | ((_ret >> 8) & 0x0000FF00)); \
+                                                                                                  \
   })
 
-#define SWAP64(_x)                                                             \
-  ({                                                                           \
-                                                                               \
-    u64 _ret = (_x);                                                           \
-    _ret =                                                                     \
-        (_ret & 0x00000000FFFFFFFF) << 32 | (_ret & 0xFFFFFFFF00000000) >> 32; \
-    _ret =                                                                     \
-        (_ret & 0x0000FFFF0000FFFF) << 16 | (_ret & 0xFFFF0000FFFF0000) >> 16; \
-    _ret =                                                                     \
-        (_ret & 0x00FF00FF00FF00FF) << 8 | (_ret & 0xFF00FF00FF00FF00) >> 8;   \
-    _ret;                                                                      \
-                                                                               \
+#define SWAP64(_x)                                                                \
+  ({                                                                              \
+                                                                                  \
+    u64 _ret = (_x);                                                              \
+    _ret = (_ret & 0x00000000FFFFFFFF) << 32 | (_ret & 0xFFFFFFFF00000000) >> 32; \
+    _ret = (_ret & 0x0000FFFF0000FFFF) << 16 | (_ret & 0xFFFF0000FFFF0000) >> 16; \
+    _ret = (_ret & 0x00FF00FF00FF00FF) << 8 | (_ret & 0xFF00FF00FF00FF00) >> 8;   \
+    _ret;                                                                         \
+                                                                                  \
   })
 
 #ifdef AFL_LLVM_PASS
@@ -130,7 +125,7 @@ typedef int64_t s64;
     #define SR(s) ((void)s)
     #define R(x) (arc4random_uniform(x))
   #endif
-#endif                                                    /* ^AFL_LLVM_PASS */
+#endif                                                                                            /* ^AFL_LLVM_PASS */
 
 #define STRINGIFY_INTERNAL(x) #x
 #define STRINGIFY(x) STRINGIFY_INTERNAL(x)
@@ -153,5 +148,5 @@ typedef int64_t s64;
   #endif
 #endif
 
-#endif                                                   /* ! _HAVE_TYPES_H */
+#endif                                                                                           /* ! _HAVE_TYPES_H */
 

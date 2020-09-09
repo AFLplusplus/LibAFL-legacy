@@ -28,8 +28,7 @@ void llmp_clientloop_rand_u32(llmp_client_state_t *client, void *data) {
     msg->tag = LLMP_TAG_RANDOM_U32_V1;
     ((u32 *)msg->buf)[0] = afl_rand_below(&rnd, SIZE_MAX);
 
-    OKF("%d Sending msg with id %d and payload %d.", client->id,
-        msg->message_id, ((u32 *)msg->buf)[0]);
+    OKF("%d Sending msg with id %d and payload %d.", client->id, msg->message_id, ((u32 *)msg->buf)[0]);
 
     llmp_client_send(client, msg);
     usleep(afl_rand_below(&rnd, 4000) * 1000);
@@ -51,11 +50,7 @@ void llmp_clientloop_print_u32(llmp_client_state_t *client_state, void *data) {
 
     if (message->tag == LLMP_TAG_RANDOM_U32_V1) {
 
-      if (message->buf_len < sizeof(u32)) {
-
-        FATAL("BUG: incorrect buflen size for u32 message type");
-
-      }
+      if (message->buf_len < sizeof(u32)) { FATAL("BUG: incorrect buflen size for u32 message type"); }
 
       printf("Got a random int from the queue: %d\n", ((u32 *)message->buf)[0]);
 
@@ -73,11 +68,7 @@ int main(int argc, char **argv) {
 
   bool is_main = true;
 
-  if (argc < 2 || argc > 4) {
-
-    FATAL("Usage ./llmp_test [main|worker] <thread_count=1> <port=0xAF1>");
-
-  }
+  if (argc < 2 || argc > 4) { FATAL("Usage ./llmp_test [main|worker] <thread_count=1> <port=0xAF1>"); }
 
   if (!strcmp(argv[1], "worker")) {
 
@@ -113,8 +104,7 @@ int main(int argc, char **argv) {
 
     llmp_broker_register_local_server(broker, port);
 
-    if (!llmp_broker_register_threaded_clientloop(
-            broker, llmp_clientloop_print_u32, NULL)) {
+    if (!llmp_broker_register_threaded_clientloop(broker, llmp_clientloop_print_u32, NULL)) {
 
       FATAL("error adding threaded client");
 
@@ -123,8 +113,7 @@ int main(int argc, char **argv) {
     int i;
     for (i = 0; i < thread_count; i++) {
 
-      if (!llmp_broker_register_threaded_clientloop(
-              broker, llmp_clientloop_rand_u32, NULL)) {
+      if (!llmp_broker_register_threaded_clientloop(broker, llmp_clientloop_rand_u32, NULL)) {
 
         FATAL("error adding threaded client");
 
@@ -137,11 +126,7 @@ int main(int argc, char **argv) {
 
   } else {
 
-    if (thread_count > 1) {
-
-      WARNF("Multiple threads not supported for clients.");
-
-    }
+    if (thread_count > 1) { WARNF("Multiple threads not supported for clients."); }
 
     OKF("Client will connect to port %d", port);
     // Worker only needs to spawn client threads.

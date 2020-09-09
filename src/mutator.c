@@ -58,14 +58,9 @@ stage_t *afl_get_mutator_stage_default(mutator_t *mutator) {
 
 }
 
-afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *sched_mut,
-                                     stage_t *stage, size_t max_iterations) {
+afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *sched_mut, stage_t *stage, size_t max_iterations) {
 
-  if (afl_mutator_init(&(sched_mut->base), stage) != AFL_RET_SUCCESS) {
-
-    return AFL_RET_ERROR_INITIALIZE;
-
-  }
+  if (afl_mutator_init(&(sched_mut->base), stage) != AFL_RET_SUCCESS) { return AFL_RET_ERROR_INITIALIZE; }
 
   sched_mut->base.funcs.mutate = afl_mutate_scheduled_mutator_default;
   sched_mut->extra_funcs.add_mutator = afl_add_mutator_default;
@@ -96,12 +91,10 @@ void afl_scheduled_mutator_deinit(scheduled_mutator_t *sched_mut) {
 
 }
 
-afl_ret_t afl_add_mutator_default(scheduled_mutator_t *mutator,
-                                  mutator_func_type    mutator_func) {
+afl_ret_t afl_add_mutator_default(scheduled_mutator_t *mutator, mutator_func_type mutator_func) {
 
   mutator->mutators_count++;
-  mutator->mutations = afl_realloc(
-      mutator->mutations, mutator->mutators_count * sizeof(mutator_func));
+  mutator->mutations = afl_realloc(mutator->mutations, mutator->mutators_count * sizeof(mutator_func));
   if (!mutator->mutations) {
 
     mutator->mutators_count = 0;
@@ -116,32 +109,27 @@ afl_ret_t afl_add_mutator_default(scheduled_mutator_t *mutator,
 
 size_t afl_iterations_default(scheduled_mutator_t *mutator) {
 
-  return 1 << (1 + afl_rand_below(&mutator->base.stage->engine->rnd,
-                                  mutator->max_iterations));
+  return 1 << (1 + afl_rand_below(&mutator->base.stage->engine->rnd, mutator->max_iterations));
 
 }
 
 size_t afl_schedule_default(scheduled_mutator_t *mutator) {
 
-  return afl_rand_below(&mutator->base.stage->engine->rnd,
-                        mutator->mutators_count);
+  return afl_rand_below(&mutator->base.stage->engine->rnd, mutator->mutators_count);
 
 }
 
-size_t afl_mutate_scheduled_mutator_default(mutator_t *  mutator,
-                                            raw_input_t *input) {
+size_t afl_mutate_scheduled_mutator_default(mutator_t *mutator, raw_input_t *input) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
   scheduled_mutator_t *scheduled_mutator = (scheduled_mutator_t *)mutator;
   size_t               i;
-  for (i = 0; i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator);
-       ++i) {
+  for (i = 0; i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator); ++i) {
 
-    scheduled_mutator
-        ->mutations[scheduled_mutator->extra_funcs.schedule(scheduled_mutator)](
-            &scheduled_mutator->base, input);
+    scheduled_mutator->mutations[scheduled_mutator->extra_funcs.schedule(scheduled_mutator)](&scheduled_mutator->base,
+                                                                                             input);
 
   }
 
@@ -282,8 +270,7 @@ inline void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-inline void random_byte_add_sub_mutation(mutator_t *  mutator,
-                                         raw_input_t *input) {
+inline void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
 
@@ -346,16 +333,14 @@ inline void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
     clone_len = choose_block_len(rnd, size);
     clone_from = afl_rand_below(rnd, size - clone_len + 1);
 
-    input->bytes = afl_insert_substring(
-        input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
+    input->bytes = afl_insert_substring(input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
     input->len += clone_len;
 
   } else {
 
     clone_len = choose_block_len(rnd, HAVOC_BLK_XL);
 
-    input->bytes = afl_insert_bytes(
-        input->bytes, size, afl_rand_below(rnd, 255), clone_len, clone_to);
+    input->bytes = afl_insert_bytes(input->bytes, size, afl_rand_below(rnd, 255), clone_len, clone_to);
 
     input->len += clone_len;
 
@@ -405,34 +390,28 @@ retry_splicing:
 
   do {
 
-    size_t random_queue_idx = afl_rand_below(
-        &engine->rnd, global_queue->feedback_queues_count +
-                          1);  // +1 so that we can also grab a queue entry from
-                               // the global_queue
+    size_t random_queue_idx =
+        afl_rand_below(&engine->rnd, global_queue->feedback_queues_count + 1);  // +1 so that we can also grab a queue
+                                                                                // entry from the global_queue
 
     if (random_queue_idx < global_queue->feedback_queues_count) {
 
       // Grab a random entry from the random feedback queue
-      feedback_queue_t *random_fbck_queue =
-          global_queue->feedback_queues[random_queue_idx];
-      splice_input = (random_fbck_queue->base.size > 0)
-                         ? random_fbck_queue->base
-                               .queue_entries[afl_rand_below(
-                                   &engine->rnd, random_fbck_queue->base.size)]
-                               ->input
-                         : NULL;
+      feedback_queue_t *random_fbck_queue = global_queue->feedback_queues[random_queue_idx];
+      splice_input =
+          (random_fbck_queue->base.size > 0)
+              ? random_fbck_queue->base.queue_entries[afl_rand_below(&engine->rnd, random_fbck_queue->base.size)]->input
+              : NULL;
 
       if (splice_input && !splice_input->bytes) { splice_input = NULL; }
 
     } else {
 
       // Grab a random entry from the global queue
-      splice_input = (global_queue->base.size > 0)
-                         ? global_queue->base
-                               .queue_entries[afl_rand_below(
-                                   &engine->rnd, global_queue->base.size)]
-                               ->input
-                         : NULL;
+      splice_input =
+          (global_queue->base.size > 0)
+              ? global_queue->base.queue_entries[afl_rand_below(&engine->rnd, global_queue->base.size)]->input
+              : NULL;
       if (splice_input && !splice_input->bytes) { splice_input = NULL; }
 
     }
@@ -442,8 +421,7 @@ retry_splicing:
 
   } while (splice_input == NULL);
 
-  locate_diffs(input->bytes, splice_input->bytes,
-               MIN((s64)input->len, (s64)splice_input->len), &f_diff, &l_diff);
+  locate_diffs(input->bytes, splice_input->bytes, MIN((s64)input->len, (s64)splice_input->len), &f_diff, &l_diff);
 
   if (f_diff < 0 || l_diff < 2 || f_diff == l_diff) { goto retry_splicing; }
 
@@ -456,8 +434,7 @@ retry_splicing:
   input->len = splice_input->len;
 
   input->bytes = realloc(input->bytes, splice_input->len);
-  memcpy(input->bytes + split_at, splice_input->bytes + split_at,
-         splice_input->len - split_at);
+  memcpy(input->bytes + split_at, splice_input->bytes + split_at, splice_input->len - split_at);
 
   input->len = splice_input->len;
 

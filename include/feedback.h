@@ -48,11 +48,10 @@ struct feedback {
                                          struct here. What do you guys say? */
 
   struct feedback_functions funcs;
-  size_t channel_id;  // ID of the observation channel this feedback is watching
-  observation_channel_t
-      *channel;  // This array holds the observation channels the feedback is
-                 // looking at. Specific fpr each feedback. btw, Better name for
-                 // this? :p
+  size_t                    channel_id;  // ID of the observation channel this feedback is watching
+  observation_channel_t *   channel;     // This array holds the observation channels the feedback is
+                                         // looking at. Specific fpr each feedback. btw, Better name for
+                                         // this? :p
 
 };
 
@@ -65,16 +64,14 @@ typedef struct feedback_metadata {
 
 // Default implementation of the vtables functions
 
-void afl_set_feedback_queue_default(feedback_t *, feedback_queue_t *);
+void              afl_set_feedback_queue_default(feedback_t *, feedback_queue_t *);
 feedback_queue_t *afl_get_feedback_queue_default(feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
 void      afl_feedback_deinit(feedback_t *);
-afl_ret_t afl_feedback_init(feedback_t *, feedback_queue_t *,
-                            size_t channel_id);
+afl_ret_t afl_feedback_init(feedback_t *, feedback_queue_t *, size_t channel_id);
 
-static inline feedback_t *afl_feedback_create(feedback_queue_t *queue,
-                                              size_t            channel_id) {
+static inline feedback_t *afl_feedback_create(feedback_queue_t *queue, size_t channel_id) {
 
   feedback_t *feedback = calloc(1, sizeof(feedback_t));
   if (!feedback) return NULL;
@@ -109,8 +106,7 @@ typedef struct maximize_map_feedback {
 
 } maximize_map_feedback_t;
 
-maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size,
-                                           size_t channel_id);
+maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size, size_t channel_id);
 
 float map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
 

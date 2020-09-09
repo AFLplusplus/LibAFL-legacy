@@ -53,9 +53,7 @@ struct queue_entry_functions {
   queue_entry_t *(*get_next)(queue_entry_t *);
   queue_entry_t *(*get_prev)(queue_entry_t *);
   queue_entry_t *(*get_parent)(queue_entry_t *);
-  queue_entry_t *(*get_child)(
-      queue_entry_t *,
-      size_t);     /*TODO: Still need to add a base implementation for this.*/
+  queue_entry_t *(*get_child)(queue_entry_t *, size_t);    /*TODO: Still need to add a base implementation for this.*/
 
 };
 
@@ -154,8 +152,7 @@ size_t         afl_get_names_id_default(base_queue_t *);
 bool           afl_get_save_to_files_default(base_queue_t *);
 void           afl_set_dirpath_default(base_queue_t *, char *);
 void           afl_set_engine_base_queue_default(base_queue_t *, engine_t *);
-queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue,
-                                               int           engine_id);
+queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id);
 
 static inline base_queue_t *afl_base_queue_create() {
 
@@ -190,20 +187,17 @@ typedef struct feedback_queue {
 
 } feedback_queue_t;
 
-afl_ret_t afl_feedback_queue_init(
-    feedback_queue_t *, struct feedback *,
-    char *);  // "constructor" for the above feedback queue
+afl_ret_t afl_feedback_queue_init(feedback_queue_t *, struct feedback *,
+                                  char *);  // "constructor" for the above feedback queue
 
 void afl_feedback_queue_deinit(feedback_queue_t *);
 
-static inline feedback_queue_t *afl_feedback_queue_create(
-    struct feedback *feedback, char *name) {
+static inline feedback_queue_t *afl_feedback_queue_create(struct feedback *feedback, char *name) {
 
   feedback_queue_t *feedback_queue = calloc(1, sizeof(feedback_queue_t));
   if (!feedback_queue) { return NULL; }
 
-  if (afl_feedback_queue_init(feedback_queue, feedback, name) !=
-      AFL_RET_SUCCESS) {
+  if (afl_feedback_queue_init(feedback_queue, feedback, name) != AFL_RET_SUCCESS) {
 
     free(feedback_queue);
     return NULL;
@@ -252,8 +246,7 @@ void      afl_set_engine_global_queue_default(base_queue_t *, engine_t *);
 
 // Function to get next entry from queue, we override the base_queue
 // implementation
-queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue,
-                                                 int           engine_id);
+queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue, int engine_id);
 
 /* TODO: ADD defualt implementation for the schedule function based on random.
  */

@@ -22,9 +22,8 @@ typedef enum exit_type {
 
 } exit_type_t;
 
-afl_ret_t dump_crash_to_file(
-    raw_input_t *, engine_t *);  // This function dumps an input which causes a
-                                 // crash in the target to a crash file
+afl_ret_t dump_crash_to_file(raw_input_t *, engine_t *);  // This function dumps an input which causes a
+                                                          // crash in the target to a crash file
 
 /* TODO: Add implementations for installing crash handlers */
 typedef void (*crash_handler_function)(exit_type_t type, void *data);
@@ -47,8 +46,7 @@ typedef struct process {
 
 void _afl_process_init_internal(process_t *);
 
-static inline process_t *afl_process_init(process_t *process,
-                                          pid_t      handler_pid) {
+static inline process_t *afl_process_init(process_t *process, pid_t handler_pid) {
 
   process_t *new_process;
 

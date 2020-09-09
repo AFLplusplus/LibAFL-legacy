@@ -81,8 +81,7 @@ static inline afl_ret_t list_append(list_t *list, void *el) {
   }
 
   element_t *el_box = NULL;
-  PRE_ALLOC(el_box, list->element_prealloc_buf, LIST_PREALLOC_SIZE,
-            list->element_prealloc_count);
+  PRE_ALLOC(el_box, list->element_prealloc_buf, LIST_PREALLOC_SIZE, list->element_prealloc_count);
   if (!el_box) { return AFL_RET_ALLOC; }
   el_box->data = el;
   el_box->next = head;
