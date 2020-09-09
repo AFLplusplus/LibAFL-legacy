@@ -27,8 +27,6 @@
 #ifndef LIBQUEUE_H
 #define LIBQUEUE_H
 
-#define MAX_FEEDBACK_QUEUES 10
-
 #include <stdbool.h>
 #include <limits.h>
 
@@ -71,10 +69,6 @@ struct queue_entry {
   struct queue_entry *prev;
   struct queue_entry *parent;
 
-  list_t children;
-  size_t children_num;  // Keeps track of the number of child entries for each
-                        // entry
-
   struct queue_entry_functions funcs;
 
 };
@@ -114,7 +108,7 @@ typedef struct base_queue base_queue_t;
 
 struct base_queue_functions {
 
-  void (*add_to_queue)(base_queue_t *, queue_entry_t *);
+  afl_ret_t (*add_to_queue)(base_queue_t *, queue_entry_t *);
   void (*remove_from_queue)(base_queue_t *);
 
   queue_entry_t *(*get)(base_queue_t *);
@@ -132,7 +126,6 @@ struct base_queue_functions {
 
 struct base_queue {
 
-  afl_shmem_t *               shared_mem;
   queue_entry_t **            queue_entries;
   queue_entry_t *             base;
   u64                         current;
@@ -146,9 +139,6 @@ struct base_queue {
   bool                        fuzz_started;
   struct base_queue_functions funcs;
 
-  /* TODO: Still need to add shared_mutex (after multithreading), map of
-   * engine:queue_entry */
-
 };
 
 /* TODO: Add the base  */
@@ -156,7 +146,7 @@ struct base_queue {
 afl_ret_t afl_base_queue_init(base_queue_t *);
 void      afl_base_queue_deinit(base_queue_t *);
 
-void           afl_add_to_queue_default(base_queue_t *, queue_entry_t *);
+afl_ret_t afl_add_to_queue_default(base_queue_t *, queue_entry_t *);
 queue_entry_t *afl_get_queue_base_default(base_queue_t *);
 size_t         afl_get_base_queue_size_default(base_queue_t *);
 char *         afl_get_dirpath_default(base_queue_t *);
@@ -237,7 +227,7 @@ typedef struct global_queue global_queue_t;
 struct global_queue_functions {
 
   int (*schedule)(global_queue_t *);
-  void (*add_feedback_queue)(global_queue_t *, feedback_queue_t *);
+  afl_ret_t (*add_feedback_queue)(global_queue_t *, feedback_queue_t *);
 
 };
 
@@ -245,10 +235,10 @@ struct global_queue {
 
   base_queue_t base;
   feedback_queue_t
-      *feedback_queues[MAX_FEEDBACK_QUEUES];  // One global queue can have
+      **feedback_queues;  // One global queue can have
                                               // multiple feedback queues
 
-  size_t feedback_queues_num;
+  size_t feedback_queues_count;
 
   struct global_queue_functions extra_funcs;
   /*TODO: Add a map of Engine:feedback_queue
@@ -257,7 +247,7 @@ struct global_queue {
 };
 
 // Default implementations of global queue vtable functions
-void afl_add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
+afl_ret_t afl_add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
 int  afl_global_schedule_default(global_queue_t *);
 void afl_set_engine_global_queue_default(base_queue_t *, engine_t *);
 

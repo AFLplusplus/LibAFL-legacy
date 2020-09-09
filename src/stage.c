@@ -73,6 +73,9 @@ void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
 
   }
 
+  afl_free(fuzz_stage->mutators);
+  fuzz_stage->mutators = NULL;
+
 }
 
 afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage,
@@ -80,14 +83,13 @@ afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage,
 
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
-  if (stage->mutators_count >= MAX_MUTATORS_PER_STAGE) {
-
-    return AFL_RET_ARRAY_END;
-
+  stage->mutators_count++;
+  stage->mutators = afl_realloc(stage->mutators, stage->mutators_count * sizeof(mutator_t *));
+  if (!stage->mutators) {
+    return AFL_RET_ALLOC;
   }
 
-  stage->mutators[stage->mutators_count] = mutator;
-  stage->mutators_count++;
+  stage->mutators[stage->mutators_count - 1] = mutator;
 
   mutator->stage = (stage_t *)stage;
 
@@ -161,7 +163,7 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
 
     bool add_to_queue = false;
 
-    for (j = 0; j < stage->engine->feedbacks_num; ++j) {
+    for (j = 0; j < stage->engine->feedbacks_count; ++j) {
 
       add_to_queue = add_to_queue ||
                      stage->engine->feedbacks[j]->funcs.is_interesting(

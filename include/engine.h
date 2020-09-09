@@ -38,8 +38,6 @@
 #include "afl-rand.h"
 #include "llmp.h"
 
-#define MAX_FEEDBACKS 10
-
 struct engine_functions {
 
   global_queue_t *(*get_queue)(engine_t *);
@@ -48,7 +46,7 @@ struct engine_functions {
   u64 (*get_start_time)(engine_t *);
 
   void (*set_fuzz_one)(engine_t *, fuzz_one_t *);
-  int (*add_feedback)(engine_t *, feedback_t *);
+  afl_ret_t (*add_feedback)(engine_t *, feedback_t *);
   void (*set_global_queue)(engine_t *, global_queue_t *);
 
   u8 (*execute)(engine_t *, raw_input_t *);
@@ -68,10 +66,10 @@ struct engine {
   executor_t *      executor;
   feedback_queue_t *current_feedback_queue;
   feedback_t
-      *feedbacks[MAX_FEEDBACKS];  // We're keeping a pointer of feedbacks here
+      **feedbacks;  // We're keeping a pointer of feedbacks here
                                   // to save memory, consideting the original
                                   // feedback would already be allocated
-  u64   executions, start_time, crashes, feedbacks_num;
+  u64   executions, start_time, last_update, crashes, feedbacks_count;
   u32   id;
   char *in_dir;  // Input corpus directory
 
@@ -86,11 +84,11 @@ struct engine {
 /* TODO: Add default implementations for load_testcases and execute */
 global_queue_t *afl_get_queue_default(engine_t *);
 fuzz_one_t *    afl_get_fuzz_one_default(engine_t *);
-u64             afl_get_execs_defualt(engine_t *);
+u64             afl_get_execs_default(engine_t *);
 u64             afl_get_start_time_default(engine_t *);
 
 void afl_set_fuzz_one_default(engine_t *, fuzz_one_t *);
-int  afl_add_feedback_default(engine_t *, feedback_t *);
+afl_ret_t  afl_add_feedback_default(engine_t *, feedback_t *);
 void afl_set_global_queue_default(engine_t *      engine,
                                   global_queue_t *global_queue);
 

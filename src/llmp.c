@@ -762,7 +762,7 @@ static inline void llmp_broker_handle_new_msgs(
       for (i = 0; i < broker->msg_hook_count; i++) {
 
         llmp_message_hook_data_t *msg_hook = &broker->msg_hooks[i];
-        forward_msg &= (*msg_hook->func)(broker, msg, msg_hook->data);
+        forward_msg &= (*msg_hook->func)(broker, client->client_state, msg, msg_hook->data);
 
       }
 
@@ -868,6 +868,12 @@ bool llmp_broker_launch_clientloops(llmp_broker_state_t *broker) {
         PFATAL("Could not fork");
 
       } else if (child_id == 0) {
+
+/*
+s32 dev_null_fd = open("/dev/null", O_WRONLY);
+dup2(dev_null_fd, 2);
+close(dev_null_fd);
+*/
 
         /* in the child, start loop, exit afterwards. */
         DBG("LLMP child process started");

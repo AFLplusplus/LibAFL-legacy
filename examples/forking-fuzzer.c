@@ -355,13 +355,13 @@ void thread_run_instance(llmp_client_state_t *client, void *data) {
   afl_fuzz_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
   free(coverage_feedback->virgin_bits);
-  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+  for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     afl_feedback_delete((feedback_t *)engine->feedbacks[i]);
 
   }
 
-  for (size_t i = 0; i < engine->global_queue->feedback_queues_num; ++i) {
+  for (size_t i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
     afl_feedback_queue_delete(engine->global_queue->feedback_queues[i]);
 
@@ -461,19 +461,22 @@ int main(int argc, char **argv) {
 
   u64 time_elapsed = 1;
 
-  pthread_t p1;
+  if (!llmp_broker_launch_clientloops(llmp_broker)) {
+    FATAL("Error running broker clientloops");
+  }
 
-  int s = pthread_create(&p1, NULL, run_broker_thread, NULL);
-
-  if (!s) { OKF("Broker started running"); }
+  OKF("Broker started running");
 
   while (true) {
 
-    sleep(1);
+    llmp_broker_once(llmp_broker);
+
+    usleep(500);
     u64 execs = 0;
     u64 crashes = 0;
     for (size_t i = 0; i < fuzz_workers_count; ++i) {
 
+      // TODO: As in-mem-fuzzer
       execs += registered_fuzz_workers[i]->executions;
       crashes += registered_fuzz_workers[i]->crashes;
 

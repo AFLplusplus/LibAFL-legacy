@@ -39,7 +39,7 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   engine->executor = executor;
   engine->fuzz_one = fuzz_one;
   engine->global_queue = global_queue;
-  engine->feedbacks_num = 0;
+  engine->feedbacks_count = 0;
   engine->executions = 0;
 
   if (global_queue) {
@@ -49,7 +49,7 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor,
   }
 
   engine->funcs.get_queue = afl_get_queue_default;
-  engine->funcs.get_execs = afl_get_execs_defualt;
+  engine->funcs.get_execs = afl_get_execs_default;
   engine->funcs.get_fuzz_one = afl_get_fuzz_one_default;
   engine->funcs.get_start_time = afl_get_start_time_default;
 
@@ -85,15 +85,18 @@ void afl_engine_deinit(engine_t *engine) {
   engine->executor = NULL;
   engine->global_queue = NULL;
 
-  for (i = 0; i < engine->feedbacks_num; ++i) {
+  for (i = 0; i < engine->feedbacks_count; ++i) {
 
     engine->feedbacks[i] = NULL;
 
   }
 
+  afl_free(engine->feedbacks);
+  engine->feedbacks = NULL;
+
   engine->start_time = 0;
   engine->current_feedback_queue = NULL;
-  engine->feedbacks_num = 0;
+  engine->feedbacks_count = 0;
   engine->executions = 0;
 
 }
@@ -110,7 +113,7 @@ fuzz_one_t *afl_get_fuzz_one_default(engine_t *engine) {
 
 }
 
-u64 afl_get_execs_defualt(engine_t *engine) {
+u64 afl_get_execs_default(engine_t *engine) {
 
   return engine->executions;
 
@@ -147,15 +150,17 @@ void afl_set_global_queue_default(engine_t *      engine,
 
 }
 
-int afl_add_feedback_default(engine_t *engine, feedback_t *feedback) {
+afl_ret_t afl_add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
-  if (engine->feedbacks_num >= MAX_FEEDBACKS) return 1;
+  engine->feedbacks_count++;
+  engine->feedbacks = afl_realloc(engine->feedbacks, engine->feedbacks_count * sizeof(feedback_t *));
+  if (!engine->feedbacks) {
+    return AFL_RET_ALLOC;
+  }
 
-  engine->feedbacks_num++;
+  engine->feedbacks[engine->feedbacks_count - 1] = feedback;
 
-  engine->feedbacks[(engine->feedbacks_num - 1)] = feedback;
-
-  return 0;
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -234,7 +239,7 @@ afl_ret_t afl_load_testcases_from_dir_default(
 
     /* We add the corpus to the queue initially for all the feedback queues */
 
-    for (i = 0; i < engine->feedbacks_num; ++i) {
+    for (i = 0; i < engine->feedbacks_count; ++i) {
 
       raw_input_t *copy = input->funcs.copy(input);
       if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
@@ -272,7 +277,7 @@ void afl_handle_new_message_default(engine_t *engine, llmp_message_t *msg) {
     /* Users can experiment here, adding entries to different queues based on
      * the message tag. Right now, let's just add it to all queues*/
     size_t i = 0;
-    for (i = 0; i < engine->global_queue->feedback_queues_num; ++i) {
+    for (i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
       engine->global_queue->feedback_queues[i]->base.funcs.add_to_queue(
           &engine->global_queue->feedback_queues[i]->base,
@@ -302,7 +307,7 @@ u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
   /* We've run the target with the executor, we can now simply postExec call the
    * observation channels*/
 
-  for (i = 0; i < executor->observors_num; ++i) {
+  for (i = 0; i < executor->observors_count; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) {
@@ -337,7 +342,7 @@ afl_ret_t afl_loop_default(engine_t *engine) {
 
   /* Just before looping, we find the observation channels for every feedback */
 
-  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+  for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     engine->feedbacks[i]->channel =
         engine->executor->funcs.get_observation_channels(

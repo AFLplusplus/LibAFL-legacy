@@ -64,7 +64,7 @@ struct executor_functions {
   observation_channel_t *(*get_observation_channels)(
       executor_t *, size_t);  // Getter function for observation channels list
 
-  u8 (*add_observation_channel)(
+  afl_ret_t (*add_observation_channel)(
       executor_t *,
       observation_channel_t *);  // Add an observtion channel to the list
 
@@ -81,10 +81,10 @@ struct executor_functions {
 struct executor {
 
   observation_channel_t
-      *observors[MAX_OBS_CHANNELS];  // This will be swapped for the observation
+      **observors;  // This will be swapped for the observation
                                      // channel once its ready
 
-  u32 observors_num;
+  u32 observors_count;
 
   raw_input_t *current_input;  // Holds current input for the executor
 
@@ -94,7 +94,7 @@ struct executor {
 
 afl_ret_t afl_executor_init(executor_t *);
 void      afl_executor_deinit(executor_t *);
-u8 afl_add_observation_channel_default(executor_t *, observation_channel_t *);
+afl_ret_t afl_add_observation_channel_default(executor_t *, observation_channel_t *);
 observation_channel_t *afl_get_observation_channels_default(executor_t *,
                                                             size_t);
 raw_input_t *          afl_get_current_input_default(executor_t *);

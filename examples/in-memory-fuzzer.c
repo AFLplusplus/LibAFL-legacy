@@ -1,16 +1,25 @@
 /* An in mmeory fuzzing example. Fuzzer for libpng library */
 
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
 #include "aflpp.h"
 #include "png.h"
 
 #define LLMP_TAG_EXEC_STATS 0x30
 
+typedef struct client_stats {
+
+  u64 total_execs;
+
+} client_stats_t;
+
 /* stats about the current run */
 typedef struct fuzzer_stats {
 
   u64 queue_entry_count;
-  u64 total_execs;
+  struct client_stats **clients;
 
 } fuzzer_stats_t;
 
@@ -40,10 +49,13 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
   executor_t *executor = engine->executor;
 
   executor->funcs.reset_observation_channels(executor);
-
   executor->funcs.place_input_cb(executor, input);
 
-  if (engine->start_time == 0) { engine->start_time = time(NULL); }
+  // TODO move to execute_init()
+  if (unlikely(engine->start_time == 0)) {
+    engine->start_time = afl_get_cur_time();
+    engine->last_update = afl_get_cur_time_s();
+  }
 
   exit_type_t run_result = executor->funcs.run_target_cb(executor);
 
@@ -52,17 +64,19 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
   /* We've run the target with the executor, we can now simply postExec call the
    * observation channels*/
 
-  if (engine->executions % 100000) {
+  if (engine->executions % 12345 && engine->last_update < afl_get_cur_time_s()) {
 
     llmp_client_state_t *llmp_client = engine->llmp_client;
     llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
     msg->tag = LLMP_TAG_EXEC_STATS;
-    ((u8 *)msg->buf)[0] = engine->executions;
+    u64 *x = (u64 *)msg->buf;
+    *x = engine->executions;
     llmp_client_send(llmp_client, msg);
+    engine->last_update = afl_get_cur_time_s();
 
   }
 
-  for (i = 0; i < executor->observors_num; ++i) {
+  for (i = 0; i < executor->observors_count; ++i) {
 
     observation_channel_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) {
@@ -232,13 +246,13 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
   afl_fuzz_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
   free(coverage_feedback->virgin_bits);
-  for (size_t i = 0; i < engine->feedbacks_num; ++i) {
+  for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     afl_feedback_delete((feedback_t *)engine->feedbacks[i]);
 
   }
 
-  for (size_t i = 0; i < engine->global_queue->feedback_queues_num; ++i) {
+  for (size_t i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
     afl_feedback_queue_delete(engine->global_queue->feedback_queues[i]);
 
@@ -250,7 +264,7 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
 }
 
 /* A hook to keep stats in the broker thread */
-bool message_hook(llmp_broker_state_t *broker, llmp_message_t *msg,
+bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client, llmp_message_t *msg,
                   void *data) {
 
   (void)broker;
@@ -260,7 +274,7 @@ bool message_hook(llmp_broker_state_t *broker, llmp_message_t *msg,
 
   } else if (msg->tag == LLMP_TAG_EXEC_STATS) {
 
-    ((fuzzer_stats_t *)data)->total_execs += 100000;
+    ((fuzzer_stats_t *)data)->clients[client->id - 1]->total_execs = *(u64 *)msg->buf;
 
   }
 
@@ -279,7 +293,7 @@ int main(int argc, char **argv) {
   }
 
   llmp_broker_state_t *llmp_broker;
-  int                  broker_port;
+  int                  broker_port, i, status, pid;
 
   char *in_dir = argv[2];
   int   thread_count = atoi(argv[1]);
@@ -304,8 +318,9 @@ int main(int argc, char **argv) {
 
   fuzzer_stats_t fuzzer_stats = {0};
   llmp_broker_add_message_hook(llmp_broker, message_hook, &fuzzer_stats);
+  fuzzer_stats.clients = malloc(thread_count * sizeof(size_t));
 
-  for (int i = 0; i < thread_count; ++i) {
+  for (i = 0; i < thread_count; ++i) {
 
     engine_t *engine = initialize_fuzz_instance(in_dir, queue_dirpath);
 
@@ -315,6 +330,9 @@ int main(int argc, char **argv) {
       FATAL("Error registering client");
 
     }
+
+    fuzzer_stats.clients[i] = malloc(sizeof(client_stats_t));
+    fuzzer_stats.clients[i]->total_execs = 0;
 
   }
 
@@ -326,30 +344,47 @@ int main(int argc, char **argv) {
   if (!getenv("DEBUG") && !getenv("AFL_DEBUG")) dup2(dev_null_fd, 2);
 
   u64 time_prev = 0;
-  u64 time_initial = afl_get_cur_time();
+  u64 time_initial = afl_get_cur_time_s();
   u64 time_cur = time_initial;
 
   llmp_broker_launch_clientloops(llmp_broker);
 
   OKF("Clients started running");
+  sleep(1);
 
   while (1) {
 
     /* Forward all messages that arrived in the meantime */
     llmp_broker_once(llmp_broker);
-    usleep(50);
+    usleep(100);
 
     /* Paint ui every few seconds */
-    if ((time_cur = afl_get_cur_time()) > time_prev + 3) {
+    if ((time_cur = afl_get_cur_time_s()) > time_prev) {
 
-      u64 time_elapsed = time_cur - time_initial;
+      u64 time_elapsed = (time_cur - time_initial);
+      time_prev = time_cur;
+      u64 total_execs = 0;
+      for (i = 0; i < thread_count; i++)
+        total_execs += fuzzer_stats.clients[i]->total_execs;
 
       /* TODO: Send heartbeat messages from clients for more stats :) */
 
-      SAYF("Execs=%llu  Paths=%llu  elapsed=%llu\r", fuzzer_stats.total_execs,
-           fuzzer_stats.queue_entry_count, time_elapsed / 1000);
+      SAYF("threads=%u  paths=%llu  elapsed=%llu  execs=%llu  exec/s=%llu\r",
+           thread_count,  fuzzer_stats.queue_entry_count,
+           time_elapsed, total_execs, total_execs / time_elapsed);
 
       fflush(stdout);
+
+      if ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
+      
+        // this pid is gone
+        // restart it
+        // clean shm?
+
+        // TODO      
+        fprintf(stderr, "TODO: implement child re-fork\n");
+      
+      }
 
     }
 
@@ -358,4 +393,3 @@ int main(int argc, char **argv) {
   return 0;
 
 }
-
