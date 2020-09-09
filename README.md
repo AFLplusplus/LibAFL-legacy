@@ -52,13 +52,13 @@ There are several multithreaded fuzzers, most notably honggfuzz, but LibAFL goes
 
 ## Getting Started with LibAFL
 
-We have an example fuzzer ready at `example/executor.c` so we can follow that.
+We have an example fuzzer ready at `examples/executor.c` so we can follow that.
 To try it out immediately:
 ```bash
-cd ./example
+cd ./examples
 make test
 ```
-Other examples are listed in [./example/README.md](./example/README.md).
+Other examples are listed in [./examples/README.md](./examples/README.md).
 
 If you want to build your own fuzzer, this is how to do it:
 
