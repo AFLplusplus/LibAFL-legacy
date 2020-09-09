@@ -24,7 +24,6 @@
 #define LIBSTAGE_H
 
 #include "input.h"
-#include "list.h"
 
 struct stage_functions {
 

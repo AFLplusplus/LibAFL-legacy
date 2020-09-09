@@ -35,10 +35,6 @@
 #include "alloc-inl.h"
 #include "afl-returns.h"
 
-#define MAX_WORKERS (256)
-
-#define HAHS_CONST 0xaf1af1
-
 // We're declaring a few structs here which have an interdependency between them
 
 typedef struct fuzz_one fuzz_one_t;

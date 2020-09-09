@@ -150,7 +150,7 @@ struct timeout_channel tmout_channel = malloc(sizeof(struct timeout_channel));
 // Every structure, apart from the create function, has an init function too, which initializes the structure. You do have to initialize the rest of your extended structure yourself though.
 afl_observation_channel_init(&tmout_channel->base, size_t unique_tag);
 
-// Let's add it to the executor now, it gets added to an array of channels, with max number being decided by MAX_OBS_CHANNELS (default 5)
+// Let's add it to the executor now, it gets added to an array of channels
 executor->funcs.add_observation_channel(executor, &tmout_base);
 
 ```
@@ -224,7 +224,7 @@ fuzzing_stage_t * stage  = afl_fuzzing_stage(NULL);
 // This is a fuzzing stage(mutations and stuff) so we use fuzzing_stage structure, there can be stages without mutation and mutators. 
 
 stage->funcs.add_mutator_to_stage(stage, mutator);
-// We add the mutator, max mutators defined as MAX_STAGE_MUTATORS (10, can be changed)
+// We add the mutator
 ```
 
 7. Let's create a few cogs for the fuzzer, like engine and the fuzz_one. Engine is the central part of the fuzzer which holds everything else together.

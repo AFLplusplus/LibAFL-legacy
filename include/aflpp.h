@@ -39,7 +39,6 @@
 #include "fuzzone.h"
 #include "feedback.h"
 #include "stage.h"
-#include "list.h"
 #include "os.h"
 #include "afl-returns.h"
 

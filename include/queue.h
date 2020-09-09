@@ -31,7 +31,6 @@
 #include <limits.h>
 
 #include "input.h"
-#include "list.h"
 #include "afl-shmem.h"
 
 /*

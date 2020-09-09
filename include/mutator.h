@@ -24,10 +24,7 @@
 #ifndef LIBMUTATOR_H
 #define LIBMUTATOR_H
 
-#define MAX_MUTATORS_COUNT 20
-
 #include "input.h"
-#include "list.h"
 #include "queue.h"
 
 // Mutator struct will have many internal functions like mutate, trimming etc.

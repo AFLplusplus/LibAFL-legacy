@@ -43,10 +43,6 @@ typedef struct timeout_obs_channel {
 llmp_broker_state_t *llmp_broker;
 int                  broker_port;
 
-/* A global array of all the registered engines */
-engine_t *      registered_fuzz_workers[MAX_WORKERS];
-u64             fuzz_workers_count;
-
 /* Execute target application, monitoring for timeouts. Return status
    information. The called program will update afl->fsrv->trace_bits. */
 static exit_type_t fsrv_run_target_custom(executor_t *fsrv_executor) {
@@ -338,21 +334,6 @@ void *run_broker_thread(void *data) {
 
 }
 
-/* Function to register/add a fuzz worker (engine). */
-static inline afl_ret_t afl_register_fuzz_worker(engine_t *engine) {
-
-  if (fuzz_workers_count >= MAX_WORKERS) {
-
-    return AFL_RET_ARRAY_END;
-
-  }
-
-  registered_fuzz_workers[fuzz_workers_count] = engine;
-  fuzz_workers_count++;
-  return AFL_RET_SUCCESS;
-
-}
-
 /* Main entry point function */
 int main(int argc, char **argv) {
 
@@ -367,6 +348,11 @@ int main(int argc, char **argv) {
   char *in_dir = argv[1];
   char *target_path = argv[3];
   int   thread_count = atoi(argv[2]);
+
+  /* A global array of all the registered engines */
+  engine_t *      *registered_fuzz_workers = NULL;
+  u64             fuzz_workers_count = 0;
+
 
   if (thread_count <= 0) { FATAL("Number of threads should be greater than 0"); }
 
@@ -391,7 +377,12 @@ int main(int argc, char **argv) {
 
     };
 
-    if (afl_register_fuzz_worker(engine) != AFL_RET_SUCCESS) { FATAL("Error registering fuzzing instance"); }
+    fuzz_workers_count++;
+    registered_fuzz_workers = afl_realloc(registered_fuzz_workers, fuzz_workers_count * sizeof(engine_t *));
+    if (!registered_fuzz_workers) {
+      PFATAL("Could not allocated mem for fuzzer");
+    }
+    registered_fuzz_workers[fuzz_workers_count] = engine;
 
   }
 
