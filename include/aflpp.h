@@ -80,9 +80,8 @@ struct executor_functions {
 
 struct executor {
 
-  observation_channel_t
-      **observors;  // This will be swapped for the observation
-                                     // channel once its ready
+  observation_channel_t **observors;  // This will be swapped for the
+                                      // observation channel once its ready
 
   u32 observors_count;
 
@@ -92,9 +91,10 @@ struct executor {
 
 };
 
-afl_ret_t afl_executor_init(executor_t *);
-void      afl_executor_deinit(executor_t *);
-afl_ret_t afl_add_observation_channel_default(executor_t *, observation_channel_t *);
+afl_ret_t              afl_executor_init(executor_t *);
+void                   afl_executor_deinit(executor_t *);
+afl_ret_t              afl_add_observation_channel_default(executor_t *,
+                                                           observation_channel_t *);
 observation_channel_t *afl_get_observation_channels_default(executor_t *,
                                                             size_t);
 raw_input_t *          afl_get_current_input_default(executor_t *);

@@ -97,14 +97,18 @@ void afl_scheduled_mutator_deinit(scheduled_mutator_t *sched_mut) {
 }
 
 afl_ret_t afl_add_mutator_default(scheduled_mutator_t *mutator,
-                             mutator_func_type    mutator_func) {
+                                  mutator_func_type    mutator_func) {
 
   mutator->mutators_count++;
-  mutator->mutations = afl_realloc(mutator->mutations, mutator->mutators_count * sizeof(mutator_func));
+  mutator->mutations = afl_realloc(
+      mutator->mutations, mutator->mutators_count * sizeof(mutator_func));
   if (!mutator->mutations) {
+
     mutator->mutators_count = 0;
     return AFL_RET_ALLOC;
+
   }
+
   mutator->mutations[mutator->mutators_count - 1] = mutator_func;
   return AFL_RET_SUCCESS;
 

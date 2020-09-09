@@ -153,10 +153,9 @@ void afl_set_global_queue_default(engine_t *      engine,
 afl_ret_t afl_add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
   engine->feedbacks_count++;
-  engine->feedbacks = afl_realloc(engine->feedbacks, engine->feedbacks_count * sizeof(feedback_t *));
-  if (!engine->feedbacks) {
-    return AFL_RET_ALLOC;
-  }
+  engine->feedbacks = afl_realloc(
+      engine->feedbacks, engine->feedbacks_count * sizeof(feedback_t *));
+  if (!engine->feedbacks) { return AFL_RET_ALLOC; }
 
   engine->feedbacks[engine->feedbacks_count - 1] = feedback;
 

@@ -84,10 +84,9 @@ afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage,
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
   stage->mutators_count++;
-  stage->mutators = afl_realloc(stage->mutators, stage->mutators_count * sizeof(mutator_t *));
-  if (!stage->mutators) {
-    return AFL_RET_ALLOC;
-  }
+  stage->mutators =
+      afl_realloc(stage->mutators, stage->mutators_count * sizeof(mutator_t *));
+  if (!stage->mutators) { return AFL_RET_ALLOC; }
 
   stage->mutators[stage->mutators_count - 1] = mutator;
 

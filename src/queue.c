@@ -184,10 +184,9 @@ afl_ret_t afl_add_to_queue_default(base_queue_t *queue, queue_entry_t *entry) {
   }
 
   queue->size++;
-  queue->queue_entries = afl_realloc(queue->queue_entries, queue->size * sizeof(queue_entry_t *));
-  if (!queue->queue_entries) {
-    return AFL_RET_ALLOC;
-  }
+  queue->queue_entries =
+      afl_realloc(queue->queue_entries, queue->size * sizeof(queue_entry_t *));
+  if (!queue->queue_entries) { return AFL_RET_ALLOC; }
 
   queue->queue_entries[queue->size] = entry;
 
@@ -377,14 +376,19 @@ void afl_global_queue_deinit(global_queue_t *global_queue) {
 }
 
 afl_ret_t afl_add_feedback_queue_default(global_queue_t *  global_queue,
-                                    feedback_queue_t *feedback_queue) {
+                                         feedback_queue_t *feedback_queue) {
 
   global_queue->feedback_queues_count++;
-  global_queue->feedback_queues = afl_realloc(global_queue->feedback_queues, global_queue->feedback_queues_count * sizeof(feedback_queue_t *));
+  global_queue->feedback_queues = afl_realloc(
+      global_queue->feedback_queues,
+      global_queue->feedback_queues_count * sizeof(feedback_queue_t *));
   if (!global_queue->feedback_queues) {
+
     global_queue->feedback_queues_count = 0;
     return AFL_RET_ALLOC;
+
   }
+
   global_queue->feedback_queues[global_queue->feedback_queues_count - 1] =
       feedback_queue;
   engine_t *engine = global_queue->base.engine;

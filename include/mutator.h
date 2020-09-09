@@ -106,9 +106,9 @@ struct scheduled_mutator_functions {
 
 struct scheduled_mutator {
 
-  mutator_t base;
+  mutator_t          base;
   mutator_func_type *mutations;  // A ptr to an array of mutation operator
-                                      // functions
+                                 // functions
   size_t                             mutators_count;
   struct scheduled_mutator_functions extra_funcs;
   size_t                             max_iterations;
@@ -117,10 +117,10 @@ struct scheduled_mutator {
 
 /* TODO add implementation for the _schedule_ and _iterations_ functions, need a
  * random list element pop type implementation for this */
-size_t afl_iterations_default(scheduled_mutator_t *);
+size_t    afl_iterations_default(scheduled_mutator_t *);
 afl_ret_t afl_add_mutator_default(scheduled_mutator_t *, mutator_func_type);
-size_t afl_schedule_default(scheduled_mutator_t *);
-size_t afl_mutate_scheduled_mutator_default(mutator_t *, raw_input_t *);
+size_t    afl_schedule_default(scheduled_mutator_t *);
+size_t    afl_mutate_scheduled_mutator_default(mutator_t *, raw_input_t *);
 
 afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *, stage_t *, size_t);
 void      afl_scheduled_mutator_deinit(scheduled_mutator_t *);

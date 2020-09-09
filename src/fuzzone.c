@@ -99,10 +99,9 @@ afl_ret_t afl_add_stage_default(fuzz_one_t *fuzz_one, stage_t *stage) {
   if (!stage || !fuzz_one) { return AFL_RET_NULL_PTR; }
 
   fuzz_one->stages_count++;
-  fuzz_one->stages = afl_realloc(fuzz_one->stages, fuzz_one->stages_count * sizeof(stage_t *));
-  if (!fuzz_one->stages) {
-    return AFL_RET_ALLOC;
-  }
+  fuzz_one->stages =
+      afl_realloc(fuzz_one->stages, fuzz_one->stages_count * sizeof(stage_t *));
+  if (!fuzz_one->stages) { return AFL_RET_ALLOC; }
 
   fuzz_one->stages[fuzz_one->stages_count - 1] = stage;
 

@@ -18,7 +18,7 @@ typedef struct client_stats {
 /* stats about the current run */
 typedef struct fuzzer_stats {
 
-  u64 queue_entry_count;
+  u64                   queue_entry_count;
   struct client_stats **clients;
 
 } fuzzer_stats_t;
@@ -53,8 +53,10 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 
   // TODO move to execute_init()
   if (unlikely(engine->start_time == 0)) {
+
     engine->start_time = afl_get_cur_time();
     engine->last_update = afl_get_cur_time_s();
+
   }
 
   exit_type_t run_result = executor->funcs.run_target_cb(executor);
@@ -64,7 +66,8 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
   /* We've run the target with the executor, we can now simply postExec call the
    * observation channels*/
 
-  if (engine->executions % 12345 && engine->last_update < afl_get_cur_time_s()) {
+  if (engine->executions % 12345 &&
+      engine->last_update < afl_get_cur_time_s()) {
 
     llmp_client_state_t *llmp_client = engine->llmp_client;
     llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
@@ -264,8 +267,8 @@ void thread_run_instance(llmp_client_state_t *llmp_client, void *data) {
 }
 
 /* A hook to keep stats in the broker thread */
-bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client, llmp_message_t *msg,
-                  void *data) {
+bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client,
+                  llmp_message_t *msg, void *data) {
 
   (void)broker;
   if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
@@ -274,7 +277,8 @@ bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client, llmp
 
   } else if (msg->tag == LLMP_TAG_EXEC_STATS) {
 
-    ((fuzzer_stats_t *)data)->clients[client->id - 1]->total_execs = *(u64 *)msg->buf;
+    ((fuzzer_stats_t *)data)->clients[client->id - 1]->total_execs =
+        *(u64 *)msg->buf;
 
   }
 
@@ -370,20 +374,20 @@ int main(int argc, char **argv) {
       /* TODO: Send heartbeat messages from clients for more stats :) */
 
       SAYF("threads=%u  paths=%llu  elapsed=%llu  execs=%llu  exec/s=%llu\r",
-           thread_count,  fuzzer_stats.queue_entry_count,
-           time_elapsed, total_execs, total_execs / time_elapsed);
+           thread_count, fuzzer_stats.queue_entry_count, time_elapsed,
+           total_execs, total_execs / time_elapsed);
 
       fflush(stdout);
 
       if ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
-      
+
         // this pid is gone
         // restart it
         // clean shm?
 
-        // TODO      
+        // TODO
         fprintf(stderr, "TODO: implement child re-fork\n");
-      
+
       }
 
     }
@@ -393,3 +397,4 @@ int main(int argc, char **argv) {
   return 0;
 
 }
+

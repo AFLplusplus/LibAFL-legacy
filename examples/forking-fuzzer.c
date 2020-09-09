@@ -462,7 +462,9 @@ int main(int argc, char **argv) {
   u64 time_elapsed = 1;
 
   if (!llmp_broker_launch_clientloops(llmp_broker)) {
+
     FATAL("Error running broker clientloops");
+
   }
 
   OKF("Broker started running");

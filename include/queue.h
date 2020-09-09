@@ -146,7 +146,7 @@ struct base_queue {
 afl_ret_t afl_base_queue_init(base_queue_t *);
 void      afl_base_queue_deinit(base_queue_t *);
 
-afl_ret_t afl_add_to_queue_default(base_queue_t *, queue_entry_t *);
+afl_ret_t      afl_add_to_queue_default(base_queue_t *, queue_entry_t *);
 queue_entry_t *afl_get_queue_base_default(base_queue_t *);
 size_t         afl_get_base_queue_size_default(base_queue_t *);
 char *         afl_get_dirpath_default(base_queue_t *);
@@ -233,10 +233,9 @@ struct global_queue_functions {
 
 struct global_queue {
 
-  base_queue_t base;
-  feedback_queue_t
-      **feedback_queues;  // One global queue can have
-                                              // multiple feedback queues
+  base_queue_t       base;
+  feedback_queue_t **feedback_queues;  // One global queue can have
+                                       // multiple feedback queues
 
   size_t feedback_queues_count;
 
@@ -248,8 +247,8 @@ struct global_queue {
 
 // Default implementations of global queue vtable functions
 afl_ret_t afl_add_feedback_queue_default(global_queue_t *, feedback_queue_t *);
-int  afl_global_schedule_default(global_queue_t *);
-void afl_set_engine_global_queue_default(base_queue_t *, engine_t *);
+int       afl_global_schedule_default(global_queue_t *);
+void      afl_set_engine_global_queue_default(base_queue_t *, engine_t *);
 
 // Function to get next entry from queue, we override the base_queue
 // implementation
