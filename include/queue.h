@@ -73,7 +73,7 @@ struct queue_entry {
 afl_ret_t afl_queue_entry_init(queue_entry_t *, raw_input_t *);
 void      afl_queue_entry_deinit(queue_entry_t *);
 
-static inline queue_entry_t *afl_queue_entry_create(raw_input_t *input) {
+static inline queue_entry_t *afl_queue_entry_new(raw_input_t *input) {
 
   queue_entry_t *queue_entry = calloc(1, sizeof(queue_entry_t));
   if (!queue_entry) { return NULL; }
@@ -153,7 +153,7 @@ void           afl_set_dirpath_default(base_queue_t *, char *);
 void           afl_set_engine_base_queue_default(base_queue_t *, engine_t *);
 queue_entry_t *afl_get_next_base_queue_default(base_queue_t *queue, int engine_id);
 
-static inline base_queue_t *afl_base_queue_create() {
+static inline base_queue_t *afl_base_queue_new() {
 
   base_queue_t *base_queue = calloc(1, sizeof(base_queue_t));
   if (!base_queue) { return NULL; }
@@ -191,7 +191,7 @@ afl_ret_t afl_feedback_queue_init(feedback_queue_t *, struct feedback *,
 
 void afl_feedback_queue_deinit(feedback_queue_t *);
 
-static inline feedback_queue_t *afl_feedback_queue_create(struct feedback *feedback, char *name) {
+static inline feedback_queue_t *afl_feedback_queue_new(struct feedback *feedback, char *name) {
 
   feedback_queue_t *feedback_queue = calloc(1, sizeof(feedback_queue_t));
   if (!feedback_queue) { return NULL; }
@@ -253,7 +253,7 @@ queue_entry_t *afl_get_next_global_queue_default(base_queue_t *queue, int engine
 afl_ret_t afl_global_queue_init(global_queue_t *);
 void      afl_global_queue_deinit(global_queue_t *);
 
-static inline global_queue_t *afl_global_queue_create() {
+static inline global_queue_t *afl_global_queue_new() {
 
   global_queue_t *global_queue = calloc(1, sizeof(global_queue_t));
   if (!global_queue) { return NULL; }

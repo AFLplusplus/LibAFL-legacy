@@ -52,7 +52,7 @@ afl_ret_t afl_set_engine_default(fuzz_one_t *, engine_t *);
 afl_ret_t afl_fuzz_one_init(fuzz_one_t *, engine_t *);
 void      afl_fuzz_one_deinit(fuzz_one_t *);
 
-static inline fuzz_one_t *afl_fuzz_one_create(engine_t *engine) {
+static inline fuzz_one_t *afl_fuzz_one_new(engine_t *engine) {
 
   fuzz_one_t *fuzz_one = calloc(1, sizeof(fuzz_one_t));
   if (!fuzz_one) { return NULL; }

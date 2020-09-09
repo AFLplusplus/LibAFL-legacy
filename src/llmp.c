@@ -620,17 +620,13 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *broker, llmp
     llmp_message_t *msg = llmp_recv(incoming, client->last_msg_broker_read);
 
     DBG("Broker send: our current_message_id for client %d (at ptr %p) is "
-        "%d%s, now "
-        "processing msg id "
-        "%d with tag 0x%X",
+        "%d%s, now processing msg id %d with tag 0x%X",
         client->client_state->id, client, current_message_id,
         client->last_msg_broker_read ? "" : " (last msg was NULL)", msg->message_id, msg->tag);
 
     if (!msg) {
 
-      FATAL(
-          "No message received but not all message ids receved! Data out of "
-          "sync?");
+      FATAL("No message received but not all message ids receved! Data out of sync?");
 
     }
 

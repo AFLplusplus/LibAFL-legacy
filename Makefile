@@ -30,8 +30,8 @@ src/input.o: src/input.c include/input.h include/common.h
 	$(CC) $(CFLAGS) src/input.c -c -o src/input.o
 
 # Compiling the observation channel  file
-src/observationchannel.o: src/observationchannel.c include/observationchannel.h include/common.h
-	$(CC) $(CFLAGS) src/observationchannel.c -c -o src/observationchannel.o
+src/observer.o: src/observer.c include/observer.h include/common.h
+	$(CC) $(CFLAGS) src/observer.c -c -o src/observer.o
 
 # Compiling the queue  file
 src/queue.o: src/queue.c include/queue.h src/input.o src/common.o
@@ -70,13 +70,13 @@ src/llmp.o: src/llmp.c include/llmp.h
 	@rm -f libafl.so libafl.a
 
 # Compiling the final library
-src/afl.o: src/aflpp.c include/aflpp.h src/observationchannel.o src/input.observation
+src/afl.o: src/aflpp.c include/aflpp.h src/observer.o src/input.observation
 	$(CC) $(CFLAGS) src/aflpp.c -c -o src/aflpp.o
 
-libafl.so: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/feedback.o src/mutator.o src/queue.o src/observationchannel.o src/input.o src/common.o src/os.o src/shmem.o
+libafl.so: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/feedback.o src/mutator.o src/queue.o src/observer.o src/input.o src/common.o src/os.o src/shmem.o
 	$(CC) $(CFLAGS) $(LDFLAGS) -shared $^ -o libafl.so
 
-libafl.a: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/feedback.o src/mutator.o src/queue.o src/observationchannel.o src/input.o src/common.o src/os.o src/shmem.o
+libafl.a: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/feedback.o src/mutator.o src/queue.o src/observer.o src/input.o src/common.o src/os.o src/shmem.o
 	@rm -f libafl.a
 	ar -crs libafl.a $^
 

@@ -166,7 +166,7 @@ static float timeout_fbck_is_interesting(feedback_t *feedback, executor_t *execu
     raw_input_t *input = fsrv->base.current_input->funcs.copy(fsrv->base.current_input);
     if (!input) { FATAL("Error creating a copy of input"); }
 
-    queue_entry_t *new_entry = afl_queue_entry_create(input);
+    queue_entry_t *new_entry = afl_queue_entry_new(input);
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
     return 0.0;
 
@@ -183,12 +183,12 @@ static float timeout_fbck_is_interesting(feedback_t *feedback, executor_t *execu
 engine_t *initialize_engine_instance(char *target_path, char *in_dir, char **target_args) {
 
   /* Let's now create a simple map-based observation channel */
-  map_based_channel_t *trace_bits_channel = afl_map_channel_create(MAP_SIZE, MAP_CHANNEL_ID);
+  map_based_channel_t *trace_bits_channel = afl_map_channel_new(MAP_SIZE, MAP_CHANNEL_ID);
 
   /* Another timing based observation channel */
   timeout_obs_channel_t *timeout_channel = calloc(1, sizeof(timeout_obs_channel_t));
   if (!timeout_channel) { FATAL("Error initializing observation channel"); }
-  afl_observation_channel_init(&timeout_channel->base, TIMEOUT_CHANNEL_ID);
+  afl_observer_init(&timeout_channel->base, TIMEOUT_CHANNEL_ID);
   timeout_channel->base.funcs.post_exec = timeout_channel_post_exec;
   timeout_channel->base.funcs.reset = timeout_channel_reset;
 
@@ -209,15 +209,15 @@ engine_t *initialize_engine_instance(char *target_path, char *in_dir, char **tar
   fsrv->trace_bits = trace_bits_channel->shared_map.map;
 
   /* We create a simple feedback queue for coverage here*/
-  feedback_queue_t *coverage_feedback_queue = afl_feedback_queue_create(NULL, (char *)"Coverage feedback queue");
+  feedback_queue_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
 
   /* Another feedback queue for timeout entries here */
-  feedback_queue_t *timeout_feedback_queue = afl_feedback_queue_create(NULL, "Timeout feedback queue");
+  feedback_queue_t *timeout_feedback_queue = afl_feedback_queue_new(NULL, "Timeout feedback queue");
   if (!timeout_feedback_queue) { FATAL("Error initializing feedback queue"); }
 
   /* Global queue creation */
-  global_queue_t *global_queue = afl_global_queue_create();
+  global_queue_t *global_queue = afl_global_queue_new();
   if (!global_queue) { FATAL("Error initializing global queue"); }
   global_queue->extra_funcs.add_feedback_queue(global_queue, coverage_feedback_queue);
   global_queue->extra_funcs.add_feedback_queue(global_queue, timeout_feedback_queue);
@@ -229,37 +229,37 @@ engine_t *initialize_engine_instance(char *target_path, char *in_dir, char **tar
   coverage_feedback_queue->feedback = &coverage_feedback->base;
 
   /* Timeout Feedback initialization */
-  feedback_t *timeout_feedback = afl_feedback_create(timeout_feedback_queue, TIMEOUT_CHANNEL_ID);
+  feedback_t *timeout_feedback = afl_feedback_new(timeout_feedback_queue, TIMEOUT_CHANNEL_ID);
   if (!timeout_feedback) { FATAL("Error initializing feedback"); }
   timeout_feedback_queue->feedback = timeout_feedback;
   timeout_feedback->funcs.is_interesting = timeout_fbck_is_interesting;
 
   /* Let's build an engine now */
-  engine_t *engine = afl_engine_create((executor_t *)fsrv, NULL, global_queue);
+  engine_t *engine = afl_engine_new((executor_t *)fsrv, NULL, global_queue);
   engine->in_dir = in_dir;
   if (!engine) { FATAL("Error initializing Engine"); }
   engine->funcs.add_feedback(engine, (feedback_t *)coverage_feedback);
   engine->funcs.add_feedback(engine, timeout_feedback);
 
-  fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
+  fuzz_one_t *fuzz_one = afl_fuzz_one_new(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
-  scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_create(NULL, 8);
+  scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_new(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_byte_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_2_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_4_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, delete_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, clone_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_bit_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_2_bits_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_4_bits_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_add_sub_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, splicing_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_byte);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_2_bytes);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_4_bytes);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_delete_bytes);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_clone_bytes);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_bit);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_2_bits);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_4_bits);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte_add_sub);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_splice);
 
-  fuzzing_stage_t *stage = afl_fuzzing_stage_create(engine);
+  fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }
   stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
 
@@ -267,7 +267,7 @@ engine_t *initialize_engine_instance(char *target_path, char *in_dir, char **tar
 
 }
 
-void thread_run_instance(llmp_client_state_t *client, void *data) {
+void fuzzer_process_main(llmp_client_state_t *client, void *data) {
 
   engine_t *engine = (engine_t *)data;
 
@@ -371,7 +371,7 @@ int main(int argc, char **argv) {
 
     engine_t *engine = initialize_engine_instance(target_path, in_dir, target_args);
 
-    if (!llmp_broker_register_threaded_clientloop(llmp_broker, thread_run_instance, engine)) {
+    if (!llmp_broker_register_threaded_clientloop(llmp_broker, fuzzer_process_main, engine)) {
 
       FATAL("Error registering client");
 
@@ -382,7 +382,7 @@ int main(int argc, char **argv) {
     if (!registered_fuzz_workers) {
       PFATAL("Could not allocated mem for fuzzer");
     }
-    registered_fuzz_workers[fuzz_workers_count] = engine;
+    registered_fuzz_workers[fuzz_workers_count - 1] = engine;
 
   }
 

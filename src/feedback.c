@@ -25,7 +25,7 @@
  */
 
 #include "feedback.h"
-#include "observationchannel.h"
+#include "observer.h"
 #include "aflpp.h"
 
 afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue, size_t channel_id) {
@@ -192,7 +192,7 @@ float __attribute__((hot)) map_fbck_is_interesting(feedback_t *feedback, executo
 
     if (!input) { FATAL("Error creating a copy of input"); }
 
-    queue_entry_t *new_entry = afl_queue_entry_create(input);
+    queue_entry_t *new_entry = afl_queue_entry_new(input);
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
 
     /* We broadcast a message when new entry found -- only if this is the fuzz

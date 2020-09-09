@@ -31,8 +31,6 @@ afl_ret_t dump_crash_to_file(raw_input_t *data, engine_t *engine) {
 
 // Process related functions
 
-// static process_t *current_process;
-
 void _afl_process_init_internal(process_t *process) {
 
   // process->current = return_current_default;
@@ -43,23 +41,6 @@ void _afl_process_init_internal(process_t *process) {
   process->suspend = suspend_default;
 
 }
-
-#if 0
-process_t *return_current_default(process_t *process) {
-
-  (void)process;
-
-  /* What is this good for? It's racey for sure */
-  if (current_process) return current_process;
-
-  process_t *p = afl_process_init(NULL, getpid());
-
-  current_process = p;
-  return p;
-
-}
-
-#endif
 
 fork_result_t do_fork_default(process_t *process) {
 

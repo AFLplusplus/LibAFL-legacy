@@ -31,7 +31,7 @@
 #include "afl-shmem.h"
 #include "afl-returns.h"
 
-typedef struct observation_channel observation_channel_t;
+typedef struct observer observation_channel_t;
 
 // vtable for the observation channel
 
@@ -43,7 +43,7 @@ struct observation_channel_functions {
 
 };
 
-struct observation_channel {
+struct observer {
 
   // Can we have anything else here?
   size_t                               channel_id;  // MUST be unique
@@ -59,17 +59,17 @@ void afl_post_exec(observation_channel_t *);
 // Functions to initialize and deinitialize the generic observation channel. P.S
 // You probably will need to extend it the way we've done below.
 
-afl_ret_t afl_observation_channel_init(observation_channel_t *, size_t);
+afl_ret_t afl_observer_init(observation_channel_t *, size_t);
 void      afl_observation_channel_deinit(observation_channel_t *);
 
 /* Function to create and destroy a new observation channel, allocates memory
   and initializes it. In destroy, it first deinitializes the struct and then
   frees it. */
-static inline observation_channel_t *afl_observation_channel_create(size_t channel_id) {
+static inline observation_channel_t *afl_observation_channel_new(size_t channel_id) {
 
   observation_channel_t *new_obs_channel = calloc(1, sizeof(observation_channel_t));
   if (!new_obs_channel) { return NULL; }
-  if (afl_observation_channel_init(new_obs_channel, channel_id) != AFL_RET_SUCCESS) {
+  if (afl_observer_init(new_obs_channel, channel_id) != AFL_RET_SUCCESS) {
 
     free(new_obs_channel);
     return NULL;
@@ -80,11 +80,11 @@ static inline observation_channel_t *afl_observation_channel_create(size_t chann
 
 }
 
-static inline void afl_observation_channel_delete(observation_channel_t *observation_channel) {
+static inline void afl_observation_channel_delete(observation_channel_t *observer) {
 
-  afl_observation_channel_deinit(observation_channel);
+  afl_observation_channel_deinit(observer);
 
-  free(observation_channel);
+  free(observer);
 
 }
 
@@ -116,7 +116,7 @@ afl_ret_t afl_map_channel_init(map_based_channel_t *, size_t, size_t);
 void      afl_map_channel_deinit(map_based_channel_t *);
 void      afl_map_channel_reset(observation_channel_t *);
 
-static inline map_based_channel_t *afl_map_channel_create(size_t map_size, size_t channel_id) {
+static inline map_based_channel_t *afl_map_channel_new(size_t map_size, size_t channel_id) {
 
   map_based_channel_t *map_channel = calloc(1, sizeof(map_based_channel_t));
   if (!map_channel) { return NULL; }

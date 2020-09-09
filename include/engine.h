@@ -100,7 +100,7 @@ afl_ret_t afl_loop_default(engine_t *);  // Not sure about this functions
 afl_ret_t afl_engine_init(engine_t *, executor_t *, fuzz_one_t *, global_queue_t *);
 void      afl_engine_deinit(engine_t *);
 
-static inline engine_t *afl_engine_create(executor_t *executor, fuzz_one_t *fuzz_one, global_queue_t *global_queue) {
+static inline engine_t *afl_engine_new(executor_t *executor, fuzz_one_t *fuzz_one, global_queue_t *global_queue) {
 
   engine_t *engine = calloc(1, sizeof(engine_t));
   if (!engine) return NULL;

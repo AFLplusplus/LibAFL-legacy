@@ -194,9 +194,9 @@ u8 engine_mock_execute(engine_t *engine, raw_input_t *input) {
 
 }
 
-static raw_input_t *custom_input_create() {
+static raw_input_t *custom_input_new() {
 
-  raw_input_t *input = afl_input_create();
+  raw_input_t *input = afl_input_new();
 
   input->funcs.clear(input);
 
@@ -231,7 +231,7 @@ void test_engine_load_testcase_from_dir_default(void **state) {
   }
 
   // Let's first test for empty directory
-  engine.funcs.load_testcases_from_dir(&engine, "testcases", custom_input_create);
+  engine.funcs.load_testcases_from_dir(&engine, "testcases", custom_input_new);
 
   // Let's test it with a few files in the directory
   int fd = open("testcases/test1", O_RDWR | O_CREAT, 0600);
@@ -256,7 +256,7 @@ void test_engine_load_testcase_from_dir_default(void **state) {
   }
 
   close(fd);
-  afl_ret_t result = engine.funcs.load_testcases_from_dir(&engine, "testcases", custom_input_create);
+  afl_ret_t result = engine.funcs.load_testcases_from_dir(&engine, "testcases", custom_input_new);
 
   assert_int_equal(result, AFL_RET_SUCCESS);
 
@@ -300,62 +300,60 @@ void test_basic_mutator_functions(void **state) {
   memcpy(input.bytes, test_string, strlen(test_string));
   input.len = 13;
 
-  srand(time(NULL));
-
   /* We test the different mutation functions now */
-  flip_bit_mutation(&mutator, &input);
+  mutator_flip_bit(&mutator, &input);
   assert_string_not_equal(input.bytes, test_string);
 
   copy = input.funcs.copy(&input);
 
-  flip_2_bits_mutation(&mutator, &input);
+  mutator_flip_2_bits(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  flip_4_bits_mutation(&mutator, &input);
+  mutator_flip_4_bits(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  flip_byte_mutation(&mutator, &input);
+  mutator_flip_byte(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  flip_2_bytes_mutation(&mutator, &input);
+  mutator_flip_2_bytes(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  flip_4_bytes_mutation(&mutator, &input);
+  mutator_flip_4_bytes(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  random_byte_add_sub_mutation(&mutator, &input);
+  mutator_random_byte_add_sub(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  random_byte_mutation(&mutator, &input);
+  mutator_random_byte(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  delete_bytes_mutation(&mutator, &input);
+  mutator_delete_bytes(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
 
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  clone_bytes_mutation(&mutator, &input);
+  mutator_clone_bytes(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
 
   afl_input_delete(copy);

@@ -74,7 +74,7 @@ void afl_raw_inp_clear_default(raw_input_t *input) {
 
 raw_input_t *afl_raw_inp_copy_default(raw_input_t *orig_inp) {
 
-  raw_input_t *copy_inp = afl_input_create();
+  raw_input_t *copy_inp = afl_input_new();
   if (!copy_inp) { return NULL; }
   copy_inp->bytes = calloc(orig_inp->len + 1, sizeof(u8));
   if (!copy_inp->bytes) {

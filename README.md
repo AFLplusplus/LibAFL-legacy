@@ -106,7 +106,7 @@ The basic workflow for writing a fuzzer with LibAFL is as follows:
 
 ```C
 // Let's build an executor.
-executor_t example_executor = afl_executor_create(); // This function allocates memory for a "base" executor AND initializes it.
+executor_t example_executor = afl_executor_new(); // This function allocates memory for a "base" executor AND initializes it.
 
 u8 place_input( executor_t * executor, raw_input_t * input ) {
     // We write to a file simply, this is totally user dependent
@@ -124,7 +124,7 @@ exit_type_t run_target_cb(executor_t *executor) {
 
 };
 
-executor_t example_executor = afl_executor_create();
+executor_t example_executor = afl_executor_new();
 example_executor->funcs.place_input_cb = place_input
 example_executor->funcs.run_target_cb = run_target;
 
@@ -158,7 +158,7 @@ executor->funcs.add_observation_channel(executor, &tmout_base);
 4. You probably want to build a simple feedback for the observation channel, which reduces the observation channels input to a float (0.0 to 1.0) to decide the "score" of input in the context of that observation channel (e.g more code coverage, greater execution time means higher score). This feedback also decides if an input should be put in a feedback specific queue, global queue or both.
 
 ```C
-feedback_t * example feedback = afl_feedback_create(NULL, timeout_channel_id);  // We can add the feedback queue instead of NULL here, but we'll add them later.
+feedback_t * example feedback = afl_feedback_new(NULL, timeout_channel_id);  // We can add the feedback queue instead of NULL here, but we'll add them later.
 
 float is_interesting(feedback_t * feedback, executor_t * executor) {
     
@@ -188,10 +188,10 @@ In case of queues, we don't expect the user to extend or do much to the queue st
 
 ```C
 // Let's create a global queue, one for each fuzzing "instance" we have.
-global_queue_t *global_queue = afl_global_queue_create(NULL); // NULL is for the engine, if present pass a ptr to it.
+global_queue_t *global_queue = afl_global_queue_new(NULL); // NULL is for the engine, if present pass a ptr to it.
 
 // Let's create a feedback queue, for the feedback we create above.
-feedback_queue_t * feedback_queue = afl_feedback_queue_create(feedback, "Timeout feedback queue");
+feedback_queue_t * feedback_queue = afl_feedback_queue_new(feedback, "Timeout feedback queue");
 
 // Let's add it to the global queue
 global_queue->extra_funcs.add_feedback_queue(feedback_queue);   // Notice how we actually use extra_funcs instead of funcs, this is because global_queue is extended from base_queue and required a few extra function pointers, thus this. 
@@ -203,7 +203,7 @@ It's totally upto the user to redefine the queue's scheduling algorithms (both g
 
 6. Let's get a few mutators running now. Each mutator is part of a fuzzing stage (like AFL has three stages, deterministic, havoc and spilcing). So, every stage has it's own mutator.
 ```C
-mutator_t * mutator = afl_mutator_create(NULL);
+mutator_t * mutator = afl_mutator_new(NULL);
 // We'll add it to the stage later.
 
 void mutate(mutator_t * mutator, raw_input_t * input) {
@@ -230,12 +230,12 @@ stage->funcs.add_mutator_to_stage(stage, mutator);
 7. Let's create a few cogs for the fuzzer, like engine and the fuzz_one. Engine is the central part of the fuzzer which holds everything else together.
 
 ```C
-fuzz_one_t * fuzz_one = afl_fuzz_one_create(NULL);
+fuzz_one_t * fuzz_one = afl_fuzz_one_new(NULL);
 // Let's add the stage to the fuzzone
 
 fuzz_one->funcs.add_stage(fuzz_one, stage);
 
-engine_t * engine = afl_engine_create(executor, fuzz_one, global_queue);
+engine_t * engine = afl_engine_new(executor, fuzz_one, global_queue);
 
 ```
 

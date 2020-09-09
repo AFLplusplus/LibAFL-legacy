@@ -31,7 +31,7 @@
 
 #include "common.h"
 #include "config.h"
-#include "observationchannel.h"
+#include "observer.h"
 #include "input.h"
 #include "mutator.h"
 #include "queue.h"
@@ -55,14 +55,11 @@ struct executor_functions {
   u8 (*destroy_cb)(executor_t *);      // can be NULL
 
   exit_type_t (*run_target_cb)(executor_t *);  // Similar to afl_fsrv_run_target we have in afl
-  u8 (*place_input_cb)(executor_t *,
-                       raw_input_t *);  // similar to the write_to_testcase function in afl.
+  u8 (*place_input_cb)(executor_t *, raw_input_t *);  // similar to the write_to_testcase function in afl.
 
-  observation_channel_t *(*get_observation_channels)(executor_t *,
-                                                     size_t);  // Getter function for observation channels list
+  observation_channel_t *(*get_observation_channels)(executor_t *, size_t);  // Getter function for observation channels list
 
-  afl_ret_t (*add_observation_channel)(executor_t *,
-                                       observation_channel_t *);  // Add an observtion channel to the list
+  afl_ret_t (*add_observation_channel)(executor_t *, observation_channel_t *);  // Add an observtion channel to the list
 
   raw_input_t *(*get_current_input)(executor_t *);  // Getter function for the current input
 
@@ -95,7 +92,7 @@ void                   afl_reset_observation_channel_default(executor_t *);
 // Function used to create an executor, we alloc the memory ourselves and
 // initialize the executor
 
-static inline executor_t *afl_executor_create() {
+static inline executor_t *afl_executor_new() {
 
   executor_t *new_executor = calloc(1, sizeof(executor_t));
   if (!new_executor) { return NULL; }
@@ -161,7 +158,7 @@ afl_ret_t         fsrv_start(executor_t *fsrv_executor);
 /* In-memory executor */
 
 /* Function ptr for the harness */
-typedef exit_type_t (*harness_function_type)(u8 *, size_t);
+typedef exit_type_t (*harness_function_type)(executor_t *executor, u8 *, size_t);
 
 typedef struct in_memeory_executor {
 
@@ -174,7 +171,6 @@ typedef struct in_memeory_executor {
 
 exit_type_t in_memory_run_target(executor_t *executor);
 u8          in_mem_executor_place_input(executor_t *executor, raw_input_t *input);
-exit_type_t in_memory_run_target(executor_t *executor);
 void        in_memory_executor_init(in_memory_executor_t *in_memeory_executor, harness_function_type harness);
 
 #endif

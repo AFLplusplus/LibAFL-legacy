@@ -6,26 +6,25 @@
 
 extern u8 *__afl_area_ptr;
 
-static llmp_broker_state_t *llmp_broker;
-static int                  broker_port;
-static int                  debug;
-static int                  loop;
+bool got_sigchld = false;
 
 int                       LLVMFuzzerTestOneInput(const uint8_t *, size_t);
 __attribute__((weak)) int LLVMFuzzerInitialize(int *argc, char ***argv);
 
-void child_gone(int signal) {
+void sigchld_handler(int signal) {
 
-  if (loop) loop = 0;
   (void)(signal);
+  got_sigchld = true;
 
 }
 
-int debug_LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+exit_type_t exec_debug(executor_t *executor, uint8_t *data, size_t size) {
 
+  (void)executor;
   u32 i;
   fprintf(stderr, "Enter harness function %p %lu\n", data, size);
-  for (i = 0; i < 65536; i++)
+
+  for (i = 0; i < MAP_SIZE; i++)
     if (__afl_area_ptr[i])
       fprintf(stderr, "Error: map unclean before harness: map[%04x]=0x%02x\n", i, __afl_area_ptr[i]);
 
@@ -40,31 +39,34 @@ int debug_LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
 }
 
+int exec(executor_t *executor, const uint8_t *data, size_t size) {
+  (void) executor;
+  return LLVMFuzzerTestOneInput(data, size);
+}
+
 static afl_ret_t in_memory_fuzzer_start(executor_t *executor) {
 
   in_memory_executor_t *in_memory_fuzzer = (in_memory_executor_t *)executor;
 
+  /* TODO: Does the return code mean anything? */
   if (LLVMFuzzerInitialize) { LLVMFuzzerInitialize(&in_memory_fuzzer->argc, &in_memory_fuzzer->argv); }
 
   return AFL_RET_SUCCESS;
 
 }
 
-engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir, char *queue_dirpath) {
+engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue_dirpath) {
 
   /* Let's create an in-memory executor */
   in_memory_executor_t *in_memory_executor = calloc(1, sizeof(in_memory_executor_t));
   if (!in_memory_executor) {
 
-    FATAL("%s", afl_ret_stringify(AFL_RET_ALLOC));
+    FATAL("Error initi%s", afl_ret_stringify(AFL_RET_ALLOC));
     exit(-1);
 
   }
 
-  if (debug)
-    in_memory_executor_init(in_memory_executor, (harness_function_type)debug_LLVMFuzzerTestOneInput);
-  else
-    in_memory_executor_init(in_memory_executor, (harness_function_type)LLVMFuzzerTestOneInput);
+  in_memory_executor_init(in_memory_executor, exec_debug);
 
   in_memory_executor->argc = argc;
   in_memory_executor->argv = afl_argv_cpy_dup(argc, argv);
@@ -75,14 +77,14 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir, char *qu
    * actually create a shared map */
   map_based_channel_t *trace_bits_channel = calloc(1, sizeof(map_based_channel_t));
   if (!trace_bits_channel ||
-      afl_observation_channel_init(&trace_bits_channel->base, MAP_CHANNEL_ID) != AFL_RET_SUCCESS) {
+      afl_observer_init(&trace_bits_channel->base, MAP_CHANNEL_ID) != AFL_RET_SUCCESS) {
 
     FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC));
     exit(-1);
 
   }
 
-  /* Since we don't use map_channel_create function, we have to add reset
+  /* Since we don't use map_channel_new function, we have to add reset
    * function manually */
   trace_bits_channel->base.funcs.reset = afl_map_channel_reset;
   trace_bits_channel->shared_map.map = __afl_area_ptr;  // Coverage map
@@ -91,7 +93,7 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir, char *qu
   in_memory_executor->base.funcs.add_observation_channel(&in_memory_executor->base, &trace_bits_channel->base);
 
   /* We create a simple feedback queue for coverage here*/
-  feedback_queue_t *coverage_feedback_queue = afl_feedback_queue_create(NULL, (char *)"Coverage feedback queue");
+  feedback_queue_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) {
 
     FATAL("Error initializing feedback queue");
@@ -102,7 +104,7 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir, char *qu
   coverage_feedback_queue->base.funcs.set_dirpath(&coverage_feedback_queue->base, queue_dirpath);
 
   /* Global queue creation */
-  global_queue_t *global_queue = afl_global_queue_create();
+  global_queue_t *global_queue = afl_global_queue_new();
   if (!global_queue) {
 
     FATAL("Error initializing global queue");
@@ -124,7 +126,7 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir, char *qu
   }
 
   /* Let's build an engine now */
-  engine_t *engine = afl_engine_create(&in_memory_executor->base, NULL, global_queue);
+  engine_t *engine = afl_engine_new(&in_memory_executor->base, NULL, global_queue);
   if (!engine) {
 
     FATAL("Error initializing Engine");
@@ -136,7 +138,7 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir, char *qu
   engine->funcs.set_global_queue(engine, global_queue);
   engine->in_dir = in_dir;
 
-  fuzz_one_t *fuzz_one = afl_fuzz_one_create(engine);
+  fuzz_one_t *fuzz_one = afl_fuzz_one_new(engine);
   if (!fuzz_one) {
 
     FATAL("Error initializing fuzz_one");
@@ -147,7 +149,7 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir, char *qu
   // We also add the fuzzone to the engine here.
   engine->funcs.set_fuzz_one(engine, fuzz_one);
 
-  scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_create(NULL, 8);
+  scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_new(NULL, 8);
   if (!mutators_havoc) {
 
     FATAL("Error initializing Mutators");
@@ -155,18 +157,18 @@ engine_t *initialize_fuzz_instance(int argc, char **argv, char *in_dir, char *qu
 
   }
 
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_byte_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_2_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_4_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, delete_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, clone_bytes_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_bit_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_2_bits_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, flip_4_bits_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_add_sub_mutation);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, random_byte_mutation);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_byte);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_2_bytes);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_4_bytes);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_delete_bytes);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_clone_bytes);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_bit);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_2_bits);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_4_bits);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte_add_sub);
+  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte);
 
-  fuzzing_stage_t *stage = afl_fuzzing_stage_create(engine);
+  fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
   if (!stage) {
 
     FATAL("Error creating fuzzing stage");
@@ -240,14 +242,6 @@ void run_instance(llmp_client_state_t *llmp_client, void *data) {
 
 }
 
-void *run_broker_thread(void *data) {
-
-  (void)data;
-  llmp_broker_run(llmp_broker);
-  return 0;
-
-}
-
 int main(int argc, char **argv) {
 
   if (argc < 4) {
@@ -260,9 +254,10 @@ int main(int argc, char **argv) {
 
   }
 
+  bool debug = false;
   if (getenv("DEBUG") || getenv("AFL_DEBUG") || getenv("LIBAFL_DEBUG")) {
 
-    debug = 1;
+    debug = true;
     fprintf(stderr, "Map ptr: %p\n", __afl_area_ptr);
 
   }
@@ -279,8 +274,8 @@ int main(int argc, char **argv) {
 
   }
 
-  broker_port = 0xAF1;
-  llmp_broker = llmp_broker_new();
+  int broker_port = 0xAF1;
+  llmp_broker_state_t *llmp_broker = llmp_broker_new();
   if (!llmp_broker) {
 
     FATAL("Broker creation failed");
@@ -297,7 +292,7 @@ int main(int argc, char **argv) {
 
   OKF("Broker created.");
 
-  (void)signal(SIGCHLD, child_gone);
+  (void)signal(SIGCHLD, sigchld_handler);
   u32 clients_started = 0;
   // u64 time_elapsed = 1;
 
@@ -332,7 +327,7 @@ int main(int argc, char **argv) {
 
         }
 
-        engine_t *engine = initialize_fuzz_instance(argc, argv, in_dir, queue_dirpath);
+        engine_t *engine = initialize_fuzzer(argc, argv, in_dir, queue_dirpath);
 
         run_instance(llmp_client, engine);
 
@@ -344,7 +339,7 @@ int main(int argc, char **argv) {
 
     }
 
-    loop = 1;
+    volatile bool loop = 1;
     while (loop) {
 
       sleep(1);

@@ -67,7 +67,7 @@ void      afl_mutator_deinit(mutator_t *);
 // A simple scheduled mutator based on the above mutator. Will act something
 // similar to the havoc stage
 
-static inline mutator_t *afl_mutator_create(stage_t *stage) {
+static inline mutator_t *afl_mutator_new(stage_t *stage) {
 
   mutator_t *mutator = calloc(1, sizeof(mutator_t));
   if (!mutator) return NULL;
@@ -121,7 +121,7 @@ size_t    afl_mutate_scheduled_mutator_default(mutator_t *, raw_input_t *);
 afl_ret_t afl_scheduled_mutator_init(scheduled_mutator_t *, stage_t *, size_t);
 void      afl_scheduled_mutator_deinit(scheduled_mutator_t *);
 
-static inline scheduled_mutator_t *afl_scheduled_mutator_create(stage_t *stage, size_t max_iterations) {
+static inline scheduled_mutator_t *afl_scheduled_mutator_new(stage_t *stage, size_t max_iterations) {
 
   scheduled_mutator_t *sched_mut = calloc(1, sizeof(scheduled_mutator_t));
 
@@ -143,17 +143,17 @@ static inline void afl_scheduled_mutator_delete(scheduled_mutator_t *sched_mut) 
 
 }
 
-void flip_bit_mutation(mutator_t *mutator, raw_input_t *input);
-void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input);
-void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input);
-void flip_byte_mutation(mutator_t *mutator, raw_input_t *input);
-void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input);
-void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input);
-void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input);
-void random_byte_mutation(mutator_t *mutator, raw_input_t *input);
-void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input);
-void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input);
-void splicing_mutation(mutator_t *mutator, raw_input_t *input);
+void mutator_flip_bit(mutator_t *mutator, raw_input_t *input);
+void mutator_flip_2_bits(mutator_t *mutator, raw_input_t *input);
+void mutator_flip_4_bits(mutator_t *mutator, raw_input_t *input);
+void mutator_flip_byte(mutator_t *mutator, raw_input_t *input);
+void mutator_flip_2_bytes(mutator_t *mutator, raw_input_t *input);
+void mutator_flip_4_bytes(mutator_t *mutator, raw_input_t *input);
+void mutator_random_byte_add_sub(mutator_t *mutator, raw_input_t *input);
+void mutator_random_byte(mutator_t *mutator, raw_input_t *input);
+void mutator_delete_bytes(mutator_t *mutator, raw_input_t *input);
+void mutator_clone_bytes(mutator_t *mutator, raw_input_t *input);
+void mutator_splice(mutator_t *mutator, raw_input_t *input);
 
 #endif
 

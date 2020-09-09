@@ -74,7 +74,7 @@ u8 *         afl_raw_inp_get_bytes_default(raw_input_t *this_input);
 /* Function to create and destroy a new input, allocates memory and initializes
   it. In destroy, it first deinitializes the struct and then frees it. */
 
-static inline raw_input_t *afl_input_create() {
+static inline raw_input_t *afl_input_new() {
 
   raw_input_t *input = calloc(1, sizeof(raw_input_t));
   if (!input) { return NULL; }

@@ -174,7 +174,7 @@ static size_t choose_block_len(afl_rand_t *rnd, size_t limit) {
 
 }
 
-inline void flip_bit_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_flip_bit(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
   int         bit = afl_rand_below(rnd, input->len * 8 - 1) + 1;
@@ -183,7 +183,7 @@ inline void flip_bit_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-inline void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_flip_2_bits(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
   size_t      size = input->len;
@@ -198,7 +198,7 @@ inline void flip_2_bits_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-inline void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_flip_4_bits(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
 
@@ -220,7 +220,7 @@ inline void flip_4_bits_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-inline void flip_byte_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_flip_byte(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
 
@@ -236,7 +236,7 @@ inline void flip_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-inline void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_flip_2_bytes(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
 
@@ -251,7 +251,7 @@ inline void flip_2_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-inline void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_flip_4_bytes(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
 
@@ -270,7 +270,7 @@ inline void flip_4_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-inline void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_random_byte_add_sub(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
 
@@ -285,7 +285,7 @@ inline void random_byte_add_sub_mutation(mutator_t *mutator, raw_input_t *input)
 
 }
 
-inline void random_byte_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_random_byte(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
 
@@ -297,7 +297,7 @@ inline void random_byte_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-inline void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_delete_bytes(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
 
@@ -313,7 +313,7 @@ inline void delete_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
 
 }
 
-inline void clone_bytes_mutation(mutator_t *mutator, raw_input_t *input) {
+inline void mutator_clone_bytes(mutator_t *mutator, raw_input_t *input) {
 
   afl_rand_t *rnd = &mutator->stage->engine->rnd;
 
@@ -374,7 +374,7 @@ static void locate_diffs(u8 *ptr1, u8 *ptr2, u32 len, s32 *first, s32 *last) {
 
 }
 
-void splicing_mutation(mutator_t *mutator, raw_input_t *input) {
+void mutator_splice(mutator_t *mutator, raw_input_t *input) {
 
   /* Let's grab the engine for random num generation and queue */
 
@@ -382,11 +382,11 @@ void splicing_mutation(mutator_t *mutator, raw_input_t *input) {
   global_queue_t *global_queue = engine->global_queue;
 
   raw_input_t *splice_input = NULL;
-  s32          f_diff, l_diff;
+
+  s32 f_diff = 0;
+  s32 l_diff = 0;
 
   int counter = 0;
-
-retry_splicing:
 
   do {
 
@@ -419,11 +419,11 @@ retry_splicing:
     // Counter basically stops it from infinite loop in case of empty queue
     if (counter++ > 20) { return; }
 
-  } while (splice_input == NULL);
+    if (splice_input) { continue; }
 
-  locate_diffs(input->bytes, splice_input->bytes, MIN((s64)input->len, (s64)splice_input->len), &f_diff, &l_diff);
+    locate_diffs(input->bytes, splice_input->bytes, MIN((s64)input->len, (s64)splice_input->len), &f_diff, &l_diff);
 
-  if (f_diff < 0 || l_diff < 2 || f_diff == l_diff) { goto retry_splicing; }
+  } while (!(f_diff < 0 || l_diff < 2 || f_diff == l_diff));
 
   /* Split somewhere between the first and last differing byte. */
 

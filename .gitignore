@@ -25,16 +25,18 @@
 *.la
 *.a
 *.lib
+*.dSym
 
 # Executables
 *.exe
 *.out
 *.app
 
+# IDE Stuff
+.vscode
+
 executor
 target
-
-*.dSym
 
 examples/in
 examples/out-*

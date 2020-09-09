@@ -52,7 +52,7 @@ static inline u64 afl_rand_next(afl_rand_t *rnd) {
 /* get a random int below the given int */
 static inline u64 afl_rand_below(afl_rand_t *rnd, u64 limit) {
 
-  if (limit <= 1) return 0;
+  if (limit <= 1) { return 0; }
 
   /* The boundary not being necessarily a power of 2,
      we need to ensure the result uniformity. */

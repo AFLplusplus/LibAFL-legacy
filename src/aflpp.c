@@ -433,7 +433,7 @@ exit_type_t in_memory_run_target(executor_t *executor) {
 
   u8 *data = (input->funcs.serialize) ? (input->funcs.serialize(input)) : input->bytes;
 
-  exit_type_t run_result = in_memory_executor->harness(data, input->len);
+  exit_type_t run_result = in_memory_executor->harness(&in_memory_executor->base, data, input->len);
 
   return run_result;
 

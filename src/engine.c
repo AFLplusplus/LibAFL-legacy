@@ -32,6 +32,9 @@
 #include "afl-returns.h"
 #include "fuzzone.h"
 #include "os.h"
+#include "queue.h"
+#include "input.h"
+
 
 afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor, fuzz_one_t *fuzz_one, global_queue_t *global_queue) {
 
@@ -148,7 +151,7 @@ afl_ret_t afl_add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
 }
 
-afl_ret_t afl_load_testcases_from_dir_default(engine_t *engine, char *dirpath, raw_input_t *(*custom_input_create)()) {
+afl_ret_t afl_load_testcases_from_dir_default(engine_t *engine, char *dirpath, raw_input_t *(*custom_input_new)()) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
@@ -184,15 +187,15 @@ afl_ret_t afl_load_testcases_from_dir_default(engine_t *engine, char *dirpath, r
 
     }
 
-    if (custom_input_create) {
+    if (custom_input_new) {
 
-      input = custom_input_create();
+      input = custom_input_new();
 
     }
 
     else {
 
-      input = afl_input_create();
+      input = afl_input_new();
 
     }
 
@@ -219,7 +222,7 @@ afl_ret_t afl_load_testcases_from_dir_default(engine_t *engine, char *dirpath, r
       raw_input_t *copy = input->funcs.copy(input);
       if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
-      queue_entry_t *entry = afl_queue_entry_create(copy);
+      queue_entry_t *entry = afl_queue_entry_new(copy);
       engine->feedbacks[i]->queue->base.funcs.add_to_queue(&engine->feedbacks[i]->queue->base, entry);
 
     }

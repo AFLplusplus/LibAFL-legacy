@@ -45,7 +45,7 @@ size_t    afl_iterations_stage_default(stage_t *);
 afl_ret_t afl_stage_init(stage_t *, engine_t *);
 void      afl_stage_deinit(stage_t *);
 
-static inline stage_t *afl_stage_create(engine_t *engine) {
+static inline stage_t *afl_stage_new(engine_t *engine) {
 
   stage_t *stage = calloc(1, sizeof(stage_t));
   if (!stage) { return NULL; }
@@ -100,7 +100,7 @@ afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *, mutator_t *);
 afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *, engine_t *);
 void      afl_fuzzing_stage_deinit(fuzzing_stage_t *);
 
-static inline fuzzing_stage_t *afl_fuzzing_stage_create(engine_t *engine) {
+static inline fuzzing_stage_t *afl_fuzzing_stage_new(engine_t *engine) {
 
   fuzzing_stage_t *stage = calloc(1, sizeof(fuzzing_stage_t));
   if (!stage) { return NULL; }

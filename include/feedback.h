@@ -28,7 +28,7 @@
 #define LIBFEEDBACK_H
 
 #include "queue.h"
-#include "observationchannel.h"
+#include "observer.h"
 
 typedef struct feedback feedback_t;
 
@@ -71,7 +71,7 @@ feedback_queue_t *afl_get_feedback_queue_default(feedback_t *);
 void      afl_feedback_deinit(feedback_t *);
 afl_ret_t afl_feedback_init(feedback_t *, feedback_queue_t *, size_t channel_id);
 
-static inline feedback_t *afl_feedback_create(feedback_queue_t *queue, size_t channel_id) {
+static inline feedback_t *afl_feedback_new(feedback_queue_t *queue, size_t channel_id) {
 
   feedback_t *feedback = calloc(1, sizeof(feedback_t));
   if (!feedback) return NULL;
