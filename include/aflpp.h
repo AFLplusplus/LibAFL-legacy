@@ -51,73 +51,52 @@ it. See the example forksever executor that we have in examples/
 
 struct executor_functions {
 
-  afl_ret_t (*init_cb)(executor_t *);  // can be NULL
-  u8 (*destroy_cb)(executor_t *);      // can be NULL
+  afl_ret_t (*init_cb)(afl_executor_t *);  // can be NULL
+  u8 (*destroy_cb)(afl_executor_t *);      // can be NULL
 
-  exit_type_t (*run_target_cb)(executor_t *);  // Similar to afl_fsrv_run_target we have in afl
-  u8 (*place_input_cb)(executor_t *, raw_input_t *);  // similar to the write_to_testcase function in afl.
+  exit_type_t (*run_target_cb)(afl_executor_t *);             // Similar to afl_fsrv_run_target we have in afl
+  u8 (*place_input_cb)(afl_executor_t *, afl_raw_input_t *);  // similar to the write_to_testcase function in afl.
 
-  observation_channel_t *(*get_observation_channels)(executor_t *, size_t);  // Getter function for observation channels list
+  afl_observer_t *(*observers_get)(afl_executor_t *, size_t);  // Getter function for observation channels list
 
-  afl_ret_t (*add_observation_channel)(executor_t *, observation_channel_t *);  // Add an observtion channel to the list
+  afl_ret_t (*observer_add)(afl_executor_t *, afl_observer_t *);  // Add an observtion channel to the list
 
-  raw_input_t *(*get_current_input)(executor_t *);  // Getter function for the current input
+  afl_raw_input_t *(*input_get)(afl_executor_t *);  // Getter function for the current input
 
-  void (*reset_observation_channels)(executor_t *);  // Reset the observation channels
+  void (*observers_reset)(afl_executor_t *);  // Reset the observation channels
 
 };
 
 // This is like the generic vtable for the executor.
 
-struct executor {
+struct afl_executor {
 
-  observation_channel_t **observors;  // This will be swapped for the
-                                      // observation channel once its ready
+  afl_observer_t **observors;  // This will be swapped for the observation channel once its ready
 
   u32 observors_count;
 
-  raw_input_t *current_input;  // Holds current input for the executor
+  afl_raw_input_t *current_input;  // Holds current input for the executor
 
   struct executor_functions funcs;  // afl executor_ops;
 
 };
 
-afl_ret_t              afl_executor_init(executor_t *);
-void                   afl_executor_deinit(executor_t *);
-afl_ret_t              afl_add_observation_channel_default(executor_t *, observation_channel_t *);
-observation_channel_t *afl_get_observation_channels_default(executor_t *, size_t);
-raw_input_t *          afl_get_current_input_default(executor_t *);
-void                   afl_reset_observation_channel_default(executor_t *);
+afl_ret_t        afl_executor_init(afl_executor_t *);
+void             afl_executor_deinit(afl_executor_t *);
+afl_ret_t        afl_observer_add_default(afl_executor_t *, afl_observer_t *);
+afl_observer_t * afl_get_observers_default(afl_executor_t *, size_t);
+afl_raw_input_t *afl_current_input_get_default(afl_executor_t *);
+void             afl_observers_reset_default(afl_executor_t *);
 
 // Function used to create an executor, we alloc the memory ourselves and
 // initialize the executor
 
-static inline executor_t *afl_executor_new() {
-
-  executor_t *new_executor = calloc(1, sizeof(executor_t));
-  if (!new_executor) { return NULL; }
-  if (afl_executor_init(new_executor) != AFL_RET_SUCCESS) {
-
-    free(new_executor);
-    return NULL;
-
-  }
-
-  return new_executor;
-
-}
-
-static inline void afl_executor_delete(executor_t *executor) {
-
-  afl_executor_deinit(executor);
-  free(executor);
-
-}
+AFL_NEW_AND_DELETE_FOR(afl_executor)
 
 /* Forkserver executor */
 typedef struct afl_forkserver {
 
-  executor_t base;                                                               /* executer struct to inherit from */
+  afl_executor_t base;                                                           /* executer struct to inherit from */
 
   u8 *trace_bits;                                                               /* SHM with instrumentation bitmap  */
   u8  use_stdin;                                                                /* use stdin for sending data       */
@@ -151,26 +130,26 @@ typedef struct afl_forkserver {
 
 /* Functions related to the forkserver defined above */
 afl_forkserver_t *fsrv_init(char *target_path, char **extra_target_args);
-exit_type_t       fsrv_run_target(executor_t *fsrv_executor);
-u8                fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input);
-afl_ret_t         fsrv_start(executor_t *fsrv_executor);
+exit_type_t       fsrv_run_target(afl_executor_t *fsrv_executor);
+u8                fsrv_place_input(afl_executor_t *fsrv_executor, afl_raw_input_t *input);
+afl_ret_t         fsrv_start(afl_executor_t *fsrv_executor);
 
 /* In-memory executor */
 
 /* Function ptr for the harness */
-typedef exit_type_t (*harness_function_type)(executor_t *executor, u8 *, size_t);
+typedef exit_type_t (*harness_function_type)(afl_executor_t *executor, u8 *, size_t);
 
 typedef struct in_memeory_executor {
 
-  executor_t            base;
+  afl_executor_t        base;
   harness_function_type harness;
   char **               argv;  // These are to support the libfuzzer harnesses
   int                   argc;  // To support libfuzzer harnesses
 
 } in_memory_executor_t;
 
-exit_type_t in_memory_run_target(executor_t *executor);
-u8          in_mem_executor_place_input(executor_t *executor, raw_input_t *input);
+exit_type_t in_memory_run_target(afl_executor_t *executor);
+u8          in_mem_executor_place_input(afl_executor_t *executor, afl_raw_input_t *input);
 void        in_memory_executor_init(in_memory_executor_t *in_memeory_executor, harness_function_type harness);
 
 #endif

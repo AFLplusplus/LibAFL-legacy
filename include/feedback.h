@@ -30,50 +30,50 @@
 #include "queue.h"
 #include "observer.h"
 
-typedef struct feedback feedback_t;
+typedef struct feedback afl_feedback_t;
 
 struct feedback_functions {
 
-  float (*is_interesting)(feedback_t *, executor_t *);
-  void (*set_feedback_queue)(feedback_t *, feedback_queue_t *);
-  feedback_queue_t *(*get_feedback_queue)(feedback_t *);
+  float (*is_interesting)(afl_feedback_t *, afl_executor_t *);
+  void (*set_feedback_queue)(afl_feedback_t *, afl_feedback_queue_t *);
+  afl_feedback_queue_t *(*get_feedback_queue)(afl_feedback_t *);
 
 };
 
 struct feedback {
 
-  feedback_queue_t *queue;
+  afl_feedback_queue_t *queue;
 
-  struct feedback_metadata *metadata; /* We can have a void pointer for the
+  struct afl_feedback_metadata *metadata; /* We can have a void pointer for the
                                          struct here. What do you guys say? */
 
   struct feedback_functions funcs;
   size_t                    channel_id;  // ID of the observation channel this feedback is watching
-  observation_channel_t *   channel;     // This array holds the observation channels the feedback is
+  afl_observer_t *          channel;     // This array holds the observation channels the feedback is
                                          // looking at. Specific fpr each feedback. btw, Better name for
                                          // this? :p
 
 };
 
-typedef struct feedback_metadata {
+typedef struct afl_feedback_metadata {
 
   // This struct is more dependent on user's implementation.
-  feedback_t *feedback;
+  afl_feedback_t *feedback;
 
-} feedback_metadata_t;
+} afl_feedback_metadata_t;
 
 // Default implementation of the vtables functions
 
-void              afl_set_feedback_queue_default(feedback_t *, feedback_queue_t *);
-feedback_queue_t *afl_get_feedback_queue_default(feedback_t *);
+void                  afl_set_feedback_queue_default(afl_feedback_t *, afl_feedback_queue_t *);
+afl_feedback_queue_t *afl_get_feedback_queue_default(afl_feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
-void      afl_feedback_deinit(feedback_t *);
-afl_ret_t afl_feedback_init(feedback_t *, feedback_queue_t *, size_t channel_id);
+void      afl_feedback_deinit(afl_feedback_t *);
+afl_ret_t afl_feedback_init(afl_feedback_t *, afl_feedback_queue_t *, size_t channel_id);
 
-static inline feedback_t *afl_feedback_new(feedback_queue_t *queue, size_t channel_id) {
+static inline afl_feedback_t *afl_feedback_new(afl_feedback_queue_t *queue, size_t channel_id) {
 
-  feedback_t *feedback = calloc(1, sizeof(feedback_t));
+  afl_feedback_t *feedback = calloc(1, sizeof(afl_feedback_t));
   if (!feedback) return NULL;
   if (afl_feedback_init(feedback, queue, channel_id) != AFL_RET_SUCCESS) {
 
@@ -86,7 +86,7 @@ static inline feedback_t *afl_feedback_new(feedback_queue_t *queue, size_t chann
 
 }
 
-static inline void afl_feedback_delete(feedback_t *feedback) {
+static inline void afl_feedback_delete(afl_feedback_t *feedback) {
 
   afl_feedback_deinit(feedback);
   free(feedback);
@@ -99,16 +99,16 @@ static inline void afl_feedback_delete(feedback_t *feedback) {
 
 typedef struct maximize_map_feedback {
 
-  feedback_t base;
+  afl_feedback_t base;
 
   u8 *   virgin_bits;
   size_t size;
 
-} maximize_map_feedback_t;
+} afl_maximize_map_feedback_t;
 
-maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size, size_t channel_id);
+afl_maximize_map_feedback_t *map_feedback_init(afl_feedback_queue_t *queue, size_t size, size_t channel_id);
 
-float map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv);
+float map_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv);
 
 #endif
 

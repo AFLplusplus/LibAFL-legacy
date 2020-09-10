@@ -22,8 +22,8 @@ typedef enum exit_type {
 
 } exit_type_t;
 
-afl_ret_t dump_crash_to_file(raw_input_t *, engine_t *);  // This function dumps an input which causes a
-                                                          // crash in the target to a crash file
+afl_ret_t dump_crash_to_file(afl_raw_input_t *, afl_engine_t *);  // This function dumps an input which causes a
+                                                                  // crash in the target to a crash file
 
 /* TODO: Add implementations for installing crash handlers */
 typedef void (*crash_handler_function)(exit_type_t type, void *data);

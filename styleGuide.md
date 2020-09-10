@@ -6,14 +6,14 @@
 1. Most of the structs here follow a simple way of naming. Although it may differ sometimes, the structs exposed for the user are `type defined (using the keyword typedef)` as *struct_name_**t***. A simple example is
 
 ```C
-typedef struct raw_input {
+typedef struct afl_raw_input {
 
   u8 *   bytes;
   size_t len;
 
   struct raw_input_functions *functions;
 
-} raw_input_t;
+} afl_raw_input_t;
 ```
 
 The structs which aren't `type defined` are meant mostly for the internal use by the library. And the user need not play with it themself.

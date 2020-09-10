@@ -2,8 +2,9 @@
 #define AFL_RAND_H
 
 #include "types.h"
+#include "common.h"
 
-typedef struct afl_rand_state {
+typedef struct afl_rand {
 
   u32  rand_cnt;                                                                            /* Random number counter*/
   u64  rand_seed[4];
@@ -108,6 +109,8 @@ static inline void afl_rand_deinit(afl_rand_t *rnd) {
   if (rnd->dev_urandom_fd) { close(rnd->dev_urandom_fd); }
 
 }
+
+AFL_NEW_AND_DELETE_FOR(afl_rand);
 
 #endif                                                                                                /* AFL_RAND_H */
 

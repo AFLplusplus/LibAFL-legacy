@@ -25,7 +25,7 @@
 #include "fuzzone.h"
 #include "mutator.h"
 
-afl_ret_t afl_stage_init(stage_t *stage, engine_t *engine) {
+afl_ret_t afl_stage_init(afl_stage_t *stage, afl_engine_t *engine) {
 
   stage->engine = engine;
 
@@ -38,24 +38,24 @@ afl_ret_t afl_stage_init(stage_t *stage, engine_t *engine) {
 
 }
 
-void afl_stage_deinit(stage_t *stage) {
+void afl_stage_deinit(afl_stage_t *stage) {
 
   stage->engine = NULL;
 
 }
 
-afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *fuzz_stage, engine_t *engine) {
+afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_afl_stage_t *fuzz_stage, afl_engine_t *engine) {
 
   if (afl_stage_init(&(fuzz_stage->base), engine) != AFL_RET_SUCCESS) { return AFL_RET_ERROR_INITIALIZE; }
 
-  fuzz_stage->funcs.add_mutator_to_stage = afl_add_mutator_to_stage_default;
+  fuzz_stage->funcs.add_afl_mutator_to_stage = afl_add_afl_mutator_to_stage_default;
   fuzz_stage->base.funcs.perform = afl_perform_stage_default;
 
   return AFL_RET_SUCCESS;
 
 }
 
-void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
+void afl_fuzzing_stage_deinit(afl_fuzzing_afl_stage_t *fuzz_stage) {
 
   size_t i;
   /* We deinitialize the mutators associated with the stage here */
@@ -73,48 +73,48 @@ void afl_fuzz_stage_deinit(fuzzing_stage_t *fuzz_stage) {
 
 }
 
-afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *stage, mutator_t *mutator) {
+afl_ret_t afl_add_afl_mutator_to_stage_default(afl_fuzzing_afl_stage_t *stage, afl_mutator_t *mutator) {
 
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
   stage->mutators_count++;
-  stage->mutators = afl_realloc(stage->mutators, stage->mutators_count * sizeof(mutator_t *));
+  stage->mutators = afl_realloc(stage->mutators, stage->mutators_count * sizeof(afl_mutator_t *));
   if (!stage->mutators) { return AFL_RET_ALLOC; }
 
   stage->mutators[stage->mutators_count - 1] = mutator;
 
-  mutator->stage = (stage_t *)stage;
+  mutator->stage = (afl_stage_t *)stage;
 
   return AFL_RET_SUCCESS;
 
 }
 
-size_t afl_iterations_stage_default(stage_t *stage) {
+size_t afl_iterations_stage_default(afl_stage_t *stage) {
 
   return (1 + afl_rand_below(&stage->engine->rnd, 128));
 
 }
 
 /* Perform default for fuzzing stage */
-afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
+afl_ret_t afl_perform_stage_default(afl_stage_t *stage, afl_raw_input_t *input) {
 
   // size_t i;
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
-  fuzzing_stage_t *fuzz_stage = (fuzzing_stage_t *)stage;
+  afl_fuzzing_afl_stage_t *fuzz_stage = (afl_fuzzing_afl_stage_t *)stage;
 
   size_t num = fuzz_stage->base.funcs.iterations(stage);
 
   for (size_t i = 0; i < num; ++i) {
 
-    raw_input_t *copy = input->funcs.copy(input);
+    afl_raw_input_t *copy = input->funcs.copy(input);
     if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
     size_t j;
     for (j = 0; j < fuzz_stage->mutators_count; ++j) {
 
-      mutator_t *mutator = fuzz_stage->mutators[j];
+      afl_mutator_t *mutator = fuzz_stage->mutators[j];
       if (mutator->funcs.custom_queue_get) {
 
         mutator->funcs.custom_queue_get(mutator, copy);
@@ -140,7 +140,7 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
     /* Let's post process the mutated data now. */
     for (j = 0; j < fuzz_stage->mutators_count; ++j) {
 
-      mutator_t *mutator = fuzz_stage->mutators[j];
+      afl_mutator_t *mutator = fuzz_stage->mutators[j];
 
       if (mutator->funcs.post_process) { mutator->funcs.post_process(mutator, copy); }
 
@@ -166,17 +166,17 @@ afl_ret_t afl_perform_stage_default(stage_t *stage, raw_input_t *input) {
      * the queue */
     if (add_to_queue && stage->engine->global_queue) {
 
-      raw_input_t *input_copy = copy->funcs.copy(copy);
+      afl_raw_input_t *input_copy = copy->funcs.copy(copy);
 
       if (!input_copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
-      queue_entry_t *entry = afl_queue_entry_new(input_copy);
+      afl_queue_entry_t *entry = afl_queue_entry_new(input_copy);
 
       if (!entry) { return AFL_RET_ALLOC; }
 
-      global_queue_t *queue = stage->engine->global_queue;
+      afl_global_queue_t *queue = stage->engine->global_queue;
 
-      queue->base.funcs.add_to_queue((base_queue_t *)queue, entry);
+      queue->base.funcs.add_to_queue((afl_base_queue_t *)queue, entry);
 
     }
 

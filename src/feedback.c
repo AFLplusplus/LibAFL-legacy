@@ -28,7 +28,7 @@
 #include "observer.h"
 #include "aflpp.h"
 
-afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue, size_t channel_id) {
+afl_ret_t afl_feedback_init(afl_feedback_t *feedback, afl_feedback_queue_t *queue, size_t channel_id) {
 
   feedback->queue = queue;
 
@@ -43,7 +43,7 @@ afl_ret_t afl_feedback_init(feedback_t *feedback, feedback_queue_t *queue, size_
 
 }
 
-void afl_feedback_deinit(feedback_t *feedback) {
+void afl_feedback_deinit(afl_feedback_t *feedback) {
 
   if (feedback->metadata) {
 
@@ -58,7 +58,7 @@ void afl_feedback_deinit(feedback_t *feedback) {
 
 }
 
-void afl_set_feedback_queue_default(feedback_t *feedback, feedback_queue_t *queue) {
+void afl_set_feedback_queue_default(afl_feedback_t *feedback, afl_feedback_queue_t *queue) {
 
   feedback->queue = queue;
 
@@ -66,7 +66,7 @@ void afl_set_feedback_queue_default(feedback_t *feedback, feedback_queue_t *queu
 
 }
 
-feedback_queue_t *afl_get_feedback_queue_default(feedback_t *feedback) {
+afl_feedback_queue_t *afl_get_feedback_queue_default(afl_feedback_t *feedback) {
 
   return feedback->queue;
 
@@ -74,9 +74,9 @@ feedback_queue_t *afl_get_feedback_queue_default(feedback_t *feedback) {
 
 /* Map feedback. Can be easily used with a tracebits map similar to AFL++ */
 
-maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size, size_t channel_id) {
+afl_maximize_map_feedback_t *map_feedback_init(afl_feedback_queue_t *queue, size_t size, size_t channel_id) {
 
-  maximize_map_feedback_t *feedback = calloc(1, sizeof(maximize_map_feedback_t));
+  afl_maximize_map_feedback_t *feedback = calloc(1, sizeof(afl_maximize_map_feedback_t));
   if (!feedback) { return NULL; }
   afl_feedback_init(&feedback->base, queue, channel_id);
 
@@ -97,15 +97,15 @@ maximize_map_feedback_t *map_feedback_init(feedback_queue_t *queue, size_t size,
 
 }
 
-float __attribute__((hot)) map_fbck_is_interesting(feedback_t *feedback, executor_t *fsrv) {
+float __attribute__((hot)) map_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv) {
 
-  maximize_map_feedback_t *map_feedback = (maximize_map_feedback_t *)feedback;
+  afl_maximize_map_feedback_t *map_feedback = (afl_maximize_map_feedback_t *)feedback;
 
   /* First get the observation channel */
 
-  if (!feedback->channel) { feedback->channel = fsrv->funcs.get_observation_channels(fsrv, feedback->channel_id); }
+  if (!feedback->channel) { feedback->channel = fsrv->funcs.observers_get(fsrv, feedback->channel_id); }
 
-  map_based_channel_t *obs_channel = (map_based_channel_t *)feedback->channel;
+  afl_map_based_channel_t *obs_channel = (afl_map_based_channel_t *)feedback->channel;
 
 #ifdef WORD_SIZE_64
 
@@ -188,20 +188,20 @@ float __attribute__((hot)) map_fbck_is_interesting(feedback_t *feedback, executo
 
   if (((ret == 0.5) || (ret == 1.0)) && feedback->queue) {
 
-    raw_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
+    afl_raw_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
 
     if (!input) { FATAL("Error creating a copy of input"); }
 
-    queue_entry_t *new_entry = afl_queue_entry_new(input);
+    afl_queue_entry_t *new_entry = afl_queue_entry_new(input);
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
 
     /* We broadcast a message when new entry found -- only if this is the fuzz
      * instance which found it!*/
 
     llmp_client_state_t *llmp_client = feedback->queue->base.engine->llmp_client;
-    llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(queue_entry_t));
+    llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(afl_queue_entry_t));
     msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY;
-    ((queue_entry_t *)msg->buf)[0] = *new_entry;
+    ((afl_queue_entry_t *)msg->buf)[0] = *new_entry;
     llmp_client_send(llmp_client, msg);
 
     // Put the entry in the feedback queue and return 0.0 so that it isn't added

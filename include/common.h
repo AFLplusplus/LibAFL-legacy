@@ -37,15 +37,15 @@
 
 // We're declaring a few structs here which have an interdependency between them
 
-typedef struct fuzz_one fuzz_one_t;
+typedef struct afl_fuzz_one afl_fuzz_one_t;
 
-typedef struct engine engine_t;
+typedef struct afl_engine afl_engine_t;
 
-typedef struct stage stage_t;
+typedef struct afl_stage afl_stage_t;
 
-typedef struct executor executor_t;
+typedef struct afl_executor afl_executor_t;
 
-typedef struct mutator mutator_t;
+typedef struct afl_mutator afl_mutator_t;
 
 void * afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
                             size_t offset);  // Returns new buf containing the substring token

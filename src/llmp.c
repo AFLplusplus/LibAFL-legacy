@@ -624,11 +624,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *broker, llmp
         client->client_state->id, client, current_message_id,
         client->last_msg_broker_read ? "" : " (last msg was NULL)", msg->message_id, msg->tag);
 
-    if (!msg) {
-
-      FATAL("No message received but not all message ids receved! Data out of sync?");
-
-    }
+    if (!msg) { FATAL("No message received but not all message ids receved! Data out of sync?"); }
 
     if (msg->tag == LLMP_TAG_END_OF_PAGE_V1) {
 

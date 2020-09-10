@@ -25,7 +25,7 @@
 #include "stdbool.h"
 #include "afl-returns.h"
 
-afl_ret_t afl_executor_init(executor_t *executor) {
+afl_ret_t afl_executor_init(afl_executor_t *executor) {
 
   executor->current_input = NULL;
 
@@ -34,24 +34,24 @@ afl_ret_t afl_executor_init(executor_t *executor) {
   executor->funcs.destroy_cb = NULL;
   executor->funcs.place_input_cb = NULL;
   executor->funcs.run_target_cb = NULL;
-  executor->funcs.add_observation_channel = afl_add_observation_channel_default;
-  executor->funcs.get_observation_channels = afl_get_observation_channels_default;
-  executor->funcs.get_current_input = afl_get_current_input_default;
-  executor->funcs.reset_observation_channels = afl_reset_observation_channel_default;
+  executor->funcs.observer_add = afl_observer_add_default;
+  executor->funcs.observers_get = afl_get_observers_default;
+  executor->funcs.input_get = afl_current_input_get_default;
+  executor->funcs.observers_reset = afl_observers_reset_default;
 
   return AFL_RET_SUCCESS;
 
 }
 
 // Default implementations for executor vtable
-void afl_executor_deinit(executor_t *executor) {
+void afl_executor_deinit(afl_executor_t *executor) {
 
   size_t i;
   executor->current_input = NULL;
 
   for (i = 0; i < executor->observors_count; i++) {
 
-    afl_observation_channel_deinit(executor->observors[i]);
+    afl_observer_deinit(executor->observors[i]);
 
   }
 
@@ -62,11 +62,11 @@ void afl_executor_deinit(executor_t *executor) {
 
 }
 
-afl_ret_t afl_add_observation_channel_default(executor_t *executor, observation_channel_t *obs_channel) {
+afl_ret_t afl_observer_add_default(afl_executor_t *executor, afl_observer_t *obs_channel) {
 
   executor->observors_count++;
 
-  executor->observors = afl_realloc(executor->observors, executor->observors_count * sizeof(observation_channel_t *));
+  executor->observors = afl_realloc(executor->observors, executor->observors_count * sizeof(afl_observer_t *));
   if (!executor->observors) { return AFL_RET_ALLOC; }
   executor->observors[executor->observors_count - 1] = obs_channel;
 
@@ -74,7 +74,7 @@ afl_ret_t afl_add_observation_channel_default(executor_t *executor, observation_
 
 }
 
-observation_channel_t *afl_get_observation_channels_default(executor_t *executor, size_t channel_id) {
+afl_observer_t *afl_get_observers_default(afl_executor_t *executor, size_t channel_id) {
 
   for (size_t i = 0; i < executor->observors_count; ++i) {
 
@@ -86,18 +86,18 @@ observation_channel_t *afl_get_observation_channels_default(executor_t *executor
 
 }
 
-raw_input_t *afl_get_current_input_default(executor_t *executor) {
+afl_raw_input_t *afl_current_input_get_default(afl_executor_t *executor) {
 
   return executor->current_input;
 
 }
 
-void afl_reset_observation_channel_default(executor_t *executor) {
+void afl_observers_reset_default(afl_executor_t *executor) {
 
   size_t i;
   for (i = 0; i < executor->observors_count; ++i) {
 
-    observation_channel_t *obs_channel = executor->observors[i];
+    afl_observer_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.reset) { obs_channel->funcs.reset(obs_channel); }
 
   }
@@ -186,7 +186,7 @@ afl_forkserver_t *fsrv_init(char *target_path, char **target_args) {
 }
 
 /* This function starts up the forkserver for further process requests */
-afl_ret_t fsrv_start(executor_t *fsrv_executor) {
+afl_ret_t fsrv_start(afl_executor_t *fsrv_executor) {
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
@@ -306,7 +306,7 @@ afl_ret_t fsrv_start(executor_t *fsrv_executor) {
 }
 
 /* Places input in the executor for the target */
-u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input) {
+u8 fsrv_place_input(afl_executor_t *fsrv_executor, afl_raw_input_t *input) {
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
@@ -326,7 +326,7 @@ u8 fsrv_place_input(executor_t *fsrv_executor, raw_input_t *input) {
 
 /* Execute target application. Return status
    information.*/
-exit_type_t fsrv_run_target(executor_t *fsrv_executor) {
+exit_type_t fsrv_run_target(afl_executor_t *fsrv_executor) {
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
@@ -418,18 +418,18 @@ void in_memory_executor_init(in_memory_executor_t *in_memory_executor, harness_f
 
 }
 
-u8 in_mem_executor_place_input(executor_t *executor, raw_input_t *input) {
+u8 in_mem_executor_place_input(afl_executor_t *executor, afl_raw_input_t *input) {
 
   executor->current_input = input;
   return 0;
 
 }
 
-exit_type_t in_memory_run_target(executor_t *executor) {
+exit_type_t in_memory_run_target(afl_executor_t *executor) {
 
   in_memory_executor_t *in_memory_executor = (in_memory_executor_t *)executor;
 
-  raw_input_t *input = in_memory_executor->base.current_input;
+  afl_raw_input_t *input = in_memory_executor->base.current_input;
 
   u8 *data = (input->funcs.serialize) ? (input->funcs.serialize(input)) : input->bytes;
 

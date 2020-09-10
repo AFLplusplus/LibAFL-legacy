@@ -104,7 +104,7 @@ void test_input_copy(void **state) {
 
   (void)state;
 
-  raw_input_t input;
+  afl_raw_input_t input;
   afl_input_init(&input);
 
   u8 s[100] = {0};
@@ -113,7 +113,7 @@ void test_input_copy(void **state) {
   input.bytes = s;
   input.len = 14;
 
-  raw_input_t *copy = input.funcs.copy(&input);
+  afl_raw_input_t *copy = input.funcs.copy(&input);
 
   assert_string_equal(copy->bytes, input.bytes);
   assert_int_equal(input.len, copy->len);
@@ -133,7 +133,7 @@ void test_input_load_from_file(void **state) {
   int write_len = write(fd, test_string, 22);
 
   /* Create an input now and test it */
-  raw_input_t input;
+  afl_raw_input_t input;
   afl_input_init(&input);
 
   /* We just have to test the default func, we don't use the vtable here */
@@ -157,7 +157,7 @@ void test_input_save_to_file(void **state) {
   u8 read_string[100];
 
   /* Create an input now and test it */
-  raw_input_t input;
+  afl_raw_input_t input;
   afl_input_init(&input);
 
   input.bytes = (u8 *)test_string;
@@ -185,7 +185,7 @@ void test_input_save_to_file(void **state) {
 #include <sys/types.h>
 #include <fcntl.h>
 
-u8 engine_mock_execute(engine_t *engine, raw_input_t *input) {
+u8 engine_mock_execute(afl_engine_t *engine, afl_raw_input_t *input) {
 
   (void)engine;
   (void)input;
@@ -194,9 +194,9 @@ u8 engine_mock_execute(engine_t *engine, raw_input_t *input) {
 
 }
 
-static raw_input_t *custom_input_new() {
+static afl_raw_input_t *custom_input_new() {
 
-  raw_input_t *input = afl_input_new();
+  afl_raw_input_t *input = afl_input_new();
 
   input->funcs.clear(input);
 
@@ -211,10 +211,10 @@ void test_engine_load_testcase_from_dir_default(void **state) {
   char *corpus_one = "This is a test corpus";
   char *corpus_two = "This is the second test corpus";
 
-  executor_t executor;
+  afl_executor_t executor;
   afl_executor_init(&executor);
 
-  engine_t engine;
+  afl_engine_t engine;
   afl_engine_init(&engine, &executor, NULL, NULL);
   engine.funcs.execute = engine_mock_execute;
 
@@ -280,19 +280,19 @@ void test_basic_mutator_functions(void **state) {
 
   (void)state;
 
-  engine_t   engine = {0};
-  stage_t    stage = {0};
-  fuzz_one_t fuzz_one = {0};
+  afl_engine_t   engine = {0};
+  afl_stage_t    stage = {0};
+  afl_fuzz_one_t fuzz_one = {0};
   afl_engine_init(&engine, NULL, NULL, NULL);
   afl_fuzz_one_init(&fuzz_one, &engine);
   afl_stage_init(&stage, &engine);
 
-  mutator_t mutator = {0};
+  afl_mutator_t mutator = {0};
   afl_mutator_init(&mutator, &stage);
 
   /* First let's create a basic inputs */
-  raw_input_t  input = {0};
-  raw_input_t *copy = NULL;
+  afl_raw_input_t  input = {0};
+  afl_raw_input_t *copy = NULL;
   afl_input_init(&input);
 
   char *test_string = "AAAAAAAAAAAAA";
@@ -369,8 +369,8 @@ void test_queue_set_directory(void **state) {
 
   (void)state;
 
-  base_queue_t queue = {0};
-  afl_ret_t    ret = {0};
+  afl_base_queue_t queue = {0};
+  afl_ret_t        ret = {0};
   if ((ret = afl_base_queue_init(&queue)) != AFL_RET_SUCCESS) {
 
     WARNF("Could not init queue: %s", afl_ret_stringify(ret));
@@ -395,11 +395,11 @@ void test_base_queue_get_next(void **state) {
 
   (void)state;
 
-  engine_t engine = {0};
+  afl_engine_t engine = {0};
   afl_engine_init(&engine, NULL, NULL, NULL);
   llmp_client_state_t *client = llmp_client_new_unconnected();
   engine.llmp_client = client;
-  base_queue_t queue = {0};
+  afl_base_queue_t queue = {0};
   afl_base_queue_init(&queue);
   queue.engine = &engine;
   queue.engine_id = engine.id;
@@ -407,14 +407,14 @@ void test_base_queue_get_next(void **state) {
   /* When queue is empty we should get NULL */
   assert_null(queue.funcs.get_next_in_queue(&queue, engine.id));
 
-  raw_input_t input = {0};
+  afl_raw_input_t input = {0};
 
-  queue_entry_t first_entry = {0};
+  afl_queue_entry_t first_entry = {0};
   afl_queue_entry_init(&first_entry, &input);
 
   queue.funcs.add_to_queue(&queue, &first_entry);
 
-  queue_entry_t second_entry = {0};
+  afl_queue_entry_t second_entry = {0};
   afl_queue_entry_init(&second_entry, &input);
 
   queue.funcs.add_to_queue(&queue, &second_entry);

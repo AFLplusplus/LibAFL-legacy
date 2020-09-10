@@ -40,31 +40,31 @@
 
 struct engine_functions {
 
-  global_queue_t *(*get_queue)(engine_t *);
-  fuzz_one_t *(*get_fuzz_one)(engine_t *);
-  u64 (*get_execs)(engine_t *);
-  u64 (*get_start_time)(engine_t *);
+  afl_global_queue_t *(*get_queue)(afl_engine_t *);
+  afl_fuzz_one_t *(*get_fuzz_one)(afl_engine_t *);
+  u64 (*get_execs)(afl_engine_t *);
+  u64 (*get_start_time)(afl_engine_t *);
 
-  void (*set_fuzz_one)(engine_t *, fuzz_one_t *);
-  afl_ret_t (*add_feedback)(engine_t *, feedback_t *);
-  void (*set_global_queue)(engine_t *, global_queue_t *);
+  void (*set_fuzz_one)(afl_engine_t *, afl_fuzz_one_t *);
+  afl_ret_t (*add_feedback)(afl_engine_t *, afl_feedback_t *);
+  void (*set_global_queue)(afl_engine_t *, afl_global_queue_t *);
 
-  u8 (*execute)(engine_t *, raw_input_t *);
-  void (*handle_new_message)(engine_t *, llmp_message_t *);
-  afl_ret_t (*load_testcases_from_dir)(engine_t *, char *, raw_input_t *(*custom_input_init)(u8 *buf));
+  u8 (*execute)(afl_engine_t *, afl_raw_input_t *);
+  void (*handle_new_message)(afl_engine_t *, llmp_message_t *);
+  afl_ret_t (*load_testcases_from_dir)(afl_engine_t *, char *, afl_raw_input_t *(*custom_input_init)(u8 *buf));
   void (*load_zero_testcase)(size_t);
 
-  afl_ret_t (*loop)(engine_t *);
+  afl_ret_t (*loop)(afl_engine_t *);
 
 };
 
-struct engine {
+struct afl_engine {
 
-  fuzz_one_t *      fuzz_one;
-  global_queue_t *  global_queue;
-  executor_t *      executor;
-  feedback_queue_t *current_feedback_queue;
-  feedback_t **     feedbacks;  // We're keeping a pointer of feedbacks here
+  afl_fuzz_one_t *      fuzz_one;
+  afl_global_queue_t *  global_queue;
+  afl_executor_t *      executor;
+  afl_feedback_queue_t *current_feedback_queue;
+  afl_feedback_t **     feedbacks;  // We're keeping a pointer of feedbacks here
                                 // to save memory, consideting the original
                                 // feedback would already be allocated
   u64   executions, start_time, last_update, crashes, feedbacks_count;
@@ -80,29 +80,29 @@ struct engine {
 };
 
 /* TODO: Add default implementations for load_testcases and execute */
-global_queue_t *afl_get_queue_default(engine_t *);
-fuzz_one_t *    afl_get_fuzz_one_default(engine_t *);
-u64             afl_get_execs_default(engine_t *);
-u64             afl_get_start_time_default(engine_t *);
+afl_global_queue_t *afl_get_queue_default(afl_engine_t *);
+afl_fuzz_one_t *    afl_get_fuzz_one_default(afl_engine_t *);
+u64             afl_get_execs_default(afl_engine_t *);
+u64             afl_get_start_time_default(afl_engine_t *);
 
-void      afl_set_fuzz_one_default(engine_t *, fuzz_one_t *);
-afl_ret_t afl_add_feedback_default(engine_t *, feedback_t *);
-void      afl_set_global_queue_default(engine_t *engine, global_queue_t *global_queue);
+void      afl_set_fuzz_one_default(afl_engine_t *, afl_fuzz_one_t *);
+afl_ret_t afl_add_feedback_default(afl_engine_t *, afl_feedback_t *);
+void      afl_set_global_queue_default(afl_engine_t *engine, afl_global_queue_t *global_queue);
 
-u8        afl_execute_default(engine_t *, raw_input_t *);
-afl_ret_t afl_load_testcases_from_dir_default(engine_t *, char *, raw_input_t *(*custom_input_init)());
+u8        afl_execute_default(afl_engine_t *, afl_raw_input_t *);
+afl_ret_t afl_load_testcases_from_dir_default(afl_engine_t *, char *, afl_raw_input_t *(*custom_input_init)());
 void      afl_load_zero_testcase_default(size_t);
-void      afl_handle_new_message_default(engine_t *, llmp_message_t *);
+void      afl_handle_new_message_default(afl_engine_t *, llmp_message_t *);
 
-afl_ret_t afl_loop_default(engine_t *);  // Not sure about this functions
+afl_ret_t afl_loop_default(afl_engine_t *);  // Not sure about this functions
                                          // use-case. Was in FFF though.
 
-afl_ret_t afl_engine_init(engine_t *, executor_t *, fuzz_one_t *, global_queue_t *);
-void      afl_engine_deinit(engine_t *);
+afl_ret_t afl_engine_init(afl_engine_t *, afl_executor_t *, afl_fuzz_one_t *, afl_global_queue_t *);
+void      afl_engine_deinit(afl_engine_t *);
 
-static inline engine_t *afl_engine_new(executor_t *executor, fuzz_one_t *fuzz_one, global_queue_t *global_queue) {
+static inline afl_engine_t *afl_engine_new(afl_executor_t *executor, afl_fuzz_one_t *fuzz_one, afl_global_queue_t *global_queue) {
 
-  engine_t *engine = calloc(1, sizeof(engine_t));
+  afl_engine_t *engine = calloc(1, sizeof(afl_engine_t));
   if (!engine) return NULL;
   if (afl_engine_init(engine, executor, fuzz_one, global_queue) != AFL_RET_SUCCESS) {
 
@@ -115,7 +115,7 @@ static inline engine_t *afl_engine_new(executor_t *executor, fuzz_one_t *fuzz_on
 
 }
 
-static inline void afl_engine_delete(engine_t *engine) {
+static inline void afl_engine_delete(afl_engine_t *engine) {
 
   afl_engine_deinit(engine);
   free(engine);

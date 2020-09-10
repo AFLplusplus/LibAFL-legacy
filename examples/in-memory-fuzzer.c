@@ -25,7 +25,7 @@ typedef struct fuzzer_stats {
 
 extern u8 *__afl_area_ptr;
 
-exit_type_t harness_func(executor_t *executor, u8 *input, size_t len) {
+exit_type_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
 
   (void) executor;
 
@@ -44,12 +44,12 @@ exit_type_t harness_func(executor_t *executor, u8 *input, size_t len) {
 
 }
 
-u8 execute_default(engine_t *engine, raw_input_t *input) {
+u8 execute_default(afl_engine_t *engine, afl_raw_input_t *input) {
 
   size_t      i;
-  executor_t *executor = engine->executor;
+  afl_executor_t *executor = engine->executor;
 
-  executor->funcs.reset_observation_channels(executor);
+  executor->funcs.observers_reset(executor);
   executor->funcs.place_input_cb(executor, input);
 
   // TODO move to execute_init()
@@ -81,7 +81,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 
   for (i = 0; i < executor->observors_count; ++i) {
 
-    observation_channel_t *obs_channel = executor->observors[i];
+    afl_observer_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) { obs_channel->funcs.post_exec(executor->observors[i], engine); }
 
   }
@@ -107,7 +107,7 @@ u8 execute_default(engine_t *engine, raw_input_t *input) {
 }
 
 /* This initializeds the fuzzer */ 
-engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
+afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
   /* Let's create an in-memory executor */
   in_memory_executor_t *in_memory_executor = calloc(1, sizeof(in_memory_executor_t));
@@ -116,7 +116,7 @@ engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
-  map_based_channel_t *trace_bits_channel = calloc(1, sizeof(map_based_channel_t));
+  afl_map_based_channel_t *trace_bits_channel = calloc(1, sizeof(afl_map_based_channel_t));
   afl_observer_init(&trace_bits_channel->base, MAP_CHANNEL_ID);
   if (!trace_bits_channel) { FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC)); }
 
@@ -127,39 +127,39 @@ engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
   trace_bits_channel->shared_map.map = __afl_area_ptr;  // Coverage "Map" we have
   trace_bits_channel->shared_map.map_size = MAP_SIZE;
   trace_bits_channel->shared_map.shm_id = -1;  // Just a simple erronous value :)
-  in_memory_executor->base.funcs.add_observation_channel(&in_memory_executor->base, &trace_bits_channel->base);
+  in_memory_executor->base.funcs.observer_add(&in_memory_executor->base, &trace_bits_channel->base);
 
   /* We create a simple feedback queue for coverage here*/
-  feedback_queue_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
+  afl_feedback_queue_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
   coverage_feedback_queue->base.funcs.set_dirpath(&coverage_feedback_queue->base, queue_dirpath);
 
   /* Global queue creation */
-  global_queue_t *global_queue = afl_global_queue_new();
+  afl_global_queue_t *global_queue = afl_global_queue_new();
   if (!global_queue) { FATAL("Error initializing global queue"); }
   global_queue->extra_funcs.add_feedback_queue(global_queue, coverage_feedback_queue);
   global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
 
   /* Coverage Feedback initialization */
-  maximize_map_feedback_t *coverage_feedback =
+  afl_maximize_map_feedback_t *coverage_feedback =
       map_feedback_init(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
 
   /* Let's build an engine now */
-  engine_t *engine = afl_engine_new(&in_memory_executor->base, NULL, global_queue);
+  afl_engine_t *engine = afl_engine_new(&in_memory_executor->base, NULL, global_queue);
   if (!engine) { FATAL("Error initializing Engine"); }
-  engine->funcs.add_feedback(engine, (feedback_t *)coverage_feedback);
+  engine->funcs.add_feedback(engine, (afl_feedback_t *)coverage_feedback);
   engine->funcs.set_global_queue(engine, global_queue);
   engine->in_dir = in_dir;
   engine->funcs.execute = execute_default;
 
-  fuzz_one_t *fuzz_one = afl_fuzz_one_new(engine);
+  afl_fuzz_one_t *fuzz_one = afl_fuzz_one_new(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
   // We also add the fuzzone to the engine here.
   engine->funcs.set_fuzz_one(engine, fuzz_one);
 
-  scheduled_mutator_t *mutators_havoc = afl_scheduled_mutator_new(NULL, 8);
+  afl_scheduled_afl_mutator_t *mutators_havoc = afl_scheduled_mutator_new(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_byte);
@@ -173,9 +173,9 @@ engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte_add_sub);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte);
 
-  fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
+  afl_fuzzing_afl_stage_t *stage = afl_fuzzing_stage_new(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }
-  stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
+  stage->funcs.add_afl_mutator_to_stage(stage, &mutators_havoc->base);
 
   return engine;
 
@@ -183,15 +183,15 @@ engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
 void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
 
-  engine_t *engine = (engine_t *)data;
+  afl_engine_t *engine = (afl_engine_t *)data;
   engine->llmp_client = llmp_client;
 
-  map_based_channel_t *trace_bits_channel = (map_based_channel_t *)engine->executor->observors[0];
+  afl_map_based_channel_t *trace_bits_channel = (afl_map_based_channel_t *)engine->executor->observors[0];
 
-  fuzzing_stage_t *    stage = (fuzzing_stage_t *)engine->fuzz_one->stages[0];
-  scheduled_mutator_t *mutators_havoc = (scheduled_mutator_t *)stage->mutators[0];
+  afl_fuzzing_afl_stage_t *    stage = (afl_fuzzing_afl_stage_t *)engine->fuzz_one->stages[0];
+  afl_scheduled_afl_mutator_t *mutators_havoc = (afl_scheduled_afl_mutator_t *)stage->mutators[0];
 
-  maximize_map_feedback_t *coverage_feedback = (maximize_map_feedback_t *)(engine->feedbacks[0]);
+  afl_maximize_map_feedback_t *coverage_feedback = (afl_maximize_map_feedback_t *)(engine->feedbacks[0]);
 
   /* Now we can simply load the testcases from the directory given */
   afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL);
@@ -216,7 +216,7 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
   free(coverage_feedback->virgin_bits);
   for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
-    afl_feedback_delete((feedback_t *)engine->feedbacks[i]);
+    afl_feedback_delete((afl_feedback_t *)engine->feedbacks[i]);
 
   }
 
@@ -284,7 +284,7 @@ int main(int argc, char **argv) {
 
   for (i = 0; i < thread_count; i++) {
 
-    engine_t *engine = initialize_fuzzer(in_dir, queue_dirpath);
+    afl_engine_t *engine = initialize_fuzzer(in_dir, queue_dirpath);
 
     /* All fuzzers get their own process.
     This call only allocs the data structures, but not fork yet. */

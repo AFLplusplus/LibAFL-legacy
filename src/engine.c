@@ -35,8 +35,8 @@
 #include "queue.h"
 #include "input.h"
 
-
-afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor, fuzz_one_t *fuzz_one, global_queue_t *global_queue) {
+afl_ret_t afl_engine_init(afl_engine_t *engine, afl_executor_t *executor, afl_fuzz_one_t *fuzz_one,
+                          afl_global_queue_t *global_queue) {
 
   engine->executor = executor;
   engine->fuzz_one = fuzz_one;
@@ -71,7 +71,7 @@ afl_ret_t afl_engine_init(engine_t *engine, executor_t *executor, fuzz_one_t *fu
 
 }
 
-void afl_engine_deinit(engine_t *engine) {
+void afl_engine_deinit(afl_engine_t *engine) {
 
   size_t i;
   /* Let's free everything associated with the engine here, except the queues,
@@ -99,31 +99,31 @@ void afl_engine_deinit(engine_t *engine) {
 
 }
 
-global_queue_t *afl_get_queue_default(engine_t *engine) {
+afl_global_queue_t *afl_get_queue_default(afl_engine_t *engine) {
 
   return engine->global_queue;
 
 }
 
-fuzz_one_t *afl_get_fuzz_one_default(engine_t *engine) {
+afl_fuzz_one_t *afl_get_fuzz_one_default(afl_engine_t *engine) {
 
   return engine->fuzz_one;
 
 }
 
-u64 afl_get_execs_default(engine_t *engine) {
+u64 afl_get_execs_default(afl_engine_t *engine) {
 
   return engine->executions;
 
 }
 
-u64 afl_get_start_time_default(engine_t *engine) {
+u64 afl_get_start_time_default(afl_engine_t *engine) {
 
   return engine->start_time;
 
 }
 
-void afl_set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
+void afl_set_fuzz_one_default(afl_engine_t *engine, afl_fuzz_one_t *fuzz_one) {
 
   engine->fuzz_one = fuzz_one;
 
@@ -131,7 +131,7 @@ void afl_set_fuzz_one_default(engine_t *engine, fuzz_one_t *fuzz_one) {
 
 }
 
-void afl_set_global_queue_default(engine_t *engine, global_queue_t *global_queue) {
+void afl_set_global_queue_default(afl_engine_t *engine, afl_global_queue_t *global_queue) {
 
   engine->global_queue = global_queue;
 
@@ -139,10 +139,10 @@ void afl_set_global_queue_default(engine_t *engine, global_queue_t *global_queue
 
 }
 
-afl_ret_t afl_add_feedback_default(engine_t *engine, feedback_t *feedback) {
+afl_ret_t afl_add_feedback_default(afl_engine_t *engine, afl_feedback_t *feedback) {
 
   engine->feedbacks_count++;
-  engine->feedbacks = afl_realloc(engine->feedbacks, engine->feedbacks_count * sizeof(feedback_t *));
+  engine->feedbacks = afl_realloc(engine->feedbacks, engine->feedbacks_count * sizeof(afl_feedback_t *));
   if (!engine->feedbacks) { return AFL_RET_ALLOC; }
 
   engine->feedbacks[engine->feedbacks_count - 1] = feedback;
@@ -151,15 +151,16 @@ afl_ret_t afl_add_feedback_default(engine_t *engine, feedback_t *feedback) {
 
 }
 
-afl_ret_t afl_load_testcases_from_dir_default(engine_t *engine, char *dirpath, raw_input_t *(*custom_input_new)()) {
+afl_ret_t afl_load_testcases_from_dir_default(afl_engine_t *engine, char *dirpath,
+                                              afl_raw_input_t *(*custom_input_new)()) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
   char           infile[PATH_MAX];
   size_t         i;
 
-  raw_input_t *input;
-  size_t       dir_name_size = strlen(dirpath);
+  afl_raw_input_t *input;
+  size_t           dir_name_size = strlen(dirpath);
 
   if (dirpath[dir_name_size - 1] == '/') { dirpath[dir_name_size - 1] = '\x00'; }
 
@@ -219,10 +220,10 @@ afl_ret_t afl_load_testcases_from_dir_default(engine_t *engine, char *dirpath, r
 
     for (i = 0; i < engine->feedbacks_count; ++i) {
 
-      raw_input_t *copy = input->funcs.copy(input);
+      afl_raw_input_t *copy = input->funcs.copy(input);
       if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
-      queue_entry_t *entry = afl_queue_entry_new(copy);
+      afl_queue_entry_t *entry = afl_queue_entry_new(copy);
       engine->feedbacks[i]->queue->base.funcs.add_to_queue(&engine->feedbacks[i]->queue->base, entry);
 
     }
@@ -240,7 +241,7 @@ afl_ret_t afl_load_testcases_from_dir_default(engine_t *engine, char *dirpath, r
 
 }
 
-void afl_handle_new_message_default(engine_t *engine, llmp_message_t *msg) {
+void afl_handle_new_message_default(afl_engine_t *engine, llmp_message_t *msg) {
 
   /* Default implementation, handles only new queue entry messages. Users have
    * liberty with this function */
@@ -253,7 +254,7 @@ void afl_handle_new_message_default(engine_t *engine, llmp_message_t *msg) {
     for (i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
       engine->global_queue->feedback_queues[i]->base.funcs.add_to_queue(&engine->global_queue->feedback_queues[i]->base,
-                                                                        (queue_entry_t *)msg->buf);
+                                                                        (afl_queue_entry_t *)msg->buf);
 
     }
 
@@ -261,12 +262,12 @@ void afl_handle_new_message_default(engine_t *engine, llmp_message_t *msg) {
 
 }
 
-u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
+u8 afl_execute_default(afl_engine_t *engine, afl_raw_input_t *input) {
 
-  size_t      i;
-  executor_t *executor = engine->executor;
+  size_t          i;
+  afl_executor_t *executor = engine->executor;
 
-  executor->funcs.reset_observation_channels(executor);
+  executor->funcs.observers_reset(executor);
 
   executor->funcs.place_input_cb(executor, input);
 
@@ -281,7 +282,7 @@ u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
 
   for (i = 0; i < executor->observors_count; ++i) {
 
-    observation_channel_t *obs_channel = executor->observors[i];
+    afl_observer_t *obs_channel = executor->observors[i];
     if (obs_channel->funcs.post_exec) { obs_channel->funcs.post_exec(executor->observors[i], engine); }
 
   }
@@ -306,14 +307,14 @@ u8 afl_execute_default(engine_t *engine, raw_input_t *input) {
 
 }
 
-afl_ret_t afl_loop_default(engine_t *engine) {
+afl_ret_t afl_loop_default(afl_engine_t *engine) {
 
   /* Just before looping, we find the observation channels for every feedback */
 
   for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     engine->feedbacks[i]->channel =
-        engine->executor->funcs.get_observation_channels(engine->executor, engine->feedbacks[i]->channel_id);
+        engine->executor->funcs.observers_get(engine->executor, engine->feedbacks[i]->channel_id);
 
   }
 

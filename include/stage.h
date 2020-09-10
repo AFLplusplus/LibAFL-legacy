@@ -27,27 +27,27 @@
 
 struct stage_functions {
 
-  afl_ret_t (*perform)(stage_t *, raw_input_t *input);
-  size_t (*iterations)(stage_t *);  // A function which tells how many mutated
+  afl_ret_t (*perform)(afl_stage_t *, afl_raw_input_t *input);
+  size_t (*iterations)(afl_stage_t *);  // A function which tells how many mutated
                                     // inputs to generate out of a given input
 
 };
 
-struct stage {
+struct afl_stage {
 
-  engine_t *             engine;
+  afl_engine_t *         engine;
   struct stage_functions funcs;
 
 };
 
-afl_ret_t afl_perform_stage_default(stage_t *, raw_input_t *);
-size_t    afl_iterations_stage_default(stage_t *);
-afl_ret_t afl_stage_init(stage_t *, engine_t *);
-void      afl_stage_deinit(stage_t *);
+afl_ret_t afl_perform_stage_default(afl_stage_t *, afl_raw_input_t *);
+size_t    afl_iterations_stage_default(afl_stage_t *);
+afl_ret_t afl_stage_init(afl_stage_t *, afl_engine_t *);
+void      afl_stage_deinit(afl_stage_t *);
 
-static inline stage_t *afl_stage_new(engine_t *engine) {
+static inline afl_stage_t *afl_stage_new(afl_engine_t *engine) {
 
-  stage_t *stage = calloc(1, sizeof(stage_t));
+  afl_stage_t *stage = calloc(1, sizeof(afl_stage_t));
   if (!stage) { return NULL; }
   if (afl_stage_init(stage, engine) != AFL_RET_SUCCESS) {
 
@@ -60,7 +60,7 @@ static inline stage_t *afl_stage_new(engine_t *engine) {
 
 }
 
-static inline void afl_stage_delete(stage_t *stage) {
+static inline void afl_stage_delete(afl_stage_t *stage) {
 
   afl_stage_deinit(stage);
   free(stage);
@@ -74,35 +74,35 @@ phase, or the havoc phase. Since each of the stages can have their own mutators,
 a list of mutators can be added to the stage.
 */
 
-typedef struct fuzzing_stage fuzzing_stage_t;
+typedef struct fuzzing_stage afl_fuzzing_afl_stage_t;
 
 struct fuzzing_stage_functions {
 
   /* Change the void pointer to a mutator * once it is ready */
-  afl_ret_t (*add_mutator_to_stage)(fuzzing_stage_t *, mutator_t *);
+  afl_ret_t (*add_afl_mutator_to_stage)(afl_fuzzing_afl_stage_t *, afl_mutator_t *);
 
 };
 
 struct fuzzing_stage {
 
   /* Standard "inheritence" from stage */
-  stage_t base;
+  afl_stage_t base;
   /* The list of mutator operators that this stage has */
-  mutator_t **mutators;
+  afl_mutator_t **mutators;
 
   struct fuzzing_stage_functions funcs;
   size_t                         mutators_count;
 
 };
 
-afl_ret_t afl_add_mutator_to_stage_default(fuzzing_stage_t *, mutator_t *);
+afl_ret_t afl_add_afl_mutator_to_stage_default(afl_fuzzing_afl_stage_t *, afl_mutator_t *);
 
-afl_ret_t afl_fuzzing_stage_init(fuzzing_stage_t *, engine_t *);
-void      afl_fuzzing_stage_deinit(fuzzing_stage_t *);
+afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_afl_stage_t *, afl_engine_t *);
+void      afl_fuzzing_stage_deinit(afl_fuzzing_afl_stage_t *);
 
-static inline fuzzing_stage_t *afl_fuzzing_stage_new(engine_t *engine) {
+static inline afl_fuzzing_afl_stage_t *afl_fuzzing_stage_new(afl_engine_t *engine) {
 
-  fuzzing_stage_t *stage = calloc(1, sizeof(fuzzing_stage_t));
+  afl_fuzzing_afl_stage_t *stage = calloc(1, sizeof(afl_fuzzing_afl_stage_t));
   if (!stage) { return NULL; }
   if (afl_fuzzing_stage_init(stage, engine) != AFL_RET_SUCCESS) {
 
@@ -115,7 +115,7 @@ static inline fuzzing_stage_t *afl_fuzzing_stage_new(engine_t *engine) {
 
 }
 
-static inline void afl_fuzz_stage_delete(fuzzing_stage_t *fuzz_stage) {
+static inline void afl_fuzz_stage_delete(afl_fuzzing_afl_stage_t *fuzz_stage) {
 
   afl_stage_deinit(&fuzz_stage->base);
   free(fuzz_stage);

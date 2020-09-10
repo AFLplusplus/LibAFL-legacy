@@ -27,7 +27,7 @@
 #include "observer.h"
 #include "afl-returns.h"
 
-afl_ret_t afl_observer_init(observation_channel_t *channel, size_t channel_id) {
+afl_ret_t afl_observer_init(afl_observer_t *channel, size_t channel_id) {
 
   (void)channel;
 
@@ -36,22 +36,13 @@ afl_ret_t afl_observer_init(observation_channel_t *channel, size_t channel_id) {
 
 }
 
-void afl_observation_channel_deinit(observation_channel_t *channel) {
+void afl_observer_deinit(afl_observer_t *channel) {
 
   (void)channel;
 
 }
 
-void afl_flush_default(observation_channel_t *channel) {
-
-  (void)channel;
-
-  /* TODO: Implementation */
-  return;
-
-}
-
-void afl_reset_default(observation_channel_t *channel) {
+void afl_flush_default(afl_observer_t *channel) {
 
   (void)channel;
 
@@ -60,7 +51,7 @@ void afl_reset_default(observation_channel_t *channel) {
 
 }
 
-void afl_post_exec(observation_channel_t *channel) {
+void afl_reset_default(afl_observer_t *channel) {
 
   (void)channel;
 
@@ -69,7 +60,16 @@ void afl_post_exec(observation_channel_t *channel) {
 
 }
 
-afl_ret_t afl_map_channel_init(map_based_channel_t *map_channel, size_t map_size, size_t channel_id) {
+void afl_post_exec(afl_observer_t *channel) {
+
+  (void)channel;
+
+  /* TODO: Implementation */
+  return;
+
+}
+
+afl_ret_t afl_map_channel_init(afl_map_based_channel_t *map_channel, size_t map_size, size_t channel_id) {
 
   afl_observer_init(&(map_channel->base), channel_id);
 
@@ -84,29 +84,29 @@ afl_ret_t afl_map_channel_init(map_based_channel_t *map_channel, size_t map_size
 
 }
 
-void afl_map_channel_deinit(map_based_channel_t *map_channel) {
+void afl_map_channel_deinit(afl_map_based_channel_t *map_channel) {
 
   afl_shmem_deinit(&map_channel->shared_map);
 
-  afl_observation_channel_deinit(&map_channel->base);
+  afl_observer_deinit(&map_channel->base);
 
 }
 
-void afl_map_channel_reset(observation_channel_t *channel) {
+void afl_map_channel_reset(afl_observer_t *channel) {
 
-  map_based_channel_t *map_channel = (map_based_channel_t *)channel;
+  afl_map_based_channel_t *map_channel = (afl_map_based_channel_t *)channel;
 
   memset(map_channel->shared_map.map, 0, map_channel->shared_map.map_size);
 
 }
 
-u8 *afl_get_trace_bits_default(map_based_channel_t *obs_channel) {
+u8 *afl_get_trace_bits_default(afl_map_based_channel_t *obs_channel) {
 
   return obs_channel->shared_map.map;
 
 }
 
-size_t afl_get_map_size_default(map_based_channel_t *obs_channel) {
+size_t afl_get_map_size_default(afl_map_based_channel_t *obs_channel) {
 
   return obs_channel->shared_map.map_size;
 
