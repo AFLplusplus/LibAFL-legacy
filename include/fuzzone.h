@@ -53,7 +53,7 @@ afl_ret_t afl_set_engine_default(afl_fuzz_one_t *, afl_engine_t *);
 afl_ret_t afl_fuzz_one_init(afl_fuzz_one_t *, afl_engine_t *);
 void      afl_fuzz_one_deinit(afl_fuzz_one_t *);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_fuzz_one, AFL_NEW_DECL_PARAMS(afl_engine_t *engine), AFL_NEW_CALL_PARAMS(engine))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_fuzz_one, AFL_DECL_PARAMS(afl_engine_t *engine), AFL_CALL_PARAMS(engine))
 
 #endif
 

@@ -28,7 +28,7 @@
 #define LIBOBSERVATIONCHANNEL_H
 
 #include "common.h"
-#include "afl-shmem.h"
+#include "shmem.h"
 #include "afl-returns.h"
 
 typedef struct observer afl_observer_t;

@@ -34,7 +34,7 @@
 #include "mutator.h"
 
 // We start with the implementation of queue_entry functions here.
-afl_ret_t afl_queue_entry_init(afl_queue_entry_t *entry, afl_raw_input_t *input) {
+afl_ret_t afl_queueentry_init(afl_queueentry_t *entry, afl_input_t *input) {
 
   entry->input = input;
   memset(entry->filename, 0, FILENAME_LEN_MAX);
@@ -48,7 +48,7 @@ afl_ret_t afl_queue_entry_init(afl_queue_entry_t *entry, afl_raw_input_t *input)
 
 }
 
-void afl_queue_entry_deinit(afl_queue_entry_t *entry) {
+void afl_queueentry_deinit(afl_queueentry_t *entry) {
 
   /* We remove the element from the linked-list */
 
@@ -68,25 +68,25 @@ void afl_queue_entry_deinit(afl_queue_entry_t *entry) {
 }
 
 // Default implementations for the queue entry vtable functions
-afl_raw_input_t *afl_get_input_default(afl_queue_entry_t *entry) {
+afl_input_t *afl_get_input_default(afl_queueentry_t *entry) {
 
   return entry->input;
 
 }
 
-afl_queue_entry_t *afl_get_next_default(afl_queue_entry_t *entry) {
+afl_queueentry_t *afl_get_next_default(afl_queueentry_t *entry) {
 
   return entry->next;
 
 }
 
-afl_queue_entry_t *afl_get_prev_default(afl_queue_entry_t *entry) {
+afl_queueentry_t *afl_get_prev_default(afl_queueentry_t *entry) {
 
   return entry->prev;
 
 }
 
-afl_queue_entry_t *afl_get_parent_default(afl_queue_entry_t *entry) {
+afl_queueentry_t *afl_get_parent_default(afl_queueentry_t *entry) {
 
   return entry->parent;
 
@@ -121,16 +121,16 @@ void afl_base_queue_deinit(afl_base_queue_t *queue) {
 
   /*TODO: Clear the queue entries too here*/
 
-  afl_queue_entry_t *entry = queue->base;
+  afl_queueentry_t *entry = queue->base;
 
   while (entry) {
 
     /* Grab the next entry of queue */
-    afl_queue_entry_t *next_entry = entry->next;
+    afl_queueentry_t *next_entry = entry->next;
 
     /* We destroy the queue, since none of the entries have references anywhere
      * else anyways */
-    afl_queue_entry_delete(entry);
+    afl_queueentry_delete(entry);
 
     entry = next_entry;
 
@@ -144,7 +144,7 @@ void afl_base_queue_deinit(afl_base_queue_t *queue) {
 }
 
 /* *** Possible error cases here? *** */
-afl_ret_t afl_add_to_queue_default(afl_base_queue_t *queue, afl_queue_entry_t *entry) {
+afl_ret_t afl_add_to_queue_default(afl_base_queue_t *queue, afl_queueentry_t *entry) {
 
   if (!entry->input) {
 
@@ -166,7 +166,7 @@ afl_ret_t afl_add_to_queue_default(afl_base_queue_t *queue, afl_queue_entry_t *e
     size_t i;
     for (i = 0; i < fuzz_one->stages_count; ++i) {
 
-      afl_fuzzing_afl_stage_t *stage = (afl_fuzzing_afl_stage_t *)fuzz_one->stages[i];
+      afl_fuzzing_stage_t *stage = (afl_fuzzing_stage_t *)fuzz_one->stages[i];
       size_t           j;
       for (j = 0; j < stage->mutators_count; ++j) {
 
@@ -183,7 +183,7 @@ afl_ret_t afl_add_to_queue_default(afl_base_queue_t *queue, afl_queue_entry_t *e
   }
 
   queue->size++;
-  queue->queue_entries = afl_realloc(queue->queue_entries, queue->size * sizeof(afl_queue_entry_t *));
+  queue->queue_entries = afl_realloc(queue->queue_entries, queue->size * sizeof(afl_queueentry_t *));
   if (!queue->queue_entries) { return AFL_RET_ALLOC; }
 
   queue->queue_entries[queue->size] = entry;
@@ -205,7 +205,7 @@ afl_ret_t afl_add_to_queue_default(afl_base_queue_t *queue, afl_queue_entry_t *e
 
 }
 
-afl_queue_entry_t *afl_get_queue_base_default(afl_base_queue_t *queue) {
+afl_queueentry_t *afl_get_queue_base_default(afl_base_queue_t *queue) {
 
   return queue->base;
 
@@ -269,11 +269,11 @@ void afl_set_engine_base_queue_default(afl_base_queue_t *queue, afl_engine_t *en
 
 }
 
-afl_queue_entry_t *afl_get_next_base_queue_default(afl_base_queue_t *queue, int engine_id) {
+afl_queueentry_t *afl_get_next_base_queue_default(afl_base_queue_t *queue, int engine_id) {
 
   if (queue->size) {
 
-    afl_queue_entry_t *current = queue->queue_entries[queue->current];
+    afl_queueentry_t *current = queue->queue_entries[queue->current];
 
     if (engine_id != queue->engine_id) {
 
@@ -305,7 +305,7 @@ afl_queue_entry_t *afl_get_next_base_queue_default(afl_base_queue_t *queue, int 
 
 }
 
-afl_ret_t afl_feedback_queue_init(afl_feedback_queue_t *feedback_queue, struct feedback *feedback, char *name) {
+afl_ret_t afl_feedback_queue_init(afl_queue_feedback_t *feedback_queue, afl_feedback_t *feedback, char *name) {
 
   afl_base_queue_init(&(feedback_queue->base));
   feedback_queue->feedback = feedback;
@@ -320,7 +320,7 @@ afl_ret_t afl_feedback_queue_init(afl_feedback_queue_t *feedback_queue, struct f
 
 }
 
-void afl_feedback_queue_deinit(afl_feedback_queue_t *feedback_queue) {
+void afl_feedback_queue_deinit(afl_queue_feedback_t *feedback_queue) {
 
   feedback_queue->feedback = NULL;
 
@@ -329,7 +329,7 @@ void afl_feedback_queue_deinit(afl_feedback_queue_t *feedback_queue) {
 
 }
 
-afl_ret_t afl_global_queue_init(afl_global_queue_t *global_queue) {
+afl_ret_t afl_global_queue_init(afl_queue_global_t *global_queue) {
 
   afl_base_queue_init(&(global_queue->base));
 
@@ -345,7 +345,7 @@ afl_ret_t afl_global_queue_init(afl_global_queue_t *global_queue) {
 
 }
 
-void afl_global_queue_deinit(afl_global_queue_t *global_queue) {
+void afl_global_queue_deinit(afl_queue_global_t *global_queue) {
 
   /* Should we also deinit the feedback queues?? */
   size_t i;
@@ -364,11 +364,11 @@ void afl_global_queue_deinit(afl_global_queue_t *global_queue) {
 
 }
 
-afl_ret_t afl_add_feedback_queue_default(afl_global_queue_t *global_queue, afl_feedback_queue_t *feedback_queue) {
+afl_ret_t afl_add_feedback_queue_default(afl_queue_global_t *global_queue, afl_queue_feedback_t *feedback_queue) {
 
   global_queue->feedback_queues_count++;
   global_queue->feedback_queues =
-      afl_realloc(global_queue->feedback_queues, global_queue->feedback_queues_count * sizeof(afl_feedback_queue_t *));
+      afl_realloc(global_queue->feedback_queues, global_queue->feedback_queues_count * sizeof(afl_queue_feedback_t *));
   if (!global_queue->feedback_queues) {
 
     global_queue->feedback_queues_count = 0;
@@ -383,19 +383,19 @@ afl_ret_t afl_add_feedback_queue_default(afl_global_queue_t *global_queue, afl_f
 
 }
 
-afl_queue_entry_t *afl_get_next_global_queue_default(afl_base_queue_t *queue, int engine_id) {
+afl_queueentry_t *afl_get_next_global_queue_default(afl_base_queue_t *queue, int engine_id) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
-  afl_global_queue_t *global_queue = (afl_global_queue_t *)queue;
+  afl_queue_global_t *global_queue = (afl_queue_global_t *)queue;
 
   int fbck_idx = global_queue->extra_funcs.schedule(global_queue);
 
   if (fbck_idx != -1) {
 
-    afl_feedback_queue_t *feedback_queue = global_queue->feedback_queues[fbck_idx];
-    afl_queue_entry_t *   next_entry = feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base), engine_id);
+    afl_queue_feedback_t *feedback_queue = global_queue->feedback_queues[fbck_idx];
+    afl_queueentry_t *   next_entry = feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base), engine_id);
 
     if (next_entry) {
 
@@ -420,7 +420,7 @@ afl_queue_entry_t *afl_get_next_global_queue_default(afl_base_queue_t *queue, in
 
 }
 
-int afl_global_schedule_default(afl_global_queue_t *queue) {
+int afl_global_schedule_default(afl_queue_global_t *queue) {
 
   return afl_rand_below(&queue->base.engine->rnd, queue->feedback_queues_count);
 
@@ -429,7 +429,7 @@ int afl_global_schedule_default(afl_global_queue_t *queue) {
 void afl_set_engine_global_queue_default(afl_base_queue_t *global_queue_base, afl_engine_t *engine) {
 
   size_t          i;
-  afl_global_queue_t *global_queue = (afl_global_queue_t *)global_queue_base;
+  afl_queue_global_t *global_queue = (afl_queue_global_t *)global_queue_base;
 
   // First add engine to the global queue itself
 

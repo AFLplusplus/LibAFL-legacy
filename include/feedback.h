@@ -30,24 +30,24 @@
 #include "queue.h"
 #include "observer.h"
 
-typedef struct feedback afl_feedback_t;
+typedef struct afl_feedback afl_feedback_t;
 
-struct feedback_functions {
+struct afl_feedback_funcs {
 
   float (*is_interesting)(afl_feedback_t *, afl_executor_t *);
-  void (*set_feedback_queue)(afl_feedback_t *, afl_feedback_queue_t *);
-  afl_feedback_queue_t *(*get_feedback_queue)(afl_feedback_t *);
+  void (*set_feedback_queue)(afl_feedback_t *, afl_queue_feedback_t *);
+  afl_queue_feedback_t *(*get_feedback_queue)(afl_feedback_t *);
 
 };
 
-struct feedback {
+struct afl_feedback {
 
-  afl_feedback_queue_t *queue;
+  afl_queue_feedback_t *queue;
 
   struct afl_feedback_metadata *metadata; /* We can have a void pointer for the
                                          struct here. What do you guys say? */
 
-  struct feedback_functions funcs;
+  struct afl_feedback_funcs funcs;
   size_t                    channel_id;  // ID of the observation channel this feedback is watching
   afl_observer_t *          channel;     // This array holds the observation channels the feedback is
                                          // looking at. Specific fpr each feedback. btw, Better name for
@@ -64,14 +64,14 @@ typedef struct afl_feedback_metadata {
 
 // Default implementation of the vtables functions
 
-void                  afl_set_feedback_queue_default(afl_feedback_t *, afl_feedback_queue_t *);
-afl_feedback_queue_t *afl_get_feedback_queue_default(afl_feedback_t *);
+void                  afl_set_feedback_queue_default(afl_feedback_t *, afl_queue_feedback_t *);
+afl_queue_feedback_t *afl_get_feedback_queue_default(afl_feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
 void      afl_feedback_deinit(afl_feedback_t *);
-afl_ret_t afl_feedback_init(afl_feedback_t *, afl_feedback_queue_t *, size_t channel_id);
+afl_ret_t afl_feedback_init(afl_feedback_t *, afl_queue_feedback_t *, size_t channel_id);
 
-static inline afl_feedback_t *afl_feedback_new(afl_feedback_queue_t *queue, size_t channel_id) {
+static inline afl_feedback_t *afl_feedback_new(afl_queue_feedback_t *queue, size_t channel_id) {
 
   afl_feedback_t *feedback = calloc(1, sizeof(afl_feedback_t));
   if (!feedback) return NULL;
@@ -106,7 +106,7 @@ typedef struct maximize_map_feedback {
 
 } afl_maximize_map_feedback_t;
 
-afl_maximize_map_feedback_t *map_feedback_init(afl_feedback_queue_t *queue, size_t size, size_t channel_id);
+afl_maximize_map_feedback_t *map_feedback_init(afl_queue_feedback_t *queue, size_t size, size_t channel_id);
 
 float map_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv);
 

@@ -65,9 +65,9 @@ afl_ret_t afl_perform_default(afl_fuzz_one_t *fuzz_one) {
   // sends it to stage.
   size_t i;
 
-  afl_global_queue_t *global_queue = fuzz_one->engine->global_queue;
+  afl_queue_global_t *global_queue = fuzz_one->engine->global_queue;
 
-  afl_queue_entry_t *queue_entry =
+  afl_queueentry_t *queue_entry =
       global_queue->base.funcs.get_next_in_queue((afl_base_queue_t *)global_queue, fuzz_one->engine->id);
 
   if (!queue_entry) { return AFL_RET_NULL_QUEUE_ENTRY; }

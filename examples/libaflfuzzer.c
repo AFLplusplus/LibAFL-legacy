@@ -18,7 +18,7 @@ void sigchld_handler(int signal) {
 
 }
 
-exit_type_t exec_debug(afl_executor_t *executor, uint8_t *data, size_t size) {
+afl_exit_t exec_debug(afl_executor_t *executor, uint8_t *data, size_t size) {
 
   (void)executor;
   u32 i;
@@ -93,7 +93,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   in_memory_executor->base.funcs.observer_add(&in_memory_executor->base, &trace_bits_channel->base);
 
   /* We create a simple feedback queue for coverage here*/
-  afl_feedback_queue_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
+  afl_queue_feedback_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) {
 
     FATAL("Error initializing feedback queue");
@@ -104,7 +104,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   coverage_feedback_queue->base.funcs.set_dirpath(&coverage_feedback_queue->base, queue_dirpath);
 
   /* Global queue creation */
-  afl_global_queue_t *global_queue = afl_global_queue_new();
+  afl_queue_global_t *global_queue = afl_global_queue_new();
   if (!global_queue) {
 
     FATAL("Error initializing global queue");
@@ -149,7 +149,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   // We also add the fuzzone to the engine here.
   engine->funcs.set_fuzz_one(engine, fuzz_one);
 
-  afl_scheduled_afl_mutator_t *mutators_havoc = afl_scheduled_mutator_new(NULL, 8);
+  afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(NULL, 8);
   if (!mutators_havoc) {
 
     FATAL("Error initializing Mutators");
@@ -168,7 +168,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte_add_sub);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte);
 
-  afl_fuzzing_afl_stage_t *stage = afl_fuzzing_stage_new(engine);
+  afl_fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
   if (!stage) {
 
     FATAL("Error creating fuzzing stage");
@@ -176,7 +176,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
 
   }
 
-  stage->funcs.add_afl_mutator_to_stage(stage, &mutators_havoc->base);
+  stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
 
   return engine;
 
@@ -189,8 +189,8 @@ void run_instance(llmp_client_state_t *llmp_client, void *data) {
 
   afl_map_based_channel_t *trace_bits_channel = (afl_map_based_channel_t *)engine->executor->observors[0];
 
-  afl_fuzzing_afl_stage_t *    stage = (afl_fuzzing_afl_stage_t *)engine->fuzz_one->stages[0];
-  afl_scheduled_afl_mutator_t *mutators_havoc = (afl_scheduled_afl_mutator_t *)stage->mutators[0];
+  afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
+  afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
 
   afl_maximize_map_feedback_t *coverage_feedback = (afl_maximize_map_feedback_t *)(engine->feedbacks[0]);
 
@@ -221,7 +221,7 @@ void run_instance(llmp_client_state_t *llmp_client, void *data) {
 
   afl_executor_delete(engine->executor);
   afl_map_channel_delete(trace_bits_channel);
-  afl_scheduled_mutator_delete(mutators_havoc);
+  afl_mutator_scheduled_delete(mutators_havoc);
   afl_fuzz_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
   free(coverage_feedback->virgin_bits);

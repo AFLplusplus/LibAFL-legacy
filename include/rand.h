@@ -1,8 +1,10 @@
 #ifndef AFL_RAND_H
 #define AFL_RAND_H
 
+#include <fcntl.h>
 #include "types.h"
 #include "common.h"
+#include "xxh3.h"
 
 typedef struct afl_rand {
 

@@ -30,17 +30,11 @@
 #include "engine.h"
 #include "stage.h"
 #include "alloc-inl.h"
+#include "config.h"
 
-#define ARITH_MAX 35
+afl_ret_t afl_mutator_init(afl_mutator_t *mutator, afl_engine_t *engine) {
 
-#define HAVOC_BLK_SMALL 32
-#define HAVOC_BLK_MEDIUM 128
-#define HAVOC_BLK_LARGE 1500
-#define HAVOC_BLK_XL 32768
-
-afl_ret_t afl_mutator_init(afl_mutator_t *mutator, afl_stage_t *stage) {
-
-  mutator->stage = stage;
+  mutator->engine = engine;
 
   return AFL_RET_SUCCESS;
 
@@ -48,23 +42,16 @@ afl_ret_t afl_mutator_init(afl_mutator_t *mutator, afl_stage_t *stage) {
 
 void afl_mutator_deinit(afl_mutator_t *mutator) {
 
-  mutator->stage = NULL;
+  mutator->engine = NULL;
 
 }
 
-afl_stage_t *afl_get_mutator_stage_default(afl_mutator_t *mutator) {
+afl_ret_t afl_mutator_scheduled_init(afl_mutator_scheduled_t *sched_mut, afl_engine_t *engine, size_t max_iterations) {
 
-  return mutator->stage;
-
-}
-
-afl_ret_t afl_scheduled_mutator_init(afl_scheduled_afl_mutator_t *sched_mut, afl_stage_t *stage,
-                                     size_t max_iterations) {
-
-  if (afl_mutator_init(&(sched_mut->base), stage) != AFL_RET_SUCCESS) { return AFL_RET_ERROR_INITIALIZE; }
+  if (afl_mutator_init(&(sched_mut->base), engine) != AFL_RET_SUCCESS) { return AFL_RET_ERROR_INITIALIZE; }
 
   sched_mut->base.funcs.mutate = afl_mutate_scheduled_mutator_default;
-  sched_mut->extra_funcs.add_mutator = afl_add_mutator_default;
+  sched_mut->extra_funcs.add_mutator = afl_mutator_add_default;
   sched_mut->extra_funcs.iterations = afl_iterations_default;
   sched_mut->extra_funcs.schedule = afl_schedule_default;
 
@@ -73,7 +60,7 @@ afl_ret_t afl_scheduled_mutator_init(afl_scheduled_afl_mutator_t *sched_mut, afl
 
 }
 
-void afl_scheduled_mutator_deinit(afl_scheduled_afl_mutator_t *sched_mut) {
+void afl_mutator_scheduled_deinit(afl_mutator_scheduled_t *sched_mut) {
 
   size_t i;
   afl_mutator_deinit(&(sched_mut->base));
@@ -92,10 +79,10 @@ void afl_scheduled_mutator_deinit(afl_scheduled_afl_mutator_t *sched_mut) {
 
 }
 
-afl_ret_t afl_add_mutator_default(afl_scheduled_afl_mutator_t *mutator, mutator_func_type mutator_func) {
+afl_ret_t afl_mutator_add_default(afl_mutator_scheduled_t *mutator, afl_mutator_func mutator_func) {
 
   mutator->mutators_count++;
-  mutator->mutations = afl_realloc(mutator->mutations, mutator->mutators_count * sizeof(mutator_func));
+  mutator->mutations = afl_realloc(mutator->mutations, mutator->mutators_count * sizeof(afl_mutator_func));
   if (!mutator->mutations) {
 
     mutator->mutators_count = 0;
@@ -108,24 +95,24 @@ afl_ret_t afl_add_mutator_default(afl_scheduled_afl_mutator_t *mutator, mutator_
 
 }
 
-size_t afl_iterations_default(afl_scheduled_afl_mutator_t *mutator) {
+size_t afl_iterations_default(afl_mutator_scheduled_t *mutator) {
 
-  return 1 << (1 + afl_rand_below(&mutator->base.stage->engine->rnd, mutator->max_iterations));
-
-}
-
-size_t afl_schedule_default(afl_scheduled_afl_mutator_t *mutator) {
-
-  return afl_rand_below(&mutator->base.stage->engine->rnd, mutator->mutators_count);
+  return 1 << (1 + afl_rand_below(&mutator->base.engine->rand, mutator->max_iterations));
 
 }
 
-size_t afl_mutate_scheduled_mutator_default(afl_mutator_t *mutator, afl_raw_input_t *input) {
+size_t afl_schedule_default(afl_mutator_scheduled_t *mutator) {
+
+  return afl_rand_below(&mutator->base.engine->rand, mutator->mutators_count);
+
+}
+
+size_t afl_mutate_scheduled_mutator_default(afl_mutator_t *mutator, afl_input_t *input) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
-  afl_scheduled_afl_mutator_t *scheduled_mutator = (afl_scheduled_afl_mutator_t *)mutator;
+  afl_mutator_scheduled_t *scheduled_mutator = (afl_mutator_scheduled_t *)mutator;
   size_t                       i;
   for (i = 0; i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator); ++i) {
 
@@ -141,10 +128,10 @@ size_t afl_mutate_scheduled_mutator_default(afl_mutator_t *mutator, afl_raw_inpu
 /* A few simple mutators that we use over in AFL++ in the havoc and
  * deterministic modes*/
 
-static size_t choose_block_len(afl_rand_t *rnd, size_t limit) {
+static size_t choose_block_len(afl_rand_t *rand, size_t limit) {
 
   size_t min_value, max_value;
-  switch (afl_rand_below(rnd, 3)) {
+  switch (afl_rand_below(rand, 3)) {
 
     case 0:
       min_value = 1;
@@ -155,7 +142,7 @@ static size_t choose_block_len(afl_rand_t *rnd, size_t limit) {
       max_value = HAVOC_BLK_MEDIUM;
       break;
     default:
-      if (afl_rand_below(rnd, 10)) {
+      if (afl_rand_below(rand, 10)) {
 
         min_value = HAVOC_BLK_MEDIUM;
         max_value = HAVOC_BLK_LARGE;
@@ -171,25 +158,25 @@ static size_t choose_block_len(afl_rand_t *rnd, size_t limit) {
 
   if (min_value >= limit) { min_value = 1; }
 
-  return min_value + afl_rand_below(rnd, MIN(max_value, limit)) - min_value + 1;
+  return min_value + afl_rand_below(rand, MIN(max_value, limit)) - min_value + 1;
 
 }
 
-inline void mutator_flip_bit(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_flip_bit(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
-  int         bit = afl_rand_below(rnd, input->len * 8 - 1) + 1;
+  afl_rand_t *rand = &mutator->engine->rand;
+  int         bit = afl_rand_below(rand, input->len * 8 - 1) + 1;
 
   input->bytes[(bit >> 3)] ^= (1 << ((bit - 1) % 8));
 
 }
 
-inline void mutator_flip_2_bits(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_flip_2_bits(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
+  afl_rand_t *rand = &mutator->engine->rand;
   size_t      size = input->len;
 
-  int bit = afl_rand_below(rnd, (size * 8) - 1) + 1;
+  int bit = afl_rand_below(rand, (size * 8) - 1) + 1;
 
   if ((size << 3) - bit < 2) { return; }
 
@@ -199,15 +186,15 @@ inline void mutator_flip_2_bits(afl_mutator_t *mutator, afl_raw_input_t *input) 
 
 }
 
-inline void mutator_flip_4_bits(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_flip_4_bits(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
+  afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
 
   if (size <= 0) { return; }
 
-  int bit = afl_rand_below(rnd, size << 3);
+  int bit = afl_rand_below(rand, size << 3);
 
   if ((size << 3) - bit < 4) { return; }
 
@@ -221,15 +208,15 @@ inline void mutator_flip_4_bits(afl_mutator_t *mutator, afl_raw_input_t *input) 
 
 }
 
-inline void mutator_flip_byte(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_flip_byte(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
+  afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
 
   if (size <= 0) { return; }
 
-  int byte = afl_rand_below(rnd, size);
+  int byte = afl_rand_below(rand, size);
 
   input->bytes[byte] ^= 0xff;
 
@@ -237,30 +224,30 @@ inline void mutator_flip_byte(afl_mutator_t *mutator, afl_raw_input_t *input) {
 
 }
 
-inline void mutator_flip_2_bytes(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_flip_2_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
+  afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
 
   if (size < 2) { return; }
 
-  int byte = afl_rand_below(rnd, size - 1);
+  int byte = afl_rand_below(rand, size - 1);
 
   input->bytes[byte] ^= 0xff;
   input->bytes[byte + 1] ^= 0xff;
 
 }
 
-inline void mutator_flip_4_bytes(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_flip_4_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
+  afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
 
   if (size < 4) { return; }
 
-  int byte = afl_rand_below(rnd, size - 3);
+  int byte = afl_rand_below(rand, size - 3);
 
   if (byte == -1) { return; }
 
@@ -271,77 +258,77 @@ inline void mutator_flip_4_bytes(afl_mutator_t *mutator, afl_raw_input_t *input)
 
 }
 
-inline void mutator_random_byte_add_sub(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_random_byte_add_sub(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
+  afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
 
   if (size <= 0) { return; }
 
-  size_t idx = afl_rand_below(rnd, size);
+  size_t idx = afl_rand_below(rand, size);
 
-  input->bytes[idx] -= 1 + (u8)afl_rand_below(rnd, ARITH_MAX);
-  input->bytes[idx] += 1 + (u8)afl_rand_below(rnd, ARITH_MAX);
+  input->bytes[idx] -= 1 + (u8)afl_rand_below(rand, ARITH_MAX);
+  input->bytes[idx] += 1 + (u8)afl_rand_below(rand, ARITH_MAX);
 
 }
 
-inline void mutator_random_byte(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_random_byte(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
+  afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
   if (size <= 0) { return; }
 
-  int idx = afl_rand_below(rnd, size);
-  input->bytes[idx] ^= 1 + (u8)afl_rand_below(rnd, 255);
+  int idx = afl_rand_below(rand, size);
+  input->bytes[idx] ^= 1 + (u8)afl_rand_below(rand, 255);
 
 }
 
-inline void mutator_delete_bytes(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_delete_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
+  afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
 
   if (size < 2) { return; }
 
-  size_t del_len = choose_block_len(rnd, size - 1);
-  size_t del_from = afl_rand_below(rnd, size - del_len + 1);
+  size_t del_len = choose_block_len(rand, size - 1);
+  size_t del_from = afl_rand_below(rand, size - del_len + 1);
 
   /* We delete the bytes and then update the new input length*/
   input->len = afl_erase_bytes(input->bytes, size, del_from, del_len);
 
 }
 
-inline void mutator_clone_bytes(afl_mutator_t *mutator, afl_raw_input_t *input) {
+inline void mutator_clone_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_rand_t *rnd = &mutator->stage->engine->rnd;
+  afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
 
   if (!size) { return; }
-  int actually_clone = afl_rand_below(rnd, 4);
+  int actually_clone = afl_rand_below(rand, 4);
 
   size_t clone_from, clone_to, clone_len;
 
-  clone_to = afl_rand_below(rnd, size);
+  clone_to = afl_rand_below(rand, size);
 
   u8 *current_bytes = input->bytes;
 
   if (actually_clone) {
 
-    clone_len = choose_block_len(rnd, size);
-    clone_from = afl_rand_below(rnd, size - clone_len + 1);
+    clone_len = choose_block_len(rand, size);
+    clone_from = afl_rand_below(rand, size - clone_len + 1);
 
     input->bytes = afl_insert_substring(input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
     input->len += clone_len;
 
   } else {
 
-    clone_len = choose_block_len(rnd, HAVOC_BLK_XL);
+    clone_len = choose_block_len(rand, HAVOC_BLK_XL);
 
-    input->bytes = afl_insert_bytes(input->bytes, size, afl_rand_below(rnd, 255), clone_len, clone_to);
+    input->bytes = afl_insert_bytes(input->bytes, size, afl_rand_below(rand, 255), clone_len, clone_to);
 
     input->len += clone_len;
 
@@ -375,14 +362,14 @@ static void locate_diffs(u8 *ptr1, u8 *ptr2, u32 len, s32 *first, s32 *last) {
 
 }
 
-void mutator_splice(afl_mutator_t *mutator, afl_raw_input_t *input) {
+void mutator_splice(afl_mutator_t *mutator, afl_input_t *input) {
 
   /* Let's grab the engine for random num generation and queue */
 
-  afl_engine_t *      engine = mutator->stage->engine;
-  afl_global_queue_t *global_queue = engine->global_queue;
+  afl_engine_t *      engine = mutator->engine;
+  afl_queue_global_t *global_queue = engine->global_queue;
 
-  afl_raw_input_t *splice_input = NULL;
+  afl_input_t *splice_input = NULL;
 
   s32 f_diff = 0;
   s32 l_diff = 0;
@@ -392,16 +379,16 @@ void mutator_splice(afl_mutator_t *mutator, afl_raw_input_t *input) {
   do {
 
     size_t random_queue_idx =
-        afl_rand_below(&engine->rnd, global_queue->feedback_queues_count + 1);  // +1 so that we can also grab a queue
+        afl_rand_below(&engine->rand, global_queue->feedback_queues_count + 1);  // +1 so that we can also grab a queue
                                                                                 // entry from the global_queue
 
     if (random_queue_idx < global_queue->feedback_queues_count) {
 
       // Grab a random entry from the random feedback queue
-      afl_feedback_queue_t *random_fbck_queue = global_queue->feedback_queues[random_queue_idx];
+      afl_queue_feedback_t *random_fbck_queue = global_queue->feedback_queues[random_queue_idx];
       splice_input =
           (random_fbck_queue->base.size > 0)
-              ? random_fbck_queue->base.queue_entries[afl_rand_below(&engine->rnd, random_fbck_queue->base.size)]->input
+              ? random_fbck_queue->base.queue_entries[afl_rand_below(&engine->rand, random_fbck_queue->base.size)]->input
               : NULL;
 
       if (splice_input && !splice_input->bytes) { splice_input = NULL; }
@@ -411,7 +398,7 @@ void mutator_splice(afl_mutator_t *mutator, afl_raw_input_t *input) {
       // Grab a random entry from the global queue
       splice_input =
           (global_queue->base.size > 0)
-              ? global_queue->base.queue_entries[afl_rand_below(&engine->rnd, global_queue->base.size)]->input
+              ? global_queue->base.queue_entries[afl_rand_below(&engine->rand, global_queue->base.size)]->input
               : NULL;
       if (splice_input && !splice_input->bytes) { splice_input = NULL; }
 
@@ -428,7 +415,7 @@ void mutator_splice(afl_mutator_t *mutator, afl_raw_input_t *input) {
 
   /* Split somewhere between the first and last differing byte. */
 
-  u32 split_at = f_diff + afl_rand_below(&engine->rnd, l_diff - f_diff);
+  u32 split_at = f_diff + afl_rand_below(&engine->rand, l_diff - f_diff);
 
   /* Do the thing. */
 

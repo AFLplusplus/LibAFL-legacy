@@ -1,4 +1,4 @@
-override CFLAGS  += -g -fPIC -Iinclude -Wall -Wextra -Werror -Wshadow -Wno-variadic-macros -fstack-protector-strong 
+override CFLAGS  += -g -fPIC -Iinclude -Wall -Wextra -Werror -Wshadow -fstack-protector-strong 
 
 ifdef DEBUG
   override CFLAGS += -DDEBUG -ggdb -O0 -DLLMP_DEBUG=1
@@ -49,7 +49,7 @@ src/feedback.o: src/feedback.c include/feedback.h src/common.o src/queue.o
 src/fuzzone.o: src/fuzzone.c include/fuzzone.h src/common.o
 	$(CC) $(CFLAGS) src/fuzzone.c -c -o src/fuzzone.o
 
-src/shmem.o: src/shmem.c include/afl-shmem.h
+src/shmem.o: src/shmem.c include/shmem.h
 	$(CC) $(CFLAGS) src/shmem.c -c -o src/shmem.o
 
 # Compiling the Stage library

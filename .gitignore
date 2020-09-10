@@ -48,6 +48,7 @@ testcase
 test/unit_llmp
 test/unit_test
 
+testcases
 
 example-fuzzer
 examples/in-memory-fuzzer

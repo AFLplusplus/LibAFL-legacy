@@ -76,7 +76,7 @@ Each of this structure also has a set of function pointers assigned to them (sor
 e.g 
 
 ```C
-struct executor_functions {
+struct afl_executor_funcs {
  int (*run_target_cb)(
       afl_executor_t *); // The first argument of each function pointer is the executor itself.
  int (*place_input_cb)(
@@ -220,10 +220,10 @@ void trim(afl_mutator_t * mutator, afl_raw_input_t * input) {
 mutator->funcs.mutate= mutate;
 mutator->funcs.trim = trim;
 
-fuzzing_afl_stage_t * stage  = afl_fuzzing_stage(NULL);
+fuzzing_stage_t * stage  = afl_fuzzing_stage(NULL);
 // This is a fuzzing stage(mutations and stuff) so we use fuzzing_stage structure, there can be stages without mutation and mutators. 
 
-stage->funcs.add_afl_mutator_to_stage(stage, mutator);
+stage->funcs.add_mutator_to_stage(stage, mutator);
 // We add the mutator
 ```
 

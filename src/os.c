@@ -10,7 +10,7 @@
 #include "xxh3.h"
 
 // Crash related functions
-afl_ret_t dump_crash_to_file(afl_raw_input_t *data, afl_engine_t *engine) {
+afl_ret_t dump_crash_to_file(afl_input_t *data, afl_engine_t *engine) {
 
   char filename[128];
   (void)(engine);
@@ -68,16 +68,16 @@ void resume_default(process_t *process) {
 
 }
 
-exit_type_t wait_default(process_t *process, bool untraced) {
+afl_exit_t wait_default(process_t *process, bool untraced) {
 
   int status = 0;
   if (waitpid((process->handler_process), &status, untraced ? WUNTRACED : 0) < 0)
     return -1;  // Waitpid fails here, how should we handle this?
 
-  if (WIFEXITED(status)) return NORMAL;
+  if (WIFEXITED(status)) return AFL_EXIT_OK;
 
-  // If the process was simply stopped , we return STOP
-  if (WIFSTOPPED(status)) return STOP;
+  // If the process was simply stopped , we return AFL_EXIT_STOP
+  if (WIFSTOPPED(status)) return AFL_EXIT_STOP;
 
   // If the process exited with a signal, we check the corresponsing signum of
   // the process and return values correspondingly
@@ -87,18 +87,18 @@ exit_type_t wait_default(process_t *process, bool untraced) {
     switch (signal_num) {
 
       case SIGKILL:
-        return TIMEOUT;
+        return AFL_EXIT_TIMEOUT;
       case SIGSEGV:
-        return SEGV;
+        return AFL_EXIT_SEGV;
       case SIGABRT:
-        return ABRT;
+        return AFL_EXIT_ABRT;
       case SIGBUS:
-        return BUS;
+        return AFL_EXIT_BUS;
       case SIGILL:
-        return ILL;
+        return AFL_EXIT_ILL;
       default:
         /* Any other SIGNAL we need to take care of? */
-        return CRASH;
+        return AFL_EXIT_CRASH;
 
     }
 

@@ -86,7 +86,7 @@ afl_observer_t *afl_get_observers_default(afl_executor_t *executor, size_t chann
 
 }
 
-afl_raw_input_t *afl_current_input_get_default(afl_executor_t *executor) {
+afl_input_t *afl_current_input_get_default(afl_executor_t *executor) {
 
   return executor->current_input;
 
@@ -306,7 +306,7 @@ afl_ret_t fsrv_start(afl_executor_t *fsrv_executor) {
 }
 
 /* Places input in the executor for the target */
-u8 fsrv_place_input(afl_executor_t *fsrv_executor, afl_raw_input_t *input) {
+u8 fsrv_place_input(afl_executor_t *fsrv_executor, afl_input_t *input) {
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
@@ -326,7 +326,7 @@ u8 fsrv_place_input(afl_executor_t *fsrv_executor, afl_raw_input_t *input) {
 
 /* Execute target application. Return status
    information.*/
-exit_type_t fsrv_run_target(afl_executor_t *fsrv_executor) {
+afl_exit_t fsrv_run_target(afl_executor_t *fsrv_executor) {
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
@@ -393,13 +393,13 @@ exit_type_t fsrv_run_target(afl_executor_t *fsrv_executor) {
 
     fsrv->last_kill_signal = WTERMSIG(fsrv->child_status);
 
-    if (fsrv->last_run_timed_out && fsrv->last_kill_signal == SIGKILL) { return TIMEOUT; }
+    if (fsrv->last_run_timed_out && fsrv->last_kill_signal == SIGKILL) { return AFL_EXIT_TIMEOUT; }
 
-    return CRASH;
+    return AFL_EXIT_CRASH;
 
   }
 
-  return NORMAL;
+  return AFL_EXIT_OK;
 
 }
 
@@ -418,22 +418,22 @@ void in_memory_executor_init(in_memory_executor_t *in_memory_executor, harness_f
 
 }
 
-u8 in_mem_executor_place_input(afl_executor_t *executor, afl_raw_input_t *input) {
+u8 in_mem_executor_place_input(afl_executor_t *executor, afl_input_t *input) {
 
   executor->current_input = input;
   return 0;
 
 }
 
-exit_type_t in_memory_run_target(afl_executor_t *executor) {
+afl_exit_t in_memory_run_target(afl_executor_t *executor) {
 
   in_memory_executor_t *in_memory_executor = (in_memory_executor_t *)executor;
 
-  afl_raw_input_t *input = in_memory_executor->base.current_input;
+  afl_input_t *input = in_memory_executor->base.current_input;
 
   u8 *data = (input->funcs.serialize) ? (input->funcs.serialize(input)) : input->bytes;
 
-  exit_type_t run_result = in_memory_executor->harness(&in_memory_executor->base, data, input->len);
+  afl_exit_t run_result = in_memory_executor->harness(&in_memory_executor->base, data, input->len);
 
   return run_result;
 

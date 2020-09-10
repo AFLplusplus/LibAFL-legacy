@@ -24,8 +24,10 @@
 
  */
 
-#ifndef LIBCOMMON_H
-#define LIBCOMMON_H
+/* This file contains commonly used functionality for libafl */
+
+#ifndef COMMON_H
+#define COMMON_H
 
 #include <pthread.h>
 #include <unistd.h>
@@ -47,14 +49,13 @@ typedef struct afl_executor afl_executor_t;
 
 typedef struct afl_mutator afl_mutator_t;
 
-void * afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len,
-                            size_t offset);  // Returns new buf containing the substring token
-size_t afl_erase_bytes(u8 *buf, size_t len, size_t offset,
-                       size_t remove_len);  // Erases remove_len number of bytes from offset
-u8 *   afl_insert_bytes(u8 *buf, size_t len, u8 byte,
-                        size_t insert_len,  // Inserts a certain length of a byte
-                                            // value (byte) at offset in buf
-                        size_t offset);
+// Returns new buf containing the substring token
+void * afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len, size_t offset);
+// Erases remove_len number of bytes from offset
+size_t afl_erase_bytes(u8 *buf, size_t len, size_t offset, size_t remove_len);
+
+// Inserts a certain length of a byte value (byte) at offset in buf
+u8 *   afl_insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len, size_t offset);
 
 static inline char **afl_argv_cpy_dup(int argc, char **argv) {
 
@@ -66,6 +67,14 @@ static inline char **afl_argv_cpy_dup(int argc, char **argv) {
   for (i = 0; i < argc; i++) {
 
     ret[i] = strdup(argv[i]);
+    if (!ret[i]) {
+      int k;
+      for(k = 0; k < i; k++) {
+        free(ret[k]);
+      }
+      free(ret);
+      return NULL;
+    }
 
   }
 

@@ -20,8 +20,10 @@
 
  */
 
-#ifndef _HAVE_CONFIG_H
-#define _HAVE_CONFIG_H
+/* This file, taken from the original afl, contains compile-time configurations. */
+
+#ifndef CONFIG_H
+#define CONFIG_H
 
 #include "types.h"
 

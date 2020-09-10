@@ -45,7 +45,7 @@ int                  broker_port;
 
 /* Execute target application, monitoring for timeouts. Return status
    information. The called program will update afl->fsrv->trace_bits. */
-static exit_type_t fsrv_run_target_custom(afl_executor_t *fsrv_executor) {
+static afl_exit_t fsrv_run_target_custom(afl_executor_t *fsrv_executor) {
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)fsrv_executor;
 
@@ -116,13 +116,13 @@ static exit_type_t fsrv_run_target_custom(afl_executor_t *fsrv_executor) {
 
     fsrv->last_kill_signal = WTERMSIG(fsrv->child_status);
 
-    if (fsrv->last_run_timed_out && fsrv->last_kill_signal == SIGKILL) { return TIMEOUT; }
+    if (fsrv->last_run_timed_out && fsrv->last_kill_signal == SIGKILL) { return AFL_EXIT_TIMEOUT; }
 
-    return CRASH;
+    return AFL_EXIT_CRASH;
 
   }
 
-  return NORMAL;
+  return AFL_EXIT_OK;
 
 }
 
@@ -158,10 +158,10 @@ static float timeout_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_
 
   if (last_run_time == exec_timeout) {
 
-    afl_raw_input_t *input = fsrv->base.current_input->funcs.copy(fsrv->base.current_input);
+    afl_input_t *input = fsrv->base.current_input->funcs.copy(fsrv->base.current_input);
     if (!input) { FATAL("Error creating a copy of input"); }
 
-    afl_queue_entry_t *new_entry = afl_queue_entry_new(input);
+    afl_queueentry_t *new_entry = afl_queueentry_new(input);
     feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
     return 0.0;
 
@@ -204,15 +204,15 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   fsrv->trace_bits = trace_bits_channel->shared_map.map;
 
   /* We create a simple feedback queue for coverage here*/
-  afl_feedback_queue_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
+  afl_queue_feedback_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
 
   /* Another feedback queue for timeout entries here */
-  afl_feedback_queue_t *timeout_feedback_queue = afl_feedback_queue_new(NULL, "Timeout feedback queue");
+  afl_queue_feedback_t *timeout_feedback_queue = afl_feedback_queue_new(NULL, "Timeout feedback queue");
   if (!timeout_feedback_queue) { FATAL("Error initializing feedback queue"); }
 
   /* Global queue creation */
-  afl_global_queue_t *global_queue = afl_global_queue_new();
+  afl_queue_global_t *global_queue = afl_global_queue_new();
   if (!global_queue) { FATAL("Error initializing global queue"); }
   global_queue->extra_funcs.add_feedback_queue(global_queue, coverage_feedback_queue);
   global_queue->extra_funcs.add_feedback_queue(global_queue, timeout_feedback_queue);
@@ -239,7 +239,7 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   afl_fuzz_one_t *fuzz_one = afl_fuzz_one_new(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
-  afl_scheduled_afl_mutator_t *mutators_havoc = afl_scheduled_mutator_new(NULL, 8);
+  afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_byte);
@@ -254,9 +254,9 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte);
   mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_splice);
 
-  afl_fuzzing_afl_stage_t *stage = afl_fuzzing_stage_new(engine);
+  afl_fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }
-  stage->funcs.add_afl_mutator_to_stage(stage, &mutators_havoc->base);
+  stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
 
   return engine;
 
@@ -272,8 +272,8 @@ void fuzzer_process_main(llmp_client_state_t *client, void *data) {
   afl_map_based_channel_t *trace_bits_channel = (afl_map_based_channel_t *)fsrv->base.observors[0];
   timeout_obs_channel_t *  timeout_channel = (timeout_obs_channel_t *)fsrv->base.observors[1];
 
-  afl_fuzzing_afl_stage_t *    stage = (afl_fuzzing_afl_stage_t *)engine->fuzz_one->stages[0];
-  afl_scheduled_afl_mutator_t *mutators_havoc = (afl_scheduled_afl_mutator_t *)stage->mutators[0];
+  afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
+  afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
 
   afl_maximize_map_feedback_t *coverage_feedback = (afl_maximize_map_feedback_t *)(engine->feedbacks[0]);
 
@@ -299,7 +299,7 @@ void fuzzer_process_main(llmp_client_state_t *client, void *data) {
   afl_executor_delete(&fsrv->base);
   afl_map_channel_delete(trace_bits_channel);
   afl_observer_delete(&timeout_channel->base);
-  afl_scheduled_mutator_delete(mutators_havoc);
+  afl_mutator_scheduled_delete(mutators_havoc);
   afl_fuzz_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
   free(coverage_feedback->virgin_bits);

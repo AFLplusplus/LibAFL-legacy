@@ -29,7 +29,7 @@ u8 * afl_shmem_init(afl_shmem_t *sharedmem, size_t map_size);
 u8 * afl_shmem_by_str(afl_shmem_t *shm, char *shm_str, size_t map_size);
 void afl_shmem_deinit(afl_shmem_t *sharedmem);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_shmem, AFL_NEW_DECL_PARAMS(size_t map_size), AFL_NEW_CALL_PARAMS(map_size))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_shmem, AFL_DECL_PARAMS(size_t map_size), AFL_CALL_PARAMS(map_size))
 
 #endif                                                                                               /* AFL_SHMEM_H */
 

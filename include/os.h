@@ -6,29 +6,33 @@
 
 #include <stdbool.h>
 #include <sys/types.h>
-// This has a few parts, the first deals with crashe handling.
-typedef enum exit_type {
 
-  NORMAL,
-  STOP,
-  CRASH,
-  SEGV,
-  BUS,
-  ABRT,
-  ILL,
-  FPE,
-  TIMEOUT,
-  OOM,
+// This has a few parts, the first deals with crash handling.
 
-} exit_type_t;
+/* afl_exit_t is for the fuzzed target, as opposed to afl_ret_t
+which is for internal functions. */
+typedef enum afl_exit {
 
-afl_ret_t dump_crash_to_file(afl_raw_input_t *, afl_engine_t *);  // This function dumps an input which causes a
+  AFL_EXIT_OK,
+  AFL_EXIT_STOP,
+  AFL_EXIT_CRASH,
+  AFL_EXIT_SEGV,
+  AFL_EXIT_BUS,
+  AFL_EXIT_ABRT,
+  AFL_EXIT_ILL,
+  AFL_EXIT_FPE,
+  AFL_EXIT_TIMEOUT,
+  AFL_EXIT_OOM,
+
+} afl_exit_t;
+
+afl_ret_t dump_crash_to_file(afl_input_t *, afl_engine_t *);  // This function dumps an input which causes a
                                                                   // crash in the target to a crash file
 
 /* TODO: Add implementations for installing crash handlers */
-typedef void (*crash_handler_function)(exit_type_t type, void *data);
+typedef void (*afl_crash_handler_func)(afl_exit_t type, void *data);
 
-void install_crash_handler(crash_handler_function callback);
+void install_crash_handler(afl_crash_handler_func callback);
 
 typedef enum fork_result { FORK_FAILED, CHILD, PARENT } fork_result_t;
 
@@ -38,7 +42,7 @@ typedef struct process {
   fork_result_t (*fork)(struct process *);
   void (*suspend)(struct process *);
   void (*resume)(struct process *);
-  exit_type_t (*wait)(struct process *, bool untraced);
+  afl_exit_t (*wait)(struct process *, bool untraced);
 
   pid_t handler_process;  // Something similar to the child process
 
@@ -75,7 +79,7 @@ process_t *   return_current_default(process_t *);
 fork_result_t do_fork_default(process_t *);
 void          suspend_default(process_t *);
 void          resume_default(process_t *);
-exit_type_t   wait_default(process_t *, bool);
+afl_exit_t   wait_default(process_t *, bool);
 
 #endif
 

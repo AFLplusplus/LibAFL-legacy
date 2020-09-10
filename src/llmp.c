@@ -82,9 +82,9 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 
 /* all the debug prints */
 #ifdef LLMP_DEBUG
-  #define DBG(x...) ACTF("(llmp) " x)
+  #define DBG(...) ACTF("(llmp) " __VA_ARGS__)
 #else
-  #define DBG(x...) \
+  #define DBG(...) \
     {}
 #endif
 

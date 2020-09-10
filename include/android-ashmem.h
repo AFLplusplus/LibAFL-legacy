@@ -23,6 +23,8 @@
 
  */
 
+/* Thif file contains an android-specific shared mem wrapper */
+
 #ifndef _ANDROID_ASHMEM_H
 #define _ANDROID_ASHMEM_H
 

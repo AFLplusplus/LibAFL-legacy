@@ -19,7 +19,7 @@ extern void mock_assert(const int result, const char *const expression, const ch
 #define assert(expression) mock_assert((int)(expression), #expression, __FILE__, __LINE__);
 
 #include "common.h"
-#include "afl-shmem.h"
+#include "shmem.h"
 #include "aflpp.h"
 
 /* remap exit -> assert, then use cmocka's mock_assert
@@ -104,7 +104,7 @@ void test_input_copy(void **state) {
 
   (void)state;
 
-  afl_raw_input_t input;
+  afl_input_t input;
   afl_input_init(&input);
 
   u8 s[100] = {0};
@@ -113,7 +113,7 @@ void test_input_copy(void **state) {
   input.bytes = s;
   input.len = 14;
 
-  afl_raw_input_t *copy = input.funcs.copy(&input);
+  afl_input_t *copy = input.funcs.copy(&input);
 
   assert_string_equal(copy->bytes, input.bytes);
   assert_int_equal(input.len, copy->len);
@@ -133,11 +133,11 @@ void test_input_load_from_file(void **state) {
   int write_len = write(fd, test_string, 22);
 
   /* Create an input now and test it */
-  afl_raw_input_t input;
+  afl_input_t input;
   afl_input_init(&input);
 
   /* We just have to test the default func, we don't use the vtable here */
-  afl_raw_inp_load_from_file_default(&input, fname);
+  afl_input_load_from_file_default(&input, fname);
 
   assert_string_equal(input.bytes, test_string);
   assert_int_equal(input.len, write_len);
@@ -157,14 +157,14 @@ void test_input_save_to_file(void **state) {
   u8 read_string[100];
 
   /* Create an input now and test it */
-  afl_raw_input_t input;
+  afl_input_t input;
   afl_input_init(&input);
 
   input.bytes = (u8 *)test_string;
   input.len = strlen(test_string);
 
   /* We just have to test the default func, we don't use the vtable here */
-  afl_raw_inp_save_to_file_default(&input, fname);
+  afl_input_save_to_file_default(&input, fname);
 
   int fd = open(fname, O_RDONLY);
 
@@ -185,7 +185,7 @@ void test_input_save_to_file(void **state) {
 #include <sys/types.h>
 #include <fcntl.h>
 
-u8 engine_mock_execute(afl_engine_t *engine, afl_raw_input_t *input) {
+u8 engine_mock_execute(afl_engine_t *engine, afl_input_t *input) {
 
   (void)engine;
   (void)input;
@@ -194,9 +194,9 @@ u8 engine_mock_execute(afl_engine_t *engine, afl_raw_input_t *input) {
 
 }
 
-static afl_raw_input_t *custom_input_new() {
+static afl_input_t *custom_input_new() {
 
-  afl_raw_input_t *input = afl_input_new();
+  afl_input_t *input = afl_input_new();
 
   input->funcs.clear(input);
 
@@ -288,11 +288,11 @@ void test_basic_mutator_functions(void **state) {
   afl_stage_init(&stage, &engine);
 
   afl_mutator_t mutator = {0};
-  afl_mutator_init(&mutator, &stage);
+  afl_mutator_init(&mutator, &engine);
 
   /* First let's create a basic inputs */
-  afl_raw_input_t  input = {0};
-  afl_raw_input_t *copy = NULL;
+  afl_input_t  input = {0};
+  afl_input_t *copy = NULL;
   afl_input_init(&input);
 
   char *test_string = "AAAAAAAAAAAAA";
@@ -305,7 +305,6 @@ void test_basic_mutator_functions(void **state) {
   assert_string_not_equal(input.bytes, test_string);
 
   copy = input.funcs.copy(&input);
-
   mutator_flip_2_bits(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
   afl_input_delete(copy);
@@ -313,50 +312,43 @@ void test_basic_mutator_functions(void **state) {
   copy = input.funcs.copy(&input);
   mutator_flip_4_bits(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
-
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
   mutator_flip_byte(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
-
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
   mutator_flip_2_bytes(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
-
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
   mutator_flip_4_bytes(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
-
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
   mutator_random_byte_add_sub(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
-
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
   mutator_random_byte(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
-
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
   mutator_delete_bytes(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
-
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
   mutator_clone_bytes(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
-
   afl_input_delete(copy);
+
   afl_input_deinit(&input);
 
 }
@@ -407,15 +399,15 @@ void test_base_queue_get_next(void **state) {
   /* When queue is empty we should get NULL */
   assert_null(queue.funcs.get_next_in_queue(&queue, engine.id));
 
-  afl_raw_input_t input = {0};
+  afl_input_t input = {0};
 
-  afl_queue_entry_t first_entry = {0};
-  afl_queue_entry_init(&first_entry, &input);
+  afl_queueentry_t first_entry = {0};
+  afl_queueentry_init(&first_entry, &input);
 
   queue.funcs.add_to_queue(&queue, &first_entry);
 
-  afl_queue_entry_t second_entry = {0};
-  afl_queue_entry_init(&second_entry, &input);
+  afl_queueentry_t second_entry = {0};
+  afl_queueentry_init(&second_entry, &input);
 
   queue.funcs.add_to_queue(&queue, &second_entry);
 

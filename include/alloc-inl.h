@@ -24,6 +24,8 @@
 
  */
 
+/* this file contains anything allocator-realted libafl */
+
 #ifndef _HAVE_ALLOC_INL_H
 #define _HAVE_ALLOC_INL_H
 

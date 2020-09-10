@@ -17,7 +17,7 @@
 #endif
 
 #include "types.h"
-#include "afl-shmem.h"
+#include "shmem.h"
 
 void afl_shmem_deinit(afl_shmem_t *shm) {
 

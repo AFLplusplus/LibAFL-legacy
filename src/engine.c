@@ -36,7 +36,7 @@
 #include "input.h"
 
 afl_ret_t afl_engine_init(afl_engine_t *engine, afl_executor_t *executor, afl_fuzz_one_t *fuzz_one,
-                          afl_global_queue_t *global_queue) {
+                          afl_queue_global_t *global_queue) {
 
   engine->executor = executor;
   engine->fuzz_one = fuzz_one;
@@ -59,13 +59,13 @@ afl_ret_t afl_engine_init(afl_engine_t *engine, afl_executor_t *executor, afl_fu
   engine->funcs.load_testcases_from_dir = afl_load_testcases_from_dir_default;
   engine->funcs.loop = afl_loop_default;
   engine->funcs.handle_new_message = afl_handle_new_message_default;
-  afl_ret_t ret = afl_rand_init(&engine->rnd);
+  afl_ret_t ret = afl_rand_init(&engine->rand);
 
   engine->buf = NULL;
 
   if (ret != AFL_RET_SUCCESS) { return ret; }
 
-  engine->id = afl_rand_next(&engine->rnd);
+  engine->id = afl_rand_next(&engine->rand);
 
   return AFL_RET_SUCCESS;
 
@@ -77,7 +77,7 @@ void afl_engine_deinit(afl_engine_t *engine) {
   /* Let's free everything associated with the engine here, except the queues,
    * should we leave anything else? */
 
-  afl_rand_deinit(&engine->rnd);
+  afl_rand_deinit(&engine->rand);
 
   engine->fuzz_one = NULL;
   engine->executor = NULL;
@@ -99,7 +99,7 @@ void afl_engine_deinit(afl_engine_t *engine) {
 
 }
 
-afl_global_queue_t *afl_get_queue_default(afl_engine_t *engine) {
+afl_queue_global_t *afl_get_queue_default(afl_engine_t *engine) {
 
   return engine->global_queue;
 
@@ -131,7 +131,7 @@ void afl_set_fuzz_one_default(afl_engine_t *engine, afl_fuzz_one_t *fuzz_one) {
 
 }
 
-void afl_set_global_queue_default(afl_engine_t *engine, afl_global_queue_t *global_queue) {
+void afl_set_global_queue_default(afl_engine_t *engine, afl_queue_global_t *global_queue) {
 
   engine->global_queue = global_queue;
 
@@ -152,14 +152,14 @@ afl_ret_t afl_add_feedback_default(afl_engine_t *engine, afl_feedback_t *feedbac
 }
 
 afl_ret_t afl_load_testcases_from_dir_default(afl_engine_t *engine, char *dirpath,
-                                              afl_raw_input_t *(*custom_input_new)()) {
+                                              afl_input_t *(*custom_input_new)()) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
   char           infile[PATH_MAX];
   size_t         i;
 
-  afl_raw_input_t *input;
+  afl_input_t *input;
   size_t           dir_name_size = strlen(dirpath);
 
   if (dirpath[dir_name_size - 1] == '/') { dirpath[dir_name_size - 1] = '\x00'; }
@@ -220,10 +220,10 @@ afl_ret_t afl_load_testcases_from_dir_default(afl_engine_t *engine, char *dirpat
 
     for (i = 0; i < engine->feedbacks_count; ++i) {
 
-      afl_raw_input_t *copy = input->funcs.copy(input);
+      afl_input_t *copy = input->funcs.copy(input);
       if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
-      afl_queue_entry_t *entry = afl_queue_entry_new(copy);
+      afl_queueentry_t *entry = afl_queueentry_new(copy);
       engine->feedbacks[i]->queue->base.funcs.add_to_queue(&engine->feedbacks[i]->queue->base, entry);
 
     }
@@ -254,7 +254,7 @@ void afl_handle_new_message_default(afl_engine_t *engine, llmp_message_t *msg) {
     for (i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
       engine->global_queue->feedback_queues[i]->base.funcs.add_to_queue(&engine->global_queue->feedback_queues[i]->base,
-                                                                        (afl_queue_entry_t *)msg->buf);
+                                                                        (afl_queueentry_t *)msg->buf);
 
     }
 
@@ -262,7 +262,7 @@ void afl_handle_new_message_default(afl_engine_t *engine, llmp_message_t *msg) {
 
 }
 
-u8 afl_execute_default(afl_engine_t *engine, afl_raw_input_t *input) {
+u8 afl_execute_default(afl_engine_t *engine, afl_input_t *input) {
 
   size_t          i;
   afl_executor_t *executor = engine->executor;
@@ -273,7 +273,7 @@ u8 afl_execute_default(afl_engine_t *engine, afl_raw_input_t *input) {
 
   if (engine->start_time == 0) { engine->start_time = time(NULL); }
 
-  exit_type_t run_result = executor->funcs.run_target_cb(executor);
+  afl_exit_t run_result = executor->funcs.run_target_cb(executor);
 
   engine->executions++;
 
@@ -292,8 +292,8 @@ u8 afl_execute_default(afl_engine_t *engine, afl_raw_input_t *input) {
 
   switch (run_result) {
 
-    case NORMAL:
-    case TIMEOUT:
+    case AFL_EXIT_OK:
+    case AFL_EXIT_TIMEOUT:
       return AFL_RET_SUCCESS;
     default: {
 

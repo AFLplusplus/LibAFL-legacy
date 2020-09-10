@@ -1,12 +1,21 @@
+/* This file includes return codes for libafl. */
+
+
 #ifndef AFL_RETURNS_H
 #define AFL_RETURNS_H
 
 #include <errno.h>
 #include <string.h>
 
+/* Shorthand to check for RET_SUCCESS */
+#define AFL_OK(expr) ((expr) == AFL_RET_SUCCESS)
+
+/* Shorthand to check for RET_SUCCESS and assign to ret */
+#define AFL_OK_RET(expr, ret) ((ret = x) == AFL_RET_SUCCESS)
+
 typedef enum afl_ret {
 
-  AFL_RET_SUCCESS,
+  AFL_RET_SUCCESS = 0,
   AFL_RET_UNKNOWN_ERROR,
   AFL_RET_ALLOC,
   AFL_RET_FILE_OPEN_ERROR,

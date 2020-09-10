@@ -27,7 +27,7 @@
 
 struct stage_functions {
 
-  afl_ret_t (*perform)(afl_stage_t *, afl_raw_input_t *input);
+  afl_ret_t (*perform)(afl_stage_t *, afl_input_t *input);
   size_t (*iterations)(afl_stage_t *);  // A function which tells how many mutated
                                     // inputs to generate out of a given input
 
@@ -40,7 +40,7 @@ struct afl_stage {
 
 };
 
-afl_ret_t afl_perform_stage_default(afl_stage_t *, afl_raw_input_t *);
+afl_ret_t afl_perform_stage_default(afl_stage_t *, afl_input_t *);
 size_t    afl_iterations_stage_default(afl_stage_t *);
 afl_ret_t afl_stage_init(afl_stage_t *, afl_engine_t *);
 void      afl_stage_deinit(afl_stage_t *);
@@ -74,12 +74,12 @@ phase, or the havoc phase. Since each of the stages can have their own mutators,
 a list of mutators can be added to the stage.
 */
 
-typedef struct fuzzing_stage afl_fuzzing_afl_stage_t;
+typedef struct fuzzing_stage afl_fuzzing_stage_t;
 
 struct fuzzing_stage_functions {
 
   /* Change the void pointer to a mutator * once it is ready */
-  afl_ret_t (*add_afl_mutator_to_stage)(afl_fuzzing_afl_stage_t *, afl_mutator_t *);
+  afl_ret_t (*add_mutator_to_stage)(afl_fuzzing_stage_t *, afl_mutator_t *);
 
 };
 
@@ -95,14 +95,14 @@ struct fuzzing_stage {
 
 };
 
-afl_ret_t afl_add_afl_mutator_to_stage_default(afl_fuzzing_afl_stage_t *, afl_mutator_t *);
+afl_ret_t afl_add_mutator_to_stage_default(afl_fuzzing_stage_t *, afl_mutator_t *);
 
-afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_afl_stage_t *, afl_engine_t *);
-void      afl_fuzzing_stage_deinit(afl_fuzzing_afl_stage_t *);
+afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_stage_t *, afl_engine_t *);
+void      afl_fuzzing_stage_deinit(afl_fuzzing_stage_t *);
 
-static inline afl_fuzzing_afl_stage_t *afl_fuzzing_stage_new(afl_engine_t *engine) {
+static inline afl_fuzzing_stage_t *afl_fuzzing_stage_new(afl_engine_t *engine) {
 
-  afl_fuzzing_afl_stage_t *stage = calloc(1, sizeof(afl_fuzzing_afl_stage_t));
+  afl_fuzzing_stage_t *stage = calloc(1, sizeof(afl_fuzzing_stage_t));
   if (!stage) { return NULL; }
   if (afl_fuzzing_stage_init(stage, engine) != AFL_RET_SUCCESS) {
 
@@ -115,7 +115,7 @@ static inline afl_fuzzing_afl_stage_t *afl_fuzzing_stage_new(afl_engine_t *engin
 
 }
 
-static inline void afl_fuzz_stage_delete(afl_fuzzing_afl_stage_t *fuzz_stage) {
+static inline void afl_fuzz_stage_delete(afl_fuzzing_stage_t *fuzz_stage) {
 
   afl_stage_deinit(&fuzz_stage->base);
   free(fuzz_stage);

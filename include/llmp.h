@@ -56,7 +56,7 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 #include <pthread.h>
 
 #include "afl-returns.h"
-#include "afl-shmem.h"  // for sharedmem
+#include "shmem.h"  // for sharedmem
 #include "types.h"
 
 /* We'll start of with 256 megabyte per fuzzer */

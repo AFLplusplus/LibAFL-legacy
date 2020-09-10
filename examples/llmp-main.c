@@ -8,7 +8,7 @@ Example main for llmp.
 #include "debug.h"
 #include "types.h"
 #include "llmp.h"
-#include "afl-rand.h"
+#include "rand.h"
 
 /* Just a u32 in a msg, for testing purposes */
 #define LLMP_TAG_RANDOM_U32_V1 (0x344D011)
