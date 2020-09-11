@@ -37,10 +37,9 @@
 #ifdef AFL_DEBUG
   #define DBG(...) ACTF("(mutators) " __VA_ARGS__)
 #else
-  #define DBG(...) {}
+  #define DBG(...) \
+    {}
 #endif
-
-
 
 afl_ret_t afl_mutator_init(afl_mutator_t *mutator, afl_engine_t *engine) {
 
@@ -126,8 +125,7 @@ size_t afl_mutate_scheduled_mutator(afl_mutator_t *mutator, afl_input_t *input) 
   size_t                   i;
   for (i = 0; i < scheduled_mutator->funcs.iterations(scheduled_mutator); ++i) {
 
-    scheduled_mutator->mutations[scheduled_mutator->funcs.schedule(scheduled_mutator)](&scheduled_mutator->base,
-                                                                                             input);
+    scheduled_mutator->mutations[scheduled_mutator->funcs.schedule(scheduled_mutator)](&scheduled_mutator->base, input);
 
   }
 
@@ -440,3 +438,4 @@ void mutator_splice(afl_mutator_t *mutator, afl_input_t *input) {
 }
 
 #undef DBG
+

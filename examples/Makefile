@@ -71,7 +71,7 @@ test: clean forking-fuzzer target
 	rm -rf ./crashes-* 2>/dev/null || trues
 
 clean:
-	rm out executor target success in-memory-fuzzer 2>/dev/null || true
+	rm  out forking-fuzzer target success in-memory-fuzzer llmp-main 2>/dev/null || true
 	rm -rf in 2>/dev/null	|| true
 	rm -rf crashes-* 2>/dev/null || true
 	rm -rf llmp-main || true

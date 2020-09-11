@@ -111,7 +111,7 @@ afl_ret_t afl_queue_init(afl_queue_t *queue) {
   queue->funcs.get_names_id = afl_queue_get_names_id;
   queue->funcs.get_save_to_files = afl_queue_should_save_to_file;
   queue->funcs.set_dirpath = afl_queue_set_dirpath;
-  queue->funcs.set_engine = afl_queue_global_register_with_engine;
+  queue->funcs.set_engine = afl_queue_set_engine;
   queue->funcs.get_next_in_queue = afl_queue_next_base_queue;
 
   return AFL_RET_SUCCESS;
@@ -329,12 +329,14 @@ afl_ret_t afl_queue_global_init(afl_queue_global_t *global_queue) {
   afl_queue_init(&(global_queue->base));
 
   global_queue->feedback_queues_count = 0;
+  global_queue->feedback_queues = NULL;
 
   global_queue->base.funcs.set_engine = afl_queue_global_register_with_engine;
 
   global_queue->funcs.add_feedback_queue = afl_queue_global_add_feedback_queue;
   global_queue->funcs.schedule = afl_queue_global_schedule;
   global_queue->base.funcs.get_next_in_queue = afl_queue_next_global_queue;
+  global_queue->base.funcs.set_engine = afl_queue_global_register_with_engine;
 
   return AFL_RET_SUCCESS;
 
