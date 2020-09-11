@@ -168,9 +168,11 @@ void test_input_save_to_file(void **state) {
 
   int fd = open(fname, O_RDONLY);
 
-  int read_len = read(fd, read_string, 22);
+  int read_len = read(fd, &read_string, strlen(test_string));
+  assert_int_equal(read_len, strlen(test_string));
+  read_string[strlen(test_string)] = '\0';
 
-  assert_string_equal(input.bytes, read_string);
+  assert_string_equal(input.bytes, &read_string);
   assert_int_equal(input.len, read_len);
 
   close(fd);

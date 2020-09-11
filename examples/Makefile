@@ -17,6 +17,11 @@ ifdef ASAN
   override CFLAGS += -fsanitize=address -fno-omit-frame-pointer
   override LDFLAGS += -fsanitize=address
 endif
+ifdef MSAN
+  CC := clang
+  override CFLAGS += -fsanitize=memory -fno-omit-frame-pointer
+  override LDFLAGS += -fsanitize=memory
+endif
 
 $(info AFL_PATH is $(AFL_PATH))
 

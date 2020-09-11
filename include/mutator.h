@@ -88,7 +88,7 @@ struct afl_mutator_scheduled {
   afl_mutator_func *mutations;  // A ptr to an array of mutation operator
                                 // functions
   size_t                             mutators_count;
-  struct afl_mutator_scheduled_funcs extra_funcs;
+  struct afl_mutator_scheduled_funcs funcs;
   size_t                             max_iterations;
 
 };

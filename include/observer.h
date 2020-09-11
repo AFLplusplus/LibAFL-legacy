@@ -103,7 +103,7 @@ struct map_based_channel {
 
   afl_shmem_t shared_map;
 
-  struct map_based_channel_functions extra_funcs;
+  struct map_based_channel_functions funcs;
 
 };
 

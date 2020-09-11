@@ -190,7 +190,7 @@ afl_ret_t afl_queue_insert(afl_queue_t *queue, afl_entry_t *entry) {
   queue->entries[queue->entries_count] = entry;
 
   /* Let's save the entry to disk */
-  if (queue->save_to_files && queue->dirpath && !entry->on_disk) {
+  if (queue->save_to_files && queue->dirpath[0] && !entry->on_disk) {
 
     u64 input_data_checksum = XXH64(entry->input->bytes, entry->input->len, HASH_CONST);
 
@@ -253,7 +253,7 @@ void afl_queue_set_dirpath(afl_queue_t *queue, char *new_dirpath) {
 
   queue->save_to_files = true;
   // If the dirpath is empty, we make the save_to_files bool as false
-  if (!queue->dirpath) { queue->save_to_files = false; }
+  if (!queue->dirpath[0]) { queue->save_to_files = false; }
 
 }
 
@@ -332,8 +332,8 @@ afl_ret_t afl_queue_global_init(afl_queue_global_t *global_queue) {
 
   global_queue->base.funcs.set_engine = afl_queue_global_register_with_engine;
 
-  global_queue->extra_funcs.add_feedback_queue = afl_queue_global_add_feedback_queue;
-  global_queue->extra_funcs.schedule = afl_queue_global_schedule;
+  global_queue->funcs.add_feedback_queue = afl_queue_global_add_feedback_queue;
+  global_queue->funcs.schedule = afl_queue_global_schedule;
   global_queue->base.funcs.get_next_in_queue = afl_queue_next_global_queue;
 
   return AFL_RET_SUCCESS;
@@ -385,7 +385,7 @@ afl_entry_t *afl_queue_next_global_queue(afl_queue_t *queue, int engine_id) {
   // scheduled_mutator rather than the mutator as an argument.
   afl_queue_global_t *global_queue = (afl_queue_global_t *)queue;
 
-  int fbck_idx = global_queue->extra_funcs.schedule(global_queue);
+  int fbck_idx = global_queue->funcs.schedule(global_queue);
 
   if (fbck_idx != -1) {
 

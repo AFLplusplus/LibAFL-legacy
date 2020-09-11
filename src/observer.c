@@ -77,8 +77,8 @@ afl_ret_t afl_map_channel_init(afl_map_based_channel_t *map_channel, size_t map_
 
   map_channel->base.funcs.reset = afl_map_channel_reset;
 
-  map_channel->extra_funcs.get_map_size = afl_get_map_size;
-  map_channel->extra_funcs.get_trace_bits = afl_get_trace_bits;
+  map_channel->funcs.get_map_size = afl_get_map_size;
+  map_channel->funcs.get_trace_bits = afl_get_trace_bits;
 
   return AFL_RET_SUCCESS;
 

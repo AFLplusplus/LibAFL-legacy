@@ -194,7 +194,7 @@ afl_queue_global_t *global_queue = afl_queue_global_new(NULL); // NULL is for th
 afl_queue_feedback_t * feedback_queue = afl_queue_feedback_new(feedback, "Timeout feedback queue");
 
 // Let's add it to the global queue
-global_queue->extra_funcs.add_feedback_queue(feedback_queue);   // Notice how we actually use extra_funcs instead of funcs, this is because global_queue is extended from base_queue and required a few extra function pointers, thus this. 
+global_queue->funcs.add_feedback_queue(feedback_queue);   // Notice how we actually use funcs instead of funcs, this is because global_queue is extended from base_queue and required a few extra function pointers, thus this. 
 
 ```
 It's totally upto the user to redefine the queue's scheduling algorithms (both global and feedback queue's) according to their needs

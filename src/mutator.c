@@ -31,6 +31,16 @@
 #include "stage.h"
 #include "alloc-inl.h"
 #include "config.h"
+#include "debug.h"
+
+/* all the debug prints */
+#ifdef AFL_DEBUG
+  #define DBG(...) ACTF("(mutators) " __VA_ARGS__)
+#else
+  #define DBG(...) {}
+#endif
+
+
 
 afl_ret_t afl_mutator_init(afl_mutator_t *mutator, afl_engine_t *engine) {
 
@@ -51,9 +61,9 @@ afl_ret_t afl_mutator_scheduled_init(afl_mutator_scheduled_t *sched_mut, afl_eng
   AFL_TRY(afl_mutator_init(&(sched_mut->base), engine), { return err; });
 
   sched_mut->base.funcs.mutate = afl_mutate_scheduled_mutator;
-  sched_mut->extra_funcs.add_mutator = afl_mutator_add;
-  sched_mut->extra_funcs.iterations = afl_iterations;
-  sched_mut->extra_funcs.schedule = afl_schedule;
+  sched_mut->funcs.add_mutator = afl_mutator_add;
+  sched_mut->funcs.iterations = afl_iterations;
+  sched_mut->funcs.schedule = afl_schedule;
 
   sched_mut->max_iterations = (max_iterations > 0) ? max_iterations : 7;
   return AFL_RET_SUCCESS;
@@ -114,9 +124,9 @@ size_t afl_mutate_scheduled_mutator(afl_mutator_t *mutator, afl_input_t *input) 
   // scheduled_mutator rather than the mutator as an argument.
   afl_mutator_scheduled_t *scheduled_mutator = (afl_mutator_scheduled_t *)mutator;
   size_t                   i;
-  for (i = 0; i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator); ++i) {
+  for (i = 0; i < scheduled_mutator->funcs.iterations(scheduled_mutator); ++i) {
 
-    scheduled_mutator->mutations[scheduled_mutator->extra_funcs.schedule(scheduled_mutator)](&scheduled_mutator->base,
+    scheduled_mutator->mutations[scheduled_mutator->funcs.schedule(scheduled_mutator)](&scheduled_mutator->base,
                                                                                              input);
 
   }
@@ -158,7 +168,7 @@ static size_t choose_block_len(afl_rand_t *rand, size_t limit) {
 
   if (min_value >= limit) { min_value = 1; }
 
-  return min_value + afl_rand_below(rand, MIN(max_value, limit)) - min_value + 1;
+  return afl_rand_between(rand, min_value, MIN(max_value, limit));
 
 }
 
@@ -429,3 +439,4 @@ void mutator_splice(afl_mutator_t *mutator, afl_input_t *input) {
 
 }
 
+#undef DBG

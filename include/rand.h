@@ -83,6 +83,13 @@ static inline u64 afl_rand_below(afl_rand_t *rnd, u64 limit) {
 
 }
 
+/* A random number between min and max, both inclusive */
+static inline u64 afl_rand_between(afl_rand_t *rand, u64 min, u64 max) {
+  return min + afl_rand_below(rand, max - min + 1);
+}
+
+
+
 /* initialize with a fixed seed (for reproducability) */
 static inline afl_ret_t afl_rand_init_fixed_seed(afl_rand_t *rnd, s64 init_seed) {
 

@@ -18,8 +18,8 @@ typedef struct client_stats {
 /* stats about the current run */
 typedef struct fuzzer_stats {
 
-  u64                  queue_entry_count;
-  struct client_stats *clients;
+  u64                   queue_entry_count;
+  struct client_stats   *clients;
 
 } fuzzer_stats_t;
 
@@ -27,7 +27,7 @@ extern u8 *__afl_area_ptr;
 
 afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
 
-  (void)executor;
+  (void) executor;
 
   png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
@@ -46,7 +46,7 @@ afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
 
 u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
-  size_t          i;
+  size_t      i;
   afl_executor_t *executor = engine->executor;
 
   executor->funcs.observers_reset(executor);
@@ -106,7 +106,7 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
 }
 
-/* This initializeds the fuzzer */
+/* This initializeds the fuzzer */ 
 afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
   /* Let's create an in-memory executor */
@@ -137,7 +137,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
   /* Global queue creation */
   afl_queue_global_t *global_queue = afl_queue_global_new();
   if (!global_queue) { FATAL("Error initializing global queue"); }
-  global_queue->extra_funcs.add_feedback_queue(global_queue, coverage_feedback_queue);
+  global_queue->funcs.add_feedback_queue(global_queue, coverage_feedback_queue);
   global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
 
   /* Coverage Feedback initialization */
@@ -162,16 +162,16 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
   afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_byte);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_2_bytes);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_4_bytes);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_delete_bytes);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_clone_bytes);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_bit);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_2_bits);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_flip_4_bits);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte_add_sub);
-  mutators_havoc->extra_funcs.add_mutator(mutators_havoc, mutator_random_byte);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_byte);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_2_bytes);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_4_bytes);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_delete_bytes);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_clone_bytes);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_bit);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_2_bits);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_4_bits);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_random_byte_add_sub);
+  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_random_byte);
 
   afl_fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }
@@ -194,10 +194,13 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
   afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
 
   /* Now we can simply load the testcases from the directory given */
-  AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL),
-          { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); });
+  AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL), {
+    PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); 
+  });
 
-  AFL_TRY(engine->funcs.loop(engine), { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err)); });
+  AFL_TRY(engine->funcs.loop(engine), {
+    PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err));
+  });
 
   SAYF("Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n", engine->executions);
 
@@ -249,7 +252,11 @@ bool message_hook(llmp_broker_t *broker, llmp_client_state_t *client, llmp_messa
 
 int main(int argc, char **argv) {
 
-  if (argc < 4) { FATAL("Usage: ./in-memory-fuzzer number_of_threads /path/to/input/dir /path/to/queue/dir"); }
+  if (argc < 4) {
+
+    FATAL("Usage: ./in-memory-fuzzer number_of_threads /path/to/input/dir /path/to/queue/dir");
+
+  }
 
   s32 i = 0;
   int status = 0;
@@ -324,9 +331,7 @@ int main(int argc, char **argv) {
       time_prev = time_cur;
       u64 total_execs = 0;
       for (i = 0; i < thread_count; i++) {
-
         total_execs += fuzzer_stats.clients[i].total_execs;
-
       }
 
       /* TODO: Send heartbeat messages from clients for more stats :) */
