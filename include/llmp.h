@@ -280,8 +280,7 @@ the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also be added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
-bool llmp_broker_register_childprocess_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop,
-                                                  void *data);
+bool llmp_broker_register_childprocess_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop, void *data);
 
 /* Client thread will be called with llmp_client_state_t client, containing the
 data in ->data. This will register a client to be spawned up as soon as

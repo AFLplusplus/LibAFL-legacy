@@ -52,17 +52,16 @@ struct afl_entry_funcs {
   afl_entry_t *(*get_next)(afl_entry_t *);
   afl_entry_t *(*get_prev)(afl_entry_t *);
   afl_entry_t *(*get_parent)(afl_entry_t *);
-  afl_entry_t *(*get_child)(afl_entry_t *,
-                                  size_t);                 /*TODO: Still need to add a base implementation for this.*/
+  afl_entry_t *(*get_child)(afl_entry_t *, size_t);        /*TODO: Still need to add a base implementation for this.*/
 
 };
 
 struct afl_entry {
 
-  afl_input_t *   input;
-  bool                on_disk;
-  char                filename[FILENAME_LEN_MAX];
-  struct afl_queue * queue;
+  afl_input_t *     input;
+  bool              on_disk;
+  char              filename[FILENAME_LEN_MAX];
+  struct afl_queue *queue;
   struct afl_entry *next;
   struct afl_entry *prev;
   struct afl_entry *parent;
@@ -77,7 +76,7 @@ void      afl_entry_deinit(afl_entry_t *);
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_entry, AFL_DECL_PARAMS(afl_input_t *input), AFL_CALL_PARAMS(input))
 
 // Default implementations for the functions for queue_entry vtable
-afl_input_t *  afl_entry_get_input(afl_entry_t *entry);
+afl_input_t *afl_entry_get_input(afl_entry_t *entry);
 afl_entry_t *afl_entry_get_next(afl_entry_t *entry);
 afl_entry_t *afl_entry_get_prev(afl_entry_t *entry);
 afl_entry_t *afl_entry_get_parent(afl_entry_t *entry);
@@ -104,17 +103,17 @@ struct afl_queue_funcs {
 
 struct afl_queue {
 
-  afl_entry_t **        entries;
-  size_t                      entries_count;
-  afl_entry_t *         base;
-  u64                         current;
-  int                         engine_id;
-  afl_engine_t *              engine;
-  afl_entry_t *         end;
-  char                        dirpath[PATH_MAX];
-  size_t                      names_id;
-  bool                        save_to_files;
-  bool                        fuzz_started;
+  afl_entry_t **         entries;
+  size_t                 entries_count;
+  afl_entry_t *          base;
+  u64                    current;
+  int                    engine_id;
+  afl_engine_t *         engine;
+  afl_entry_t *          end;
+  char                   dirpath[PATH_MAX];
+  size_t                 names_id;
+  bool                   save_to_files;
+  bool                   fuzz_started;
   struct afl_queue_funcs funcs;
 
 };
@@ -124,13 +123,13 @@ struct afl_queue {
 afl_ret_t afl_queue_init(afl_queue_t *);
 void      afl_queue_deinit(afl_queue_t *);
 
-afl_ret_t      afl_queue_insert(afl_queue_t *, afl_entry_t *);
-size_t         afl_queue_get_size(afl_queue_t *);
-char *         afl_queue_get_dirpath(afl_queue_t *);
-size_t         afl_queue_get_names_id(afl_queue_t *);
-bool           afl_queue_should_save_to_file(afl_queue_t *);
-void           afl_queue_set_dirpath(afl_queue_t *, char *);
-void           afl_queue_global_set_engine(afl_queue_t *, afl_engine_t *);
+afl_ret_t    afl_queue_insert(afl_queue_t *, afl_entry_t *);
+size_t       afl_queue_get_size(afl_queue_t *);
+char *       afl_queue_get_dirpath(afl_queue_t *);
+size_t       afl_queue_get_names_id(afl_queue_t *);
+bool         afl_queue_should_save_to_file(afl_queue_t *);
+void         afl_queue_set_dirpath(afl_queue_t *, char *);
+void         afl_queue_global_set_engine(afl_queue_t *, afl_engine_t *);
 afl_entry_t *afl_queue_next_base_queue(afl_queue_t *queue, int engine_id);
 
 AFL_NEW_AND_DELETE_FOR(afl_queue)
@@ -140,7 +139,7 @@ typedef struct afl_feedback_queue {
   afl_queue_t base;  // Inheritence from base queue
 
   struct afl_feedback *feedback;
-  char *           name;
+  char *               name;
 
 } afl_queue_feedback_t;
 
@@ -184,7 +183,7 @@ struct afl_queue_global_funcs {
 
 struct afl_queue_global {
 
-  afl_queue_t       base;
+  afl_queue_t            base;
   afl_queue_feedback_t **feedback_queues;  // One global queue can have
                                            // multiple feedback queues
 

@@ -155,8 +155,8 @@ afl_ret_t afl_perform_stage(afl_stage_t *stage, afl_input_t *input) {
 
     for (j = 0; j < stage->engine->feedbacks_count; ++j) {
 
-      append = append || stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j],
-                                                                                       stage->engine->executor);
+      append = append ||
+               stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j], stage->engine->executor);
 
     }
 

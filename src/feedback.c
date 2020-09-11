@@ -74,12 +74,11 @@ afl_queue_feedback_t *afl_get_feedback_queue(afl_feedback_t *feedback) {
 
 /* Map feedback. Can be easily used with a tracebits map similar to AFL++ */
 
-afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, size_t size, size_t channel_id) {
+afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, size_t size,
+                                size_t channel_id) {
 
   feedback->virgin_bits = calloc(1, size);
-  if (!feedback->virgin_bits) {
-    return AFL_RET_ALLOC;
-  }
+  if (!feedback->virgin_bits) { return AFL_RET_ALLOC; }
   memset(feedback->virgin_bits, 0xff, size);
   feedback->size = size;
   feedback->base.funcs.is_interesting = afl_feedback_cov_is_interesting;

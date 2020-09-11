@@ -40,8 +40,10 @@ afl_exit_t exec_debug(afl_executor_t *executor, uint8_t *data, size_t size) {
 }
 
 int exec(afl_executor_t *executor, const uint8_t *data, size_t size) {
-  (void) executor;
+
+  (void)executor;
   return LLVMFuzzerTestOneInput(data, size);
+
 }
 
 static afl_ret_t in_memory_fuzzer_start(afl_executor_t *executor) {
@@ -76,8 +78,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
   afl_map_based_channel_t *trace_bits_channel = calloc(1, sizeof(afl_map_based_channel_t));
-  if (!trace_bits_channel ||
-      afl_observer_init(&trace_bits_channel->base, MAP_CHANNEL_ID) != AFL_RET_SUCCESS) {
+  if (!trace_bits_channel || afl_observer_init(&trace_bits_channel->base, MAP_CHANNEL_ID) != AFL_RET_SUCCESS) {
 
     FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC));
     exit(-1);
@@ -274,7 +275,7 @@ int main(int argc, char **argv) {
 
   }
 
-  int broker_port = 0xAF1;
+  int            broker_port = 0xAF1;
   llmp_broker_t *llmp_broker = llmp_broker_new();
   if (!llmp_broker) {
 

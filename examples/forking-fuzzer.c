@@ -41,7 +41,7 @@ typedef struct timeout_obs_channel {
 } timeout_obs_channel_t;
 
 llmp_broker_t *llmp_broker;
-int                  broker_port;
+int            broker_port;
 
 /* Execute target application, monitoring for timeouts. Return status
    information. The called program will update afl->fsrv->trace_bits. */
@@ -280,15 +280,12 @@ void fuzzer_process_main(llmp_client_state_t *client, void *data) {
   /* Let's reduce the timeout initially to fill the queue */
   fsrv->exec_tmout = 20;
   /* Now we can simply load the testcases from the directory given */
-  AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL), {
-    PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); 
-  });
+  AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL),
+          { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); });
 
   OKF("Processed %llu input files.", engine->executions);
 
-  AFL_TRY(engine->funcs.loop(engine), {
-    PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err));
-  });
+  AFL_TRY(engine->funcs.loop(engine), { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err)); });
 
   SAYF("Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n", engine->executions);
 

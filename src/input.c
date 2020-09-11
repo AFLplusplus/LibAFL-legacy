@@ -113,25 +113,31 @@ afl_ret_t afl_input_load_from_file(afl_input_t *input, char *fname) {
 
   if (fd < 0) { return AFL_RET_FILE_OPEN_ERROR; }
 
-  if (fstat(fd, &st) || !st.st_size) { 
+  if (fstat(fd, &st) || !st.st_size) {
+
     close(fd);
     return AFL_RET_FILE_SIZE;
+
   }
 
   input->len = st.st_size;
   input->bytes = calloc(input->len + 1, 1);
-  if (!input->bytes) { 
+  if (!input->bytes) {
+
     close(fd);
     return AFL_RET_ALLOC;
+
   }
 
   ssize_t ret = read(fd, input->bytes, input->len);
   close(fd);
 
-  if (ret < 0 || (size_t)ret != input->len) { 
+  if (ret < 0 || (size_t)ret != input->len) {
+
     free(input->bytes);
     input->bytes = NULL;
     return AFL_RET_SHORT_READ;
+
   }
 
   return AFL_RET_SUCCESS;

@@ -48,9 +48,7 @@ void afl_mutator_deinit(afl_mutator_t *mutator) {
 
 afl_ret_t afl_mutator_scheduled_init(afl_mutator_scheduled_t *sched_mut, afl_engine_t *engine, size_t max_iterations) {
 
-  AFL_TRY(afl_mutator_init(&(sched_mut->base), engine), {
-    return err;
-  });
+  AFL_TRY(afl_mutator_init(&(sched_mut->base), engine), { return err; });
 
   sched_mut->base.funcs.mutate = afl_mutate_scheduled_mutator;
   sched_mut->extra_funcs.add_mutator = afl_mutator_add;
@@ -115,7 +113,7 @@ size_t afl_mutate_scheduled_mutator(afl_mutator_t *mutator, afl_input_t *input) 
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
   afl_mutator_scheduled_t *scheduled_mutator = (afl_mutator_scheduled_t *)mutator;
-  size_t                       i;
+  size_t                   i;
   for (i = 0; i < scheduled_mutator->extra_funcs.iterations(scheduled_mutator); ++i) {
 
     scheduled_mutator->mutations[scheduled_mutator->extra_funcs.schedule(scheduled_mutator)](&scheduled_mutator->base,
@@ -382,7 +380,7 @@ void mutator_splice(afl_mutator_t *mutator, afl_input_t *input) {
 
     size_t random_queue_idx =
         afl_rand_below(&engine->rand, global_queue->feedback_queues_count + 1);  // +1 so that we can also grab a queue
-                                                                                // entry from the global_queue
+                                                                                 // entry from the global_queue
 
     if (random_queue_idx < global_queue->feedback_queues_count) {
 
@@ -390,7 +388,8 @@ void mutator_splice(afl_mutator_t *mutator, afl_input_t *input) {
       afl_queue_feedback_t *random_fbck_queue = global_queue->feedback_queues[random_queue_idx];
       splice_input =
           (random_fbck_queue->base.entries_count > 0)
-              ? random_fbck_queue->base.entries[afl_rand_below(&engine->rand, random_fbck_queue->base.entries_count)]->input
+              ? random_fbck_queue->base.entries[afl_rand_below(&engine->rand, random_fbck_queue->base.entries_count)]
+                    ->input
               : NULL;
 
       if (splice_input && !splice_input->bytes) { splice_input = NULL; }

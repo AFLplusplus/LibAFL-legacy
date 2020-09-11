@@ -1313,8 +1313,7 @@ the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also be added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
-bool llmp_broker_register_childprocess_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop,
-                                                  void *data) {
+bool llmp_broker_register_childprocess_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop, void *data) {
 
   afl_shmem_t client_map = {.map = NULL};
 
@@ -1371,8 +1370,7 @@ the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
-bool llmp_broker_register_threaded_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop,
-                                              void *data) {
+bool llmp_broker_register_threaded_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop, void *data) {
 
   /* We do a little dance with two sharedmaps, as the threaded clients
     reuse the client_state struct as they share the heap. If we were to
@@ -1510,7 +1508,9 @@ void llmp_broker_deinit(llmp_broker_t *broker) {
 
   size_t i;
   for (i = 0; i < broker->broadcast_map_count; i++) {
+
     afl_shmem_deinit(&broker->broadcast_maps[i]);
+
   }
 
   for (i = 0; i < broker->llmp_client_count; i++) {
@@ -1518,7 +1518,7 @@ void llmp_broker_deinit(llmp_broker_t *broker) {
     afl_shmem_deinit(broker->llmp_clients[i].cur_client_map);
     free(broker->llmp_clients[i].cur_client_map);
     // TODO: Properly clean up the client
-        
+
   }
 
   afl_free(broker->broadcast_maps);

@@ -180,50 +180,50 @@
 
 /* Show a prefixed warning. */
 
-#define WARNF(...)                            \
-  do {                                         \
-                                               \
+#define WARNF(...)                                       \
+  do {                                                   \
+                                                         \
     SAYF(cYEL "[!] " cBRI "WARNING: " cRST __VA_ARGS__); \
-    SAYF(cRST "\n");                           \
-                                               \
+    SAYF(cRST "\n");                                     \
+                                                         \
   } while (0)
 
 /* Show a prefixed "doing something" message. */
 
-#define ACTF(...)            \
-  do {                        \
-                              \
+#define ACTF(...)                       \
+  do {                                  \
+                                        \
     SAYF(cLBL "[*] " cRST __VA_ARGS__); \
-    SAYF(cRST "\n");          \
-                              \
+    SAYF(cRST "\n");                    \
+                                        \
   } while (0)
 
 /* Show a prefixed "success" message. */
 
-#define OKF(...)             \
-  do {                        \
-                              \
+#define OKF(...)                        \
+  do {                                  \
+                                        \
     SAYF(cLGN "[+] " cRST __VA_ARGS__); \
-    SAYF(cRST "\n");          \
-                              \
+    SAYF(cRST "\n");                    \
+                                        \
   } while (0)
 
 /* Show a prefixed fatal error message (not used in afl). */
 
-#define BADF(...)              \
-  do {                          \
-                                \
+#define BADF(...)                         \
+  do {                                    \
+                                          \
     SAYF(cLRD "\n[-] " cRST __VA_ARGS__); \
-    SAYF(cRST "\n");            \
-                                \
+    SAYF(cRST "\n");                      \
+                                          \
   } while (0)
 
 /* Die with a verbose non-OS fatal error message. */
 
-#define FATAL(...)                                                                           \
+#define FATAL(...)                                                                            \
   do {                                                                                        \
                                                                                               \
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST __VA_ARGS__);               \
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST __VA_ARGS__);     \
     SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __func__, __FILE__, __LINE__); \
     exit(1);                                                                                  \
                                                                                               \
@@ -231,10 +231,10 @@
 
 /* Die by calling abort() to provide a core dump. */
 
-#define ABORT(...)                                                                               \
+#define ABORT(...)                                                                                \
   do {                                                                                            \
                                                                                                   \
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST __VA_ARGS__);                   \
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST __VA_ARGS__);         \
     SAYF(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n\n", __FUNCTION__, __FILE__, __LINE__); \
     abort();                                                                                      \
                                                                                                   \
@@ -242,11 +242,11 @@
 
 /* Die while also including the output of perror(). */
 
-#define PFATAL(...)                                                                            \
+#define PFATAL(...)                                                                             \
   do {                                                                                          \
                                                                                                 \
     fflush(stdout);                                                                             \
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-]  SYSTEM ERROR : " cRST __VA_ARGS__);                 \
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-]  SYSTEM ERROR : " cRST __VA_ARGS__);       \
     SAYF(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n", __FUNCTION__, __FILE__, __LINE__); \
     SAYF(cLRD "       OS message : " cRST "%s\n", strerror(errno));                             \
     exit(1);                                                                                    \
@@ -256,13 +256,13 @@
 /* Die with FATAL() or PFATAL() depending on the value of res (used to
    interpret different failure modes for read(), write(), etc). */
 
-#define RPFATAL(res, ...) \
+#define RPFATAL(res, ...)  \
   do {                     \
                            \
     if (res < 0)           \
-      PFATAL(__VA_ARGS__);           \
+      PFATAL(__VA_ARGS__); \
     else                   \
-      FATAL(__VA_ARGS__);            \
+      FATAL(__VA_ARGS__);  \
                            \
   } while (0)
 

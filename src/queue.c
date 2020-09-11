@@ -168,7 +168,7 @@ afl_ret_t afl_queue_insert(afl_queue_t *queue, afl_entry_t *entry) {
     for (i = 0; i < fuzz_one->stages_count; ++i) {
 
       afl_fuzzing_stage_t *stage = (afl_fuzzing_stage_t *)fuzz_one->stages[i];
-      size_t           j;
+      size_t               j;
       for (j = 0; j < stage->mutators_count; ++j) {
 
         if (stage->mutators[j]->funcs.custom_queue_new_entry) {
@@ -390,7 +390,7 @@ afl_entry_t *afl_queue_next_global_queue(afl_queue_t *queue, int engine_id) {
   if (fbck_idx != -1) {
 
     afl_queue_feedback_t *feedback_queue = global_queue->feedback_queues[fbck_idx];
-    afl_entry_t *   next_entry = feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base), engine_id);
+    afl_entry_t *         next_entry = feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base), engine_id);
 
     if (next_entry) {
 
@@ -423,7 +423,7 @@ int afl_queue_global_schedule(afl_queue_global_t *queue) {
 
 void afl_queue_global_set_engine(afl_queue_t *global_queue_base, afl_engine_t *engine) {
 
-  size_t          i;
+  size_t              i;
   afl_queue_global_t *global_queue = (afl_queue_global_t *)global_queue_base;
 
   // First add engine to the global queue itself

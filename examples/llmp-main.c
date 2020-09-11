@@ -20,9 +20,7 @@ void llmp_clientloop_rand_u32(llmp_client_state_t *client, void *data) {
 
   afl_rand_t rnd = {0};
 
-  AFL_TRY(afl_rand_init(&rnd), {
-    FATAL("Error creating rnd! %s", afl_ret_stringify(err));
-  });
+  AFL_TRY(afl_rand_init(&rnd), { FATAL("Error creating rnd! %s", afl_ret_stringify(err)); });
 
   while (1) {
 

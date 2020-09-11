@@ -340,7 +340,7 @@ void test_basic_mutator_functions(void **state) {
   afl_input_delete(copy);
 
   /* Make sure this is an actual string */
-  input.bytes[input.len-1] = '\0';
+  input.bytes[input.len - 1] = '\0';
   copy = input.funcs.copy(&input);
   mutator_delete_bytes(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);

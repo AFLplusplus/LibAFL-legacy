@@ -29,7 +29,7 @@ struct stage_functions {
 
   afl_ret_t (*perform)(afl_stage_t *, afl_input_t *input);
   size_t (*iterations)(afl_stage_t *);  // A function which tells how many mutated
-                                    // inputs to generate out of a given input
+                                        // inputs to generate out of a given input
 
 };
 

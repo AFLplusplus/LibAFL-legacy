@@ -65,25 +65,25 @@ struct afl_engine {
   afl_executor_t *      executor;
   afl_queue_feedback_t *current_feedback_queue;
   afl_feedback_t **     feedbacks;  // We're keeping a pointer of feedbacks here
-                                // to save memory, consideting the original
-                                // feedback would already be allocated
+                                    // to save memory, consideting the original
+                                    // feedback would already be allocated
   u64   executions, start_time, last_update, crashes, feedbacks_count;
   u32   id;
   char *in_dir;  // Input corpus directory
 
   afl_rand_t rand;
 
-  u8 *                    buf;  // Reusable buf for realloc
+  u8 *                   buf;  // Reusable buf for realloc
   struct afl_engine_func funcs;
-  llmp_client_state_t *   llmp_client;  // Our IPC for fuzzer communication
+  llmp_client_state_t *  llmp_client;  // Our IPC for fuzzer communication
 
 };
 
 /* TODO: Add default implementations for load_testcases and execute */
 afl_queue_global_t *afl_get_queue(afl_engine_t *);
 afl_fuzz_one_t *    afl_get_fuzz_one(afl_engine_t *);
-u64             afl_get_execs(afl_engine_t *);
-u64             afl_get_start_time(afl_engine_t *);
+u64                 afl_get_execs(afl_engine_t *);
+u64                 afl_get_start_time(afl_engine_t *);
 
 void      afl_set_fuzz_one(afl_engine_t *, afl_fuzz_one_t *);
 afl_ret_t afl_add_feedback(afl_engine_t *, afl_feedback_t *);
@@ -95,12 +95,13 @@ void      afl_load_zero_testcase(size_t);
 void      afl_handle_new_message(afl_engine_t *, llmp_message_t *);
 
 afl_ret_t afl_loop(afl_engine_t *);  // Not sure about this functions
-                                         // use-case. Was in FFF though.
+                                     // use-case. Was in FFF though.
 
 afl_ret_t afl_engine_init(afl_engine_t *, afl_executor_t *, afl_fuzz_one_t *, afl_queue_global_t *);
 void      afl_engine_deinit(afl_engine_t *);
 
-static inline afl_engine_t *afl_engine_new(afl_executor_t *executor, afl_fuzz_one_t *fuzz_one, afl_queue_global_t *global_queue) {
+static inline afl_engine_t *afl_engine_new(afl_executor_t *executor, afl_fuzz_one_t *fuzz_one,
+                                           afl_queue_global_t *global_queue) {
 
   afl_engine_t *engine = calloc(1, sizeof(afl_engine_t));
   if (!engine) return NULL;

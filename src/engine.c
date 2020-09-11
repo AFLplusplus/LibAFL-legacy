@@ -151,8 +151,7 @@ afl_ret_t afl_add_feedback(afl_engine_t *engine, afl_feedback_t *feedback) {
 
 }
 
-afl_ret_t afl_load_testcases_from_dir(afl_engine_t *engine, char *dirpath,
-                                              afl_input_t *(*custom_input_new)()) {
+afl_ret_t afl_load_testcases_from_dir(afl_engine_t *engine, char *dirpath, afl_input_t *(*custom_input_new)()) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
@@ -160,7 +159,7 @@ afl_ret_t afl_load_testcases_from_dir(afl_engine_t *engine, char *dirpath,
   size_t         i;
 
   afl_input_t *input;
-  size_t           dir_name_size = strlen(dirpath);
+  size_t       dir_name_size = strlen(dirpath);
 
   if (dirpath[dir_name_size - 1] == '/') { dirpath[dir_name_size - 1] = '\x00'; }
 
@@ -253,7 +252,7 @@ void afl_handle_new_message(afl_engine_t *engine, llmp_message_t *msg) {
     for (i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
       engine->global_queue->feedback_queues[i]->base.funcs.insert(&engine->global_queue->feedback_queues[i]->base,
-                                                                        (afl_entry_t *)msg->buf);
+                                                                  (afl_entry_t *)msg->buf);
 
     }
 

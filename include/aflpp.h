@@ -50,10 +50,11 @@ it. See the example forksever executor that we have in examples/
 */
 
 struct afl_executor_funcs {
+
   afl_ret_t (*init_cb)(afl_executor_t *);  // can be NULL
   u8 (*destroy_cb)(afl_executor_t *);      // can be NULL
 
-  afl_exit_t (*run_target_cb)(afl_executor_t *);              // Similar to afl_fsrv_run_target we have in afl
+  afl_exit_t (*run_target_cb)(afl_executor_t *);          // Similar to afl_fsrv_run_target we have in afl
   u8 (*place_input_cb)(afl_executor_t *, afl_input_t *);  // similar to the write_to_testcase function in afl.
 
   afl_observer_t *(*observers_get)(afl_executor_t *, size_t);  // Getter function for observation channels list
@@ -63,11 +64,13 @@ struct afl_executor_funcs {
   afl_input_t *(*input_get)(afl_executor_t *);  // Getter function for the current input
 
   void (*observers_reset)(afl_executor_t *);  // Reset the observation channels
+
 };
 
 // This is like the generic vtable for the executor.
 
 struct afl_executor {
+
   afl_observer_t **observors;  // This will be swapped for the observation channel once its ready
 
   u32 observors_count;
@@ -75,14 +78,15 @@ struct afl_executor {
   afl_input_t *current_input;  // Holds current input for the executor
 
   struct afl_executor_funcs funcs;  // afl executor_ops;
+
 };
 
-afl_ret_t        afl_executor_init(afl_executor_t *);
-void             afl_executor_deinit(afl_executor_t *);
-afl_ret_t        afl_observer_add(afl_executor_t *, afl_observer_t *);
-afl_observer_t * afl_get_observers(afl_executor_t *, size_t);
-afl_input_t *afl_current_input_get(afl_executor_t *);
-void             afl_observers_reset(afl_executor_t *);
+afl_ret_t       afl_executor_init(afl_executor_t *);
+void            afl_executor_deinit(afl_executor_t *);
+afl_ret_t       afl_observer_add(afl_executor_t *, afl_observer_t *);
+afl_observer_t *afl_get_observers(afl_executor_t *, size_t);
+afl_input_t *   afl_current_input_get(afl_executor_t *);
+void            afl_observers_reset(afl_executor_t *);
 
 // Function used to create an executor, we alloc the memory ourselves and
 // initialize the executor
@@ -91,35 +95,36 @@ AFL_NEW_AND_DELETE_FOR(afl_executor)
 
 /* Forkserver executor */
 typedef struct afl_forkserver {
-  afl_executor_t base; /* executer struct to inherit from */
 
-  u8 *trace_bits; /* SHM with instrumentation bitmap  */
-  u8  use_stdin;  /* use stdin for sending data       */
+  afl_executor_t base;                                                           /* executer struct to inherit from */
 
-  s32 fsrv_pid,     /* PID of the fork server           */
-      child_pid,    /* PID of the fuzzed program        */
-      child_status, /* waitpid result for the child     */
-      out_dir_fd,   /* FD of the lock file              */
+  u8 *trace_bits;                                                               /* SHM with instrumentation bitmap  */
+  u8  use_stdin;                                                                /* use stdin for sending data       */
+
+  s32 fsrv_pid,                                                                 /* PID of the fork server           */
+      child_pid,                                                                /* PID of the fuzzed program        */
+      child_status,                                                             /* waitpid result for the child     */
+      out_dir_fd,                                                               /* FD of the lock file              */
       dev_null_fd;
 
-  s32 out_fd, /* Persistent fd for fsrv->out_file */
+  s32 out_fd,                                                                   /* Persistent fd for fsrv->out_file */
 
-      fsrv_ctl_fd, /* Fork server control pipe (write) */
-      fsrv_st_fd;  /* Fork server status pipe (read)   */
+      fsrv_ctl_fd,                                                              /* Fork server control pipe (write) */
+      fsrv_st_fd;                                                               /* Fork server status pipe (read)   */
 
-  u32 exec_tmout; /* Configurable exec timeout (ms)   */
-  u32 map_size;   /* map size used by the target      */
+  u32 exec_tmout;                                                               /* Configurable exec timeout (ms)   */
+  u32 map_size;                                                                 /* map size used by the target      */
 
-  u64 total_execs; /* How often fsrv_run_target was called */
+  u64 total_execs;                                                          /* How often fsrv_run_target was called */
 
-  char *out_file,   /* File to fuzz, if any             */
-      *target_path; /* Path of the target               */
+  char *out_file,                                                               /* File to fuzz, if any             */
+      *target_path;                                                             /* Path of the target               */
 
   char **target_args;
 
-  u32 last_run_timed_out; /* Traced process timed out?        */
+  u32 last_run_timed_out;                                                       /* Traced process timed out?        */
 
-  u8 last_kill_signal; /* Signal that killed the child     */
+  u8 last_kill_signal;                                                          /* Signal that killed the child     */
 
 } afl_forkserver_t;
 
@@ -135,6 +140,7 @@ afl_ret_t         fsrv_start(afl_executor_t *fsrv_executor);
 typedef afl_exit_t (*harness_function_type)(afl_executor_t *executor, u8 *, size_t);
 
 typedef struct in_memeory_executor {
+
   afl_executor_t        base;
   harness_function_type harness;
   char **               argv;  // These are to support the libfuzzer harnesses
@@ -147,3 +153,4 @@ u8         in_mem_executor_place_input(afl_executor_t *executor, afl_input_t *in
 void       in_memory_executor_init(in_memory_executor_t *in_memeory_executor, harness_function_type harness);
 
 #endif
+

@@ -60,7 +60,7 @@ struct afl_mutator {
 
 };
 
-size_t   afl_trim(afl_mutator_t *, u8 *, u8 *);
+size_t       afl_trim(afl_mutator_t *, u8 *, u8 *);
 afl_stage_t *afl_get_mutator_stage(afl_mutator_t *);
 
 afl_ret_t afl_mutator_init(afl_mutator_t *, afl_engine_t *);
@@ -84,9 +84,9 @@ struct afl_mutator_scheduled_funcs {
 
 struct afl_mutator_scheduled {
 
-  afl_mutator_t          base;
+  afl_mutator_t     base;
   afl_mutator_func *mutations;  // A ptr to an array of mutation operator
-                                 // functions
+                                // functions
   size_t                             mutators_count;
   struct afl_mutator_scheduled_funcs extra_funcs;
   size_t                             max_iterations;
@@ -103,7 +103,8 @@ size_t    afl_mutate_scheduled_mutator(afl_mutator_t *, afl_input_t *);
 afl_ret_t afl_mutator_scheduled_init(afl_mutator_scheduled_t *sched_mut, afl_engine_t *engine, size_t max_iterations);
 void      afl_mutator_scheduled_deinit(afl_mutator_scheduled_t *);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_mutator_scheduled, AFL_DECL_PARAMS(afl_engine_t *engine, size_t max_iterations), AFL_CALL_PARAMS(engine, max_iterations))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_mutator_scheduled, AFL_DECL_PARAMS(afl_engine_t *engine, size_t max_iterations),
+                                   AFL_CALL_PARAMS(engine, max_iterations))
 
 void mutator_flip_bit(afl_mutator_t *mutator, afl_input_t *input);
 void mutator_flip_2_bits(afl_mutator_t *mutator, afl_input_t *input);

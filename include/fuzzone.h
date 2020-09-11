@@ -39,7 +39,7 @@ struct fuzz_one_functions {
 struct afl_fuzz_one {
 
   afl_engine_t *engine;
-  afl_stage_t **    stages;
+  afl_stage_t **stages;
   size_t        stages_count;
 
   struct fuzz_one_functions funcs;

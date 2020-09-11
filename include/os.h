@@ -27,7 +27,7 @@ typedef enum afl_exit {
 } afl_exit_t;
 
 afl_ret_t dump_crash_to_file(afl_input_t *, afl_engine_t *);  // This function dumps an input which causes a
-                                                                  // crash in the target to a crash file
+                                                              // crash in the target to a crash file
 
 /* TODO: Add implementations for installing crash handlers */
 typedef void (*afl_crash_handler_func)(afl_exit_t type, void *data);
@@ -76,9 +76,9 @@ static inline afl_os_t *afl_process_init(afl_os_t *process, pid_t handler_pid) {
 }
 
 afl_fork_result_t afl_proc_fork(afl_os_t *);
-void          afl_proc_suspend(afl_os_t *);
-void          afl_proc_resume(afl_os_t *);
-afl_exit_t   afl_proc_wait(afl_os_t *, bool);
+void              afl_proc_suspend(afl_os_t *);
+void              afl_proc_resume(afl_os_t *);
+afl_exit_t        afl_proc_wait(afl_os_t *, bool);
 
 #endif
 

@@ -71,7 +71,8 @@ afl_queue_feedback_t *afl_get_feedback_queue(afl_feedback_t *);
 void      afl_feedback_deinit(afl_feedback_t *);
 afl_ret_t afl_feedback_init(afl_feedback_t *, afl_queue_feedback_t *, size_t channel_id);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback, AFL_DECL_PARAMS(afl_queue_feedback_t *queue, size_t channel_id), AFL_CALL_PARAMS(queue, channel_id))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback, AFL_DECL_PARAMS(afl_queue_feedback_t *queue, size_t channel_id),
+                                   AFL_CALL_PARAMS(queue, channel_id))
 
 /* Simple MaximizeMapFeedback implementation */
 
@@ -87,12 +88,13 @@ typedef struct afl_feedback_cov {
 
 } afl_feedback_cov_t;
 
-afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, size_t size, size_t channel_id);
-void afl_feedback_cov_deinit();
+afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, size_t size,
+                                size_t channel_id);
+void      afl_feedback_cov_deinit();
 
-
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback_cov, AFL_DECL_PARAMS(afl_queue_feedback_t *queue, size_t size, size_t channel_id),
-AFL_CALL_PARAMS(queue, size, channel_id))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback_cov,
+                                   AFL_DECL_PARAMS(afl_queue_feedback_t *queue, size_t size, size_t channel_id),
+                                   AFL_CALL_PARAMS(queue, size, channel_id))
 
 float afl_feedback_cov_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv);
 
