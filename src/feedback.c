@@ -80,8 +80,6 @@ afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback
   feedback->virgin_bits = calloc(1, size);
   if (!feedback->virgin_bits) { return AFL_RET_ALLOC; }
   memset(feedback->virgin_bits, 0xff, size);
-  feedback->size = size;
-  feedback->base.funcs.is_interesting = afl_feedback_cov_is_interesting;
 
   AFL_TRY(afl_feedback_init(&feedback->base, queue, channel_id), {
 
@@ -89,6 +87,9 @@ afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback
     return err;
 
   });
+
+  feedback->size = size;
+  feedback->base.funcs.is_interesting = afl_feedback_cov_is_interesting;
 
   return AFL_RET_SUCCESS;
 
