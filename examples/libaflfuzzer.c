@@ -94,7 +94,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   in_memory_executor->base.funcs.observer_add(&in_memory_executor->base, &trace_bits_channel->base);
 
   /* We create a simple feedback queue for coverage here*/
-  afl_queue_feedback_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
+  afl_queue_feedback_t *coverage_feedback_queue = afl_queue_feedback_new(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) {
 
     FATAL("Error initializing feedback queue");
@@ -105,7 +105,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   coverage_feedback_queue->base.funcs.set_dirpath(&coverage_feedback_queue->base, queue_dirpath);
 
   /* Global queue creation */
-  afl_queue_global_t *global_queue = afl_global_queue_new();
+  afl_queue_global_t *global_queue = afl_queue_global_new();
   if (!global_queue) {
 
     FATAL("Error initializing global queue");
@@ -234,11 +234,11 @@ void run_instance(llmp_client_state_t *llmp_client, void *data) {
 
   for (size_t i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
-    afl_feedback_queue_delete(engine->global_queue->feedback_queues[i]);
+    afl_queue_feedback_delete(engine->global_queue->feedback_queues[i]);
 
   }
 
-  afl_global_queue_delete(engine->global_queue);
+  afl_queue_global_delete(engine->global_queue);
   afl_engine_delete(engine);
 
 }

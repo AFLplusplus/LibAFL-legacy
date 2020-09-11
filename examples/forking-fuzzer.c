@@ -204,15 +204,15 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   fsrv->trace_bits = trace_bits_channel->shared_map.map;
 
   /* We create a simple feedback queue for coverage here*/
-  afl_queue_feedback_t *coverage_feedback_queue = afl_feedback_queue_new(NULL, (char *)"Coverage feedback queue");
+  afl_queue_feedback_t *coverage_feedback_queue = afl_queue_feedback_new(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
 
   /* Another feedback queue for timeout entries here */
-  afl_queue_feedback_t *timeout_feedback_queue = afl_feedback_queue_new(NULL, "Timeout feedback queue");
+  afl_queue_feedback_t *timeout_feedback_queue = afl_queue_feedback_new(NULL, "Timeout feedback queue");
   if (!timeout_feedback_queue) { FATAL("Error initializing feedback queue"); }
 
   /* Global queue creation */
-  afl_queue_global_t *global_queue = afl_global_queue_new();
+  afl_queue_global_t *global_queue = afl_queue_global_new();
   if (!global_queue) { FATAL("Error initializing global queue"); }
   global_queue->extra_funcs.add_feedback_queue(global_queue, coverage_feedback_queue);
   global_queue->extra_funcs.add_feedback_queue(global_queue, timeout_feedback_queue);
@@ -309,11 +309,11 @@ void fuzzer_process_main(llmp_client_state_t *client, void *data) {
 
   for (size_t i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
-    afl_feedback_queue_delete(engine->global_queue->feedback_queues[i]);
+    afl_queue_feedback_delete(engine->global_queue->feedback_queues[i]);
 
   }
 
-  afl_global_queue_delete(engine->global_queue);
+  afl_queue_global_delete(engine->global_queue);
   afl_engine_delete(engine);
   return;
 

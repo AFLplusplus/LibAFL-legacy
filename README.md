@@ -188,10 +188,10 @@ In case of queues, we don't expect the user to extend or do much to the queue st
 
 ```C
 // Let's create a global queue, one for each fuzzing "instance" we have.
-afl_global_queue_t *global_queue = afl_global_queue_new(NULL); // NULL is for the engine, if present pass a ptr to it.
+afl_queue_global_t *global_queue = afl_queue_global_new(NULL); // NULL is for the engine, if present pass a ptr to it.
 
 // Let's create a feedback queue, for the feedback we create above.
-afl_feedback_queue_t * feedback_queue = afl_feedback_queue_new(feedback, "Timeout feedback queue");
+afl_queue_feedback_t * feedback_queue = afl_queue_feedback_new(feedback, "Timeout feedback queue");
 
 // Let's add it to the global queue
 global_queue->extra_funcs.add_feedback_queue(feedback_queue);   // Notice how we actually use extra_funcs instead of funcs, this is because global_queue is extended from base_queue and required a few extra function pointers, thus this. 

@@ -500,7 +500,7 @@ static afl_shmem_t *llmp_handle_out_eop(afl_shmem_t *maps, size_t *map_count_p, 
   if (!llmp_send(old_map, out)) {
 
     DBG("Could not inform the broker!");
-    free(maps);
+    afl_free(maps);
     return NULL;
 
   }

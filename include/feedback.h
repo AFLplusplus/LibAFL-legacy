@@ -30,7 +30,9 @@
 #include "queue.h"
 #include "observer.h"
 
+typedef struct afl_queue_feedback afl_queue_feedback_t;
 typedef struct afl_feedback afl_feedback_t;
+
 
 struct afl_feedback_funcs {
 
