@@ -32,8 +32,8 @@ afl_ret_t afl_feedback_init(afl_feedback_t *feedback, afl_queue_feedback_t *queu
 
   feedback->queue = queue;
 
-  feedback->funcs.set_feedback_queue = afl_set_feedback_queue_default;
-  feedback->funcs.get_feedback_queue = afl_get_feedback_queue_default;
+  feedback->funcs.set_feedback_queue = afl_set_feedback_queue;
+  feedback->funcs.get_feedback_queue = afl_get_feedback_queue;
   feedback->funcs.is_interesting = NULL;
 
   feedback->channel_id = channel_id;  // Channel id for the observation channel
@@ -58,7 +58,7 @@ void afl_feedback_deinit(afl_feedback_t *feedback) {
 
 }
 
-void afl_set_feedback_queue_default(afl_feedback_t *feedback, afl_queue_feedback_t *queue) {
+void afl_set_feedback_queue(afl_feedback_t *feedback, afl_queue_feedback_t *queue) {
 
   feedback->queue = queue;
 
@@ -66,7 +66,7 @@ void afl_set_feedback_queue_default(afl_feedback_t *feedback, afl_queue_feedback
 
 }
 
-afl_queue_feedback_t *afl_get_feedback_queue_default(afl_feedback_t *feedback) {
+afl_queue_feedback_t *afl_get_feedback_queue(afl_feedback_t *feedback) {
 
   return feedback->queue;
 
@@ -74,32 +74,39 @@ afl_queue_feedback_t *afl_get_feedback_queue_default(afl_feedback_t *feedback) {
 
 /* Map feedback. Can be easily used with a tracebits map similar to AFL++ */
 
-afl_maximize_map_feedback_t *map_feedback_init(afl_queue_feedback_t *queue, size_t size, size_t channel_id) {
-
-  afl_maximize_map_feedback_t *feedback = calloc(1, sizeof(afl_maximize_map_feedback_t));
-  if (!feedback) { return NULL; }
-  afl_feedback_init(&feedback->base, queue, channel_id);
-
-  feedback->base.funcs.is_interesting = map_fbck_is_interesting;
+afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, size_t size, size_t channel_id) {
 
   feedback->virgin_bits = calloc(1, size);
   if (!feedback->virgin_bits) {
-
-    free(feedback);
-    return NULL;
-
+    return AFL_RET_ALLOC;
   }
-
   memset(feedback->virgin_bits, 0xff, size);
   feedback->size = size;
+  feedback->base.funcs.is_interesting = afl_feedback_cov_is_interesting;
 
-  return feedback;
+  AFL_TRY(afl_feedback_init(&feedback->base, queue, channel_id), {
+
+    free(feedback->virgin_bits);
+    return err;
+
+  });
+
+  return AFL_RET_SUCCESS;
 
 }
 
-float __attribute__((hot)) map_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv) {
+void afl_feedback_cov_deinit(afl_feedback_cov_t *feedback) {
 
-  afl_maximize_map_feedback_t *map_feedback = (afl_maximize_map_feedback_t *)feedback;
+  free(feedback->virgin_bits);
+  feedback->virgin_bits = NULL;
+  feedback->size = 0;
+  afl_feedback_deinit(&feedback->base);
+
+}
+
+float __attribute__((hot)) afl_feedback_cov_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv) {
+
+  afl_feedback_cov_t *map_feedback = (afl_feedback_cov_t *)feedback;
 
   /* First get the observation channel */
 
@@ -192,16 +199,16 @@ float __attribute__((hot)) map_fbck_is_interesting(afl_feedback_t *feedback, afl
 
     if (!input) { FATAL("Error creating a copy of input"); }
 
-    afl_queueentry_t *new_entry = afl_queueentry_new(input);
-    feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
+    afl_entry_t *new_entry = afl_entry_new(input);
+    feedback->queue->base.funcs.insert(&feedback->queue->base, new_entry);
 
     /* We broadcast a message when new entry found -- only if this is the fuzz
      * instance which found it!*/
 
     llmp_client_state_t *llmp_client = feedback->queue->base.engine->llmp_client;
-    llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(afl_queueentry_t));
+    llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(afl_entry_t));
     msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY;
-    ((afl_queueentry_t *)msg->buf)[0] = *new_entry;
+    ((afl_entry_t *)msg->buf)[0] = *new_entry;
     llmp_client_send(llmp_client, msg);
 
     // Put the entry in the feedback queue and return 0.0 so that it isn't added

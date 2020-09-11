@@ -31,18 +31,17 @@ afl_ret_t dump_crash_to_file(afl_input_t *data, afl_engine_t *engine) {
 
 // Process related functions
 
-void _afl_process_init_internal(process_t *process) {
+void _afl_process_init_internal(afl_os_t *afl_os) {
 
-  // process->current = return_current_default;
-  process->fork = do_fork_default;
+  afl_os->fork = afl_proc_fork;
 
-  process->resume = resume_default;
-  process->wait = wait_default;
-  process->suspend = suspend_default;
+  afl_os->resume = afl_proc_resume;
+  afl_os->wait = afl_proc_wait;
+  afl_os->suspend = afl_proc_suspend;
 
 }
 
-fork_result_t do_fork_default(process_t *process) {
+afl_fork_result_t afl_proc_fork(afl_os_t *afl_os) {
 
   pid_t child = fork();
 
@@ -51,36 +50,36 @@ fork_result_t do_fork_default(process_t *process) {
   else if (child < 0)
     return FORK_FAILED;
 
-  process->handler_process = child;
+  afl_os->handler_process = child;
   return PARENT;
 
 }
 
-void suspend_default(process_t *process) {
+void afl_proc_suspend(afl_os_t *afl_os) {
 
-  kill(process->handler_process, SIGSTOP);
-
-}
-
-void resume_default(process_t *process) {
-
-  kill(process->handler_process, SIGCONT);
+  kill(afl_os->handler_process, SIGSTOP);
 
 }
 
-afl_exit_t wait_default(process_t *process, bool untraced) {
+void afl_proc_resume(afl_os_t *afl_os) {
+
+  kill(afl_os->handler_process, SIGCONT);
+
+}
+
+afl_exit_t afl_proc_wait(afl_os_t *afl_os, bool untraced) {
 
   int status = 0;
-  if (waitpid((process->handler_process), &status, untraced ? WUNTRACED : 0) < 0)
+  if (waitpid((afl_os->handler_process), &status, untraced ? WUNTRACED : 0) < 0)
     return -1;  // Waitpid fails here, how should we handle this?
 
   if (WIFEXITED(status)) return AFL_EXIT_OK;
 
-  // If the process was simply stopped , we return AFL_EXIT_STOP
+  // If the afl_os was simply stopped , we return AFL_EXIT_STOP
   if (WIFSTOPPED(status)) return AFL_EXIT_STOP;
 
-  // If the process exited with a signal, we check the corresponsing signum of
-  // the process and return values correspondingly
+  // If the afl_os exited with a signal, we check the corresponsing signum of
+  // the afl_os and return values correspondingly
   if (WIFSIGNALED(status)) {
 
     int signal_num = WTERMSIG(status);  // signal number

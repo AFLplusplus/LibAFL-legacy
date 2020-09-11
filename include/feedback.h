@@ -64,51 +64,37 @@ typedef struct afl_feedback_metadata {
 
 // Default implementation of the vtables functions
 
-void                  afl_set_feedback_queue_default(afl_feedback_t *, afl_queue_feedback_t *);
-afl_queue_feedback_t *afl_get_feedback_queue_default(afl_feedback_t *);
+void                  afl_set_feedback_queue(afl_feedback_t *, afl_queue_feedback_t *);
+afl_queue_feedback_t *afl_get_feedback_queue(afl_feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
 void      afl_feedback_deinit(afl_feedback_t *);
 afl_ret_t afl_feedback_init(afl_feedback_t *, afl_queue_feedback_t *, size_t channel_id);
 
-static inline afl_feedback_t *afl_feedback_new(afl_queue_feedback_t *queue, size_t channel_id) {
-
-  afl_feedback_t *feedback = calloc(1, sizeof(afl_feedback_t));
-  if (!feedback) return NULL;
-  if (afl_feedback_init(feedback, queue, channel_id) != AFL_RET_SUCCESS) {
-
-    free(feedback);
-    return NULL;
-
-  }
-
-  return feedback;
-
-}
-
-static inline void afl_feedback_delete(afl_feedback_t *feedback) {
-
-  afl_feedback_deinit(feedback);
-  free(feedback);
-
-}
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback, AFL_DECL_PARAMS(afl_queue_feedback_t *queue, size_t channel_id), AFL_CALL_PARAMS(queue, channel_id))
 
 /* Simple MaximizeMapFeedback implementation */
 
 #define MAP_CHANNEL_ID 0x1
 
-typedef struct maximize_map_feedback {
+/* Coverage Feedback */
+typedef struct afl_feedback_cov {
 
   afl_feedback_t base;
 
   u8 *   virgin_bits;
   size_t size;
 
-} afl_maximize_map_feedback_t;
+} afl_feedback_cov_t;
 
-afl_maximize_map_feedback_t *map_feedback_init(afl_queue_feedback_t *queue, size_t size, size_t channel_id);
+afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, size_t size, size_t channel_id);
+void afl_feedback_cov_deinit();
 
-float map_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv);
+
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback_cov, AFL_DECL_PARAMS(afl_queue_feedback_t *queue, size_t size, size_t channel_id),
+AFL_CALL_PARAMS(queue, size, channel_id))
+
+float afl_feedback_cov_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv);
 
 #endif
 

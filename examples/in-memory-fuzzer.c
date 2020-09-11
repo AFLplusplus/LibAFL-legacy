@@ -44,7 +44,7 @@ afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
 
 }
 
-u8 execute_default(afl_engine_t *engine, afl_input_t *input) {
+u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
   size_t      i;
   afl_executor_t *executor = engine->executor;
@@ -141,17 +141,17 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
   global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
 
   /* Coverage Feedback initialization */
-  afl_maximize_map_feedback_t *coverage_feedback =
-      map_feedback_init(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
+  afl_feedback_cov_t *coverage_feedback =
+      afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
 
   /* Let's build an engine now */
   afl_engine_t *engine = afl_engine_new(&in_memory_executor->base, NULL, global_queue);
   if (!engine) { FATAL("Error initializing Engine"); }
-  engine->funcs.add_feedback(engine, (afl_feedback_t *)coverage_feedback);
+  engine->funcs.add_feedback(engine, &coverage_feedback->base);
   engine->funcs.set_global_queue(engine, global_queue);
   engine->in_dir = in_dir;
-  engine->funcs.execute = execute_default;
+  engine->funcs.execute = execute;
 
   afl_fuzz_one_t *fuzz_one = afl_fuzz_one_new(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
@@ -191,15 +191,16 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
 
-  afl_maximize_map_feedback_t *coverage_feedback = (afl_maximize_map_feedback_t *)(engine->feedbacks[0]);
+  afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
 
   /* Now we can simply load the testcases from the directory given */
-  afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL);
-  if (ret != AFL_RET_SUCCESS) { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret)); }
+  AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL), {
+    PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); 
+  });
 
-  afl_ret_t fuzz_ret = engine->funcs.loop(engine);
-
-  if (fuzz_ret != AFL_RET_SUCCESS) { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(fuzz_ret)); }
+  AFL_TRY(engine->funcs.loop(engine), {
+    PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err));
+  });
 
   SAYF("Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n", engine->executions);
 
@@ -211,9 +212,9 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
   afl_executor_delete(engine->executor);
   afl_map_channel_delete(trace_bits_channel);
   afl_mutator_scheduled_delete(mutators_havoc);
-  afl_fuzz_stage_delete(stage);
+  afl_fuzzing_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
-  free(coverage_feedback->virgin_bits);
+  afl_feedback_cov_delete(coverage_feedback);
   for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     afl_feedback_delete((afl_feedback_t *)engine->feedbacks[i]);
@@ -232,7 +233,7 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
 }
 
 /* A hook to keep stats in the broker thread */
-bool message_hook(llmp_broker_state_t *broker, llmp_client_state_t *client, llmp_message_t *msg, void *data) {
+bool message_hook(llmp_broker_t *broker, llmp_client_state_t *client, llmp_message_t *msg, void *data) {
 
   (void)broker;
   if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
@@ -269,7 +270,7 @@ int main(int argc, char **argv) {
 
   int broker_port = 0xAF1;
 
-  llmp_broker_state_t *llmp_broker = llmp_broker_new();
+  llmp_broker_t *llmp_broker = llmp_broker_new();
   if (!llmp_broker) { FATAL("Broker creation failed"); }
   /* This is not necessary but gives us the option to add additional processes to the fuzzer at runtime. */
   if (!llmp_broker_register_local_server(llmp_broker, broker_port)) { FATAL("Broker register failed"); }

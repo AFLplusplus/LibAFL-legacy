@@ -80,21 +80,21 @@ struct afl_engine {
 };
 
 /* TODO: Add default implementations for load_testcases and execute */
-afl_queue_global_t *afl_get_queue_default(afl_engine_t *);
-afl_fuzz_one_t *    afl_get_fuzz_one_default(afl_engine_t *);
-u64             afl_get_execs_default(afl_engine_t *);
-u64             afl_get_start_time_default(afl_engine_t *);
+afl_queue_global_t *afl_get_queue(afl_engine_t *);
+afl_fuzz_one_t *    afl_get_fuzz_one(afl_engine_t *);
+u64             afl_get_execs(afl_engine_t *);
+u64             afl_get_start_time(afl_engine_t *);
 
-void      afl_set_fuzz_one_default(afl_engine_t *, afl_fuzz_one_t *);
-afl_ret_t afl_add_feedback_default(afl_engine_t *, afl_feedback_t *);
-void      afl_set_global_queue_default(afl_engine_t *engine, afl_queue_global_t *global_queue);
+void      afl_set_fuzz_one(afl_engine_t *, afl_fuzz_one_t *);
+afl_ret_t afl_add_feedback(afl_engine_t *, afl_feedback_t *);
+void      afl_set_global_queue(afl_engine_t *engine, afl_queue_global_t *global_queue);
 
-u8        afl_execute_default(afl_engine_t *, afl_input_t *);
-afl_ret_t afl_load_testcases_from_dir_default(afl_engine_t *, char *, afl_input_t *(*custom_input_init)());
-void      afl_load_zero_testcase_default(size_t);
-void      afl_handle_new_message_default(afl_engine_t *, llmp_message_t *);
+u8        afl_execute(afl_engine_t *, afl_input_t *);
+afl_ret_t afl_load_testcases_from_dir(afl_engine_t *, char *, afl_input_t *(*custom_input_init)());
+void      afl_load_zero_testcase(size_t);
+void      afl_handle_new_message(afl_engine_t *, llmp_message_t *);
 
-afl_ret_t afl_loop_default(afl_engine_t *);  // Not sure about this functions
+afl_ret_t afl_loop(afl_engine_t *);  // Not sure about this functions
                                          // use-case. Was in FFF though.
 
 afl_ret_t afl_engine_init(afl_engine_t *, afl_executor_t *, afl_fuzz_one_t *, afl_queue_global_t *);
@@ -104,12 +104,12 @@ static inline afl_engine_t *afl_engine_new(afl_executor_t *executor, afl_fuzz_on
 
   afl_engine_t *engine = calloc(1, sizeof(afl_engine_t));
   if (!engine) return NULL;
-  if (afl_engine_init(engine, executor, fuzz_one, global_queue) != AFL_RET_SUCCESS) {
+  AFL_TRY(afl_engine_init(engine, executor, fuzz_one, global_queue), {
 
     free(engine);
     return NULL;
 
-  }
+  });
 
   return engine;
 

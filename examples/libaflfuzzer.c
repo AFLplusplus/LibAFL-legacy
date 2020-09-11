@@ -116,8 +116,8 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
 
   /* Coverage Feedback initialization */
-  afl_maximize_map_feedback_t *coverage_feedback =
-      map_feedback_init(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
+  afl_feedback_cov_t *coverage_feedback =
+      afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
   if (!coverage_feedback) {
 
     FATAL("Error initializing feedback");
@@ -134,7 +134,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
 
   }
 
-  engine->funcs.add_feedback(engine, (afl_feedback_t *)coverage_feedback);
+  engine->funcs.add_feedback(engine, &coverage_feedback->base);
   engine->funcs.set_global_queue(engine, global_queue);
   engine->in_dir = in_dir;
 
@@ -192,7 +192,7 @@ void run_instance(llmp_client_state_t *llmp_client, void *data) {
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
 
-  afl_maximize_map_feedback_t *coverage_feedback = (afl_maximize_map_feedback_t *)(engine->feedbacks[0]);
+  afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
 
   /* Now we can simply load the testcases from the directory given */
   afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL);
@@ -222,9 +222,9 @@ void run_instance(llmp_client_state_t *llmp_client, void *data) {
   afl_executor_delete(engine->executor);
   afl_map_channel_delete(trace_bits_channel);
   afl_mutator_scheduled_delete(mutators_havoc);
-  afl_fuzz_stage_delete(stage);
+  afl_fuzzing_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
-  free(coverage_feedback->virgin_bits);
+  afl_feedback_cov_delete(coverage_feedback);
   for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     afl_feedback_delete((afl_feedback_t *)engine->feedbacks[i]);
@@ -275,7 +275,7 @@ int main(int argc, char **argv) {
   }
 
   int broker_port = 0xAF1;
-  llmp_broker_state_t *llmp_broker = llmp_broker_new();
+  llmp_broker_t *llmp_broker = llmp_broker_new();
   if (!llmp_broker) {
 
     FATAL("Broker creation failed");

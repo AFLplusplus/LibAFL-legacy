@@ -53,8 +53,8 @@ struct observer {
 
 /* They're void now, but I think post_exec should have some return type? Since,
  * they'll mostly be implemented by user */
-void afl_flush_default(afl_observer_t *);
-void afl_reset_default(afl_observer_t *);
+void afl_flush(afl_observer_t *);
+void afl_reset(afl_observer_t *);
 void afl_post_exec(afl_observer_t *);
 // Functions to initialize and deinitialize the generic observation channel. P.S
 // You probably will need to extend it the way we've done below.
@@ -107,8 +107,8 @@ struct map_based_channel {
 
 };
 
-u8 *   afl_get_trace_bits_default(afl_map_based_channel_t *obs_channel);
-size_t afl_get_map_size_default(afl_map_based_channel_t *obs_channel);
+u8 *   afl_get_trace_bits(afl_map_based_channel_t *obs_channel);
+size_t afl_get_map_size(afl_map_based_channel_t *obs_channel);
 
 // Functions to initialize and delete a map based observation channel
 

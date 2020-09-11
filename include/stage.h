@@ -40,32 +40,12 @@ struct afl_stage {
 
 };
 
-afl_ret_t afl_perform_stage_default(afl_stage_t *, afl_input_t *);
-size_t    afl_iterations_stage_default(afl_stage_t *);
+afl_ret_t afl_perform_stage(afl_stage_t *, afl_input_t *);
+size_t    afl_iterations_stage(afl_stage_t *);
 afl_ret_t afl_stage_init(afl_stage_t *, afl_engine_t *);
 void      afl_stage_deinit(afl_stage_t *);
 
-static inline afl_stage_t *afl_stage_new(afl_engine_t *engine) {
-
-  afl_stage_t *stage = calloc(1, sizeof(afl_stage_t));
-  if (!stage) { return NULL; }
-  if (afl_stage_init(stage, engine) != AFL_RET_SUCCESS) {
-
-    free(stage);
-    return NULL;
-
-  }
-
-  return stage;
-
-}
-
-static inline void afl_stage_delete(afl_stage_t *stage) {
-
-  afl_stage_deinit(stage);
-  free(stage);
-
-}
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_stage, AFL_DECL_PARAMS(afl_engine_t *engine), AFL_CALL_PARAMS(engine))
 
 /*
 This structure here represents a single fuzzing stage in  the process. e.g It
@@ -95,32 +75,12 @@ struct fuzzing_stage {
 
 };
 
-afl_ret_t afl_add_mutator_to_stage_default(afl_fuzzing_stage_t *, afl_mutator_t *);
+afl_ret_t afl_add_mutator_to_stage(afl_fuzzing_stage_t *, afl_mutator_t *);
 
 afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_stage_t *, afl_engine_t *);
 void      afl_fuzzing_stage_deinit(afl_fuzzing_stage_t *);
 
-static inline afl_fuzzing_stage_t *afl_fuzzing_stage_new(afl_engine_t *engine) {
-
-  afl_fuzzing_stage_t *stage = calloc(1, sizeof(afl_fuzzing_stage_t));
-  if (!stage) { return NULL; }
-  if (afl_fuzzing_stage_init(stage, engine) != AFL_RET_SUCCESS) {
-
-    free(stage);
-    return NULL;
-
-  }
-
-  return stage;
-
-}
-
-static inline void afl_fuzz_stage_delete(afl_fuzzing_stage_t *fuzz_stage) {
-
-  afl_stage_deinit(&fuzz_stage->base);
-  free(fuzz_stage);
-
-}
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_fuzzing_stage, AFL_DECL_PARAMS(afl_engine_t *engine), AFL_CALL_PARAMS(engine))
 
 #endif
 

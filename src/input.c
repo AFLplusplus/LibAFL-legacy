@@ -34,14 +34,14 @@
 
 afl_ret_t afl_input_init(afl_input_t *input) {
 
-  input->funcs.clear = afl_input_clear_default;
-  input->funcs.copy = afl_input_copy_default;
-  input->funcs.deserialize = afl_input_deserialize_default;
-  input->funcs.get_bytes = afl_input_get_bytes_default;
-  input->funcs.load_from_file = afl_input_load_from_file_default;
-  input->funcs.restore = afl_input_restore_default;
-  input->funcs.save_to_file = afl_input_save_to_file_default;
-  input->funcs.serialize = afl_input_serialize_default;
+  input->funcs.clear = afl_input_clear;
+  input->funcs.copy = afl_input_copy;
+  input->funcs.deserialize = afl_input_deserialize;
+  input->funcs.get_bytes = afl_input_get_bytes;
+  input->funcs.load_from_file = afl_input_load_from_file;
+  input->funcs.restore = afl_input_restore;
+  input->funcs.save_to_file = afl_input_save_to_file;
+  input->funcs.serialize = afl_input_serialize;
 
   input->bytes = NULL;
   input->len = 0;
@@ -63,7 +63,7 @@ void afl_input_deinit(afl_input_t *input) {
 
 // default implemenatations for the vtable functions for the raw_input type
 
-void afl_input_clear_default(afl_input_t *input) {
+void afl_input_clear(afl_input_t *input) {
 
   memset(input->bytes, 0x0, input->len);
   input->len = 0;
@@ -72,11 +72,11 @@ void afl_input_clear_default(afl_input_t *input) {
 
 }
 
-afl_input_t *afl_input_copy_default(afl_input_t *orig_inp) {
+afl_input_t *afl_input_copy(afl_input_t *orig_inp) {
 
   afl_input_t *copy_inp = afl_input_new();
   if (!copy_inp) { return NULL; }
-  copy_inp->bytes = malloc(orig_inp->len * sizeof(u8));
+  copy_inp->bytes = malloc((orig_inp->len) * sizeof(u8));
   if (!copy_inp->bytes) {
 
     afl_input_delete(copy_inp);
@@ -90,7 +90,7 @@ afl_input_t *afl_input_copy_default(afl_input_t *orig_inp) {
 
 }
 
-void afl_input_deserialize_default(afl_input_t *input, u8 *bytes, size_t len) {
+void afl_input_deserialize(afl_input_t *input, u8 *bytes, size_t len) {
 
   if (input->bytes) free(input->bytes);
   input->bytes = bytes;
@@ -100,13 +100,13 @@ void afl_input_deserialize_default(afl_input_t *input, u8 *bytes, size_t len) {
 
 }
 
-u8 *afl_input_get_bytes_default(afl_input_t *input) {
+u8 *afl_input_get_bytes(afl_input_t *input) {
 
   return input->bytes;
 
 }
 
-afl_ret_t afl_input_load_from_file_default(afl_input_t *input, char *fname) {
+afl_ret_t afl_input_load_from_file(afl_input_t *input, char *fname) {
 
   struct stat st;
   s32         fd = open(fname, O_RDONLY);
@@ -138,7 +138,7 @@ afl_ret_t afl_input_load_from_file_default(afl_input_t *input, char *fname) {
 
 }
 
-afl_ret_t afl_input_save_to_file_default(afl_input_t *input, char *fname) {
+afl_ret_t afl_input_save_to_file(afl_input_t *input, char *fname) {
 
   s32 fd = open(fname, O_RDWR | O_CREAT | O_EXCL, 0600);
 
@@ -153,7 +153,7 @@ afl_ret_t afl_input_save_to_file_default(afl_input_t *input, char *fname) {
 
 }
 
-void afl_input_restore_default(afl_input_t *input, afl_input_t *new_inp) {
+void afl_input_restore(afl_input_t *input, afl_input_t *new_inp) {
 
   input->bytes = new_inp->bytes;
 
@@ -161,7 +161,7 @@ void afl_input_restore_default(afl_input_t *input, afl_input_t *new_inp) {
 
 }
 
-u8 *afl_input_serialize_default(afl_input_t *input) {
+u8 *afl_input_serialize(afl_input_t *input) {
 
   // Very stripped down implementation, actually depends on user alot.
   return input->bytes;

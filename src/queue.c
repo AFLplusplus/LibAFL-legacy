@@ -32,23 +32,24 @@
 #include "fuzzone.h"
 #include "stage.h"
 #include "mutator.h"
+#include "config.h"
 
 // We start with the implementation of queue_entry functions here.
-afl_ret_t afl_queueentry_init(afl_queueentry_t *entry, afl_input_t *input) {
+afl_ret_t afl_entry_init(afl_entry_t *entry, afl_input_t *input) {
 
   entry->input = input;
   memset(entry->filename, 0, FILENAME_LEN_MAX);
 
-  entry->funcs.get_input = afl_get_input_default;
-  entry->funcs.get_next = afl_get_next_default;
-  entry->funcs.get_prev = afl_get_prev_default;
-  entry->funcs.get_parent = afl_get_parent_default;
+  entry->funcs.get_input = afl_entry_get_input;
+  entry->funcs.get_next = afl_entry_get_next;
+  entry->funcs.get_prev = afl_entry_get_prev;
+  entry->funcs.get_parent = afl_entry_get_parent;
 
   return AFL_RET_SUCCESS;
 
 }
 
-void afl_queueentry_deinit(afl_queueentry_t *entry) {
+void afl_entry_deinit(afl_entry_t *entry) {
 
   /* We remove the element from the linked-list */
 
@@ -68,25 +69,25 @@ void afl_queueentry_deinit(afl_queueentry_t *entry) {
 }
 
 // Default implementations for the queue entry vtable functions
-afl_input_t *afl_get_input_default(afl_queueentry_t *entry) {
+afl_input_t *afl_entry_get_input(afl_entry_t *entry) {
 
   return entry->input;
 
 }
 
-afl_queueentry_t *afl_get_next_default(afl_queueentry_t *entry) {
+afl_entry_t *afl_entry_get_next(afl_entry_t *entry) {
 
   return entry->next;
 
 }
 
-afl_queueentry_t *afl_get_prev_default(afl_queueentry_t *entry) {
+afl_entry_t *afl_entry_get_prev(afl_entry_t *entry) {
 
   return entry->prev;
 
 }
 
-afl_queueentry_t *afl_get_parent_default(afl_queueentry_t *entry) {
+afl_entry_t *afl_entry_get_parent(afl_entry_t *entry) {
 
   return entry->parent;
 
@@ -94,43 +95,43 @@ afl_queueentry_t *afl_get_parent_default(afl_queueentry_t *entry) {
 
 // We implement the queue based functions now.
 
-afl_ret_t afl_base_queue_init(afl_base_queue_t *queue) {
+afl_ret_t afl_queue_init(afl_queue_t *queue) {
 
+  queue->entries = NULL;
   queue->save_to_files = false;
   queue->fuzz_started = false;
-  queue->size = 0;
+  queue->entries_count = 0;
   queue->base = NULL;
   queue->current = 0;
   memset(queue->dirpath, 0, PATH_MAX);
 
-  queue->funcs.add_to_queue = afl_add_to_queue_default;
-  queue->funcs.get_queue_base = afl_get_queue_base_default;
-  queue->funcs.get_size = afl_get_base_queue_size_default;
-  queue->funcs.get_dirpath = afl_get_dirpath_default;
-  queue->funcs.get_names_id = afl_get_names_id_default;
-  queue->funcs.get_save_to_files = afl_get_save_to_files_default;
-  queue->funcs.set_dirpath = afl_set_dirpath_default;
-  queue->funcs.set_engine = afl_set_engine_base_queue_default;
-  queue->funcs.get_next_in_queue = afl_get_next_base_queue_default;
+  queue->funcs.insert = afl_queue_insert;
+  queue->funcs.get_size = afl_queue_get_size;
+  queue->funcs.get_dirpath = afl_queue_get_dirpath;
+  queue->funcs.get_names_id = afl_queue_get_names_id;
+  queue->funcs.get_save_to_files = afl_queue_should_save_to_file;
+  queue->funcs.set_dirpath = afl_queue_set_dirpath;
+  queue->funcs.set_engine = afl_queue_global_set_engine;
+  queue->funcs.get_next_in_queue = afl_queue_next_base_queue;
 
   return AFL_RET_SUCCESS;
 
 }
 
-void afl_base_queue_deinit(afl_base_queue_t *queue) {
+void afl_queue_deinit(afl_queue_t *queue) {
 
   /*TODO: Clear the queue entries too here*/
 
-  afl_queueentry_t *entry = queue->base;
+  afl_entry_t *entry = queue->base;
 
   while (entry) {
 
     /* Grab the next entry of queue */
-    afl_queueentry_t *next_entry = entry->next;
+    afl_entry_t *next_entry = entry->next;
 
     /* We destroy the queue, since none of the entries have references anywhere
      * else anyways */
-    afl_queueentry_delete(entry);
+    afl_entry_delete(entry);
 
     entry = next_entry;
 
@@ -138,13 +139,13 @@ void afl_base_queue_deinit(afl_base_queue_t *queue) {
 
   queue->base = NULL;
   queue->current = 0;
-  queue->size = 0;
+  queue->entries_count = 0;
   queue->fuzz_started = false;
 
 }
 
 /* *** Possible error cases here? *** */
-afl_ret_t afl_add_to_queue_default(afl_base_queue_t *queue, afl_queueentry_t *entry) {
+afl_ret_t afl_queue_insert(afl_queue_t *queue, afl_entry_t *entry) {
 
   if (!entry->input) {
 
@@ -182,11 +183,11 @@ afl_ret_t afl_add_to_queue_default(afl_base_queue_t *queue, afl_queueentry_t *en
 
   }
 
-  queue->size++;
-  queue->queue_entries = afl_realloc(queue->queue_entries, queue->size * sizeof(afl_queueentry_t *));
-  if (!queue->queue_entries) { return AFL_RET_ALLOC; }
+  queue->entries_count++;
+  queue->entries = afl_realloc(queue->entries, queue->entries_count * sizeof(afl_entry_t *));
+  if (!queue->entries) { return AFL_RET_ALLOC; }
 
-  queue->queue_entries[queue->size] = entry;
+  queue->entries[queue->entries_count] = entry;
 
   /* Let's save the entry to disk */
   if (queue->save_to_files && queue->dirpath && !entry->on_disk) {
@@ -205,37 +206,31 @@ afl_ret_t afl_add_to_queue_default(afl_base_queue_t *queue, afl_queueentry_t *en
 
 }
 
-afl_queueentry_t *afl_get_queue_base_default(afl_base_queue_t *queue) {
+size_t afl_queue_get_size(afl_queue_t *queue) {
 
-  return queue->base;
-
-}
-
-size_t afl_get_base_queue_size_default(afl_base_queue_t *queue) {
-
-  return queue->size;
+  return queue->entries_count;
 
 }
 
-char *afl_get_dirpath_default(afl_base_queue_t *queue) {
+char *afl_queue_get_dirpath(afl_queue_t *queue) {
 
   return queue->dirpath;
 
 }
 
-size_t afl_get_names_id_default(afl_base_queue_t *queue) {
+size_t afl_queue_get_names_id(afl_queue_t *queue) {
 
   return queue->names_id;
 
 }
 
-bool afl_get_save_to_files_default(afl_base_queue_t *queue) {
+bool afl_queue_should_save_to_file(afl_queue_t *queue) {
 
   return queue->save_to_files;
 
 }
 
-void afl_set_dirpath_default(afl_base_queue_t *queue, char *new_dirpath) {
+void afl_queue_set_dirpath(afl_queue_t *queue, char *new_dirpath) {
 
   if (new_dirpath) {
 
@@ -262,18 +257,18 @@ void afl_set_dirpath_default(afl_base_queue_t *queue, char *new_dirpath) {
 
 }
 
-void afl_set_engine_base_queue_default(afl_base_queue_t *queue, afl_engine_t *engine) {
+void afl_queue_set_engine(afl_queue_t *queue, afl_engine_t *engine) {
 
   queue->engine = engine;
   if (engine) { queue->engine_id = engine->id; }
 
 }
 
-afl_queueentry_t *afl_get_next_base_queue_default(afl_base_queue_t *queue, int engine_id) {
+afl_entry_t *afl_queue_next_base_queue(afl_queue_t *queue, int engine_id) {
 
-  if (queue->size) {
+  if (queue->entries_count) {
 
-    afl_queueentry_t *current = queue->queue_entries[queue->current];
+    afl_entry_t *current = queue->entries[queue->current];
 
     if (engine_id != queue->engine_id) {
 
@@ -284,7 +279,7 @@ afl_queueentry_t *afl_get_next_base_queue_default(afl_base_queue_t *queue, int e
     // current entry
 
     // If we reach the end of queue, start from beginning
-    if ((queue->current + 1) == queue->size) {
+    if ((queue->current + 1) == queue->entries_count) {
 
       queue->current = 0;
 
@@ -307,7 +302,7 @@ afl_queueentry_t *afl_get_next_base_queue_default(afl_base_queue_t *queue, int e
 
 afl_ret_t afl_feedback_queue_init(afl_queue_feedback_t *feedback_queue, afl_feedback_t *feedback, char *name) {
 
-  afl_base_queue_init(&(feedback_queue->base));
+  afl_queue_init(&(feedback_queue->base));
   feedback_queue->feedback = feedback;
 
   if (feedback) { feedback->queue = feedback_queue; }
@@ -324,22 +319,22 @@ void afl_feedback_queue_deinit(afl_queue_feedback_t *feedback_queue) {
 
   feedback_queue->feedback = NULL;
 
-  afl_base_queue_deinit(&feedback_queue->base);
+  afl_queue_deinit(&feedback_queue->base);
   feedback_queue->name = NULL;
 
 }
 
 afl_ret_t afl_global_queue_init(afl_queue_global_t *global_queue) {
 
-  afl_base_queue_init(&(global_queue->base));
+  afl_queue_init(&(global_queue->base));
 
   global_queue->feedback_queues_count = 0;
 
-  global_queue->base.funcs.set_engine = afl_set_engine_global_queue_default;
+  global_queue->base.funcs.set_engine = afl_queue_global_set_engine;
 
-  global_queue->extra_funcs.add_feedback_queue = afl_add_feedback_queue_default;
-  global_queue->extra_funcs.schedule = afl_global_schedule_default;
-  global_queue->base.funcs.get_next_in_queue = afl_get_next_global_queue_default;
+  global_queue->extra_funcs.add_feedback_queue = afl_global_queue_add_feedback_queue;
+  global_queue->extra_funcs.schedule = afl_queue_global_schedule;
+  global_queue->base.funcs.get_next_in_queue = afl_queue_next_global_queue;
 
   return AFL_RET_SUCCESS;
 
@@ -350,7 +345,7 @@ void afl_global_queue_deinit(afl_queue_global_t *global_queue) {
   /* Should we also deinit the feedback queues?? */
   size_t i;
 
-  afl_base_queue_deinit(&global_queue->base);
+  afl_queue_deinit(&global_queue->base);
 
   for (i = 0; i < global_queue->feedback_queues_count; ++i) {
 
@@ -364,7 +359,7 @@ void afl_global_queue_deinit(afl_queue_global_t *global_queue) {
 
 }
 
-afl_ret_t afl_add_feedback_queue_default(afl_queue_global_t *global_queue, afl_queue_feedback_t *feedback_queue) {
+afl_ret_t afl_global_queue_add_feedback_queue(afl_queue_global_t *global_queue, afl_queue_feedback_t *feedback_queue) {
 
   global_queue->feedback_queues_count++;
   global_queue->feedback_queues =
@@ -383,7 +378,7 @@ afl_ret_t afl_add_feedback_queue_default(afl_queue_global_t *global_queue, afl_q
 
 }
 
-afl_queueentry_t *afl_get_next_global_queue_default(afl_base_queue_t *queue, int engine_id) {
+afl_entry_t *afl_queue_next_global_queue(afl_queue_t *queue, int engine_id) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
@@ -395,7 +390,7 @@ afl_queueentry_t *afl_get_next_global_queue_default(afl_base_queue_t *queue, int
   if (fbck_idx != -1) {
 
     afl_queue_feedback_t *feedback_queue = global_queue->feedback_queues[fbck_idx];
-    afl_queueentry_t *   next_entry = feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base), engine_id);
+    afl_entry_t *   next_entry = feedback_queue->base.funcs.get_next_in_queue(&(feedback_queue->base), engine_id);
 
     if (next_entry) {
 
@@ -405,7 +400,7 @@ afl_queueentry_t *afl_get_next_global_queue_default(afl_base_queue_t *queue, int
 
     else {
 
-      return afl_get_next_base_queue_default(queue, engine_id);
+      return afl_queue_next_base_queue(queue, engine_id);
 
     }
 
@@ -414,26 +409,26 @@ afl_queueentry_t *afl_get_next_global_queue_default(afl_base_queue_t *queue, int
   else {
 
     // We don't have any more entries feedback queue, so base queue it is.
-    return afl_get_next_base_queue_default(queue, engine_id);
+    return afl_queue_next_base_queue(queue, engine_id);
 
   }
 
 }
 
-int afl_global_schedule_default(afl_queue_global_t *queue) {
+int afl_queue_global_schedule(afl_queue_global_t *queue) {
 
-  return afl_rand_below(&queue->base.engine->rnd, queue->feedback_queues_count);
+  return afl_rand_below(&queue->base.engine->rand, queue->feedback_queues_count);
 
 }
 
-void afl_set_engine_global_queue_default(afl_base_queue_t *global_queue_base, afl_engine_t *engine) {
+void afl_queue_global_set_engine(afl_queue_t *global_queue_base, afl_engine_t *engine) {
 
   size_t          i;
   afl_queue_global_t *global_queue = (afl_queue_global_t *)global_queue_base;
 
   // First add engine to the global queue itself
 
-  afl_set_engine_base_queue_default(&global_queue->base, engine);
+  afl_queue_global_set_engine(&global_queue->base, engine);
   // Set engine's queue to the global queue
 
   if (engine) { engine->global_queue = global_queue; }

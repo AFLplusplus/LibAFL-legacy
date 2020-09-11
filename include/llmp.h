@@ -98,7 +98,7 @@ typedef struct llmp_message {
    ever write to this, and never remove anything.
 */
 
-typedef struct llmp_broker_state llmp_broker_state_t;
+typedef struct llmp_broker_state llmp_broker_t;
 
 typedef struct llmp_page {
 
@@ -149,7 +149,7 @@ typedef void (*llmp_clientloop_func)(llmp_client_state_t *client_state, void *da
 If return is false, message will not be delivered to clients.
 This is synchronous, if you need long-running message handlers, register a
 client instead. */
-typedef bool(llmp_message_hook_func)(llmp_broker_state_t *broker, llmp_client_state_t *client, llmp_message_t *msg,
+typedef bool(llmp_message_hook_func)(llmp_broker_t *broker, llmp_client_state_t *client, llmp_message_t *msg,
                                      void *data);
 
 enum LLMP_CLIENT_TYPE {
@@ -266,9 +266,13 @@ bool llmp_client_send(llmp_client_state_t *client_state, llmp_message_t *msg);
  the broker's initial map str */
 void llmp_clientloop_tcp(llmp_client_state_t *client_state, void *data);
 
-/* Allocate and set up the new broker instance. Afterwards, run with broker_run.
- */
-llmp_broker_state_t *llmp_broker_new();
+/* Allocate and set up the new broker instance. Afterwards, run with broker_run. */
+afl_ret_t llmp_broker_init(llmp_broker_t *broker);
+
+/* Clean up the broker instance */
+void llmp_broker_deinit(llmp_broker_t *broker);
+
+AFL_NEW_AND_DELETE_FOR(llmp_broker)
 
 /* Register a new forked/child client.
 Client thread will be called with llmp_client_state_t client, containing
@@ -276,7 +280,7 @@ the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also be added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
-bool llmp_broker_register_childprocess_clientloop(llmp_broker_state_t *broker, llmp_clientloop_func clientloop,
+bool llmp_broker_register_childprocess_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop,
                                                   void *data);
 
 /* Client thread will be called with llmp_client_state_t client, containing the
@@ -284,32 +288,32 @@ data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
-bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker, llmp_clientloop_func clientloop, void *data);
+bool llmp_broker_register_threaded_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop, void *data);
 
 /* Kicks off all threaded clients in the brackground, using pthreads */
-bool llmp_broker_launch_clientloops(llmp_broker_state_t *broker);
+bool llmp_broker_launch_clientloops(llmp_broker_t *broker);
 
 /* Register a simple tcp client that will listen for new shard map clients via
  tcp */
-bool llmp_broker_register_local_server(llmp_broker_state_t *broker, int port);
+bool llmp_broker_register_local_server(llmp_broker_t *broker, int port);
 
 /* Adds a hook that gets called for each new message the broker touches.
 if the callback returns false, the message is not forwarded to the clients. */
-afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *broker, llmp_message_hook_func *hook, void *data);
+afl_ret_t llmp_broker_add_message_hook(llmp_broker_t *broker, llmp_message_hook_func *hook, void *data);
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  its own shared page.
  Never returns. */
-void llmp_broker_loop(llmp_broker_state_t *broker);
+void llmp_broker_loop(llmp_broker_t *broker);
 
 /* Start all threads and the main broker.
 Same as llmp_broker_launch_threaded clients();
 Never returns. */
-void llmp_broker_run(llmp_broker_state_t *broker);
+void llmp_broker_run(llmp_broker_t *broker);
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page, once. */
-void llmp_broker_once(llmp_broker_state_t *broker);
+void llmp_broker_once(llmp_broker_t *broker);
 
 #endif                                                                                                    /* LLMP_H */
 

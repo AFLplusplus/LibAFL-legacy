@@ -44,7 +44,7 @@ struct afl_mutator_funcs {
 
   // Checks if the queue entry is to be fuzzed or not
   afl_ret_t (*custom_queue_get)(afl_mutator_t *, afl_input_t *);
-  void (*custom_queue_new_entry)(afl_mutator_t *, afl_queueentry_t *);
+  void (*custom_queue_new_entry)(afl_mutator_t *, afl_entry_t *);
   // Post process API AFL++
   void (*post_process)(afl_mutator_t *, afl_input_t *);
 
@@ -60,9 +60,8 @@ struct afl_mutator {
 
 };
 
-void     afl_mutator_init_default(afl_mutator_t *);
-size_t   afl_trim_default(afl_mutator_t *, u8 *, u8 *);
-afl_stage_t *afl_get_mutator_stage_default(afl_mutator_t *);
+size_t   afl_trim(afl_mutator_t *, u8 *, u8 *);
+afl_stage_t *afl_get_mutator_stage(afl_mutator_t *);
 
 afl_ret_t afl_mutator_init(afl_mutator_t *, afl_engine_t *);
 void      afl_mutator_deinit(afl_mutator_t *);
@@ -96,10 +95,10 @@ struct afl_mutator_scheduled {
 
 /* TODO add implementation for the _schedule_ and _iterations_ functions, need a
  * random list element pop type implementation for this */
-size_t    afl_iterations_default(afl_mutator_scheduled_t *);
-afl_ret_t afl_mutator_add_default(afl_mutator_scheduled_t *, afl_mutator_func);
-size_t    afl_schedule_default(afl_mutator_scheduled_t *);
-size_t    afl_mutate_scheduled_mutator_default(afl_mutator_t *, afl_input_t *);
+size_t    afl_iterations(afl_mutator_scheduled_t *);
+afl_ret_t afl_mutator_add(afl_mutator_scheduled_t *, afl_mutator_func);
+size_t    afl_schedule(afl_mutator_scheduled_t *);
+size_t    afl_mutate_scheduled_mutator(afl_mutator_t *, afl_input_t *);
 
 afl_ret_t afl_mutator_scheduled_init(afl_mutator_scheduled_t *sched_mut, afl_engine_t *engine, size_t max_iterations);
 void      afl_mutator_scheduled_deinit(afl_mutator_scheduled_t *);

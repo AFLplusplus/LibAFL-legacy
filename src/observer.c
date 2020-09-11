@@ -42,7 +42,7 @@ void afl_observer_deinit(afl_observer_t *channel) {
 
 }
 
-void afl_flush_default(afl_observer_t *channel) {
+void afl_flush(afl_observer_t *channel) {
 
   (void)channel;
 
@@ -51,7 +51,7 @@ void afl_flush_default(afl_observer_t *channel) {
 
 }
 
-void afl_reset_default(afl_observer_t *channel) {
+void afl_reset(afl_observer_t *channel) {
 
   (void)channel;
 
@@ -77,8 +77,8 @@ afl_ret_t afl_map_channel_init(afl_map_based_channel_t *map_channel, size_t map_
 
   map_channel->base.funcs.reset = afl_map_channel_reset;
 
-  map_channel->extra_funcs.get_map_size = afl_get_map_size_default;
-  map_channel->extra_funcs.get_trace_bits = afl_get_trace_bits_default;
+  map_channel->extra_funcs.get_map_size = afl_get_map_size;
+  map_channel->extra_funcs.get_trace_bits = afl_get_trace_bits;
 
   return AFL_RET_SUCCESS;
 
@@ -100,13 +100,13 @@ void afl_map_channel_reset(afl_observer_t *channel) {
 
 }
 
-u8 *afl_get_trace_bits_default(afl_map_based_channel_t *obs_channel) {
+u8 *afl_get_trace_bits(afl_map_based_channel_t *obs_channel) {
 
   return obs_channel->shared_map.map;
 
 }
 
-size_t afl_get_map_size_default(afl_map_based_channel_t *obs_channel) {
+size_t afl_get_map_size(afl_map_based_channel_t *obs_channel) {
 
   return obs_channel->shared_map.map_size;
 

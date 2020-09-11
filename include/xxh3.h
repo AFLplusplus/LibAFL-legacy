@@ -2719,7 +2719,7 @@ XXH_FORCE_INLINE XXH128_hash_t XXH3_hashLong_128b_internal(const xxh_u8 *XXH_RES
 /*
  * It's important for performance that XXH3_hashLong is not inlined.
  */
-XXH_NO_INLINE XXH128_hash_t XXH3_hashLong_128b_defaultSecret(const xxh_u8 *XXH_RESTRICT input, size_t len,
+XXH_NO_INLINE XXH128_hash_t XXH3_hashLong_128bSecret(const xxh_u8 *XXH_RESTRICT input, size_t len,
                                                              XXH64_hash_t seed64, const xxh_u8 *XXH_RESTRICT secret,
                                                              size_t secretLen) {
 
@@ -2805,7 +2805,7 @@ XXH_PUBLIC_API XXH128_hash_t XXH3_128bits(const void *input, size_t len) {
 XXH_PUBLIC_API XXH128_hash_t XXH3_128bits_withSecret(const void *input, size_t len, const void *secret,
                                                      size_t secretSize) {
 
-  return XXH3_128bits_internal(input, len, 0, (const xxh_u8 *)secret, secretSize, XXH3_hashLong_128b_defaultSecret);
+  return XXH3_128bits_internal(input, len, 0, (const xxh_u8 *)secret, secretSize, XXH3_hashLong_128bSecret);
 
 }
 

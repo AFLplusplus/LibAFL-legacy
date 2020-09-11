@@ -32,7 +32,7 @@ afl_ret_t afl_stage_init(afl_stage_t *stage, afl_engine_t *engine) {
   // We also add this stage to the engine's fuzzone
   if (engine) { engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage); }
 
-  stage->funcs.iterations = afl_iterations_stage_default;
+  stage->funcs.iterations = afl_iterations_stage;
 
   return AFL_RET_SUCCESS;
 
@@ -46,10 +46,14 @@ void afl_stage_deinit(afl_stage_t *stage) {
 
 afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_stage_t *fuzz_stage, afl_engine_t *engine) {
 
-  if (afl_stage_init(&(fuzz_stage->base), engine) != AFL_RET_SUCCESS) { return AFL_RET_ERROR_INITIALIZE; }
+  AFL_TRY(afl_stage_init(&(fuzz_stage->base), engine), {
 
-  fuzz_stage->funcs.add_mutator_to_stage = afl_add_mutator_to_stage_default;
-  fuzz_stage->base.funcs.perform = afl_perform_stage_default;
+    return err;
+
+  });
+
+  fuzz_stage->funcs.add_mutator_to_stage = afl_add_mutator_to_stage;
+  fuzz_stage->base.funcs.perform = afl_perform_stage;
 
   return AFL_RET_SUCCESS;
 
@@ -73,7 +77,7 @@ void afl_fuzzing_stage_deinit(afl_fuzzing_stage_t *fuzz_stage) {
 
 }
 
-afl_ret_t afl_add_mutator_to_stage_default(afl_fuzzing_stage_t *stage, afl_mutator_t *mutator) {
+afl_ret_t afl_add_mutator_to_stage(afl_fuzzing_stage_t *stage, afl_mutator_t *mutator) {
 
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
@@ -87,14 +91,14 @@ afl_ret_t afl_add_mutator_to_stage_default(afl_fuzzing_stage_t *stage, afl_mutat
 
 }
 
-size_t afl_iterations_stage_default(afl_stage_t *stage) {
+size_t afl_iterations_stage(afl_stage_t *stage) {
 
-  return (1 + afl_rand_below(&stage->engine->rnd, 128));
+  return (1 + afl_rand_below(&stage->engine->rand, 128));
 
 }
 
 /* Perform default for fuzzing stage */
-afl_ret_t afl_perform_stage_default(afl_stage_t *stage, afl_input_t *input) {
+afl_ret_t afl_perform_stage(afl_stage_t *stage, afl_input_t *input) {
 
   // size_t i;
   // This is to stop from compiler complaining about the incompatible pointer
@@ -147,11 +151,11 @@ afl_ret_t afl_perform_stage_default(afl_stage_t *stage, afl_input_t *input) {
     afl_ret_t ret = stage->engine->funcs.execute(stage->engine, copy);
     /* Let's collect some feedback on the input now */
 
-    bool add_to_queue = false;
+    bool append = false;
 
     for (j = 0; j < stage->engine->feedbacks_count; ++j) {
 
-      add_to_queue = add_to_queue || stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j],
+      append = append || stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j],
                                                                                        stage->engine->executor);
 
     }
@@ -162,19 +166,19 @@ afl_ret_t afl_perform_stage_default(afl_stage_t *stage, afl_input_t *input) {
 
     /* If the input is interesting and there is a global queue add the input to
      * the queue */
-    if (add_to_queue && stage->engine->global_queue) {
+    if (append && stage->engine->global_queue) {
 
       afl_input_t *input_copy = copy->funcs.copy(copy);
 
       if (!input_copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
-      afl_queueentry_t *entry = afl_queueentry_new(input_copy);
+      afl_entry_t *entry = afl_entry_new(input_copy);
 
       if (!entry) { return AFL_RET_ALLOC; }
 
       afl_queue_global_t *queue = stage->engine->global_queue;
 
-      queue->base.funcs.add_to_queue((afl_base_queue_t *)queue, entry);
+      queue->base.funcs.insert((afl_queue_t *)queue, entry);
 
     }
 

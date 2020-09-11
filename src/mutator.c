@@ -48,12 +48,14 @@ void afl_mutator_deinit(afl_mutator_t *mutator) {
 
 afl_ret_t afl_mutator_scheduled_init(afl_mutator_scheduled_t *sched_mut, afl_engine_t *engine, size_t max_iterations) {
 
-  if (afl_mutator_init(&(sched_mut->base), engine) != AFL_RET_SUCCESS) { return AFL_RET_ERROR_INITIALIZE; }
+  AFL_TRY(afl_mutator_init(&(sched_mut->base), engine), {
+    return err;
+  });
 
-  sched_mut->base.funcs.mutate = afl_mutate_scheduled_mutator_default;
-  sched_mut->extra_funcs.add_mutator = afl_mutator_add_default;
-  sched_mut->extra_funcs.iterations = afl_iterations_default;
-  sched_mut->extra_funcs.schedule = afl_schedule_default;
+  sched_mut->base.funcs.mutate = afl_mutate_scheduled_mutator;
+  sched_mut->extra_funcs.add_mutator = afl_mutator_add;
+  sched_mut->extra_funcs.iterations = afl_iterations;
+  sched_mut->extra_funcs.schedule = afl_schedule;
 
   sched_mut->max_iterations = (max_iterations > 0) ? max_iterations : 7;
   return AFL_RET_SUCCESS;
@@ -79,7 +81,7 @@ void afl_mutator_scheduled_deinit(afl_mutator_scheduled_t *sched_mut) {
 
 }
 
-afl_ret_t afl_mutator_add_default(afl_mutator_scheduled_t *mutator, afl_mutator_func mutator_func) {
+afl_ret_t afl_mutator_add(afl_mutator_scheduled_t *mutator, afl_mutator_func mutator_func) {
 
   mutator->mutators_count++;
   mutator->mutations = afl_realloc(mutator->mutations, mutator->mutators_count * sizeof(afl_mutator_func));
@@ -95,19 +97,19 @@ afl_ret_t afl_mutator_add_default(afl_mutator_scheduled_t *mutator, afl_mutator_
 
 }
 
-size_t afl_iterations_default(afl_mutator_scheduled_t *mutator) {
+size_t afl_iterations(afl_mutator_scheduled_t *mutator) {
 
   return 1 << (1 + afl_rand_below(&mutator->base.engine->rand, mutator->max_iterations));
 
 }
 
-size_t afl_schedule_default(afl_mutator_scheduled_t *mutator) {
+size_t afl_schedule(afl_mutator_scheduled_t *mutator) {
 
   return afl_rand_below(&mutator->base.engine->rand, mutator->mutators_count);
 
 }
 
-size_t afl_mutate_scheduled_mutator_default(afl_mutator_t *mutator, afl_input_t *input) {
+size_t afl_mutate_scheduled_mutator(afl_mutator_t *mutator, afl_input_t *input) {
 
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
@@ -387,8 +389,8 @@ void mutator_splice(afl_mutator_t *mutator, afl_input_t *input) {
       // Grab a random entry from the random feedback queue
       afl_queue_feedback_t *random_fbck_queue = global_queue->feedback_queues[random_queue_idx];
       splice_input =
-          (random_fbck_queue->base.size > 0)
-              ? random_fbck_queue->base.queue_entries[afl_rand_below(&engine->rand, random_fbck_queue->base.size)]->input
+          (random_fbck_queue->base.entries_count > 0)
+              ? random_fbck_queue->base.entries[afl_rand_below(&engine->rand, random_fbck_queue->base.entries_count)]->input
               : NULL;
 
       if (splice_input && !splice_input->bytes) { splice_input = NULL; }
@@ -397,8 +399,8 @@ void mutator_splice(afl_mutator_t *mutator, afl_input_t *input) {
 
       // Grab a random entry from the global queue
       splice_input =
-          (global_queue->base.size > 0)
-              ? global_queue->base.queue_entries[afl_rand_below(&engine->rand, global_queue->base.size)]->input
+          (global_queue->base.entries_count > 0)
+              ? global_queue->base.entries[afl_rand_below(&engine->rand, global_queue->base.entries_count)]->input
               : NULL;
       if (splice_input && !splice_input->bytes) { splice_input = NULL; }
 

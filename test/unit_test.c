@@ -137,7 +137,7 @@ void test_input_load_from_file(void **state) {
   afl_input_init(&input);
 
   /* We just have to test the default func, we don't use the vtable here */
-  afl_input_load_from_file_default(&input, fname);
+  afl_input_load_from_file(&input, fname);
 
   assert_string_equal(input.bytes, test_string);
   assert_int_equal(input.len, write_len);
@@ -164,7 +164,7 @@ void test_input_save_to_file(void **state) {
   input.len = strlen(test_string);
 
   /* We just have to test the default func, we don't use the vtable here */
-  afl_input_save_to_file_default(&input, fname);
+  afl_input_save_to_file(&input, fname);
 
   int fd = open(fname, O_RDONLY);
 
@@ -204,7 +204,7 @@ static afl_input_t *custom_input_new() {
 
 }
 
-void test_engine_load_testcase_from_dir_default(void **state) {
+void test_engine_load_testcase_from_dir(void **state) {
 
   (void)state;
 
@@ -339,6 +339,8 @@ void test_basic_mutator_functions(void **state) {
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
   afl_input_delete(copy);
 
+  /* Make sure this is an actual string */
+  input.bytes[input.len-1] = '\0';
   copy = input.funcs.copy(&input);
   mutator_delete_bytes(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
@@ -361,14 +363,13 @@ void test_queue_set_directory(void **state) {
 
   (void)state;
 
-  afl_base_queue_t queue = {0};
-  afl_ret_t        ret = {0};
-  if ((ret = afl_base_queue_init(&queue)) != AFL_RET_SUCCESS) {
+  afl_queue_t queue = {0};
+  AFL_TRY(afl_queue_init(&queue), {
 
-    WARNF("Could not init queue: %s", afl_ret_stringify(ret));
+    WARNF("Could not init queue: %s", afl_ret_stringify(err));
     assert(0 && "COULD_NOT_INIT_QUEUE");
 
-  }
+  });
 
   /* Testing for an empty dirpath */
   queue.funcs.set_dirpath(&queue, NULL);
@@ -391,8 +392,8 @@ void test_base_queue_get_next(void **state) {
   afl_engine_init(&engine, NULL, NULL, NULL);
   llmp_client_state_t *client = llmp_client_new_unconnected();
   engine.llmp_client = client;
-  afl_base_queue_t queue = {0};
-  afl_base_queue_init(&queue);
+  afl_queue_t queue = {0};
+  afl_queue_init(&queue);
   queue.engine = &engine;
   queue.engine_id = engine.id;
 
@@ -401,24 +402,24 @@ void test_base_queue_get_next(void **state) {
 
   afl_input_t input = {0};
 
-  afl_queueentry_t first_entry = {0};
-  afl_queueentry_init(&first_entry, &input);
+  afl_entry_t first_entry = {0};
+  afl_entry_init(&first_entry, &input);
 
-  queue.funcs.add_to_queue(&queue, &first_entry);
+  queue.funcs.insert(&queue, &first_entry);
 
-  afl_queueentry_t second_entry = {0};
-  afl_queueentry_init(&second_entry, &input);
+  afl_entry_t second_entry = {0};
+  afl_entry_init(&second_entry, &input);
 
-  queue.funcs.add_to_queue(&queue, &second_entry);
+  queue.funcs.insert(&queue, &second_entry);
 
   /* Let's tell the queue with two entries now */
   assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &first_entry);
 
   assert_ptr_equal(queue.funcs.get_next_in_queue(&queue, engine.id), &second_entry);
 
-  assert_int_equal(queue.size, 2);
+  assert_int_equal(queue.entries_count, 2);
 
-  afl_base_queue_deinit(&queue);
+  afl_queue_deinit(&queue);
   llmp_client_destroy(client);
 
 }
@@ -438,7 +439,7 @@ int main(int argc, char **argv) {
       cmocka_unit_test(test_input_save_to_file),
       cmocka_unit_test(test_input_copy),
 
-      cmocka_unit_test(test_engine_load_testcase_from_dir_default),
+      cmocka_unit_test(test_engine_load_testcase_from_dir),
 
       cmocka_unit_test(test_basic_mutator_functions),
 

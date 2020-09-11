@@ -10,8 +10,16 @@
 /* Shorthand to check for RET_SUCCESS */
 #define AFL_OK(expr) ((expr) == AFL_RET_SUCCESS)
 
+/* If expr != AFL_RET_SUCCESS, run block, error is in err. Return from here will return the parent func */
+#define AFL_TRY(expr, block) do { \
+  afl_ret_t err = (expr); \
+  if (err != AFL_RET_SUCCESS) { \
+    {block} \
+  } \
+} while (0);
+
 /* Shorthand to check for RET_SUCCESS and assign to ret */
-#define AFL_OK_RET(expr, ret) ((ret = x) == AFL_RET_SUCCESS)
+#define AFL_OK_RET(expr, ret) ((ret = (expr)) == AFL_RET_SUCCESS)
 
 typedef enum afl_ret {
 

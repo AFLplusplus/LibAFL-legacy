@@ -34,25 +34,25 @@ typedef void (*afl_crash_handler_func)(afl_exit_t type, void *data);
 
 void install_crash_handler(afl_crash_handler_func callback);
 
-typedef enum fork_result { FORK_FAILED, CHILD, PARENT } fork_result_t;
+typedef enum afl_fork_result { FORK_FAILED, CHILD, PARENT } afl_fork_result_t;
 
-typedef struct process {
+typedef struct afl_os {
 
-  struct process *(*current)(struct process *);
-  fork_result_t (*fork)(struct process *);
-  void (*suspend)(struct process *);
-  void (*resume)(struct process *);
-  afl_exit_t (*wait)(struct process *, bool untraced);
+  struct afl_os *(*current)(struct afl_os *);
+  afl_fork_result_t (*fork)(struct afl_os *);
+  void (*suspend)(struct afl_os *);
+  void (*resume)(struct afl_os *);
+  afl_exit_t (*wait)(struct afl_os *, bool untraced);
 
   pid_t handler_process;  // Something similar to the child process
 
-} process_t;
+} afl_os_t;
 
-void _afl_process_init_internal(process_t *);
+void _afl_process_init_internal(afl_os_t *);
 
-static inline process_t *afl_process_init(process_t *process, pid_t handler_pid) {
+static inline afl_os_t *afl_process_init(afl_os_t *process, pid_t handler_pid) {
 
-  process_t *new_process;
+  afl_os_t *new_process;
 
   if (process) {
 
@@ -64,7 +64,7 @@ static inline process_t *afl_process_init(process_t *process, pid_t handler_pid)
 
   else {
 
-    new_process = calloc(1, sizeof(process_t));
+    new_process = calloc(1, sizeof(afl_os_t));
     if (!new_process) { return NULL; }
     _afl_process_init_internal(new_process);
     new_process->handler_process = (handler_pid);
@@ -75,11 +75,10 @@ static inline process_t *afl_process_init(process_t *process, pid_t handler_pid)
 
 }
 
-process_t *   return_current_default(process_t *);
-fork_result_t do_fork_default(process_t *);
-void          suspend_default(process_t *);
-void          resume_default(process_t *);
-afl_exit_t   wait_default(process_t *, bool);
+afl_fork_result_t afl_proc_fork(afl_os_t *);
+void          afl_proc_suspend(afl_os_t *);
+void          afl_proc_resume(afl_os_t *);
+afl_exit_t   afl_proc_wait(afl_os_t *, bool);
 
 #endif
 

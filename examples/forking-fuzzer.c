@@ -40,7 +40,7 @@ typedef struct timeout_obs_channel {
 
 } timeout_obs_channel_t;
 
-llmp_broker_state_t *llmp_broker;
+llmp_broker_t *llmp_broker;
 int                  broker_port;
 
 /* Execute target application, monitoring for timeouts. Return status
@@ -161,8 +161,8 @@ static float timeout_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_
     afl_input_t *input = fsrv->base.current_input->funcs.copy(fsrv->base.current_input);
     if (!input) { FATAL("Error creating a copy of input"); }
 
-    afl_queueentry_t *new_entry = afl_queueentry_new(input);
-    feedback->queue->base.funcs.add_to_queue(&feedback->queue->base, new_entry);
+    afl_entry_t *new_entry = afl_entry_new(input);
+    feedback->queue->base.funcs.insert(&feedback->queue->base, new_entry);
     return 0.0;
 
   }
@@ -218,8 +218,8 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   global_queue->extra_funcs.add_feedback_queue(global_queue, timeout_feedback_queue);
 
   /* Coverage Feedback initialization */
-  afl_maximize_map_feedback_t *coverage_feedback =
-      map_feedback_init(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
+  afl_feedback_cov_t *coverage_feedback =
+      afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
   coverage_feedback_queue->feedback = &coverage_feedback->base;
 
@@ -275,19 +275,20 @@ void fuzzer_process_main(llmp_client_state_t *client, void *data) {
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
 
-  afl_maximize_map_feedback_t *coverage_feedback = (afl_maximize_map_feedback_t *)(engine->feedbacks[0]);
+  afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
 
   /* Let's reduce the timeout initially to fill the queue */
   fsrv->exec_tmout = 20;
   /* Now we can simply load the testcases from the directory given */
-  afl_ret_t ret = engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL);
-  if (ret != AFL_RET_SUCCESS) { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(ret)); }
+  AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL), {
+    PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); 
+  });
 
   OKF("Processed %llu input files.", engine->executions);
 
-  afl_ret_t fuzz_ret = engine->funcs.loop(engine);
-
-  if (fuzz_ret != AFL_RET_SUCCESS) { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(fuzz_ret)); }
+  AFL_TRY(engine->funcs.loop(engine), {
+    PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err));
+  });
 
   SAYF("Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n", engine->executions);
 
@@ -300,9 +301,9 @@ void fuzzer_process_main(llmp_client_state_t *client, void *data) {
   afl_map_channel_delete(trace_bits_channel);
   afl_observer_delete(&timeout_channel->base);
   afl_mutator_scheduled_delete(mutators_havoc);
-  afl_fuzz_stage_delete(stage);
+  afl_fuzzing_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
-  free(coverage_feedback->virgin_bits);
+  afl_feedback_cov_delete(coverage_feedback);
   for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     afl_feedback_delete((afl_feedback_t *)engine->feedbacks[i]);

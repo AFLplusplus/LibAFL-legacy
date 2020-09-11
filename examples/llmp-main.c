@@ -20,7 +20,9 @@ void llmp_clientloop_rand_u32(llmp_client_state_t *client, void *data) {
 
   afl_rand_t rnd = {0};
 
-  if (afl_rand_init(&rnd) != AFL_RET_SUCCESS) { FATAL("Error creating rnd"); }
+  AFL_TRY(afl_rand_init(&rnd), {
+    FATAL("Error creating rnd! %s", afl_ret_stringify(err));
+  });
 
   while (1) {
 
@@ -100,7 +102,7 @@ int main(int argc, char **argv) {
   if (is_main) {
 
     /* The main node has a broker, a tcp server, and a few worker threads */
-    llmp_broker_state_t *broker = llmp_broker_new();
+    llmp_broker_t *broker = llmp_broker_new();
 
     llmp_broker_register_local_server(broker, port);
 

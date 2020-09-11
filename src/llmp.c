@@ -426,7 +426,7 @@ bool llmp_send(llmp_page_t *page, llmp_message_t *msg) {
 
 }
 
-static inline afl_shmem_t *_llmp_broker_current_broadcast_map(llmp_broker_state_t *broker_state) {
+static inline afl_shmem_t *_llmp_broker_current_broadcast_map(llmp_broker_t *broker_state) {
 
   DBG("_llmp_broker_current_broadcast_map %p [%u]-> %p\n", broker_state, (u32)broker_state->broadcast_map_count - 1,
       &broker_state->broadcast_maps[broker_state->broadcast_map_count - 1]);
@@ -510,7 +510,7 @@ static afl_shmem_t *llmp_handle_out_eop(afl_shmem_t *maps, size_t *map_count_p, 
 }
 
 /* no more space left! We'll have to start a new page */
-afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
+afl_ret_t llmp_broker_handle_out_eop(llmp_broker_t *broker) {
 
   DBG("Broadcasting broker EOP");
   broker->broadcast_maps =
@@ -519,7 +519,7 @@ afl_ret_t llmp_broker_handle_out_eop(llmp_broker_state_t *broker) {
 
 }
 
-llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker, size_t len) {
+llmp_message_t *llmp_broker_alloc_next(llmp_broker_t *broker, size_t len) {
 
   llmp_page_t *broadcast_page = shmem2page(_llmp_broker_current_broadcast_map(broker));
 
@@ -550,7 +550,7 @@ llmp_message_t *llmp_broker_alloc_next(llmp_broker_state_t *broker, size_t len) 
 
 /* Registers a new client for the given sharedmap str and size.
   Be careful: Intenral realloc may change the location of the client map */
-static llmp_broker_client_metadata_t *llmp_broker_register_client(llmp_broker_state_t *broker, char *shm_str,
+static llmp_broker_client_metadata_t *llmp_broker_register_client(llmp_broker_t *broker, char *shm_str,
                                                                   size_t map_size) {
 
   /* make space for a new client and calculate its id */
@@ -608,7 +608,7 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(llmp_broker_st
 }
 
 /* broker broadcast to its own page for all others to read */
-static inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *broker, llmp_broker_client_metadata_t *client) {
+static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broker_client_metadata_t *client) {
 
   DBG("llmp_broker_handle_new_msgs %p %p->%u\n", broker, client, client->client_state->id);
   // TODO: We could memcpy a range of pending messages, instead of one by one.
@@ -737,7 +737,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_state_t *broker, llmp
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page, once. */
-inline void llmp_broker_once(llmp_broker_state_t *broker) {
+inline void llmp_broker_once(llmp_broker_t *broker) {
 
   u32 i;
   MEM_BARRIER();
@@ -752,7 +752,7 @@ inline void llmp_broker_once(llmp_broker_state_t *broker) {
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page */
-void llmp_broker_loop(llmp_broker_state_t *broker) {
+void llmp_broker_loop(llmp_broker_t *broker) {
 
   while (1) {
 
@@ -778,7 +778,7 @@ static void *_llmp_client_wrapped_loop(void *llmp_client_broker_metadata_ptr) {
 }
 
 /* Kicks off all threaded clients in the brackground, using pthreads */
-bool llmp_broker_launch_clientloops(llmp_broker_state_t *broker) {
+bool llmp_broker_launch_clientloops(llmp_broker_t *broker) {
 
   size_t i;
 
@@ -842,7 +842,7 @@ bool llmp_broker_launch_clientloops(llmp_broker_state_t *broker) {
 }
 
 /* Start all threads and the main broker. Never returns. */
-void llmp_broker_run(llmp_broker_state_t *broker) {
+void llmp_broker_run(llmp_broker_t *broker) {
 
   llmp_broker_launch_clientloops(broker);
   llmp_broker_loop(broker);
@@ -1313,7 +1313,7 @@ the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also be added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
-bool llmp_broker_register_childprocess_clientloop(llmp_broker_state_t *broker, llmp_clientloop_func clientloop,
+bool llmp_broker_register_childprocess_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop,
                                                   void *data) {
 
   afl_shmem_t client_map = {.map = NULL};
@@ -1371,7 +1371,7 @@ the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
-bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker, llmp_clientloop_func clientloop,
+bool llmp_broker_register_threaded_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop,
                                               void *data) {
 
   /* We do a little dance with two sharedmaps, as the threaded clients
@@ -1441,7 +1441,7 @@ bool llmp_broker_register_threaded_clientloop(llmp_broker_state_t *broker, llmp_
 
 /* Register a simple tcp client that will listen for new shard map clients via
  * tcp */
-bool llmp_broker_register_local_server(llmp_broker_state_t *broker, int port) {
+bool llmp_broker_register_local_server(llmp_broker_t *broker, int port) {
 
   if (!llmp_broker_register_threaded_clientloop(broker, llmp_clientloop_process_server, (void *)(size_t)port)) {
 
@@ -1456,7 +1456,7 @@ bool llmp_broker_register_local_server(llmp_broker_state_t *broker, int port) {
 
 /* Adds a hook that gets called for each new message the broker touches.
 if the callback returns false, the message is not forwarded to the clients. */
-afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *broker, llmp_message_hook_func *hook, void *data) {
+afl_ret_t llmp_broker_add_message_hook(llmp_broker_t *broker, llmp_message_hook_func *hook, void *data) {
 
   if (!(broker->msg_hooks =
             afl_realloc((void *)broker->msg_hooks, (broker->msg_hook_count + 1) * sizeof(llmp_message_hook_data_t)))) {
@@ -1476,17 +1476,15 @@ afl_ret_t llmp_broker_add_message_hook(llmp_broker_state_t *broker, llmp_message
 /* Allocate and set up the new broker instance. Afterwards, run with
  * broker_run.
  */
-llmp_broker_state_t *llmp_broker_new() {
+afl_ret_t llmp_broker_init(llmp_broker_t *broker) {
 
-  /* Allocate enough space for us and an array of clients */
-  llmp_broker_state_t *broker = calloc(1, sizeof(llmp_broker_state_t));
-  if (!broker) { FATAL("Could not allocate broker mem"); }
+  memset(broker, 0, sizeof(llmp_broker_t));
 
   /* let's create some space for outgoing maps */
   if (!(broker->broadcast_maps = afl_realloc(NULL, 1 * sizeof(afl_shmem_t)))) {
 
-    free(broker);
-    return NULL;
+    DBG("Broker map realloc failed");
+    return AFL_RET_ALLOC;
 
   }
 
@@ -1497,13 +1495,36 @@ llmp_broker_state_t *llmp_broker_new() {
 
   if (!llmp_new_page_shmem(_llmp_broker_current_broadcast_map(broker), -1, LLMP_INITIAL_MAP_SIZE)) {
 
+    DBG("Broker map init failed");
     afl_free(broker->broadcast_maps);
-    free(broker);
-    return NULL;
+    return AFL_RET_ALLOC;
 
   }
 
-  return broker;
+  DBG("Sucess");
+  return AFL_RET_SUCCESS;
+
+}
+
+void llmp_broker_deinit(llmp_broker_t *broker) {
+
+  size_t i;
+  for (i = 0; i < broker->broadcast_map_count; i++) {
+    afl_shmem_deinit(&broker->broadcast_maps[i]);
+  }
+
+  for (i = 0; i < broker->llmp_client_count; i++) {
+
+    afl_shmem_deinit(broker->llmp_clients[i].cur_client_map);
+    free(broker->llmp_clients[i].cur_client_map);
+    // TODO: Properly clean up the client
+        
+  }
+
+  afl_free(broker->broadcast_maps);
+  broker->broadcast_map_count = 0;
+  afl_free(broker->llmp_clients);
+  broker->llmp_client_count = 0;
 
 }
 

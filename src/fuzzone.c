@@ -31,9 +31,9 @@ afl_ret_t afl_fuzz_one_init(afl_fuzz_one_t *fuzz_one, afl_engine_t *engine) {
 
   if (engine) { engine->fuzz_one = fuzz_one; }
 
-  fuzz_one->funcs.add_stage = afl_add_stage_default;
-  fuzz_one->funcs.perform = afl_perform_default;
-  fuzz_one->funcs.set_engine_default = afl_set_engine_default;
+  fuzz_one->funcs.add_stage = afl_add_stage;
+  fuzz_one->funcs.perform = afl_perform;
+  fuzz_one->funcs.set_engine = afl_set_engine;
 
   return AFL_RET_SUCCESS;
 
@@ -59,7 +59,7 @@ void afl_fuzz_one_deinit(afl_fuzz_one_t *fuzz_one) {
 
 }
 
-afl_ret_t afl_perform_default(afl_fuzz_one_t *fuzz_one) {
+afl_ret_t afl_perform(afl_fuzz_one_t *fuzz_one) {
 
   // Fuzzone grabs the current queue entry from the global queue and
   // sends it to stage.
@@ -67,8 +67,8 @@ afl_ret_t afl_perform_default(afl_fuzz_one_t *fuzz_one) {
 
   afl_queue_global_t *global_queue = fuzz_one->engine->global_queue;
 
-  afl_queueentry_t *queue_entry =
-      global_queue->base.funcs.get_next_in_queue((afl_base_queue_t *)global_queue, fuzz_one->engine->id);
+  afl_entry_t *queue_entry =
+      global_queue->base.funcs.get_next_in_queue((afl_queue_t *)global_queue, fuzz_one->engine->id);
 
   if (!queue_entry) { return AFL_RET_NULL_QUEUE_ENTRY; }
 
@@ -93,7 +93,7 @@ afl_ret_t afl_perform_default(afl_fuzz_one_t *fuzz_one) {
 
 }
 
-afl_ret_t afl_add_stage_default(afl_fuzz_one_t *fuzz_one, afl_stage_t *stage) {
+afl_ret_t afl_add_stage(afl_fuzz_one_t *fuzz_one, afl_stage_t *stage) {
 
   if (!stage || !fuzz_one) { return AFL_RET_NULL_PTR; }
 
@@ -109,7 +109,7 @@ afl_ret_t afl_add_stage_default(afl_fuzz_one_t *fuzz_one, afl_stage_t *stage) {
 
 }
 
-afl_ret_t afl_set_engine_default(afl_fuzz_one_t *fuzz_one, afl_engine_t *engine) {
+afl_ret_t afl_set_engine(afl_fuzz_one_t *fuzz_one, afl_engine_t *engine) {
 
   size_t i;
   fuzz_one->engine = engine;
