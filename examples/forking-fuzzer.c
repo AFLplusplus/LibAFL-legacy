@@ -239,7 +239,7 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   afl_fuzz_one_t *fuzz_one = afl_fuzz_one_new(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
 
-  afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(NULL, 8);
+  afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(engine, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
   mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_byte);
