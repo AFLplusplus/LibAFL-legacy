@@ -420,7 +420,7 @@ void mutator_splice(afl_mutator_t *mutator, afl_input_t *input) {
 
     locate_diffs(input->bytes, splice_input->bytes, MIN((s64)input->len, (s64)splice_input->len), &f_diff, &l_diff);
 
-  } while (!splice_input || !(f_diff < 0 || l_diff < 2 || f_diff == l_diff));
+  } while (f_diff < 0 || l_diff < 2 || f_diff == l_diff);
 
   /* Split somewhere between the first and last differing byte. */
 
