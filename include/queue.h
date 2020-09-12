@@ -130,7 +130,7 @@ size_t       afl_queue_get_names_id(afl_queue_t *);
 bool         afl_queue_should_save_to_file(afl_queue_t *);
 void         afl_queue_set_dirpath(afl_queue_t *, char *);
 void         afl_queue_set_engine(afl_queue_t *queue, afl_engine_t *engine);
-void         afl_queue_global_register_with_engine(afl_queue_t *, afl_engine_t *);
+void         afl_queue_global_set_engine(afl_queue_t *, afl_engine_t *);
 afl_entry_t *afl_queue_next_base_queue(afl_queue_t *queue, int engine_id);
 
 AFL_NEW_AND_DELETE_FOR(afl_queue)
@@ -178,7 +178,7 @@ struct afl_queue_global {
 // Default implementations of global queue vtable functions
 afl_ret_t afl_queue_global_add_feedback_queue(afl_queue_global_t *, afl_queue_feedback_t *);
 int       afl_queue_global_schedule(afl_queue_global_t *);
-void      afl_queue_global_register_with_engine(afl_queue_t *, afl_engine_t *);
+void      afl_queue_global_set_engine(afl_queue_t *, afl_engine_t *);
 
 // Function to get next entry from queue, we override the base_queue
 // implementation
@@ -186,7 +186,7 @@ afl_entry_t *afl_queue_next_global_queue(afl_queue_t *queue, int engine_id);
 
 /* Register this as global queue for the engine.
 TODO: Make this a method of engine instead */
-void afl_queue_global_register_with_engine(afl_queue_t *global_queue_base, afl_engine_t *engine);
+void afl_queue_global_set_engine(afl_queue_t *global_queue_base, afl_engine_t *engine);
 
 /* TODO: ADD defualt implementation for the schedule function based on random.
  */

@@ -34,6 +34,7 @@
 #include "mutator.h"
 #include "config.h"
 
+
 // We start with the implementation of queue_entry functions here.
 afl_ret_t afl_entry_init(afl_entry_t *entry, afl_input_t *input) {
 
@@ -187,7 +188,7 @@ afl_ret_t afl_queue_insert(afl_queue_t *queue, afl_entry_t *entry) {
   queue->entries = afl_realloc(queue->entries, queue->entries_count * sizeof(afl_entry_t *));
   if (!queue->entries) { return AFL_RET_ALLOC; }
 
-  queue->entries[queue->entries_count] = entry;
+  queue->entries[queue->entries_count-1] = entry;
 
   /* Let's save the entry to disk */
   if (queue->save_to_files && queue->dirpath[0] && !entry->on_disk) {
@@ -279,20 +280,13 @@ afl_entry_t *afl_queue_next_base_queue(afl_queue_t *queue, int engine_id) {
     // current entry
 
     // If we reach the end of queue, start from beginning
-    if ((queue->current + 1) == queue->entries_count) {
-
-      queue->current = 0;
-
-    } else {
-
-      queue->current++;
-
-    }
+    queue->current = (queue->current + 1) % queue->entries_count;
 
     return current;
 
   } else {
 
+    DBG("Empty queue at %p", queue);
     // Queue empty :(
     return NULL;
 
@@ -331,12 +325,12 @@ afl_ret_t afl_queue_global_init(afl_queue_global_t *global_queue) {
   global_queue->feedback_queues_count = 0;
   global_queue->feedback_queues = NULL;
 
-  global_queue->base.funcs.set_engine = afl_queue_global_register_with_engine;
+  global_queue->base.funcs.set_engine = afl_queue_global_set_engine;
 
   global_queue->funcs.add_feedback_queue = afl_queue_global_add_feedback_queue;
   global_queue->funcs.schedule = afl_queue_global_schedule;
   global_queue->base.funcs.get_next_in_queue = afl_queue_next_global_queue;
-  global_queue->base.funcs.set_engine = afl_queue_global_register_with_engine;
+  global_queue->base.funcs.set_engine = afl_queue_global_set_engine;
 
   return AFL_RET_SUCCESS;
 
@@ -424,7 +418,7 @@ int afl_queue_global_schedule(afl_queue_global_t *queue) {
 }
 
 /* TODO: make this a method for engine instead */
-void afl_queue_global_register_with_engine(afl_queue_t *global_queue_base, afl_engine_t *engine) {
+void afl_queue_global_set_engine(afl_queue_t *global_queue_base, afl_engine_t *engine) {
 
   size_t              i;
   afl_queue_global_t *global_queue = (afl_queue_global_t *)global_queue_base;
@@ -445,3 +439,4 @@ void afl_queue_global_register_with_engine(afl_queue_t *global_queue_base, afl_e
 
 }
 
+#undef DBG

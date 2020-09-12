@@ -33,6 +33,12 @@
 /*******************
  * Terminal colors *
  *******************/
+#ifdef AFL_DEBUG
+  #define DBG(...) ACTF("(__FILE__:__LINE__) " __VA_ARGS__)
+#else
+  #define DBG(...) \
+    {}
+#endif
 
 #ifndef MESSAGES_TO_STDOUT
   #define MESSAGES_TO_STDOUT

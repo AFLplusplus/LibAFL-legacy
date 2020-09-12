@@ -80,14 +80,6 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 #include "common.h"
 #include "llmp.h"
 
-/* all the debug prints */
-#ifdef LLMP_DEBUG
-  #define DBG(...) ACTF("(llmp) " __VA_ARGS__)
-#else
-  #define DBG(...) \
-    {}
-#endif
-
 /* INTERNAL TAG
   At EOP from worker to main, restart from offset 0,
   at EOP from main to worker, look for the new shared map in the payload.
@@ -1527,7 +1519,3 @@ void llmp_broker_deinit(llmp_broker_t *broker) {
   broker->llmp_client_count = 0;
 
 }
-
-/* Other files may dbg too */
-#undef DBG
-
