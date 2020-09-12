@@ -51,7 +51,7 @@ struct afl_engine_func {
 
   u8 (*execute)(afl_engine_t *, afl_input_t *);
   void (*handle_new_message)(afl_engine_t *, llmp_message_t *);
-  afl_ret_t (*load_testcases_from_dir)(afl_engine_t *, char *, afl_input_t *(*custom_input_init)(u8 *buf));
+  afl_ret_t (*load_testcases_from_dir)(afl_engine_t *, char *, afl_input_t *(*custom_input_init)(void));
   void (*load_zero_testcase)(size_t);
 
   afl_ret_t (*loop)(afl_engine_t *);

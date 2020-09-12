@@ -10,6 +10,10 @@ ifdef ASAN
   override CFLAGS += -fsanitize=address -fno-omit-frame-pointer
   override LDFLAGS += -fsanitize=address
 endif
+ifdef UBSAN
+  override CFLAGS += -fsanitize=undefined -fno-omit-frame-pointer
+  override LDFLAGS += -fsanitize=undefined
+endif
 ifdef MSAN
   CC := clang
   override CFLAGS += -fsanitize=memory -fno-omit-frame-pointer

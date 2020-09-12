@@ -3,8 +3,8 @@ AFL_PATH ?= $(MAKEFILE_PATH)/AFLplusplus
 LIBAFL_PATH := $(MAKEFILE_PATH)/..
 AFL_CC := $(AFL_PATH)/afl-clang-fast
 CFLAGS += -g -Wall -Wextra -Wshadow -fstack-protector-strong
-override CFLAGS += -L.. -I../include -lm 
-override LDFLAGS += ../libafl.a -lpthread -lm -lrt
+override CFLAGS += -I../include
+override LDFLAGS += ../libafl.a -lpthread -lrt
 LIBPNG_URL = http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?download
 
 ifdef DEBUG

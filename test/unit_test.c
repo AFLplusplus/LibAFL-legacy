@@ -21,6 +21,7 @@ extern void mock_assert(const int result, const char *const expression, const ch
 #include "common.h"
 #include "shmem.h"
 #include "aflpp.h"
+#include "afl-returns.h"
 
 /* remap exit -> assert, then use cmocka's mock_assert
     (compile with `--wrap=exit`) */
@@ -196,14 +197,34 @@ u8 engine_mock_execute(afl_engine_t *engine, afl_input_t *input) {
 
 }
 
-static afl_input_t *custom_input_new() {
+typedef struct my_input_custom {
 
-  afl_input_t *input = afl_input_new();
+  afl_input_t base;
+  int customness;
 
-  input->funcs.clear(input);
+} my_input_custom_t;
 
-  return input;
+afl_ret_t my_input_custom_init(my_input_custom_t *myinput) {
 
+  AFL_TRY(afl_input_init(&myinput->base), {
+    DBG("Error creating custom input");
+    return err;
+  });
+  myinput->customness = 9001; // over 9k
+
+  return AFL_RET_SUCCESS;
+
+}
+
+void my_input_custom_deinit(my_input_custom_t *myinput) {
+  afl_input_deinit(&myinput->base);
+}
+
+AFL_NEW_AND_DELETE_FOR(my_input_custom)
+
+afl_input_t *my_input_custom_new_as_base(void) {
+  my_input_custom_t *ret = my_input_custom_new();
+  return ret ? &ret->base : NULL;
 }
 
 void test_engine_load_testcase_from_dir(void **state) {
@@ -233,7 +254,7 @@ void test_engine_load_testcase_from_dir(void **state) {
   }
 
   // Let's first test for empty directory
-  engine.funcs.load_testcases_from_dir(&engine, "testcases", custom_input_new);
+  engine.funcs.load_testcases_from_dir(&engine, "testcases", my_input_custom_new_as_base);
 
   // Let's test it with a few files in the directory
   int fd = open("testcases/test1", O_RDWR | O_CREAT, 0600);
@@ -258,7 +279,7 @@ void test_engine_load_testcase_from_dir(void **state) {
   }
 
   close(fd);
-  afl_ret_t result = engine.funcs.load_testcases_from_dir(&engine, "testcases", custom_input_new);
+  afl_ret_t result = engine.funcs.load_testcases_from_dir(&engine, "testcases", my_input_custom_new_as_base);
 
   assert_int_equal(result, AFL_RET_SUCCESS);
 

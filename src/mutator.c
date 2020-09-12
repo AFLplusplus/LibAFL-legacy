@@ -430,10 +430,8 @@ void mutator_splice(afl_mutator_t *mutator, afl_input_t *input) {
 
   input->len = splice_input->len;
 
-  input->bytes = realloc(input->bytes, splice_input->len);
+  input->bytes = realloc(input->bytes, input->len);
   memcpy(input->bytes + split_at, splice_input->bytes + split_at, splice_input->len - split_at);
-
-  input->len = splice_input->len;
 
 }
 

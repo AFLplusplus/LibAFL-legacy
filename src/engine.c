@@ -151,7 +151,7 @@ afl_ret_t afl_add_feedback(afl_engine_t *engine, afl_feedback_t *feedback) {
 
 }
 
-afl_ret_t afl_load_testcases_from_dir(afl_engine_t *engine, char *dirpath, afl_input_t *(*custom_input_new)()) {
+afl_ret_t afl_load_testcases_from_dir(afl_engine_t *engine, char *dirpath, afl_input_t *(*custom_input_new)(void)) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
@@ -186,6 +186,7 @@ afl_ret_t afl_load_testcases_from_dir(afl_engine_t *engine, char *dirpath, afl_i
 
     }
 
+    /* TODO: Not sure if this makes any sense at all? */
     if (custom_input_new) {
 
       input = custom_input_new();
