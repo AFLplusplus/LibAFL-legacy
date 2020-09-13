@@ -52,7 +52,7 @@ static inline u64 afl_rand_next(afl_rand_t *rnd) {
 
 }
 
-/* get a random int below the given int */
+/* get a random int below the given int (exclusive) */
 static inline u64 afl_rand_below(afl_rand_t *rnd, u64 limit) {
 
   if (limit <= 1) { return 0; }

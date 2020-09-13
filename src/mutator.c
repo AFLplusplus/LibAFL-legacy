@@ -202,7 +202,7 @@ inline void mutator_flip_4_bits(afl_mutator_t *mutator, afl_input_t *input) {
 
   if (size <= 0) { return; }
 
-  int bit = afl_rand_below(rand, size << 3);
+  int bit = afl_rand_below(rand, (size << 3) - 1) + 1;
 
   if ((size << 3) - bit < 4) { return; }
 
