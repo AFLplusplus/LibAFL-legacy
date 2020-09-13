@@ -65,7 +65,7 @@ static void test_client_eop(void **state) {
   llmp_client_state_t *client = llmp_client_new_unconnected();
 
   u32 i;
-  for (i = 0; i < 1500; i++) {
+  for (i = 0; i < 15000; i++) {
 
     llmp_message_t *last_msg = llmp_client_alloc_next(client, i);
     assert(last_msg && "Last_msg was null :(");

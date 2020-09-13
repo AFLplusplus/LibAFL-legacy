@@ -41,24 +41,25 @@ afl_ret_t afl_engine_init(afl_engine_t *engine, afl_executor_t *executor, afl_fu
   engine->executor = executor;
   engine->fuzz_one = fuzz_one;
   engine->global_queue = global_queue;
+  engine->feedbacks = NULL;
   engine->feedbacks_count = 0;
   engine->executions = 0;
 
   if (global_queue) { global_queue->base.funcs.set_engine(&global_queue->base, engine); }
 
-  engine->funcs.get_queue = afl_get_queue;
+  engine->funcs.get_queue = afl_engine_get_queue;
   engine->funcs.get_execs = afl_get_execs;
-  engine->funcs.get_fuzz_one = afl_get_fuzz_one;
-  engine->funcs.get_start_time = afl_get_start_time;
+  engine->funcs.get_fuzz_one = afl_engine_get_fuzz_one;
+  engine->funcs.get_start_time = afl_engine_get_start_time;
 
   engine->funcs.set_fuzz_one = afl_set_fuzz_one;
-  engine->funcs.add_feedback = afl_add_feedback;
+  engine->funcs.add_feedback = afl_engine_add_feedback;
   engine->funcs.set_global_queue = afl_set_global_queue;
 
-  engine->funcs.execute = afl_execute;
-  engine->funcs.load_testcases_from_dir = afl_load_testcases_from_dir;
-  engine->funcs.loop = afl_loop;
-  engine->funcs.handle_new_message = afl_handle_new_message;
+  engine->funcs.execute = afl_engine_execute;
+  engine->funcs.load_testcases_from_dir = afl_engine_load_testcases_from_dir;
+  engine->funcs.loop = afl_engine_loop;
+  engine->funcs.handle_new_message = afl_engine_handle_new_message;
   afl_ret_t ret = afl_rand_init(&engine->rand);
 
   engine->buf = NULL;
@@ -99,13 +100,13 @@ void afl_engine_deinit(afl_engine_t *engine) {
 
 }
 
-afl_queue_global_t *afl_get_queue(afl_engine_t *engine) {
+afl_queue_global_t *afl_engine_get_queue(afl_engine_t *engine) {
 
   return engine->global_queue;
 
 }
 
-afl_fuzz_one_t *afl_get_fuzz_one(afl_engine_t *engine) {
+afl_fuzz_one_t *afl_engine_get_fuzz_one(afl_engine_t *engine) {
 
   return engine->fuzz_one;
 
@@ -117,7 +118,7 @@ u64 afl_get_execs(afl_engine_t *engine) {
 
 }
 
-u64 afl_get_start_time(afl_engine_t *engine) {
+u64 afl_engine_get_start_time(afl_engine_t *engine) {
 
   return engine->start_time;
 
@@ -139,7 +140,7 @@ void afl_set_global_queue(afl_engine_t *engine, afl_queue_global_t *global_queue
 
 }
 
-afl_ret_t afl_add_feedback(afl_engine_t *engine, afl_feedback_t *feedback) {
+afl_ret_t afl_engine_add_feedback(afl_engine_t *engine, afl_feedback_t *feedback) {
 
   engine->feedbacks_count++;
   engine->feedbacks = afl_realloc(engine->feedbacks, engine->feedbacks_count * sizeof(afl_feedback_t *));
@@ -151,7 +152,7 @@ afl_ret_t afl_add_feedback(afl_engine_t *engine, afl_feedback_t *feedback) {
 
 }
 
-afl_ret_t afl_load_testcases_from_dir(afl_engine_t *engine, char *dirpath, afl_input_t *(*custom_input_new)(void)) {
+afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath, afl_input_t *(*custom_input_new)(void)) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;
@@ -240,7 +241,7 @@ afl_ret_t afl_load_testcases_from_dir(afl_engine_t *engine, char *dirpath, afl_i
 
 }
 
-void afl_handle_new_message(afl_engine_t *engine, llmp_message_t *msg) {
+void afl_engine_handle_new_message(afl_engine_t *engine, llmp_message_t *msg) {
 
   /* Default implementation, handles only new queue entry messages. Users have
    * liberty with this function */
@@ -261,7 +262,7 @@ void afl_handle_new_message(afl_engine_t *engine, llmp_message_t *msg) {
 
 }
 
-u8 afl_execute(afl_engine_t *engine, afl_input_t *input) {
+u8 afl_engine_execute(afl_engine_t *engine, afl_input_t *input) {
 
   size_t          i;
   afl_executor_t *executor = engine->executor;
@@ -306,7 +307,7 @@ u8 afl_execute(afl_engine_t *engine, afl_input_t *input) {
 
 }
 
-afl_ret_t afl_loop(afl_engine_t *engine) {
+afl_ret_t afl_engine_loop(afl_engine_t *engine) {
 
   /* Just before looping, we find the observation channels for every feedback */
 

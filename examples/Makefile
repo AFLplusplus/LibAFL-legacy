@@ -63,7 +63,7 @@ llmp-main: ./llmp-main.c  ../libafl.a
 	$(CC) $(CFLAGS) llmp-main.c -o llmp-main $(LDFLAGS)
 
 in-memory-fuzzer: libpng16.a $(AFL_PATH)/afl-llvm-rt.o in-memory-fuzzer.c ../libafl.a
-	clang in-memory-fuzzer.c ./libpng16.a -g $(CFLAGS) -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -o in-memory-fuzzer $(AFL_PATH)/afl-llvm-rt.o $(LDFLAGS) -lz
+	clang in-memory-fuzzer.c ./libpng16.a -g $(CFLAGS) -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -o in-memory-fuzzer $(AFL_PATH)/afl-llvm-rt.o $(LDFLAGS) -lz -lm
 
 test: clean forking-fuzzer target
 	mkdir ./in || true

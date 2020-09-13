@@ -64,7 +64,7 @@ void afl_entry_deinit(afl_entry_t *entry) {
   entry->parent = NULL;
 
   /* we also delete the input associated with it */
-  afl_input_delete(entry->input);
+  entry->input->funcs.delete(entry->input);
   entry->input = NULL;
 
 }

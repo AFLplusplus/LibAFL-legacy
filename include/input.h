@@ -43,6 +43,8 @@ struct afl_input_funcs {
   void (*clear)(afl_input_t *this_input);
   u8 *(*get_bytes)(afl_input_t *this_input);
 
+  void (*delete)(afl_input_t *this_input);
+
 };
 
 struct afl_input {

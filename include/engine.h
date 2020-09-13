@@ -80,48 +80,30 @@ struct afl_engine {
 };
 
 /* TODO: Add default implementations for load_testcases and execute */
-afl_queue_global_t *afl_get_queue(afl_engine_t *);
-afl_fuzz_one_t *    afl_get_fuzz_one(afl_engine_t *);
+afl_queue_global_t *afl_engine_get_queue(afl_engine_t *);
+afl_fuzz_one_t *    afl_engine_get_fuzz_one(afl_engine_t *);
 u64                 afl_get_execs(afl_engine_t *);
-u64                 afl_get_start_time(afl_engine_t *);
+u64                 afl_engine_get_start_time(afl_engine_t *);
 
 void      afl_set_fuzz_one(afl_engine_t *, afl_fuzz_one_t *);
-afl_ret_t afl_add_feedback(afl_engine_t *, afl_feedback_t *);
+afl_ret_t afl_engine_add_feedback(afl_engine_t *, afl_feedback_t *);
 void      afl_set_global_queue(afl_engine_t *engine, afl_queue_global_t *global_queue);
 
-u8        afl_execute(afl_engine_t *, afl_input_t *);
-afl_ret_t afl_load_testcases_from_dir(afl_engine_t *, char *, afl_input_t *(*custom_input_init)());
-void      afl_load_zero_testcase(size_t);
-void      afl_handle_new_message(afl_engine_t *, llmp_message_t *);
+u8        afl_engine_execute(afl_engine_t *, afl_input_t *);
+afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *, char *, afl_input_t *(*custom_input_init)());
+void      afl_engine_load_zero_testcase(size_t);
+void      afl_engine_handle_new_message(afl_engine_t *, llmp_message_t *);
 
-afl_ret_t afl_loop(afl_engine_t *);  // Not sure about this functions
+afl_ret_t afl_engine_loop(afl_engine_t *);  // Not sure about this functions
                                      // use-case. Was in FFF though.
 
 afl_ret_t afl_engine_init(afl_engine_t *, afl_executor_t *, afl_fuzz_one_t *, afl_queue_global_t *);
 void      afl_engine_deinit(afl_engine_t *);
 
-static inline afl_engine_t *afl_engine_new(afl_executor_t *executor, afl_fuzz_one_t *fuzz_one,
-                                           afl_queue_global_t *global_queue) {
-
-  afl_engine_t *engine = calloc(1, sizeof(afl_engine_t));
-  if (!engine) return NULL;
-  AFL_TRY(afl_engine_init(engine, executor, fuzz_one, global_queue), {
-
-    free(engine);
-    return NULL;
-
-  });
-
-  return engine;
-
-}
-
-static inline void afl_engine_delete(afl_engine_t *engine) {
-
-  afl_engine_deinit(engine);
-  free(engine);
-
-}
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_engine, 
+  AFL_DECL_PARAMS(afl_executor_t *executor, afl_fuzz_one_t *fuzz_one, afl_queue_global_t *global_queue), 
+  AFL_CALL_PARAMS(executor, fuzz_one, global_queue)
+)
 
 #endif
 

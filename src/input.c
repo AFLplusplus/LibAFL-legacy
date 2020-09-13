@@ -42,6 +42,7 @@ afl_ret_t afl_input_init(afl_input_t *input) {
   input->funcs.restore = afl_input_restore;
   input->funcs.save_to_file = afl_input_save_to_file;
   input->funcs.serialize = afl_input_serialize;
+  input->funcs.delete = afl_input_delete;
 
   input->bytes = NULL;
   input->len = 0;

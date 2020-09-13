@@ -27,7 +27,10 @@
 
 afl_ret_t afl_executor_init(afl_executor_t *executor) {
 
+  memset(executor, 0, sizeof(afl_executor_t));
   executor->current_input = NULL;
+  executor->observors = NULL;
+  executor->observors_count = 0;
 
   // Default implementations of the functions
   executor->funcs.init_cb = NULL;
