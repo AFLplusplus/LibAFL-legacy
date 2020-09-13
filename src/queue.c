@@ -440,5 +440,3 @@ void afl_queue_global_set_engine(afl_queue_t *global_queue_base, afl_engine_t *e
   }
 
 }
-
-#undef DBG

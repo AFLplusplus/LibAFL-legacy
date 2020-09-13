@@ -158,16 +158,16 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
 
   }
 
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_byte);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_2_bytes);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_4_bytes);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_delete_bytes);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_clone_bytes);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_bit);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_2_bits);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_4_bits);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_random_byte_add_sub);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_random_byte);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_flip_byte);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_flip_2_bytes);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_flip_4_bytes);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_delete_bytes);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_clone_bytes);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_flip_bit);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_flip_2_bits);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_flip_4_bits);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_random_byte_add_sub);
+  mutators_havoc->funcs.add_func(mutators_havoc, afl_mutfunc_random_byte);
 
   afl_fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
   if (!stage) {

@@ -162,20 +162,15 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
   afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(NULL, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_byte);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_2_bytes);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_4_bytes);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_delete_bytes);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_clone_bytes);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_bit);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_2_bits);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_flip_4_bits);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_random_byte_add_sub);
-  mutators_havoc->funcs.add_mutator(mutators_havoc, mutator_random_byte);
+  AFL_TRY(afl_mutator_scheduled_add_havoc_funcs(mutators_havoc), {
+    FATAL("Error adding mutators: %s", afl_ret_stringify(err));
+  });
 
   afl_fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }
-  stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base);
+  AFL_TRY(stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base), {
+    FATAL("Error adding mutator: %s", afl_ret_stringify(err));
+  });
 
   return engine;
 

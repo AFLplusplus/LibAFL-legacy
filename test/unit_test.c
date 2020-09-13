@@ -344,53 +344,53 @@ void test_basic_mutator_functions(void **state) {
   input.len = 13;
 
   /* We test the different mutation functions now */
-  mutator_flip_bit(&mutator, &input);
+  afl_mutfunc_flip_bit(&mutator, &input);
   assert_string_not_equal(input.bytes, test_string);
 
   copy = input.funcs.copy(&input);
-  mutator_flip_2_bits(&mutator, &input);
+  afl_mutfunc_flip_2_bits(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  mutator_flip_4_bits(&mutator, &input);
+  afl_mutfunc_flip_4_bits(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  mutator_flip_byte(&mutator, &input);
+  afl_mutfunc_flip_byte(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  mutator_flip_2_bytes(&mutator, &input);
+  afl_mutfunc_flip_2_bytes(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  mutator_flip_4_bytes(&mutator, &input);
+  afl_mutfunc_flip_4_bytes(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  mutator_random_byte_add_sub(&mutator, &input);
+  afl_mutfunc_random_byte_add_sub(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  mutator_random_byte(&mutator, &input);
+  afl_mutfunc_random_byte(&mutator, &input);
   assert_memory_not_equal(input.bytes, copy->bytes, input.len);
   afl_input_delete(copy);
 
   /* Make sure this is an actual string */
   input.bytes[input.len - 1] = '\0';
   copy = input.funcs.copy(&input);
-  mutator_delete_bytes(&mutator, &input);
+  afl_mutfunc_delete_bytes(&mutator, &input);
   assert_string_not_equal(input.bytes, copy->bytes);
   afl_input_delete(copy);
 
   copy = input.funcs.copy(&input);
-  mutator_clone_bytes(&mutator, &input);
+  afl_mutfunc_clone_bytes(&mutator, &input);
   input.bytes[copy->len - 1] = '\0';
   assert_string_not_equal(input.bytes, copy->bytes);
   afl_input_delete(copy);

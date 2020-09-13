@@ -77,7 +77,8 @@ typedef void (*afl_mutator_func)(afl_mutator_t *, afl_input_t *);
 struct afl_mutator_scheduled_funcs {
 
   size_t (*schedule)(afl_mutator_scheduled_t *);
-  afl_ret_t (*add_mutator)(afl_mutator_scheduled_t *, afl_mutator_func);
+  afl_ret_t (*add_func)(afl_mutator_scheduled_t *, afl_mutator_func);
+  afl_ret_t (*add_default_funcs)(afl_mutator_scheduled_t *);
   size_t (*iterations)(afl_mutator_scheduled_t *);
 
 };
@@ -96,7 +97,10 @@ struct afl_mutator_scheduled {
 /* TODO add implementation for the _schedule_ and _iterations_ functions, need a
  * random list element pop type implementation for this */
 size_t    afl_iterations(afl_mutator_scheduled_t *);
-afl_ret_t afl_mutator_add(afl_mutator_scheduled_t *, afl_mutator_func);
+/* Add a mutator func to this mutators */
+afl_ret_t afl_mutator_add_func(afl_mutator_scheduled_t *, afl_mutator_func);
+/* Add all default mutator funcs */
+afl_ret_t afl_mutator_scheduled_add_havoc_funcs(afl_mutator_scheduled_t *mutator);
 size_t    afl_schedule(afl_mutator_scheduled_t *);
 size_t    afl_mutate_scheduled_mutator(afl_mutator_t *, afl_input_t *);
 
@@ -106,17 +110,17 @@ void      afl_mutator_scheduled_deinit(afl_mutator_scheduled_t *);
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_mutator_scheduled, AFL_DECL_PARAMS(afl_engine_t *engine, size_t max_iterations),
                                    AFL_CALL_PARAMS(engine, max_iterations))
 
-void mutator_flip_bit(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_flip_2_bits(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_flip_4_bits(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_flip_byte(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_flip_2_bytes(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_flip_4_bytes(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_random_byte_add_sub(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_random_byte(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_delete_bytes(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_clone_bytes(afl_mutator_t *mutator, afl_input_t *input);
-void mutator_splice(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_flip_bit(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_flip_2_bits(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_flip_4_bits(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_flip_byte(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_flip_2_bytes(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_flip_4_bytes(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_random_byte_add_sub(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_random_byte(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_delete_bytes(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_clone_bytes(afl_mutator_t *mutator, afl_input_t *input);
+void afl_mutfunc_splice(afl_mutator_t *mutator, afl_input_t *input);
 
 #endif
 
