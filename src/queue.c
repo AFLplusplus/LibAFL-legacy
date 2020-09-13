@@ -138,6 +138,8 @@ void afl_queue_deinit(afl_queue_t *queue) {
 
   }
 
+  afl_free(queue->entries);
+
   queue->base = NULL;
   queue->current = 0;
   queue->entries_count = 0;

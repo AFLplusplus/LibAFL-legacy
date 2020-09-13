@@ -391,10 +391,16 @@ void test_basic_mutator_functions(void **state) {
 
   copy = input.funcs.copy(&input);
   mutator_clone_bytes(&mutator, &input);
+  input.bytes[copy->len - 1] = '\0';
   assert_string_not_equal(input.bytes, copy->bytes);
   afl_input_delete(copy);
 
   afl_input_deinit(&input);
+
+  afl_mutator_deinit(&mutator);
+  afl_stage_deinit(&stage);
+  afl_fuzz_one_deinit(&fuzz_one);
+  afl_engine_deinit(&engine);
 
 }
 
