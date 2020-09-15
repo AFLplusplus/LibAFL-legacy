@@ -159,7 +159,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
   // We also add the fuzzone to the engine here.
   engine->funcs.set_fuzz_one(engine, fuzz_one);
 
-  afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(NULL, 8);
+  afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(engine, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
   AFL_TRY(afl_mutator_scheduled_add_havoc_funcs(mutators_havoc),
