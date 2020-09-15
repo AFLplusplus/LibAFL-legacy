@@ -22,7 +22,7 @@ static inline u64 afl_rand_rotl(const u64 x, int k) {
 
 }
 
-static inline void afl_rand_set_seed(afl_rand_t *rnd, s64 init_seed) {
+static inline void afl_rand_seed(afl_rand_t *rnd, s64 init_seed) {
 
   rnd->init_seed = init_seed;
   rnd->rand_seed[0] = XXH64((u8 *)&rnd->init_seed, sizeof(rnd->init_seed), HASH_CONST);
@@ -95,7 +95,7 @@ static inline afl_ret_t afl_rand_init_fixed_seed(afl_rand_t *rnd, s64 init_seed)
 
   memset(rnd, 0, sizeof(afl_rand_t));
   rnd->fixed_seed = true;
-  afl_rand_set_seed(rnd, init_seed);
+  afl_rand_seed(rnd, init_seed);
   return AFL_RET_SUCCESS;
 
 }

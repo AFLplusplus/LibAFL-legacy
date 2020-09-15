@@ -42,7 +42,7 @@ void afl_observer_deinit(afl_observer_t *channel) {
 
 }
 
-void afl_flush(afl_observer_t *channel) {
+void afl_observer_flush(afl_observer_t *channel) {
 
   (void)channel;
 
@@ -60,7 +60,7 @@ void afl_reset(afl_observer_t *channel) {
 
 }
 
-void afl_post_exec(afl_observer_t *channel) {
+void afl_observer_post_exec(afl_observer_t *channel) {
 
   (void)channel;
 
@@ -69,22 +69,22 @@ void afl_post_exec(afl_observer_t *channel) {
 
 }
 
-afl_ret_t afl_map_channel_init(afl_map_based_channel_t *map_channel, size_t map_size, size_t channel_id) {
+afl_ret_t afl_observer_covmap_init(afl_observer_covmap_t *map_channel, size_t channel_id, size_t map_size) {
 
   afl_observer_init(&(map_channel->base), channel_id);
 
   if (!afl_shmem_init(&map_channel->shared_map, map_size)) { return AFL_RET_ERROR_INITIALIZE; }
 
-  map_channel->base.funcs.reset = afl_map_channel_reset;
+  map_channel->base.funcs.reset = afl_observer_covmap_reset;
 
-  map_channel->funcs.get_map_size = afl_get_map_size;
-  map_channel->funcs.get_trace_bits = afl_get_trace_bits;
+  map_channel->funcs.get_map_size = afl_observer_covmap_get_map_size;
+  map_channel->funcs.get_trace_bits = afl_observer_covmap_get_trace_bits;
 
   return AFL_RET_SUCCESS;
 
 }
 
-void afl_map_channel_deinit(afl_map_based_channel_t *map_channel) {
+void afl_observer_covmap_deinit(afl_observer_covmap_t *map_channel) {
 
   afl_shmem_deinit(&map_channel->shared_map);
 
@@ -92,21 +92,21 @@ void afl_map_channel_deinit(afl_map_based_channel_t *map_channel) {
 
 }
 
-void afl_map_channel_reset(afl_observer_t *channel) {
+void afl_observer_covmap_reset(afl_observer_t *channel) {
 
-  afl_map_based_channel_t *map_channel = (afl_map_based_channel_t *)channel;
+  afl_observer_covmap_t *map_channel = (afl_observer_covmap_t *)channel;
 
   memset(map_channel->shared_map.map, 0, map_channel->shared_map.map_size);
 
 }
 
-u8 *afl_get_trace_bits(afl_map_based_channel_t *obs_channel) {
+u8 *afl_observer_covmap_get_trace_bits(afl_observer_covmap_t *obs_channel) {
 
   return obs_channel->shared_map.map;
 
 }
 
-size_t afl_get_map_size(afl_map_based_channel_t *obs_channel) {
+size_t afl_observer_covmap_get_map_size(afl_observer_covmap_t *obs_channel) {
 
   return obs_channel->shared_map.map_size;
 

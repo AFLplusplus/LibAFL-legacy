@@ -25,10 +25,10 @@
 
 #include "input.h"
 
-struct stage_functions {
+struct afl_stage_funcs {
 
   afl_ret_t (*perform)(afl_stage_t *, afl_input_t *input);
-  size_t (*iterations)(afl_stage_t *);  // A function which tells how many mutated
+  size_t (*get_iters)(afl_stage_t *);  // A function which tells how many mutated
                                         // inputs to generate out of a given input
 
 };
@@ -36,12 +36,12 @@ struct stage_functions {
 struct afl_stage {
 
   afl_engine_t *         engine;
-  struct stage_functions funcs;
+  struct afl_stage_funcs funcs;
 
 };
 
-afl_ret_t afl_perform_stage(afl_stage_t *, afl_input_t *);
-size_t    afl_iterations_stage(afl_stage_t *);
+afl_ret_t afl_stage_perform(afl_stage_t *, afl_input_t *);
+size_t    afl_stage_get_iters(afl_stage_t *);
 afl_ret_t afl_stage_init(afl_stage_t *, afl_engine_t *);
 void      afl_stage_deinit(afl_stage_t *);
 
@@ -54,28 +54,28 @@ phase, or the havoc phase. Since each of the stages can have their own mutators,
 a list of mutators can be added to the stage.
 */
 
-typedef struct fuzzing_stage afl_fuzzing_stage_t;
+typedef struct afl_fuzzing_stage afl_fuzzing_stage_t;
 
-struct fuzzing_stage_functions {
+struct afl_fuzzing_stage_funcs {
 
   /* Change the void pointer to a mutator * once it is ready */
   afl_ret_t (*add_mutator_to_stage)(afl_fuzzing_stage_t *, afl_mutator_t *);
 
 };
 
-struct fuzzing_stage {
+struct afl_fuzzing_stage {
 
   /* Standard "inheritence" from stage */
   afl_stage_t base;
   /* The list of mutator operators that this stage has */
   afl_mutator_t **mutators;
 
-  struct fuzzing_stage_functions funcs;
+  struct afl_fuzzing_stage_funcs funcs;
   size_t                         mutators_count;
 
 };
 
-afl_ret_t afl_add_mutator_to_stage(afl_fuzzing_stage_t *, afl_mutator_t *);
+afl_ret_t afl_fuzzing_stage_add_mutator(afl_fuzzing_stage_t *, afl_mutator_t *);
 
 afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_stage_t *, afl_engine_t *);
 void      afl_fuzzing_stage_deinit(afl_fuzzing_stage_t *);

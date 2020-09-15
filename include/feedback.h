@@ -65,8 +65,8 @@ typedef struct afl_feedback_metadata {
 
 // Default implementation of the vtables functions
 
-void                  afl_set_feedback_queue(afl_feedback_t *, afl_queue_feedback_t *);
-afl_queue_feedback_t *afl_get_feedback_queue(afl_feedback_t *);
+void                  afl_feedback_set_queue(afl_feedback_t *, afl_queue_feedback_t *);
+afl_queue_feedback_t *afl_feedback_get_queue(afl_feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
 void      afl_feedback_deinit(afl_feedback_t *);

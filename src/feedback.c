@@ -32,8 +32,8 @@ afl_ret_t afl_feedback_init(afl_feedback_t *feedback, afl_queue_feedback_t *queu
 
   feedback->queue = queue;
 
-  feedback->funcs.set_feedback_queue = afl_set_feedback_queue;
-  feedback->funcs.get_feedback_queue = afl_get_feedback_queue;
+  feedback->funcs.set_feedback_queue = afl_feedback_set_queue;
+  feedback->funcs.get_feedback_queue = afl_feedback_get_queue;
   feedback->funcs.is_interesting = NULL;
 
   feedback->channel_id = channel_id;  // Channel id for the observation channel
@@ -58,7 +58,7 @@ void afl_feedback_deinit(afl_feedback_t *feedback) {
 
 }
 
-void afl_set_feedback_queue(afl_feedback_t *feedback, afl_queue_feedback_t *queue) {
+void afl_feedback_set_queue(afl_feedback_t *feedback, afl_queue_feedback_t *queue) {
 
   feedback->queue = queue;
 
@@ -66,7 +66,7 @@ void afl_set_feedback_queue(afl_feedback_t *feedback, afl_queue_feedback_t *queu
 
 }
 
-afl_queue_feedback_t *afl_get_feedback_queue(afl_feedback_t *feedback) {
+afl_queue_feedback_t *afl_feedback_get_queue(afl_feedback_t *feedback) {
 
   return feedback->queue;
 
@@ -112,7 +112,7 @@ float __attribute__((hot)) afl_feedback_cov_is_interesting(afl_feedback_t *feedb
 
   if (!feedback->channel) { feedback->channel = fsrv->funcs.observers_get(fsrv, feedback->channel_id); }
 
-  afl_map_based_channel_t *obs_channel = (afl_map_based_channel_t *)feedback->channel;
+  afl_observer_covmap_t *obs_channel = (afl_observer_covmap_t *)feedback->channel;
 
 #ifdef WORD_SIZE_64
 

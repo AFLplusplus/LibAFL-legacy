@@ -22,10 +22,10 @@ all: test
 	make DEBUG=1 ASAN=1 -C .. libafl.a
 
 unit_test: ./unit_test.c ../libafl.a
-	$(CC) ./unit_test.c -o ./unit_test -Wl,--wrap=exit -lcmocka $(CFLAGS) -lrt
+	$(CC) ./unit_test.c -o ./unit_test -Wl,--wrap=exit -lcmocka $(CFLAGS) -lrt -lpthread
 
 unit_llmp: ./unit_llmp.c ../libafl.a
-	$(CC) ./unit_llmp.c -o ./unit_llmp -Wl,--wrap=exit -lcmocka $(CFLAGS) -lrt #-Wl,--wrap=printf 
+	$(CC) ./unit_llmp.c -o ./unit_llmp -Wl,--wrap=exit -lcmocka $(CFLAGS) -lrt -lpthread #-Wl,--wrap=printf 
 
 test: unit_test unit_llmp
 	rm -rf ./testcases || true

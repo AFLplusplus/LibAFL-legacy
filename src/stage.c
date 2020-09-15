@@ -32,7 +32,7 @@ afl_ret_t afl_stage_init(afl_stage_t *stage, afl_engine_t *engine) {
   // We also add this stage to the engine's fuzzone
   if (engine) { engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage); }
 
-  stage->funcs.iterations = afl_iterations_stage;
+  stage->funcs.get_iters = afl_stage_get_iters;
 
   return AFL_RET_SUCCESS;
 
@@ -52,8 +52,8 @@ afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_stage_t *fuzz_stage, afl_engine_t *
 
   });
 
-  fuzz_stage->funcs.add_mutator_to_stage = afl_add_mutator_to_stage;
-  fuzz_stage->base.funcs.perform = afl_perform_stage;
+  fuzz_stage->funcs.add_mutator_to_stage = afl_fuzzing_stage_add_mutator;
+  fuzz_stage->base.funcs.perform = afl_stage_perform;
 
   return AFL_RET_SUCCESS;
 
@@ -77,7 +77,7 @@ void afl_fuzzing_stage_deinit(afl_fuzzing_stage_t *fuzz_stage) {
 
 }
 
-afl_ret_t afl_add_mutator_to_stage(afl_fuzzing_stage_t *stage, afl_mutator_t *mutator) {
+afl_ret_t afl_fuzzing_stage_add_mutator(afl_fuzzing_stage_t *stage, afl_mutator_t *mutator) {
 
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
@@ -91,14 +91,14 @@ afl_ret_t afl_add_mutator_to_stage(afl_fuzzing_stage_t *stage, afl_mutator_t *mu
 
 }
 
-size_t afl_iterations_stage(afl_stage_t *stage) {
+size_t afl_stage_get_iters(afl_stage_t *stage) {
 
   return (1 + afl_rand_below(&stage->engine->rand, 128));
 
 }
 
 /* Perform default for fuzzing stage */
-afl_ret_t afl_perform_stage(afl_stage_t *stage, afl_input_t *input) {
+afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
 
   // size_t i;
   // This is to stop from compiler complaining about the incompatible pointer
@@ -106,7 +106,7 @@ afl_ret_t afl_perform_stage(afl_stage_t *stage, afl_input_t *input) {
   // scheduled_mutator rather than the mutator as an argument.
   afl_fuzzing_stage_t *fuzz_stage = (afl_fuzzing_stage_t *)stage;
 
-  size_t num = fuzz_stage->base.funcs.iterations(stage);
+  size_t num = fuzz_stage->base.funcs.get_iters(stage);
 
   for (size_t i = 0; i < num; ++i) {
 

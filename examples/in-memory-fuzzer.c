@@ -116,13 +116,13 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
-  afl_map_based_channel_t *trace_bits_channel = calloc(1, sizeof(afl_map_based_channel_t));
+  afl_observer_covmap_t *trace_bits_channel = calloc(1, sizeof(afl_observer_covmap_t));
   afl_observer_init(&trace_bits_channel->base, MAP_CHANNEL_ID);
   if (!trace_bits_channel) { FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC)); }
 
   /* Since we don't use map_channel_create function, we have to add reset
    * function manually */
-  trace_bits_channel->base.funcs.reset = afl_map_channel_reset;
+  trace_bits_channel->base.funcs.reset = afl_observer_covmap_reset;
 
   trace_bits_channel->shared_map.map = __afl_area_ptr;  // Coverage "Map" we have
   trace_bits_channel->shared_map.map_size = MAP_SIZE;
@@ -181,7 +181,7 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
   afl_engine_t *engine = (afl_engine_t *)data;
   engine->llmp_client = llmp_client;
 
-  afl_map_based_channel_t *trace_bits_channel = (afl_map_based_channel_t *)engine->executor->observors[0];
+  afl_observer_covmap_t *trace_bits_channel = (afl_observer_covmap_t *)engine->executor->observors[0];
 
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
@@ -202,7 +202,7 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
    * initialized using the deleted functions provided */
 
   afl_executor_delete(engine->executor);
-  afl_map_channel_delete(trace_bits_channel);
+  afl_observer_covmap_delete(trace_bits_channel);
   afl_mutator_scheduled_delete(mutators_havoc);
   afl_fuzzing_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);

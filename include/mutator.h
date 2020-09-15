@@ -60,8 +60,8 @@ struct afl_mutator {
 
 };
 
-size_t       afl_trim(afl_mutator_t *, u8 *, u8 *);
-afl_stage_t *afl_get_mutator_stage(afl_mutator_t *);
+size_t       afl_mutator_trim(afl_mutator_t *, u8 *, u8 *);
+afl_stage_t *afl_mutator_get_stage(afl_mutator_t *);
 
 afl_ret_t afl_mutator_init(afl_mutator_t *, afl_engine_t *);
 void      afl_mutator_deinit(afl_mutator_t *);
@@ -79,7 +79,7 @@ struct afl_mutator_scheduled_funcs {
   size_t (*schedule)(afl_mutator_scheduled_t *);
   afl_ret_t (*add_func)(afl_mutator_scheduled_t *, afl_mutator_func);
   afl_ret_t (*add_default_funcs)(afl_mutator_scheduled_t *);
-  size_t (*iterations)(afl_mutator_scheduled_t *);
+  size_t (*get_iters)(afl_mutator_scheduled_t *);
 
 };
 

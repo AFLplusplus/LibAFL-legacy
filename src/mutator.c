@@ -60,7 +60,7 @@ afl_ret_t afl_mutator_scheduled_init(afl_mutator_scheduled_t *sched_mut, afl_eng
 
   sched_mut->base.funcs.mutate = afl_mutate_scheduled_mutator;
   sched_mut->funcs.add_func = afl_mutator_add_func;
-  sched_mut->funcs.iterations = afl_iterations;
+  sched_mut->funcs.get_iters = afl_iterations;
   sched_mut->funcs.schedule = afl_schedule;
 
   sched_mut->max_iterations = (max_iterations > 0) ? max_iterations : 7;
@@ -122,7 +122,7 @@ size_t afl_mutate_scheduled_mutator(afl_mutator_t *mutator, afl_input_t *input) 
   // scheduled_mutator rather than the mutator as an argument.
   afl_mutator_scheduled_t *scheduled_mutator = (afl_mutator_scheduled_t *)mutator;
   size_t                   i;
-  for (i = 0; i < scheduled_mutator->funcs.iterations(scheduled_mutator); ++i) {
+  for (i = 0; i < scheduled_mutator->funcs.get_iters(scheduled_mutator); ++i) {
 
     scheduled_mutator->mutations[scheduled_mutator->funcs.schedule(scheduled_mutator)](&scheduled_mutator->base,
                                                                                              input);

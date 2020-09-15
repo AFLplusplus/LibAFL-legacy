@@ -179,7 +179,7 @@ static float timeout_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_
 afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char **target_args) {
 
   /* Let's now create a simple map-based observation channel */
-  afl_map_based_channel_t *trace_bits_channel = afl_map_channel_new(MAP_SIZE, MAP_CHANNEL_ID);
+  afl_observer_covmap_t *trace_bits_channel = afl_observer_covmap_new(MAP_CHANNEL_ID, MAP_SIZE);
 
   /* Another timing based observation channel */
   timeout_obs_channel_t *timeout_channel = calloc(1, sizeof(timeout_obs_channel_t));
@@ -264,7 +264,7 @@ void fuzzer_process_main(llmp_client_state_t *client, void *data) {
   engine->llmp_client = client;
 
   afl_forkserver_t *       fsrv = (afl_forkserver_t *)engine->executor;
-  afl_map_based_channel_t *trace_bits_channel = (afl_map_based_channel_t *)fsrv->base.observors[0];
+  afl_observer_covmap_t *trace_bits_channel = (afl_observer_covmap_t *)fsrv->base.observors[0];
   timeout_obs_channel_t *  timeout_channel = (timeout_obs_channel_t *)fsrv->base.observors[1];
 
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
@@ -290,7 +290,7 @@ void fuzzer_process_main(llmp_client_state_t *client, void *data) {
    * initialized using the deleted functions provided */
 
   afl_executor_delete(&fsrv->base);
-  afl_map_channel_delete(trace_bits_channel);
+  afl_observer_covmap_delete(trace_bits_channel);
   afl_observer_delete(&timeout_channel->base);
   afl_mutator_scheduled_delete(mutators_havoc);
   afl_fuzzing_stage_delete(stage);

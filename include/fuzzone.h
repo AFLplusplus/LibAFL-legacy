@@ -28,7 +28,7 @@
 #include "types.h"
 #include "common.h"
 
-struct fuzz_one_functions {
+struct afl_fuzz_one_funcs {
 
   afl_ret_t (*perform)(afl_fuzz_one_t *);
   afl_ret_t (*add_stage)(afl_fuzz_one_t *, afl_stage_t *);
@@ -42,7 +42,7 @@ struct afl_fuzz_one {
   afl_stage_t **stages;
   size_t        stages_count;
 
-  struct fuzz_one_functions funcs;
+  struct afl_fuzz_one_funcs funcs;
 
 };
 

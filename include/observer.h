@@ -31,11 +31,11 @@
 #include "shmem.h"
 #include "afl-returns.h"
 
-typedef struct observer afl_observer_t;
+typedef struct afl_observer afl_observer_t;
 
 // vtable for the observation channel
 
-struct observer_functions {
+struct afl_observer_funcs {
 
   void (*flush)(afl_observer_t *);
   void (*reset)(afl_observer_t *);
@@ -43,102 +43,60 @@ struct observer_functions {
 
 };
 
-struct observer {
+struct afl_observer {
 
   // Can we have anything else here?
   size_t                    channel_id;  // MUST be unique
-  struct observer_functions funcs;
+  struct afl_observer_funcs funcs;
 
 };
 
 /* They're void now, but I think post_exec should have some return type? Since,
  * they'll mostly be implemented by user */
-void afl_flush(afl_observer_t *);
+void afl_observer_flush(afl_observer_t *);
 void afl_reset(afl_observer_t *);
-void afl_post_exec(afl_observer_t *);
+void afl_observer_post_exec(afl_observer_t *);
 // Functions to initialize and deinitialize the generic observation channel. P.S
 // You probably will need to extend it the way we've done below.
 
-afl_ret_t afl_observer_init(afl_observer_t *, size_t);
+afl_ret_t afl_observer_init(afl_observer_t *channel, size_t channel_id);
 void      afl_observer_deinit(afl_observer_t *);
 
 /* Function to create and destroy a new observation channel, allocates memory
   and initializes it. In destroy, it first deinitializes the struct and then
   frees it. */
-static inline afl_observer_t *afl_observer_new(size_t channel_id) {
 
-  afl_observer_t *new_obs_channel = calloc(1, sizeof(afl_observer_t));
-  if (!new_obs_channel) { return NULL; }
-  if (afl_observer_init(new_obs_channel, channel_id) != AFL_RET_SUCCESS) {
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_observer, AFL_DECL_PARAMS(size_t channel_id), AFL_CALL_PARAMS(channel_id))
 
-    free(new_obs_channel);
-    return NULL;
+typedef struct afl_observer_covmap afl_observer_covmap_t;
 
-  };
+struct afl_observer_covmap_funcs {
 
-  return new_obs_channel;
-
-}
-
-static inline void afl_observer_delete(afl_observer_t *observer) {
-
-  afl_observer_deinit(observer);
-
-  free(observer);
-
-}
-
-typedef struct map_based_channel afl_map_based_channel_t;
-
-struct map_based_channel_functions {
-
-  u8 *(*get_trace_bits)(afl_map_based_channel_t *);
-  size_t (*get_map_size)(afl_map_based_channel_t *);
+  u8 *(*get_trace_bits)(afl_observer_covmap_t *);
+  size_t (*get_map_size)(afl_observer_covmap_t *);
 
 };
 
-struct map_based_channel {
+struct afl_observer_covmap {
 
   afl_observer_t base;  // Base observation channel "class"
 
   afl_shmem_t shared_map;
 
-  struct map_based_channel_functions funcs;
+  struct afl_observer_covmap_funcs funcs;
 
 };
 
-u8 *   afl_get_trace_bits(afl_map_based_channel_t *obs_channel);
-size_t afl_get_map_size(afl_map_based_channel_t *obs_channel);
+u8 *   afl_observer_covmap_get_trace_bits(afl_observer_covmap_t *obs_channel);
+size_t afl_observer_covmap_get_map_size(afl_observer_covmap_t *obs_channel);
 
 // Functions to initialize and delete a map based observation channel
 
-afl_ret_t afl_map_channel_init(afl_map_based_channel_t *, size_t, size_t);
-void      afl_map_channel_deinit(afl_map_based_channel_t *);
-void      afl_map_channel_reset(afl_observer_t *);
+afl_ret_t afl_observer_covmap_init(afl_observer_covmap_t *, size_t, size_t);
+void      afl_observer_covmap_deinit(afl_observer_covmap_t *);
+void      afl_observer_covmap_reset(afl_observer_t *);
 
-static inline afl_map_based_channel_t *afl_map_channel_new(size_t map_size, size_t channel_id) {
-
-  afl_map_based_channel_t *map_channel = calloc(1, sizeof(afl_map_based_channel_t));
-  if (!map_channel) { return NULL; }
-
-  if (afl_map_channel_init(map_channel, map_size, channel_id) == AFL_RET_ERROR_INITIALIZE) {
-
-    free(map_channel);
-    return NULL;
-
-  }
-
-  return map_channel;
-
-}
-
-static inline void afl_map_channel_delete(afl_map_based_channel_t *map_channel) {
-
-  afl_map_channel_deinit(map_channel);
-
-  free(map_channel);
-
-}
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_observer_covmap, AFL_DECL_PARAMS(size_t channel_id, size_t map_size), AFL_CALL_PARAMS(channel_id, map_size))
 
 #endif
 
