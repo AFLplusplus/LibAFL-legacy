@@ -152,7 +152,8 @@ afl_ret_t afl_engine_add_feedback(afl_engine_t *engine, afl_feedback_t *feedback
 
 }
 
-afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath, afl_input_t *(*custom_input_new)(void)) {
+afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath,
+                                             afl_input_t *(*custom_input_new)(void)) {
 
   DIR *          dir_in;
   struct dirent *dir_ent;

@@ -200,7 +200,7 @@ u8 engine_mock_execute(afl_engine_t *engine, afl_input_t *input) {
 typedef struct my_input_custom {
 
   afl_input_t base;
-  int customness;
+  int         customness;
 
 } my_input_custom_t;
 
@@ -208,16 +208,21 @@ typedef struct my_input_custom {
 static void my_input_custom_delete(my_input_custom_t *myinput);
 /* wrapper to cast the base class to our input func */
 static void my_input_custom_delete_base(afl_input_t *input) {
+
   my_input_custom_delete((my_input_custom_t *)input);
+
 }
 
 afl_ret_t my_input_custom_init(my_input_custom_t *myinput) {
 
   AFL_TRY(afl_input_init(&myinput->base), {
+
     DBG("Error creating custom input");
     return err;
+
   });
-  myinput->customness = 9001; // over 9k
+
+  myinput->customness = 9001;  // over 9k
   myinput->base.funcs.delete = my_input_custom_delete_base;
 
   return AFL_RET_SUCCESS;
@@ -225,14 +230,18 @@ afl_ret_t my_input_custom_init(my_input_custom_t *myinput) {
 }
 
 void my_input_custom_deinit(my_input_custom_t *myinput) {
+
   afl_input_deinit(&myinput->base);
+
 }
 
 AFL_NEW_AND_DELETE_FOR(my_input_custom)
 
 afl_input_t *my_input_custom_new_as_base(void) {
+
   my_input_custom_t *ret = my_input_custom_new();
   return ret ? &ret->base : NULL;
+
 }
 
 void test_engine_load_testcase_from_dir(void **state) {
@@ -249,7 +258,7 @@ void test_engine_load_testcase_from_dir(void **state) {
   afl_queue_global_init(&queue);
 
   afl_engine_t engine;
-  afl_engine_init(&engine, &executor, NULL, &queue); // no need for a fuzz_one in our test-case
+  afl_engine_init(&engine, &executor, NULL, &queue);  // no need for a fuzz_one in our test-case
 
   engine.funcs.execute = engine_mock_execute;
 
@@ -266,9 +275,8 @@ void test_engine_load_testcase_from_dir(void **state) {
   }
 
   // Let's first test for empty directory
-  AFL_TRY(engine.funcs.load_testcases_from_dir(&engine, "testcases", my_input_custom_new_as_base), {
-    assert_true(0 && "Could not load testcase");
-  });
+  AFL_TRY(engine.funcs.load_testcases_from_dir(&engine, "testcases", my_input_custom_new_as_base),
+          { assert_true(0 && "Could not load testcase"); });
 
   // Let's test it with a few files in the directory
   int fd = open("testcases/test1", O_RDWR | O_CREAT, 0600);

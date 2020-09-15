@@ -96,7 +96,8 @@ afl_ret_t afl_observer_covmap_init(afl_observer_covmap_t *, size_t, size_t);
 void      afl_observer_covmap_deinit(afl_observer_covmap_t *);
 void      afl_observer_covmap_reset(afl_observer_t *);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_observer_covmap, AFL_DECL_PARAMS(size_t channel_id, size_t map_size), AFL_CALL_PARAMS(channel_id, map_size))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_observer_covmap, AFL_DECL_PARAMS(size_t channel_id, size_t map_size),
+                                   AFL_CALL_PARAMS(channel_id, map_size))
 
 #endif
 

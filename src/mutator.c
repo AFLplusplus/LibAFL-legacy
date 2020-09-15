@@ -37,9 +37,9 @@
 #ifdef AFL_DEBUG
   #define DBG(...) ACTF("(mutators) " __VA_ARGS__)
 #else
-  #define DBG(...) {}
+  #define DBG(...) \
+    {}
 #endif
-
 
 afl_ret_t afl_mutator_init(afl_mutator_t *mutator, afl_engine_t *engine) {
 
@@ -124,8 +124,7 @@ size_t afl_mutate_scheduled_mutator(afl_mutator_t *mutator, afl_input_t *input) 
   size_t                   i;
   for (i = 0; i < scheduled_mutator->funcs.get_iters(scheduled_mutator); ++i) {
 
-    scheduled_mutator->mutations[scheduled_mutator->funcs.schedule(scheduled_mutator)](&scheduled_mutator->base,
-                                                                                             input);
+    scheduled_mutator->mutations[scheduled_mutator->funcs.schedule(scheduled_mutator)](&scheduled_mutator->base, input);
 
   }
 
@@ -435,40 +434,20 @@ void afl_mutfunc_splice(afl_mutator_t *mutator, afl_input_t *input) {
 
 }
 
-
 afl_ret_t afl_mutator_scheduled_add_havoc_funcs(afl_mutator_scheduled_t *mutator) {
 
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_byte), {
-    return err;
-  });
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_2_bytes), {
-    return err;
-  });
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_4_bytes), {
-    return err;
-  });
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_delete_bytes), {
-    return err;
-  });
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_clone_bytes), {
-    return err;
-  });
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_bit), {
-    return err;
-  });
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_2_bits), {
-    return err;
-  });
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_4_bits), {
-    return err;
-  });
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_random_byte_add_sub), {
-    return err;
-  });
-  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_random_byte), {
-    return err;
-  });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_byte), { return err; });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_2_bytes), { return err; });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_4_bytes), { return err; });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_delete_bytes), { return err; });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_clone_bytes), { return err; });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_bit), { return err; });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_2_bits), { return err; });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_flip_4_bits), { return err; });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_random_byte_add_sub), { return err; });
+  AFL_TRY(mutator->funcs.add_func(mutator, afl_mutfunc_random_byte), { return err; });
 
   return AFL_RET_SUCCESS;
 
 }
+

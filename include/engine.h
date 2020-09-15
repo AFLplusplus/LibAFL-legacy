@@ -95,15 +95,15 @@ void      afl_engine_load_zero_testcase(size_t);
 void      afl_engine_handle_new_message(afl_engine_t *, llmp_message_t *);
 
 afl_ret_t afl_engine_loop(afl_engine_t *);  // Not sure about this functions
-                                     // use-case. Was in FFF though.
+                                            // use-case. Was in FFF though.
 
 afl_ret_t afl_engine_init(afl_engine_t *, afl_executor_t *, afl_fuzz_one_t *, afl_queue_global_t *);
 void      afl_engine_deinit(afl_engine_t *);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_engine, 
-  AFL_DECL_PARAMS(afl_executor_t *executor, afl_fuzz_one_t *fuzz_one, afl_queue_global_t *global_queue), 
-  AFL_CALL_PARAMS(executor, fuzz_one, global_queue)
-)
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_engine,
+                                   AFL_DECL_PARAMS(afl_executor_t *executor, afl_fuzz_one_t *fuzz_one,
+                                                   afl_queue_global_t *global_queue),
+                                   AFL_CALL_PARAMS(executor, fuzz_one, global_queue))
 
 #endif
 

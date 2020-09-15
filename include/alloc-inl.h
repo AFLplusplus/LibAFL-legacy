@@ -626,7 +626,7 @@ struct afl_alloc_buf {
   /* Make sure this is an alloc_buf */
   size_t magic;
   /* ptr to the first element of the actual buffer */
-  u8 __attribute__((aligned (8))) buf[0];
+  u8 __attribute__((aligned(8))) buf[0];
 
 };
 

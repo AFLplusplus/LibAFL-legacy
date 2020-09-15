@@ -34,7 +34,6 @@
 #include "mutator.h"
 #include "config.h"
 
-
 // We start with the implementation of queue_entry functions here.
 afl_ret_t afl_entry_init(afl_entry_t *entry, afl_input_t *input) {
 
@@ -190,7 +189,7 @@ afl_ret_t afl_queue_insert(afl_queue_t *queue, afl_entry_t *entry) {
   queue->entries = afl_realloc(queue->entries, queue->entries_count * sizeof(afl_entry_t *));
   if (!queue->entries) { return AFL_RET_ALLOC; }
 
-  queue->entries[queue->entries_count-1] = entry;
+  queue->entries[queue->entries_count - 1] = entry;
 
   /* Let's save the entry to disk */
   if (queue->save_to_files && queue->dirpath[0] && !entry->on_disk) {
@@ -440,3 +439,4 @@ void afl_queue_global_set_engine(afl_queue_t *global_queue_base, afl_engine_t *e
   }
 
 }
+

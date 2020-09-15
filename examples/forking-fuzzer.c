@@ -243,15 +243,13 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(engine, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }
 
-  AFL_TRY(afl_mutator_scheduled_add_havoc_funcs(mutators_havoc), {
-    FATAL("Error adding mutators: %s", afl_ret_stringify(err));
-  });
+  AFL_TRY(afl_mutator_scheduled_add_havoc_funcs(mutators_havoc),
+          { FATAL("Error adding mutators: %s", afl_ret_stringify(err)); });
 
   afl_fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }
-  AFL_TRY(stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base), {
-    FATAL("Error adding mutator: %s", afl_ret_stringify(err));
-  });
+  AFL_TRY(stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base),
+          { FATAL("Error adding mutator: %s", afl_ret_stringify(err)); });
 
   return engine;
 
@@ -263,9 +261,9 @@ void fuzzer_process_main(llmp_client_state_t *client, void *data) {
 
   engine->llmp_client = client;
 
-  afl_forkserver_t *       fsrv = (afl_forkserver_t *)engine->executor;
+  afl_forkserver_t *     fsrv = (afl_forkserver_t *)engine->executor;
   afl_observer_covmap_t *trace_bits_channel = (afl_observer_covmap_t *)fsrv->base.observors[0];
-  timeout_obs_channel_t *  timeout_channel = (timeout_obs_channel_t *)fsrv->base.observors[1];
+  timeout_obs_channel_t *timeout_channel = (timeout_obs_channel_t *)fsrv->base.observors[1];
 
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];

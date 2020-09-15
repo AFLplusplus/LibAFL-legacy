@@ -96,7 +96,7 @@ struct afl_mutator_scheduled {
 
 /* TODO add implementation for the _schedule_ and _iterations_ functions, need a
  * random list element pop type implementation for this */
-size_t    afl_iterations(afl_mutator_scheduled_t *);
+size_t afl_iterations(afl_mutator_scheduled_t *);
 /* Add a mutator func to this mutators */
 afl_ret_t afl_mutator_add_func(afl_mutator_scheduled_t *, afl_mutator_func);
 /* Add all default mutator funcs */
