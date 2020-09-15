@@ -24,6 +24,8 @@
 
  */
 
+#include <dirent.h>
+
 #include "common.h"
 
 /* Get unix time in microseconds */
@@ -37,6 +39,22 @@ inline u64 afl_get_cur_time_us(void) {
   return (tv.tv_sec * 1000000ULL) + tv.tv_usec;
 
 }
+
+bool afl_dir_exists(char *dirpath) {
+
+  DIR *          dir_in = NULL;
+
+  size_t       dir_name_size = strlen(dirpath);
+
+  if (dirpath[dir_name_size - 1] == '/') { dirpath[dir_name_size - 1] = '\0'; }
+
+  if (!(dir_in = opendir(dirpath))) { return false; }
+  closedir(dir_in);
+  return true;
+
+}
+
+
 
 /* Get unix time in seconds */
 inline u64 afl_get_cur_time(void) {

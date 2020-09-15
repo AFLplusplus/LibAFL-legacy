@@ -30,16 +30,15 @@
 #include "types.h"
 #include "config.h"
 
+/* wrap __LINE__ (int) as string using preprocessor magic, see
+http://decompile.com/cpp/faq/file_and_line_error_string.htm
+*/
+#define _STR(x) #x
+#define TOSTRING(x) _STR(x)
+
 /*******************
  * Terminal colors *
  *******************/
-#ifdef AFL_DEBUG
-  #define DBG(...) ACTF("(__FILE__:__LINE__) " __VA_ARGS__)
-#else
-  #define DBG(...) \
-    {}
-#endif
-
 #ifndef MESSAGES_TO_STDOUT
   #define MESSAGES_TO_STDOUT
 #endif
@@ -223,6 +222,11 @@
     SAYF(cRST "\n");                      \
                                           \
   } while (0)
+
+#ifdef DEBUG
+  #define DBG(...) SAYF(cMGN "[D] [" __FILE__ ":" TOSTRING(__LINE__) "] " cRST __VA_ARGS__); fflush(stdout)
+#endif
+
 
 /* Die with a verbose non-OS fatal error message. */
 

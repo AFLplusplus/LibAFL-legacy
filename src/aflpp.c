@@ -417,9 +417,22 @@ void in_memory_executor_init(in_memory_executor_t *in_memory_executor, harness_f
 
   in_memory_executor->base.funcs.run_target_cb = in_memory_run_target;
   in_memory_executor->base.funcs.place_input_cb = in_mem_executor_place_input;
-  return;
 
 }
+
+void in_memory_executor_deinit(in_memory_executor_t *in_memory_executor) {
+
+  afl_executor_deinit(&in_memory_executor->base);
+  in_memory_executor->harness = NULL;
+  in_memory_executor->argv = NULL;
+  in_memory_executor->argc = 0;
+
+  in_memory_executor->base.funcs.run_target_cb = in_memory_run_target;
+  in_memory_executor->base.funcs.place_input_cb = in_mem_executor_place_input;
+
+}
+
+
 
 u8 in_mem_executor_place_input(afl_executor_t *executor, afl_input_t *input) {
 

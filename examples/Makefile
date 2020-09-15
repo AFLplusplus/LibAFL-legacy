@@ -8,7 +8,8 @@ override LDFLAGS += ../libafl.a -lpthread -lrt
 LIBPNG_URL = http://prdownloads.sourceforge.net/libpng/libpng-1.6.37.tar.gz?download
 
 ifdef DEBUG
-  override CFLAGS += -DDEBUG -ggdb -O0 -DLLMP_DEBUG=1
+  AFL_DEBUG=1
+  override CFLAGS += -DDEBUG -ggdb -O0 -DAFL_DEBUG=1
 endif
 ifndef DEBUG
   override CFLAGS += -D_FORTIFY_SOURCE=2 -O3

@@ -155,8 +155,8 @@ afl_ret_t afl_engine_add_feedback(afl_engine_t *engine, afl_feedback_t *feedback
 afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath,
                                              afl_input_t *(*custom_input_new)(void)) {
 
-  DIR *          dir_in;
-  struct dirent *dir_ent;
+  DIR *          dir_in = NULL;
+  struct dirent *dir_ent = NULL;
   char           infile[PATH_MAX];
   size_t         i;
 
@@ -211,6 +211,7 @@ afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath
     }
 
     snprintf((char *)infile, sizeof(infile), "%s/%s", dirpath, dir_ent->d_name);
+    infile[sizeof(infile) - 1] = '\0';
 
     /* TODO: Error handling? */
     input->funcs.load_from_file(input, infile);

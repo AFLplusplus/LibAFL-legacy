@@ -160,9 +160,7 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
 
     }
 
-#ifdef DEBUG
-    fprintf(stderr, "[DEBUG] new queue entry!\n");
-#endif
+    DBG("new queue entry!");
 
     /* If the input is interesting and there is a global queue add the input to
      * the queue */

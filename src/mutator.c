@@ -33,14 +33,6 @@
 #include "config.h"
 #include "debug.h"
 
-/* all the debug prints */
-#ifdef AFL_DEBUG
-  #define DBG(...) ACTF("(mutators) " __VA_ARGS__)
-#else
-  #define DBG(...) \
-    {}
-#endif
-
 afl_ret_t afl_mutator_init(afl_mutator_t *mutator, afl_engine_t *engine) {
 
   mutator->engine = engine;

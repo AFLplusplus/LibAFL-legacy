@@ -6,24 +6,23 @@
 #include <errno.h>
 #include <string.h>
 
+#include "debug.h"
+
 /* Shorthand to check for RET_SUCCESS */
 #define AFL_OK(expr) ((expr) == AFL_RET_SUCCESS)
 
 /* If expr != AFL_RET_SUCCESS, run block, error is in err. Return from here will return the parent func */
-#define AFL_TRY(expr, block)      \
-  do {                            \
-                                  \
-    afl_ret_t err = (expr);       \
-    if (err != AFL_RET_SUCCESS) { \
-                                  \
-      {                           \
-                                  \
-        block                     \
-                                  \
-      }                           \
-                                  \
-    }                             \
-                                  \
+#define AFL_TRY(expr, block)                                      \
+  do {                                                            \
+                                                                  \
+    afl_ret_t err = (expr);                                       \
+    if (err != AFL_RET_SUCCESS) {                                 \
+                                                                  \
+      DBG("AFL_TRY returning error: %s", afl_ret_stringify(err)); \
+      block                                                       \
+                                                                  \
+    }                                                             \
+                                                                  \
   } while (0);
 
 /* Shorthand to check for RET_SUCCESS and assign to ret */

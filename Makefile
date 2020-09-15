@@ -2,7 +2,7 @@ override CFLAGS  += -g -fPIC -Iinclude -Wall -Wextra -Werror -Wshadow -fstack-pr
 
 ifdef DEBUG
   AFL_DEBUG=1 # always enable logs for now
-  override CFLAGS += -DDEBUG -ggdb -O0 -DLLMP_DEBUG=1
+  override CFLAGS += -DDEBUG -ggdb -Og -DAFL_DEBUG=1
 endif
 ifndef DEBUG
   override CFLAGS += -D_FORTIFY_SOURCE=2 -O3

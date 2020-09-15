@@ -32,6 +32,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <stdbool.h>
 
 #include "types.h"
 #include "alloc-inl.h"
@@ -97,6 +98,9 @@ u64 afl_get_cur_time(void);
 
 /* Get unix time in seconds */
 u64 afl_get_cur_time_s(void);
+
+/* returns true, if the given dir exists, else false */
+bool afl_dir_exists(char *dirpath);
 
 /* This function uses select calls to wait on a child process for given
  * timeout_ms milliseconds and kills it if it doesn't terminate by that time */

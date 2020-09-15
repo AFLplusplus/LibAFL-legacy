@@ -190,6 +190,7 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
   AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL),
           { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); });
 
+  /* The actual fuzzing */
   AFL_TRY(engine->funcs.loop(engine), { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err)); });
 
   SAYF("Fuzzing ends with all the queue entries fuzzed. No of executions %llu\n", engine->executions);
@@ -200,11 +201,11 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
    * initialized using the deleted functions provided */
 
   afl_executor_delete(engine->executor);
+  afl_feedback_cov_delete(coverage_feedback);
   afl_observer_covmap_delete(trace_bits_channel);
   afl_mutator_scheduled_delete(mutators_havoc);
   afl_fuzzing_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
-  afl_feedback_cov_delete(coverage_feedback);
   for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     afl_feedback_delete((afl_feedback_t *)engine->feedbacks[i]);
@@ -256,12 +257,21 @@ int main(int argc, char **argv) {
 
   int broker_port = 0xAF1;
 
+  if (!afl_dir_exists(in_dir)) {
+    FATAL("Oops, input directory %s does not seem to be valid.", in_dir);
+  }
+
+  afl_engine_t **engines = malloc(sizeof(afl_engine_t *) * thread_count);
+  if (!engines) {
+    PFATAL("Could not allocate engine buffer!");
+  }
+
   llmp_broker_t *llmp_broker = llmp_broker_new();
   if (!llmp_broker) { FATAL("Broker creation failed"); }
   /* This is not necessary but gives us the option to add additional processes to the fuzzer at runtime. */
   if (!llmp_broker_register_local_server(llmp_broker, broker_port)) { FATAL("Broker register failed"); }
 
-  OKF("Broker created now");
+  OKF("Created broker for successfully.");
 
   /* The message hook will intercept all messages from all clients - and listen for stats. */
   fuzzer_stats_t fuzzer_stats = {0};
@@ -272,6 +282,7 @@ int main(int argc, char **argv) {
   for (i = 0; i < thread_count; i++) {
 
     afl_engine_t *engine = initialize_fuzzer(in_dir, queue_dirpath);
+    engines[i] = engine;
 
     /* All fuzzers get their own process.
     This call only allocs the data structures, but not fork yet. */

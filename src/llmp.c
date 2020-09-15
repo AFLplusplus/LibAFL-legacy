@@ -252,7 +252,7 @@ llmp_message_t *llmp_recv_blocking(llmp_page_t *page, llmp_message_t *last_msg) 
 */
 llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
 
-#ifdef LLMP_DEBUG
+#ifdef AFL_DEBUG
   if (!llmp_msg_in_page(page, last_msg)) {
 
     /* This should only happen if the initial alloc > initial page len */
@@ -577,7 +577,7 @@ static llmp_broker_client_metadata_t *llmp_broker_register_client(llmp_broker_t 
 
   }
 
-#ifdef LLMP_DEBUG
+#ifdef AFL_DEBUG
   DBG("Registerd new client.");
   size_t i;
   for (i = 0; i < broker->llmp_client_count; i++) {
@@ -964,7 +964,7 @@ llmp_message_t *llmp_client_recv_blocking(llmp_client_state_t *client) {
 
       }
 
-#ifdef LLMP_DEBUG
+#ifdef AFL_DEBUG
       if (client->last_msg_recvd != NULL && client->last_msg_recvd->tag == LLMP_TAG_END_OF_PAGE_V1) {
 
         FATAL("BUG: client recv returned null unexpectedly");
@@ -1044,7 +1044,7 @@ bool llmp_client_send(llmp_client_state_t *client_state, llmp_message_t *msg) {
 
   llmp_page_t *page = shmem2page(&client_state->out_maps[client_state->out_map_count - 1]);
 
-#ifdef LLMP_DEBUG
+#ifdef AFL_DEBUG
   if (!llmp_msg_in_page(page, msg)) {
 
     FATAL("BUG: Message to send not in correct page (%p not in %p with size %ld)", msg, page, page->size_total);

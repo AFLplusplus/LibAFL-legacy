@@ -1,14 +1,18 @@
 MAKEFILE_PATH := $(abspath .)
 #AFL_DIR:=$(realpath $(MAKEFILE_PATH)/../examples/AFLplusplus)
-override CFLAGS+=-g -L$(MAKEFILE_PATH)/.. -I$(MAKEFILE_PATH)/../include ../libafl.a -lm -Wall -Wextra -Wshadow -Werror -fno-omit-frame-pointer -Og -fstack-protector-strong -DLLMP_DEBUG=1 
+override CFLAGS+=-g -L$(MAKEFILE_PATH)/.. -I$(MAKEFILE_PATH)/../include ../libafl.a -lm -Wall -Wextra -Wshadow -Werror -Og -fstack-protector-strong
 
+ifdef DEBU
+  AFL_DEBUG=1
+  override CFLAGS += -DAFL_DEBUG
+endif
 ifdef ASAN
   override CFLAGS += -fsanitize=address -fno-omit-frame-pointer
   override LDFLAGS += -fsanitize=address
 endif
 ifdef UBSAN
-  override CFLAGS += -fsanitize=undefined -fno-omit-frame-pointer -lpthread
-  override LDFLAGS += -fsanitize=undefined -lpthread
+  override CFLAGS += -fsanitize=undefined -fno-omit-frame-pointer
+  override LDFLAGS += -fsanitize=undefined
 endif
 ifdef MSAN
   CC := clang
