@@ -81,6 +81,7 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
   if (!current_client) { FATAL("We died accessing addr %p, but are not in a client...", info->si_addr); }
 
   llmp_page_t *current_out_map = shmem2page(&current_client->out_maps[current_client->out_map_count - 1]);
+  /* TODO: Broker should probably check for sender_dead and restart us? */
   current_out_map->sender_dead = true;
 
   if (current_crash_msg) {

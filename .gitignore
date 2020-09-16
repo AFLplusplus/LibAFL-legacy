@@ -56,3 +56,5 @@ examples/forking-fuzzer
 llvm.prof
 out
 libaflfuzzer-test
+
+crash*
