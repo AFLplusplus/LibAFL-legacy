@@ -255,7 +255,7 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
 
 }
 
-void fuzzer_process_main(llmp_client_state_t *client, void *data) {
+void fuzzer_process_main(llmp_client_t *client, void *data) {
 
   afl_engine_t *engine = (afl_engine_t *)data;
 

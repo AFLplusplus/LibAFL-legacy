@@ -6,25 +6,36 @@
 
 #include "aflpp.h"
 #include "png.h"
+#include "llmp.h"
+#include "shmem.h"
 
-#define LLMP_TAG_EXEC_STATS 0x30
+/* Heartbeat message subprocesses send to the main broker every few secs */
+#define LLMP_TAG_EXEC_STATS_V1 (0xEC574751)
+/* Ooops! we found a crash :) - Let's hope it was in the target... */
+#define LLMP_TAG_CRASH_V1 (0x101DEAD1)
 
-typedef struct client_stats {
+/* That's where the target's intrumentation feedback gets reported to */
+extern u8 *__afl_area_ptr;
+
+/* The current page this process works on. We need this for our segfault handler */
+static llmp_page_t *current_out_map = NULL;
+
+/* Stats message the client will send every once in a while */
+typedef struct client_stats_msg {
 
   u64 total_execs;
 
-} client_stats_t;
+} client_stats_msg_t;
 
-/* stats about the current run */
+/* all stats about the current run */
 typedef struct fuzzer_stats {
 
-  u64                  queue_entry_count;
-  struct client_stats *clients;
+  u64                      queue_entry_count;
+  struct client_stats_msg *clients;
 
 } fuzzer_stats_t;
 
-extern u8 *__afl_area_ptr;
-
+/* The actual harness. Using PNG for our example. */
 afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
 
   (void)executor;
@@ -41,6 +52,63 @@ afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
   png_process_data(png_ptr, info_ptr, input, len);
 
   return AFL_EXIT_OK;
+
+}
+
+static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
+
+  (void)sig;
+  (void)info;
+  (void)ucontext;
+
+  /* TODO: write info and ucontext to sharedmap */
+
+  if (!current_out_map) { FATAL("We died accessing addr %p, no page mapped, can't tell anyone.", info->si_addr); }
+
+  current_out_map->sender_dead = true;
+
+  DBG("We died at %p, waiting for ", info->si_addr);
+
+  /* Wait for broker to map this page, so our work is done. Broker will restart this fuzzer */
+  while (!current_out_map->save_to_unmap) {
+
+    usleep(10);
+
+  }
+
+  exit(1);
+
+}
+
+/*
+static void handle_sigint(int signum) {
+
+  (void)signum;
+
+}
+
+static void handle_alarm(int signum) {
+
+  (void)signum;
+
+}
+
+*/
+
+static void setup_signal_handlers(void) {
+
+  struct sigaction sa = {0};
+
+  memset(&sa, 0, sizeof(sigaction));
+  sigemptyset(&sa.sa_mask);
+
+  sa.sa_flags = SA_NODEFER | SA_SIGINFO;
+  sa.sa_sigaction = handle_crash;
+
+  sigaction(SIGSEGV, &sa, NULL);                                                  /* ignore whether it works or not */
+
+  /* If you don't segfault, what else will? */
+  // printf("%d", ((int *)malloc(-1))[1]);
 
 }
 
@@ -69,9 +137,9 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
   if (engine->executions % 12345 && engine->last_update < afl_get_cur_time_s()) {
 
-    llmp_client_state_t *llmp_client = engine->llmp_client;
-    llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
-    msg->tag = LLMP_TAG_EXEC_STATS;
+    llmp_client_t * llmp_client = engine->llmp_client;
+    llmp_message_t *msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
+    msg->tag = LLMP_TAG_EXEC_STATS_V1;
     u64 *x = (u64 *)msg->buf;
     *x = engine->executions;
     llmp_client_send(llmp_client, msg);
@@ -116,18 +184,18 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
-  afl_observer_covmap_t *trace_bits_channel = calloc(1, sizeof(afl_observer_covmap_t));
-  afl_observer_init(&trace_bits_channel->base, MAP_CHANNEL_ID);
-  if (!trace_bits_channel) { FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC)); }
+  afl_observer_covmap_t *observer_covmap = calloc(1, sizeof(afl_observer_covmap_t));
+  afl_observer_init(&observer_covmap->base, MAP_CHANNEL_ID);
+  if (!observer_covmap) { FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC)); }
 
   /* Since we don't use map_channel_create function, we have to add reset
    * function manually */
-  trace_bits_channel->base.funcs.reset = afl_observer_covmap_reset;
+  observer_covmap->base.funcs.reset = afl_observer_covmap_reset;
 
-  trace_bits_channel->shared_map.map = __afl_area_ptr;  // Coverage "Map" we have
-  trace_bits_channel->shared_map.map_size = MAP_SIZE;
-  trace_bits_channel->shared_map.shm_id = -1;  // Just a simple erronous value :)
-  in_memory_executor->base.funcs.observer_add(&in_memory_executor->base, &trace_bits_channel->base);
+  observer_covmap->shared_map.map = __afl_area_ptr;  // Coverage "Map" we have
+  observer_covmap->shared_map.map_size = MAP_SIZE;
+  observer_covmap->shared_map.shm_id = -1;  // Just a simple erronous value :)
+  in_memory_executor->base.funcs.observer_add(&in_memory_executor->base, &observer_covmap->base);
 
   /* We create a simple feedback queue for coverage here*/
   afl_queue_feedback_t *coverage_feedback_queue = afl_queue_feedback_new(NULL, (char *)"Coverage feedback queue");
@@ -142,7 +210,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
   /* Coverage Feedback initialization */
   afl_feedback_cov_t *coverage_feedback =
-      afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
+      afl_feedback_cov_new(coverage_feedback_queue, observer_covmap->shared_map.map_size, MAP_CHANNEL_ID);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
 
   /* Let's build an engine now */
@@ -174,12 +242,12 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
 }
 
-void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
+void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 
   afl_engine_t *engine = (afl_engine_t *)data;
   engine->llmp_client = llmp_client;
 
-  afl_observer_covmap_t *trace_bits_channel = (afl_observer_covmap_t *)engine->executor->observors[0];
+  afl_observer_covmap_t *observer_covmap = (afl_observer_covmap_t *)engine->executor->observors[0];
 
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
@@ -202,7 +270,7 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
 
   afl_executor_delete(engine->executor);
   afl_feedback_cov_delete(coverage_feedback);
-  afl_observer_covmap_delete(trace_bits_channel);
+  afl_observer_covmap_delete(observer_covmap);
   afl_mutator_scheduled_delete(mutators_havoc);
   afl_fuzzing_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
@@ -224,16 +292,16 @@ void fuzzer_process_main(llmp_client_state_t *llmp_client, void *data) {
 }
 
 /* A hook to keep stats in the broker thread */
-bool message_hook(llmp_broker_t *broker, llmp_client_state_t *client, llmp_message_t *msg, void *data) {
+bool message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *clientdata, llmp_message_t *msg, void *data) {
 
   (void)broker;
-  if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
+  if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY_V1) {
 
     ((fuzzer_stats_t *)data)->queue_entry_count++;
 
-  } else if (msg->tag == LLMP_TAG_EXEC_STATS) {
+  } else if (msg->tag == LLMP_TAG_EXEC_STATS_V1) {
 
-    ((fuzzer_stats_t *)data)->clients[client->id - 1].total_execs = *(u64 *)msg->buf;
+    ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].total_execs = *(u64 *)msg->buf;
 
   }
 
@@ -244,6 +312,9 @@ bool message_hook(llmp_broker_t *broker, llmp_client_state_t *client, llmp_messa
 int main(int argc, char **argv) {
 
   if (argc < 4) { FATAL("Usage: ./in-memory-fuzzer number_of_threads /path/to/input/dir /path/to/queue/dir"); }
+
+  /* YOLO */
+  setup_signal_handlers();
 
   s32 i = 0;
   int status = 0;
@@ -257,14 +328,10 @@ int main(int argc, char **argv) {
 
   int broker_port = 0xAF1;
 
-  if (!afl_dir_exists(in_dir)) {
-    FATAL("Oops, input directory %s does not seem to be valid.", in_dir);
-  }
+  if (!afl_dir_exists(in_dir)) { FATAL("Oops, input directory %s does not seem to be valid.", in_dir); }
 
   afl_engine_t **engines = malloc(sizeof(afl_engine_t *) * thread_count);
-  if (!engines) {
-    PFATAL("Could not allocate engine buffer!");
-  }
+  if (!engines) { PFATAL("Could not allocate engine buffer!"); }
 
   llmp_broker_t *llmp_broker = llmp_broker_new();
   if (!llmp_broker) { FATAL("Broker creation failed"); }
@@ -276,7 +343,7 @@ int main(int argc, char **argv) {
   /* The message hook will intercept all messages from all clients - and listen for stats. */
   fuzzer_stats_t fuzzer_stats = {0};
   llmp_broker_add_message_hook(llmp_broker, message_hook, &fuzzer_stats);
-  fuzzer_stats.clients = malloc(thread_count * sizeof(client_stats_t));
+  fuzzer_stats.clients = malloc(thread_count * sizeof(client_stats_msg_t));
   if (!fuzzer_stats.clients) { PFATAL("Unable to alloc memory"); }
 
   for (i = 0; i < thread_count; i++) {

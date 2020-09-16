@@ -248,7 +248,7 @@ void afl_engine_handle_new_message(afl_engine_t *engine, llmp_message_t *msg) {
   /* Default implementation, handles only new queue entry messages. Users have
    * liberty with this function */
 
-  if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY) {
+  if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY_V1) {
 
     /* Users can experiment here, adding entries to different queues based on
      * the message tag. Right now, let's just add it to all queues*/

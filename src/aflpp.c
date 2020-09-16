@@ -432,8 +432,6 @@ void in_memory_executor_deinit(in_memory_executor_t *in_memory_executor) {
 
 }
 
-
-
 u8 in_mem_executor_place_input(afl_executor_t *executor, afl_input_t *input) {
 
   executor->current_input = input;

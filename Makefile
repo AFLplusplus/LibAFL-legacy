@@ -77,7 +77,6 @@ src/os.o: src/os.c include/os.h src/common.o src/input.o
 # Compiling the OS helper  for the library
 src/llmp.o: src/llmp.c include/llmp.h
 	$(CC) $(CFLAGS) src/llmp.c -c -o src/llmp.o
-	@rm -f libafl.so libafl.a
 
 # Compiling the final library
 src/afl.o: src/aflpp.c include/aflpp.h src/observer.o src/input.observation

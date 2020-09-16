@@ -42,9 +42,9 @@ inline u64 afl_get_cur_time_us(void) {
 
 bool afl_dir_exists(char *dirpath) {
 
-  DIR *          dir_in = NULL;
+  DIR *dir_in = NULL;
 
-  size_t       dir_name_size = strlen(dirpath);
+  size_t dir_name_size = strlen(dirpath);
 
   if (dirpath[dir_name_size - 1] == '/') { dirpath[dir_name_size - 1] = '\0'; }
 
@@ -53,8 +53,6 @@ bool afl_dir_exists(char *dirpath) {
   return true;
 
 }
-
-
 
 /* Get unix time in seconds */
 inline u64 afl_get_cur_time(void) {

@@ -224,9 +224,19 @@ http://decompile.com/cpp/faq/file_and_line_error_string.htm
   } while (0)
 
 #ifdef DEBUG
-  #define DBG(...) SAYF(cMGN "[D] [" __FILE__ ":" TOSTRING(__LINE__) "] " cRST __VA_ARGS__); fflush(stdout)
-#endif
+  #define DBG(...)                                                                      \
+    do {                                                                                \
+                                                                                        \
+      SAYF(cMGN "[D]" cGRA " [" __FILE__ ":" TOSTRING(__LINE__) "] " cRST __VA_ARGS__); \
+      SAYF(cRST "\n");                                                                  \
+      fflush(stdout);                                                                   \
+                                                                                        \
+    } while (0)
 
+#else
+  #define DBG(...) \
+    {}
+#endif
 
 /* Die with a verbose non-OS fatal error message. */
 

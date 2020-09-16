@@ -66,7 +66,15 @@ Then register some clientloops using llmp_broker_register_threaded_clientloop
 #define LLMP_ALIGNMENT (64)
 
 /* llmp tags */
-#define LLMP_TAG_NEW_QUEUE_ENTRY (0xA1B2C3D)
+#define LLMP_TAG_NEW_QUEUE_ENTRY_V1 (0xC0ADDED1)
+
+/* Storage class for hooks used at various places in llmp. */
+typedef struct llmp_hookdata_generic {
+
+  void *func;
+  void *data;
+
+} llmp_hookdata_t;
 
 /* The actual message.
     Sender is the original client id.
@@ -108,7 +116,9 @@ typedef struct llmp_page {
   On first message receive, save_to_unmap is set to 1. This means that
   the sender can unmap this page after EOP, on exit, ...
   Using u32 for a bool as it feels more aligned. */
-  volatile u32 save_to_unmap;
+  volatile u16 save_to_unmap;
+  /* If true, client died. :( */
+  volatile u16 sender_dead;
   /* The id of the last finished message */
   volatile size_t current_msg_id;
   /* Total size of the page */
@@ -124,7 +134,7 @@ typedef struct llmp_page {
 } __attribute__((__packed__)) llmp_page_t;
 
 /* For the client: state (also used as metadata by broker) */
-typedef struct llmp_client_state {
+typedef struct llmp_client {
 
   /* unique ID of this client */
   u32 id;
@@ -138,19 +148,29 @@ typedef struct llmp_client_state {
   size_t out_map_count;
   /* The maps to write to */
   afl_shmem_t *out_maps;
+  /* Count of the hooks we'll call for each new shared map */
+  size_t new_out_page_hook_count;
+  /* The hooks we'll call for each new shared map */
+  llmp_hookdata_t *new_out_page_hooks;
 
-} llmp_client_state_t;
+} llmp_client_t;
+
+typedef struct llmp_broker_client_metadata llmp_broker_clientdata_t;
 
 /* A convenient clientloop function that can be run threaded on llmp broker
  * startup */
-typedef void (*llmp_clientloop_func)(llmp_client_state_t *client_state, void *data);
+typedef void (*llmp_clientloop_func)(llmp_client_t *client_state, void *data);
 
 /* A hook able to intercept messages arriving at the broker.
 If return is false, message will not be delivered to clients.
 This is synchronous, if you need long-running message handlers, register a
 client instead. */
-typedef bool(llmp_message_hook_func)(llmp_broker_t *broker, llmp_client_state_t *client, llmp_message_t *msg,
+typedef bool(llmp_message_hook_func)(llmp_broker_t *broker, llmp_broker_clientdata_t *client, llmp_message_t *msg,
                                      void *data);
+
+/* A hook getting called for each new page this client creates.
+Map points to the new map, containing the page, data point to the data passed when set up the hook. */
+typedef void(llmp_client_new_page_hook_func)(llmp_client_t *client, llmp_page_t *new_out_page, void *data);
 
 enum LLMP_CLIENT_TYPE {
 
@@ -166,13 +186,13 @@ enum LLMP_CLIENT_TYPE {
 };
 
 /* For the broker, internal: to keep track of the client */
-typedef struct llmp_broker_client_metadata {
+struct llmp_broker_client_metadata {
 
   /* client type */
   enum LLMP_CLIENT_TYPE client_type;
 
   /* further infos about this client */
-  llmp_client_state_t *client_state;
+  llmp_client_t *client_state;
 
   /* The client map we're currently reading from */
   /* We can't use the one from client_state for threaded clients
@@ -191,15 +211,7 @@ typedef struct llmp_broker_client_metadata {
   /* Additional data for this client loop */
   void *data;
 
-} llmp_broker_client_metadata_t;
-
-/* Storage class for msg hooks */
-typedef struct llmp_message_hook_data {
-
-  llmp_message_hook_func *func;
-  void *                  data;
-
-} llmp_message_hook_data_t;
+};
 
 /* state of the main broker. Mostly internal stuff. */
 struct llmp_broker_state {
@@ -209,11 +221,11 @@ struct llmp_broker_state {
   size_t       broadcast_map_count;
   afl_shmem_t *broadcast_maps;
 
-  size_t                    msg_hook_count;
-  llmp_message_hook_data_t *msg_hooks;
+  size_t           msg_hook_count;
+  llmp_hookdata_t *msg_hooks;
 
-  size_t                         llmp_client_count;
-  llmp_broker_client_metadata_t *llmp_clients;
+  size_t                    llmp_client_count;
+  llmp_broker_clientdata_t *llmp_clients;
 
 };
 
@@ -240,31 +252,44 @@ else NULL */
 bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg);
 
 /* Creates a new client process that will connect to the given port */
-llmp_client_state_t *llmp_client_new(int port);
+llmp_client_t *llmp_client_new(int port);
 
 /* Creates a new, unconnected, client state */
-llmp_client_state_t *llmp_client_new_unconnected();
+llmp_client_t *llmp_client_new_unconnected();
 
 /* Destroys the given cient state */
-void llmp_client_destroy(llmp_client_state_t *client_state);
+void llmp_client_delete(llmp_client_t *client_state);
 
 /* A client receives a broadcast message. Returns null if no message is
  * availiable */
-llmp_message_t *llmp_client_recv(llmp_client_state_t *client);
+llmp_message_t *llmp_client_recv(llmp_client_t *client);
 
 /* A client blocks/spins until the next message gets posted to the page,
   then returns that message. */
-llmp_message_t *llmp_client_recv_blocking(llmp_client_state_t *client);
+llmp_message_t *llmp_client_recv_blocking(llmp_client_t *client);
 
-/* Alloc the next message, internally resetting the ringbuf if full */
-llmp_message_t *llmp_client_alloc_next(llmp_client_state_t *client, size_t size);
+/* Will return a ptr to the next msg buf, potentially mapping a new page automatically, if needed.
+Never call alloc_next multiple times without either sending or cancelling the last allocated message for this page!
+There can only ever be up to one message allocated per page at each given time. */
+llmp_message_t *llmp_client_alloc_next(llmp_client_t *client, size_t size);
 
-/* Commits a msg to the client's out ringbuf */
-bool llmp_client_send(llmp_client_state_t *client_state, llmp_message_t *msg);
+/* Cancels a msg previously allocated by alloc_next.
+You can now allocate a new buffer on this page using alloc_next.
+Don't write to the msg anymore, and don't send this message! */
+bool llmp_client_send(llmp_client_t *client_state, llmp_message_t *msg);
+
+/* Cancel send of the next message, this allows us to allocate a new message without sending this one. */
+void llmp_client_cancel(llmp_client_t *client, llmp_message_t *msg);
+
+/* Commits a msg to the client's out buf. After this, don't  write to this msg anymore! */
+bool llmp_client_send(llmp_client_t *client_state, llmp_message_t *msg);
+
+/* Adds a hook that gets called in the client for each new outgoing page the client creates (after start or EOP). */
+afl_ret_t llmp_client_add_new_out_page_hook(llmp_client_t *client, llmp_client_new_page_hook_func *hook, void *data);
 
 /* A simple client that, on connect, reads the new client's shmap str and writes
  the broker's initial map str */
-void llmp_clientloop_tcp(llmp_client_state_t *client_state, void *data);
+void llmp_clientloop_tcp(llmp_client_t *client_state, void *data);
 
 /* Allocate and set up the new broker instance. Afterwards, run with broker_run. */
 afl_ret_t llmp_broker_init(llmp_broker_t *broker);
@@ -275,14 +300,14 @@ void llmp_broker_deinit(llmp_broker_t *broker);
 AFL_NEW_AND_DELETE_FOR(llmp_broker)
 
 /* Register a new forked/child client.
-Client thread will be called with llmp_client_state_t client, containing
+Client thread will be called with llmp_client_t client, containing
 the data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also be added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
 bool llmp_broker_register_childprocess_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop, void *data);
 
-/* Client thread will be called with llmp_client_state_t client, containing the
+/* Client thread will be called with llmp_client_t client, containing the
 data in ->data. This will register a client to be spawned up as soon as
 broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client

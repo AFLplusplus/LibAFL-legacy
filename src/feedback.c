@@ -189,8 +189,11 @@ float __attribute__((hot)) afl_feedback_cov_is_interesting(afl_feedback_t *feedb
 #ifdef DEBUG
   DBG("MAP: %p %lu ", obs_channel->shared_map.map, obs_channel->shared_map.map_size);
   for (u32 j = 0; j < obs_channel->shared_map.map_size; j++) {
+
     if (obs_channel->shared_map.map[j]) { printf("    %02x=%02x", j, obs_channel->shared_map.map[j]); }
+
   }
+
   printf(" ret=%f\n", ret);
 #endif
 
@@ -206,9 +209,9 @@ float __attribute__((hot)) afl_feedback_cov_is_interesting(afl_feedback_t *feedb
     /* We broadcast a message when new entry found -- only if this is the fuzz
      * instance which found it!*/
 
-    llmp_client_state_t *llmp_client = feedback->queue->base.engine->llmp_client;
-    llmp_message_t *     msg = llmp_client_alloc_next(llmp_client, sizeof(afl_entry_t));
-    msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY;
+    llmp_client_t * llmp_client = feedback->queue->base.engine->llmp_client;
+    llmp_message_t *msg = llmp_client_alloc_next(llmp_client, sizeof(afl_entry_t));
+    msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY_V1;
     ((afl_entry_t *)msg->buf)[0] = *new_entry;
     llmp_client_send(llmp_client, msg);
 

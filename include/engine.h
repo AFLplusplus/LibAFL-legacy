@@ -75,7 +75,7 @@ struct afl_engine {
 
   u8 *                   buf;  // Reusable buf for realloc
   struct afl_engine_func funcs;
-  llmp_client_state_t *  llmp_client;  // Our IPC for fuzzer communication
+  llmp_client_t *        llmp_client;  // Our IPC for fuzzer communication
 
 };
 

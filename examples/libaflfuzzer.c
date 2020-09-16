@@ -183,7 +183,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
 
 }
 
-void run_instance(llmp_client_state_t *llmp_client, void *data) {
+void run_instance(llmp_client_t *llmp_client, void *data) {
 
   afl_engine_t *engine = (afl_engine_t *)data;
   engine->llmp_client = llmp_client;
@@ -310,7 +310,7 @@ int main(int argc, char **argv) {
 
       if (!pid) {  // child
 
-        llmp_client_state_t *llmp_client = llmp_client_new(broker_port);
+        llmp_client_t *llmp_client = llmp_client_new(broker_port);
 
         if (!llmp_client) {
 
@@ -332,7 +332,7 @@ int main(int argc, char **argv) {
 
         run_instance(llmp_client, engine);
 
-        llmp_client_destroy(llmp_client);
+        llmp_client_delete(llmp_client);
 
         exit(0);
 

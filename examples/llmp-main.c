@@ -14,7 +14,7 @@ Example main for llmp.
 #define LLMP_TAG_RANDOM_U32_V1 (0x344D011)
 
 /* A client that randomly produces messages */
-void llmp_clientloop_rand_u32(llmp_client_state_t *client, void *data) {
+void llmp_clientloop_rand_u32(llmp_client_t *client, void *data) {
 
   (void)data;
 
@@ -38,7 +38,7 @@ void llmp_clientloop_rand_u32(llmp_client_state_t *client, void *data) {
 }
 
 /* A client listening for new messages, then printing them */
-void llmp_clientloop_print_u32(llmp_client_state_t *client_state, void *data) {
+void llmp_clientloop_print_u32(llmp_client_t *client_state, void *data) {
 
   (void)data;
 
@@ -130,7 +130,7 @@ int main(int argc, char **argv) {
 
     OKF("Client will connect to port %d", port);
     // Worker only needs to spawn client threads.
-    llmp_client_state_t *client_state = llmp_client_new(port);
+    llmp_client_t *client_state = llmp_client_new(port);
     if (!client_state) { FATAL("Error connecting to broker at port %d", port); }
     llmp_clientloop_rand_u32(client_state, NULL);
 

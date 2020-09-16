@@ -260,6 +260,8 @@ void test_engine_load_testcase_from_dir(void **state) {
   afl_engine_t engine;
   afl_engine_init(&engine, &executor, NULL, &queue);  // no need for a fuzz_one in our test-case
 
+  afl_rand_seed(&engine.rand, 1337);
+
   engine.funcs.execute = engine_mock_execute;
 
   // Let's create a test directory now.
@@ -345,6 +347,8 @@ void test_basic_mutator_functions(void **state) {
   afl_input_t  input = {0};
   afl_input_t *copy = NULL;
   afl_input_init(&input);
+
+  afl_rand_seed(&engine.rand, 42);
 
   char *test_string = "AAAAAAAAAAAAA";
   input.bytes = calloc(strlen(test_string), 1);
@@ -447,7 +451,7 @@ void test_base_queue_get_next(void **state) {
 
   afl_engine_t engine = {0};
   afl_engine_init(&engine, NULL, NULL, NULL);
-  llmp_client_state_t *client = llmp_client_new_unconnected();
+  llmp_client_t *client = llmp_client_new_unconnected();
   engine.llmp_client = client;
   afl_queue_t queue = {0};
   afl_queue_init(&queue);
@@ -477,7 +481,7 @@ void test_base_queue_get_next(void **state) {
   assert_int_equal(queue.entries_count, 2);
 
   afl_queue_deinit(&queue);
-  llmp_client_destroy(client);
+  llmp_client_delete(client);
 
 }
 
