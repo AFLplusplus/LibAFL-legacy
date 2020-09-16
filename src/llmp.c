@@ -373,7 +373,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
    * sent the last msg! */
 
   /* DBG("XXX ret %p - page->messages %p = %lu != %lu, will add %lu -> %p\n", ret, page->messages,
-      (size_t)((u8 *)ret - (u8 *)page->messages), page->size_used, complete_msg_size, ((u8 *)ret) + complete_msg_size); */
+      (size_t)((u8 *)ret - (u8 *)page->messages), page->size_used, complete_msg_size, ((u8 *)ret) + complete_msg_size);
+   */
   if ((!last_msg && page->size_used) || ((size_t)((u8 *)ret - (u8 *)page->messages) != page->size_used)) {
 
     FATAL(
@@ -773,8 +774,6 @@ static void llmp_client_trigger_new_out_page_hooks(llmp_client_t *client) {
   }
 
 }
-
-
 
 /* A wrapper around unpacking the data, calling through to the loop */
 static void *_llmp_client_wrapped_loop(void *llmp_client_broker_metadata_ptr) {

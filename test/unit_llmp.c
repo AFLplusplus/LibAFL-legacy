@@ -109,7 +109,7 @@ static inline void test_llmp_client_message_cancel(void **state) {
 
   (void)state;
 
-  llmp_client_t *client = llmp_client_new_unconnected();
+  llmp_client_t * client = llmp_client_new_unconnected();
   llmp_message_t *old_msg = llmp_client_alloc_next(client, 10);
 
   llmp_client_cancel(client, old_msg);
@@ -133,7 +133,6 @@ static inline void test_llmp_client_message_cancel(void **state) {
   llmp_client_delete(client);
 
 }
-
 
 int main(int argc, char **argv) {
 
