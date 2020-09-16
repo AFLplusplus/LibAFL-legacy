@@ -243,24 +243,40 @@ afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath
 
 }
 
-void afl_engine_handle_new_message(afl_engine_t *engine, llmp_message_t *msg) {
+afl_ret_t afl_engine_handle_new_message(afl_engine_t *engine, llmp_message_t *msg) {
 
   /* Default implementation, handles only new queue entry messages. Users have
    * liberty with this function */
 
   if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY_V1) {
 
+    afl_input_t *input = afl_input_new();
+    if (!input) {
+      return AFL_RET_ALLOC;
+    }
+
+    /* the msg will stick around forever, so this is safe. */
+    input->bytes = msg->buf;
+    input->len = msg->buf_len;
+
+    if (!input) { FATAL("Error creating a copy of input"); }
+
+    afl_entry_t *new_entry = afl_entry_new(input);
+
     /* Users can experiment here, adding entries to different queues based on
      * the message tag. Right now, let's just add it to all queues*/
     size_t i = 0;
+    engine->global_queue->base.funcs.insert(&engine->global_queue->base, new_entry);
+    afl_queue_feedback_t **feedback_queues = engine->global_queue->feedback_queues;
     for (i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
-      engine->global_queue->feedback_queues[i]->base.funcs.insert(&engine->global_queue->feedback_queues[i]->base,
-                                                                  (afl_entry_t *)msg->buf);
+      feedback_queues[i]->base.funcs.insert(&feedback_queues[i]->base, new_entry);
 
     }
 
   }
+
+  return AFL_RET_SUCCESS;
 
 }
 
@@ -329,11 +345,11 @@ afl_ret_t afl_engine_loop(afl_engine_t *engine) {
     if (engine->funcs.handle_new_message) {
 
       /* Let's read the broadcasted messages now */
-      llmp_message_t *msg = llmp_client_recv(engine->llmp_client);
+      llmp_message_t *msg = NULL;
 
-      if (!msg) { continue; }  // No new messages
-
-      engine->funcs.handle_new_message(engine, msg);
+      while((msg = llmp_client_recv(engine->llmp_client))) {
+        AFL_TRY(engine->funcs.handle_new_message(engine, msg), { return err; });
+      }
 
     }
 

@@ -94,6 +94,8 @@ static void test_client_eop(void **state) {
     llmp_message_t *last_msg = llmp_client_alloc_next(client, i * 10);
     assert(last_msg && "Last_msg was null :(");
     last_msg->tag = 0x7357;
+    assert_int_equal(last_msg->buf_len, i * 10);
+    assert_true(last_msg->buf_len_padded >= last_msg->buf_len && "BUG! buf_len supposedly larger than buf_len_padded!");
     llmp_client_send(client, last_msg);
 
   }

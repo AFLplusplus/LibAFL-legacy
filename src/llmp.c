@@ -130,13 +130,7 @@ bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg) {
 
 }
 
-/* Gets the llmp page struct from this shmem map */
-static inline llmp_page_t *shmem2page(afl_shmem_t *afl_shmem) {
 
-  /* DBG("shmem2page %p->%p\n", afl_shmem, afl_shmem->map); */
-  return (llmp_page_t *)afl_shmem->map;
-
-}
 
 /* allign to LLMP_ALIGNNMENT bytes */
 static inline size_t llmp_align(size_t to_align) {
@@ -176,15 +170,15 @@ static void _llmp_page_init(llmp_page_t *page, u32 sender, size_t size) {
 /* Pointer to the message behind the last message */
 static inline llmp_message_t *_llmp_next_msg_ptr(llmp_message_t *last_msg) {
 
-  /* DBG("_llmp_next_msg_ptr %p %lu + %lu\n", last_msg, last_msg->buf_len, sizeof(llmp_message_t)); */
-  return (llmp_message_t *)((u8 *)last_msg + sizeof(llmp_message_t) + last_msg->buf_len);
+  /* DBG("_llmp_next_msg_ptr %p %lu + %lu\n", last_msg, last_msg->buf_len_padded, sizeof(llmp_message_t)); */
+  return (llmp_message_t *)((u8 *)last_msg + sizeof(llmp_message_t) + last_msg->buf_len_padded);
 
 }
 
 /* Read next message. */
 llmp_message_t *llmp_recv(llmp_page_t *page, llmp_message_t *last_msg) {
 
-  DBG("llmp_recv %p %p\n", page, last_msg);
+  /* DBG("llmp_recv %p %p\n", page, last_msg); */
 
   MEM_BARRIER();
   if (!page->current_msg_id) {
@@ -247,7 +241,7 @@ llmp_message_t *llmp_recv_blocking(llmp_page_t *page, llmp_message_t *last_msg) 
 }
 
 /* Special allocation function for EOP messages (and nothing else!)
-  The normal alloc will fail if there is not enough space for buf_len + EOP
+  The normal alloc will fail if there is not enough space for buf_len_padded + EOP
   So if llmp_alloc_next fails, create new page if necessary, use this function,
   place EOP, commit EOP, reset, alloc again on the new space.
 */
@@ -278,7 +272,7 @@ llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
 
   if (ret->tag == LLMP_TAG_ALLOCATED_V1) { FATAL("Did not call send() on last message!"); }
 
-  ret->buf_len = sizeof(llmp_payload_new_page_t);
+  ret->buf_len_padded = sizeof(llmp_payload_new_page_t);
   ret->message_id = last_msg ? last_msg->message_id += 1 : 1;
   ret->tag = LLMP_TAG_END_OF_PAGE_V1;
 
@@ -295,8 +289,9 @@ There can only ever be up to one message allocated per page at each given time.
 llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, size_t buf_len) {
 
   DBG("llmp_alloc_next %p %p %lu\n", page, last_msg, buf_len);
+  size_t buf_len_padded = buf_len;
 
-  size_t complete_msg_size = llmp_align(sizeof(llmp_message_t) + buf_len);
+  size_t complete_msg_size = llmp_align(sizeof(llmp_message_t) + buf_len_padded);
   /* DBG("XXX complete_msg_size %lu (h: %lu)\n", complete_msg_size, sizeof(llmp_message_t)); */
 
   /* In case we don't have enough space, make sure the next page will be large
@@ -315,8 +310,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
     it. Technically, size_t can be smaller than a pointer, then who knows what
     happens */
     size_t base_addr = (size_t)ret;
-    buf_len = llmp_align(base_addr + complete_msg_size) - base_addr - sizeof(llmp_message_t);
-    complete_msg_size = buf_len + sizeof(llmp_message_t);
+    buf_len_padded = llmp_align(base_addr + complete_msg_size) - base_addr - sizeof(llmp_message_t);
+    complete_msg_size = buf_len_padded + sizeof(llmp_message_t);
     /* DBG("XXX complete_msg_size NEW %lu\n", complete_msg_size); */
 
     /* Still space for the new message plus the additional "we're full" message?
@@ -326,7 +321,7 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
       DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: "
           "%ld, "
           "total size %ld). Returning NULL",
-          buf_len, page->size_used, page->size_total);
+          buf_len_padded, page->size_used, page->size_total);
 
       /* We're full. */
       return NULL;
@@ -347,7 +342,7 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
 
   } else {
 
-    buf_len = complete_msg_size - sizeof(llmp_message_t);
+    buf_len_padded = complete_msg_size - sizeof(llmp_message_t);
 
     /* Still space for the new message plus the additional "we're full" message?
      */
@@ -356,7 +351,7 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
       DBG("No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: "
           "%ld, "
           "total size %ld). Returning NULL",
-          buf_len, page->size_used, page->size_total);
+          buf_len_padded, page->size_used, page->size_total);
 
       /* We're full. */
       return NULL;
@@ -365,7 +360,7 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
 
     ret = _llmp_next_msg_ptr(last_msg);
     ret->message_id = last_msg->message_id + 1;
-    /* DBG("XXX ret %p id %u buf_len %lu complete_msg_size %lu\n", ret, ret->message_id, buf_len, complete_msg_size); */
+    /* DBG("XXX ret %p id %u buf_len_padded %lu complete_msg_size %lu\n", ret, ret->message_id, buf_len_padded, complete_msg_size); */
 
   }
 
@@ -381,15 +376,16 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
         "Allocated new message without calling send() inbetween. ret: %p, "
         "page: %p, complete_msg_size: %ld, size_used: %ld, last_msg: %p, "
         "page->messages %p",
-        ret, page, buf_len, page->size_used, last_msg, page->messages);
+        ret, page, buf_len_padded, page->size_used, last_msg, page->messages);
 
   }
 
   page->size_used += complete_msg_size;
 
+  ret->buf_len_padded = buf_len_padded;
   ret->buf_len = buf_len;
 
-  DBG("Returning new message at %p with len %ld, TAG was %x", ret, ret->buf_len, ret->tag);
+  /* DBG("Returning new message at %p with len %ld, TAG was %x", ret, ret->buf_len_padded, ret->tag); */
 
   /* Maybe catch some bugs... */
   _llmp_next_msg_ptr(ret)->tag = LLMP_TAG_UNALLOCATED_V1;
@@ -606,8 +602,8 @@ static llmp_broker_clientdata_t *llmp_broker_register_client(llmp_broker_t *brok
 /* broker broadcast to its own page for all others to read */
 static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broker_clientdata_t *client) {
 
-  DBG("llmp_broker_handle_new_msgs %p %p->%u\n", broker, client, client->client_state->id);
   // TODO: We could memcpy a range of pending messages, instead of one by one.
+  /* DBG("llmp_broker_handle_new_msgs %p %p->%u\n", broker, client, client->client_state->id); */
 
   llmp_page_t *incoming = shmem2page(client->cur_client_map);
   u32          current_message_id = client->last_msg_broker_read ? client->last_msg_broker_read->message_id : 0;
@@ -627,7 +623,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
       llmp_payload_new_page_t *pageinfo = LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
       if (!pageinfo) {
 
-        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len, sizeof(llmp_payload_new_page_t));
+        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len_padded, sizeof(llmp_payload_new_page_t));
 
       }
 
@@ -662,7 +658,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
         WARNF(
             "Ignoring broken CLIENT_ADDED msg due to incorrect size. "
             "Expected %ld but got %ld",
-            sizeof(llmp_payload_new_page_t), msg->buf_len);
+            sizeof(llmp_payload_new_page_t), msg->buf_len_padded);
 
       }
 
@@ -693,11 +689,11 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
       if (likely(forward_msg)) {
 
         DBG("Broadcasting msg with id %d, tag 0x%X", msg->message_id, msg->tag);
-        llmp_message_t *out = llmp_broker_alloc_next(broker, msg->buf_len);
+        llmp_message_t *out = llmp_broker_alloc_next(broker, msg->buf_len_padded);
 
         if (!out) {
 
-          FATAL("Error allocating %ld bytes in shmap %s", msg->buf_len,
+          FATAL("Error allocating %ld bytes in shmap %s", msg->buf_len_padded,
                 _llmp_broker_current_broadcast_map(broker)->shm_str);
 
         }
@@ -705,11 +701,11 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
         /* Copy over the whole message.
         If we should need zero copy, we could instead post a link to the
         original msg with the map_id and offset. */
-        DBG("broker memcpy %p->%lu %p->%lu copy %lu\n", out, out->buf_len, msg, msg->buf_len,
-            sizeof(llmp_message_t) + msg->buf_len);
-        size_t actual_size = out->buf_len;
-        memcpy(out, msg, sizeof(llmp_message_t) + msg->buf_len);
-        out->buf_len = actual_size;
+        DBG("broker memcpy %p->%lu %p->%lu copy %lu\n", out, out->buf_len_padded, msg, msg->buf_len_padded,
+            sizeof(llmp_message_t) + msg->buf_len_padded);
+        size_t actual_size = out->buf_len_padded;
+        memcpy(out, msg, sizeof(llmp_message_t) + msg->buf_len_padded);
+        out->buf_len_padded = actual_size;
 
         /* We need to replace the message ID with our own */
         llmp_page_t *out_page = shmem2page(_llmp_broker_current_broadcast_map(broker));
@@ -938,7 +934,7 @@ llmp_message_t *llmp_client_recv(llmp_client_t *client) {
       llmp_payload_new_page_t *pageinfo = LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
       if (!pageinfo) {
 
-        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len, sizeof(llmp_payload_new_page_t));
+        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len_padded, sizeof(llmp_payload_new_page_t));
 
       }
 
@@ -1055,7 +1051,7 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_t *client, size_t size) {
   msg->sender = client->id;
   msg->message_id = client->last_msg_sent ? client->last_msg_sent->message_id + 1 : 1;
 
-  DBG("Allocated message at loc %p with buflen %ld", msg, msg->buf_len);
+  /* DBG("Allocated message at loc %p with buflen %ld", msg, msg->buf_len_padded); */
 
   return msg;
 
@@ -1064,7 +1060,7 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_t *client, size_t size) {
 /* Cancel send of the next message, this allows us to allocate a new message without sending this one. */
 void llmp_client_cancel(llmp_client_t *client, llmp_message_t *msg) {
 
-  DBG("Client %d sends new msg at %p with tag 0x%X and size %ld", client->id, msg, msg->tag, msg->buf_len);
+  DBG("Client %d sends new msg at %p with tag 0x%X and size %ld", client->id, msg, msg->tag, msg->buf_len_padded);
   llmp_page_t *page = shmem2page(&client->out_maps[client->out_map_count - 1]);
 
 #ifdef AFL_DEBUG
@@ -1077,14 +1073,14 @@ void llmp_client_cancel(llmp_client_t *client, llmp_message_t *msg) {
 #endif
 
   msg->tag = LLMP_TAG_UNALLOCATED_V1;
-  page->size_used -= msg->buf_len + sizeof(llmp_message_t);
+  page->size_used -= msg->buf_len_padded + sizeof(llmp_message_t);
 
 }
 
 /* Commits a msg to the client's out ringbuf */
 bool llmp_client_send(llmp_client_t *client_state, llmp_message_t *msg) {
 
-  DBG("Client %d sends new msg at %p with tag 0x%X and size %ld", client_state->id, msg, msg->tag, msg->buf_len);
+  DBG("Client %d sends new msg at %p with tag 0x%X and size %ld", client_state->id, msg, msg->tag, msg->buf_len_padded);
 
   llmp_page_t *page = shmem2page(&client_state->out_maps[client_state->out_map_count - 1]);
 

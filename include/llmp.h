@@ -89,9 +89,11 @@ typedef struct llmp_message {
   u32 sender;
   /* unique id for this msg */
   u32 message_id;
-  /* the length of the payload */
+  /* the length of the payload, as requested by the caller */
   size_t buf_len;
-  /* the actual content (syntax needs c99) */
+  /* the actual length of the payload, including padding to the next msg */
+  size_t buf_len_padded;
+  /* the content (syntax needs c99) */
   u8 buf[];
 
 } __attribute__((packed)) llmp_message_t;
@@ -235,7 +237,7 @@ else NULL */
   ({                                                                  \
                                                                       \
     llmp_message_t *_msg = msg;                                       \
-    ((type *)((_msg)->buf_len >= sizeof(type) ? (_msg)->buf : NULL)); \
+    ((type *)((_msg)->buf_len == sizeof(type) ? (_msg)->buf : NULL)); \
                                                                       \
   })
 
@@ -244,9 +246,16 @@ else NULL */
   ({                                                                                       \
                                                                                            \
     llmp_message_t *_msg = msg;                                                            \
-    ((type *)(((msg)->tag == tag && (msg)->buf_len >= sizeof(type)) ? (msg)->buf : NULL)); \
+    ((type *)(((msg)->tag == tag && (msg)->buf_len == sizeof(type)) ? (msg)->buf : NULL)); \
                                                                                            \
   })
+
+/* Gets the llmp page struct from this shmem map */
+static inline llmp_page_t *shmem2page(afl_shmem_t *afl_shmem) {
+
+  return (llmp_page_t *)afl_shmem->map;
+
+}
 
 /* If a msg is contained in the current page */
 bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg);

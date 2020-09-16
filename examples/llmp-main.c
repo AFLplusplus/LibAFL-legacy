@@ -50,7 +50,7 @@ void llmp_clientloop_print_u32(llmp_client_t *client_state, void *data) {
 
     if (message->tag == LLMP_TAG_RANDOM_U32_V1) {
 
-      if (message->buf_len < sizeof(u32)) { FATAL("BUG: incorrect buflen size for u32 message type"); }
+      if (message->buf_len_padded < sizeof(u32)) { FATAL("BUG: incorrect buflen size for u32 message type"); }
 
       printf("Got a random int from the queue: %d\n", ((u32 *)message->buf)[0]);
 

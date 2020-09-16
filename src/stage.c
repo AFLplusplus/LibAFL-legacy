@@ -117,14 +117,14 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
     for (j = 0; j < fuzz_stage->mutators_count; ++j) {
 
       afl_mutator_t *mutator = fuzz_stage->mutators[j];
+      // If the mutator decides not to fuzz this input, don't fuzz it. This is to support the custom mutator API of AFL++
       if (mutator->funcs.custom_queue_get) {
 
         mutator->funcs.custom_queue_get(mutator, copy);
         continue;
 
-      }  // If the mutator decides not to fuzz this input, don't fuzz it. This
+      }  
 
-      // is to support the custom mutator API of AFL++
 
       if (mutator->funcs.trim) {
 
@@ -151,20 +151,37 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
     afl_ret_t ret = stage->engine->funcs.execute(stage->engine, copy);
     /* Let's collect some feedback on the input now */
 
-    bool append = false;
+    bool interestingness = 0.0f;
 
     for (j = 0; j < stage->engine->feedbacks_count; ++j) {
 
-      append = append ||
-               stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j], stage->engine->executor);
+      interestingness += stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j], stage->engine->executor);
 
     }
+    
+    if (interestingness >= 0.5) {
 
-    DBG("new queue entry!");
+      /* TODO: Use queue abstraction instead */
+      llmp_message_t *msg = llmp_client_alloc_next(stage->engine->llmp_client, copy->len);
+      if (!msg) { 
+        DBG("Error allocating llmp message");
+        return AFL_RET_ALLOC;
+      }
+      memcpy(msg->buf, copy->bytes, copy->len);
+      msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY_V1;
+      if (!llmp_client_send(stage->engine->llmp_client, msg)) {
+        DBG("An error occurred sending our previously allocated msg");
+        return AFL_RET_UNKNOWN_ERROR;
+      }
+      /* we don't add it to the queue but wait for it to come back from the broker for now. 
+      TODO: Tidy this up. */
+      interestingness = 0.0f;
+    }
 
     /* If the input is interesting and there is a global queue add the input to
      * the queue */
-    if (append && stage->engine->global_queue) {
+    /* TODO: 0.5 is a random value. How do we want to chose interesting input? */
+    if (interestingness >= 0.5 && stage->engine->global_queue) {
 
       afl_input_t *input_copy = copy->funcs.copy(copy);
 

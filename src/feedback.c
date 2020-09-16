@@ -197,30 +197,6 @@ float __attribute__((hot)) afl_feedback_cov_is_interesting(afl_feedback_t *feedb
   printf(" ret=%f\n", ret);
 #endif
 
-  if (((ret == 0.5) || (ret == 1.0)) && feedback->queue) {
-
-    afl_input_t *input = fsrv->current_input->funcs.copy(fsrv->current_input);
-
-    if (!input) { FATAL("Error creating a copy of input"); }
-
-    afl_entry_t *new_entry = afl_entry_new(input);
-    feedback->queue->base.funcs.insert(&feedback->queue->base, new_entry);
-
-    /* We broadcast a message when new entry found -- only if this is the fuzz
-     * instance which found it!*/
-
-    llmp_client_t * llmp_client = feedback->queue->base.engine->llmp_client;
-    llmp_message_t *msg = llmp_client_alloc_next(llmp_client, sizeof(afl_entry_t));
-    msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY_V1;
-    ((afl_entry_t *)msg->buf)[0] = *new_entry;
-    llmp_client_send(llmp_client, msg);
-
-    // Put the entry in the feedback queue and return 0.0 so that it isn't added
-    // to the global queue too
-    return 0.0;
-
-  }
-
   return ret;
 
 }
