@@ -21,6 +21,7 @@ extern u8 *__afl_area_ptr;
 static llmp_client_t *current_client = NULL;
 /* Ptr to the message we're trying to fuzz right now - in case we crash... */
 static llmp_message_t *current_crash_msg = NULL;
+static afl_input_t *current_input = NULL;
 
 /* Stats message the client will send every once in a while */
 typedef struct client_stats_msg {
@@ -88,6 +89,10 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
 
   if (current_crash_msg) {
 
+    if (!current_input || current_crash_msg->buf_len != current_input->len) {
+      FATAL("Unexpected current_input during crash handling!");
+    }
+    memcpy(current_crash_msg->buf, current_input->bytes, current_crash_msg->buf_len);
     llmp_client_send(current_client, current_crash_msg);
     DBG("We sent off the crash at %p. Now waiting for broker...", info->si_addr);
 
@@ -155,6 +160,8 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
   }
 
+  /* TODO: use the msg buf in input directly */
+  current_input = input;
   current_crash_msg = llmp_client_alloc_next(engine->llmp_client, input->len);
   if (!current_crash_msg) { FATAL("Could not allocate crash message. Quitting!"); }
 
