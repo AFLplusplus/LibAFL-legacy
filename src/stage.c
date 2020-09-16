@@ -153,10 +153,10 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
 
     bool interestingness = 0.0f;
 
+    afl_feedback_t **feedbacks = stage->engine->feedbacks;
     for (j = 0; j < stage->engine->feedbacks_count; ++j) {
 
-      interestingness +=
-          stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j], stage->engine->executor);
+      interestingness += feedbacks[j]->funcs.is_interesting(feedbacks[j], stage->engine->executor);
 
     }
 

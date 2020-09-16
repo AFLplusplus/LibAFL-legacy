@@ -28,7 +28,7 @@
 #include "observer.h"
 #include "aflpp.h"
 
-afl_ret_t afl_feedback_init(afl_feedback_t *feedback, afl_queue_feedback_t *queue, size_t channel_id) {
+afl_ret_t afl_feedback_init(afl_feedback_t *feedback, afl_queue_feedback_t *queue) {
 
   feedback->queue = queue;
 
@@ -36,8 +36,7 @@ afl_ret_t afl_feedback_init(afl_feedback_t *feedback, afl_queue_feedback_t *queu
   feedback->funcs.get_feedback_queue = afl_feedback_get_queue;
   feedback->funcs.is_interesting = NULL;
 
-  feedback->channel_id = channel_id;  // Channel id for the observation channel
-                                      // this feedback is looking at
+  feedback->tag = AFL_FEEDBACK_TAG_BASE;
 
   return AFL_RET_SUCCESS;
 
@@ -45,12 +44,7 @@ afl_ret_t afl_feedback_init(afl_feedback_t *feedback, afl_queue_feedback_t *queu
 
 void afl_feedback_deinit(afl_feedback_t *feedback) {
 
-  if (feedback->metadata) {
-
-    free(feedback->metadata);
-    feedback->metadata = NULL;
-
-  }
+  feedback->tag = AFL_DEINITIALIZED;
 
   /* Since feedback is deinitialized, we remove it's ptr from the feedback_queue
    */
@@ -74,14 +68,17 @@ afl_queue_feedback_t *afl_feedback_get_queue(afl_feedback_t *feedback) {
 
 /* Map feedback. Can be easily used with a tracebits map similar to AFL++ */
 
-afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, size_t size,
-                                size_t channel_id) {
+afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, afl_observer_covmap_t *observer_cov) {
+
+  size_t size = observer_cov->shared_map.map_size;
+
+  feedback->observer_cov = observer_cov;
 
   feedback->virgin_bits = calloc(1, size);
   if (!feedback->virgin_bits) { return AFL_RET_ALLOC; }
   memset(feedback->virgin_bits, 0xff, size);
 
-  AFL_TRY(afl_feedback_init(&feedback->base, queue, channel_id), {
+  AFL_TRY(afl_feedback_init(&feedback->base, queue), {
 
     free(feedback->virgin_bits);
     return err;
@@ -91,9 +88,30 @@ afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback
   feedback->size = size;
   feedback->base.funcs.is_interesting = afl_feedback_cov_is_interesting;
 
+  feedback->base.tag = AFL_FEEDBACK_TAG_COV;
+
   return AFL_RET_SUCCESS;
 
 }
+
+/* Set virgin bits according to the map passed into the func */
+afl_ret_t afl_feedback_cov_set_virgin_bits(afl_feedback_cov_t *feedback, u8 *virgin_bits_copy_from, size_t size) {
+
+  if (size != feedback->observer_cov->shared_map.map_size) {
+    FATAL("Virgin bitmap size may never differs from observer_covmap size");
+   }
+  feedback->virgin_bits = realloc(feedback->virgin_bits, size);
+  if (!feedback->virgin_bits) { 
+    DBG("Failed to alloc %ld bytes for virgin_bitmap", size);
+    feedback->size = 0;
+    return AFL_RET_ALLOC;
+  }
+  memcpy(feedback->virgin_bits, virgin_bits_copy_from, size);
+  feedback->size = size;
+  return AFL_RET_SUCCESS;
+
+}
+
 
 void afl_feedback_cov_deinit(afl_feedback_cov_t *feedback) {
 
@@ -106,13 +124,16 @@ void afl_feedback_cov_deinit(afl_feedback_cov_t *feedback) {
 
 float __attribute__((hot)) afl_feedback_cov_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv) {
 
+  (void) fsrv;
+
+#ifdef AFL_DEBUG
+  if (feedback->tag != AFL_FEEDBACK_TAG_COV) {
+    FATAL("Called cov_is_interesting with non-cov feeback");
+  }
+#endif
+
   afl_feedback_cov_t *map_feedback = (afl_feedback_cov_t *)feedback;
-
-  /* First get the observation channel */
-
-  if (!feedback->channel) { feedback->channel = fsrv->funcs.observers_get(fsrv, feedback->channel_id); }
-
-  afl_observer_covmap_t *obs_channel = (afl_observer_covmap_t *)feedback->channel;
+  afl_observer_covmap_t *obs_channel = map_feedback->observer_cov;
 
 #ifdef WORD_SIZE_64
 

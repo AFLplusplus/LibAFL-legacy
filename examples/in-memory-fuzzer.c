@@ -13,6 +13,7 @@
 #define LLMP_TAG_EXEC_STATS_V1 (0xEC574751)
 /* Ooops! we found a crash :) - Let's hope it was in the target... */
 #define LLMP_TAG_CRASH_V1 (0x101DEAD1)
+#define LLMP_TAG_TIMEOUT_V1 (0xA51EE851)
 
 /* That's where the target's intrumentation feedback gets reported to */
 extern u8 *__afl_area_ptr;
@@ -20,7 +21,7 @@ extern u8 *__afl_area_ptr;
 /* The current client this process works on. We need this for our segfault handler */
 static llmp_client_t *current_client = NULL;
 /* Ptr to the message we're trying to fuzz right now - in case we crash... */
-static llmp_message_t *current_crash_msg = NULL;
+static llmp_message_t *current_fuzz_input_msg = NULL;
 static afl_input_t *current_input = NULL;
 
 /* Stats message the client will send every once in a while */
@@ -73,27 +74,70 @@ afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
 
 }
 
-static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
+static void handle_timeout(int sig, siginfo_t *info, void *ucontext) {
 
   (void)sig;
   (void)info;
   (void)ucontext;
 
+  DBG("TIMEOUT/SIGUSR1 received.");
+
+  if (!current_fuzz_input_msg) {
+
+    WARNF("SIGUSR/timeout happened, but not currently fuzzing!");
+    return;
+
+  }
+
+  if (current_fuzz_input_msg->buf_len != current_input->len) {
+      FATAL("Unexpected current_input during timeout handling!");
+  }
+  memcpy(current_fuzz_input_msg->buf, current_input->bytes, current_fuzz_input_msg->buf_len);
+  current_fuzz_input_msg->tag = LLMP_TAG_TIMEOUT_V1;
+  if (!llmp_client_send(current_client, current_fuzz_input_msg)) {
+    FATAL("Error sending timeout info!");
+  }
+  DBG("We sent off the timeout at %p. Now waiting for broker to kill us :)", info->si_addr);
+
+  llmp_page_t *current_out_map = shmem2page(&current_client->out_maps[current_client->out_map_count - 1]);
+
+  /* Wait for broker to map this page, so our work is done. Broker will restart this fuzzer */
+  while (!current_out_map->save_to_unmap) {
+
+    usleep(10);
+
+  }
+
+  DBG("Exiting client.");
+  FATAL("TIMOUT");
+
+}
+
+static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
+
+  (void)sig;
+  (void)ucontext;
+
   /* TODO: write info and ucontext to sharedmap */
 
-  if (!current_client) { FATAL("We died accessing addr %p, but are not in a client...", info->si_addr); }
+  if (!current_client) { 
+    WARNF("We died accessing addr %p, but are not in a client...", info->si_addr);
+    fflush(stdout);
+    /* let's crash */ 
+    return;
+  }
 
   llmp_page_t *current_out_map = shmem2page(&current_client->out_maps[current_client->out_map_count - 1]);
   /* TODO: Broker should probably check for sender_dead and restart us? */
   current_out_map->sender_dead = true;
 
-  if (current_crash_msg) {
+  if (current_fuzz_input_msg) {
 
-    if (!current_input || current_crash_msg->buf_len != current_input->len) {
+    if (!current_input || current_fuzz_input_msg->buf_len != current_input->len) {
       FATAL("Unexpected current_input during crash handling!");
     }
-    memcpy(current_crash_msg->buf, current_input->bytes, current_crash_msg->buf_len);
-    llmp_client_send(current_client, current_crash_msg);
+    memcpy(current_fuzz_input_msg->buf, current_input->bytes, current_fuzz_input_msg->buf_len);
+    llmp_client_send(current_client, current_fuzz_input_msg);
     DBG("We sent off the crash at %p. Now waiting for broker...", info->si_addr);
 
   } else {
@@ -109,26 +153,10 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
 
   }
 
-  DBG("Exiting client.");
-
-  exit(1);
-
-}
-
-/*
-static void handle_sigint(int signum) {
-
-  (void)signum;
+  DBG("Returning from crash handler.");
+  /* let's crash */ 
 
 }
-
-static void handle_alarm(int signum) {
-
-  (void)signum;
-
-}
-
-*/
 
 static void setup_signal_handlers(void) {
 
@@ -140,7 +168,12 @@ static void setup_signal_handlers(void) {
   sa.sa_flags = SA_NODEFER | SA_SIGINFO;
   sa.sa_sigaction = handle_crash;
 
-  sigaction(SIGSEGV, &sa, NULL);                                                  /* ignore whether it works or not */
+  /* Handle segfaults by writing the crashing input to the shared map, then exiting */
+  if (sigaction(SIGSEGV, &sa, NULL) < 0) { PFATAL("Could not set setgfault handler"); }
+
+  /* If the broker notices we didn't send anything for a long time, it kills us using SIGUSR1 */
+  sa.sa_sigaction = handle_timeout;
+  if (sigaction(SIGUSR1, &sa, NULL) < 0) { PFATAL("Could not set sigusr handler"); }
 
 }
 
@@ -162,20 +195,20 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
   /* TODO: use the msg buf in input directly */
   current_input = input;
-  current_crash_msg = llmp_client_alloc_next(engine->llmp_client, input->len);
-  if (!current_crash_msg) { FATAL("Could not allocate crash message. Quitting!"); }
+  current_fuzz_input_msg = llmp_client_alloc_next(engine->llmp_client, input->len);
+  if (!current_fuzz_input_msg) { FATAL("Could not allocate crash message. Quitting!"); }
 
   /* we may crash, who knows.
   TODO: Actually use this buffer to mutate and fuzz, saves us copy time. */
-  current_crash_msg->tag = LLMP_TAG_CRASH_V1;
+  current_fuzz_input_msg->tag = LLMP_TAG_CRASH_V1;
 
   afl_exit_t run_result = executor->funcs.run_target_cb(executor);
   engine->executions++;
 
   /* we didn't crash. Cancle msg sending.
   TODO: Reuse this msg in case the testacse is interesting! */
-  llmp_client_cancel(engine->llmp_client, current_crash_msg);
-  current_crash_msg = NULL;
+  llmp_client_cancel(engine->llmp_client, current_fuzz_input_msg);
+  current_fuzz_input_msg = NULL;
 
   /* We've run the target with the executor, we can now simply postExec call the
    * observation channels*/
@@ -230,17 +263,15 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
-  afl_observer_covmap_t *observer_covmap = calloc(1, sizeof(afl_observer_covmap_t));
-  afl_observer_init(&observer_covmap->base, MAP_CHANNEL_ID);
-  if (!observer_covmap) { FATAL("Trace bits channel error %s", afl_ret_stringify(AFL_RET_ALLOC)); }
+  afl_observer_covmap_t *observer_covmap = afl_observer_covmap_new(MAP_SIZE);
+  if (!observer_covmap) { PFATAL("Trace bits channel error"); }
 
-  /* Since we don't use map_channel_create function, we have to add reset
-   * function manually */
-  observer_covmap->base.funcs.reset = afl_observer_covmap_reset;
+  /* covmap new creates a covmap automatically. deinit here. */
+  afl_shmem_deinit(&observer_covmap->shared_map);
 
   observer_covmap->shared_map.map = __afl_area_ptr;  // Coverage "Map" we have
   observer_covmap->shared_map.map_size = MAP_SIZE;
-  observer_covmap->shared_map.shm_id = -1;  // Just a simple erronous value :)
+  observer_covmap->shared_map.shm_id = -1;
   in_memory_executor->base.funcs.observer_add(&in_memory_executor->base, &observer_covmap->base);
 
   /* We create a simple feedback queue for coverage here*/
@@ -256,7 +287,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
 
   /* Coverage Feedback initialization */
   afl_feedback_cov_t *coverage_feedback =
-      afl_feedback_cov_new(coverage_feedback_queue, observer_covmap->shared_map.map_size, MAP_CHANNEL_ID);
+      afl_feedback_cov_new(coverage_feedback_queue, observer_covmap);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
 
   /* Let's build an engine now */

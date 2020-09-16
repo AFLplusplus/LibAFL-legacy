@@ -29,6 +29,9 @@ u8 * afl_shmem_init(afl_shmem_t *sharedmem, size_t map_size);
 u8 * afl_shmem_by_str(afl_shmem_t *shm, char *shm_str, size_t map_size);
 void afl_shmem_deinit(afl_shmem_t *sharedmem);
 
+/* Write sharedmap as env var */
+afl_ret_t afl_shmem_to_env_var(afl_shmem_t *shmem, char *env_name);
+
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_shmem, AFL_DECL_PARAMS(size_t map_size), AFL_CALL_PARAMS(map_size))
 
 #endif                                                                                               /* AFL_SHMEM_H */

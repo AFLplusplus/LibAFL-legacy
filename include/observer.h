@@ -31,6 +31,9 @@
 #include "shmem.h"
 #include "afl-returns.h"
 
+#define AFL_OBSERVER_TAG_BASE (0x0B5EB45E)
+#define AFL_OBSERVER_TAG_COVMAP (0x0B5EC0FE)
+
 typedef struct afl_observer afl_observer_t;
 
 // vtable for the observation channel
@@ -45,8 +48,7 @@ struct afl_observer_funcs {
 
 struct afl_observer {
 
-  // Can we have anything else here?
-  size_t                    channel_id;  // MUST be unique
+  u32 tag;
   struct afl_observer_funcs funcs;
 
 };
@@ -54,19 +56,19 @@ struct afl_observer {
 /* They're void now, but I think post_exec should have some return type? Since,
  * they'll mostly be implemented by user */
 void afl_observer_flush(afl_observer_t *);
-void afl_reset(afl_observer_t *);
+void afl_observer_reset(afl_observer_t *);
 void afl_observer_post_exec(afl_observer_t *);
 // Functions to initialize and deinitialize the generic observation channel. P.S
 // You probably will need to extend it the way we've done below.
 
-afl_ret_t afl_observer_init(afl_observer_t *channel, size_t channel_id);
+afl_ret_t afl_observer_init(afl_observer_t *channel);
 void      afl_observer_deinit(afl_observer_t *);
 
 /* Function to create and destroy a new observation channel, allocates memory
   and initializes it. In destroy, it first deinitializes the struct and then
   frees it. */
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_observer, AFL_DECL_PARAMS(size_t channel_id), AFL_CALL_PARAMS(channel_id))
+AFL_NEW_AND_DELETE_FOR(afl_observer)
 
 typedef struct afl_observer_covmap afl_observer_covmap_t;
 
@@ -92,12 +94,11 @@ size_t afl_observer_covmap_get_map_size(afl_observer_covmap_t *obs_channel);
 
 // Functions to initialize and delete a map based observation channel
 
-afl_ret_t afl_observer_covmap_init(afl_observer_covmap_t *, size_t, size_t);
+afl_ret_t afl_observer_covmap_init(afl_observer_covmap_t *, size_t map_size);
 void      afl_observer_covmap_deinit(afl_observer_covmap_t *);
 void      afl_observer_covmap_reset(afl_observer_t *);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_observer_covmap, AFL_DECL_PARAMS(size_t channel_id, size_t map_size),
-                                   AFL_CALL_PARAMS(channel_id, map_size))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_observer_covmap, AFL_DECL_PARAMS(size_t map_size), AFL_CALL_PARAMS(map_size))
 
 #endif
 

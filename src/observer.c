@@ -26,18 +26,20 @@
 
 #include "observer.h"
 #include "afl-returns.h"
+#include "common.h"
 
-afl_ret_t afl_observer_init(afl_observer_t *channel, size_t channel_id) {
+afl_ret_t afl_observer_init(afl_observer_t *channel) {
 
   (void)channel;
 
-  channel->channel_id = channel_id;
+  channel->tag = AFL_OBSERVER_TAG_BASE;
   return AFL_RET_SUCCESS;
 
 }
 
 void afl_observer_deinit(afl_observer_t *channel) {
 
+  channel->tag = AFL_DEINITIALIZED;
   (void)channel;
 
 }
@@ -51,7 +53,7 @@ void afl_observer_flush(afl_observer_t *channel) {
 
 }
 
-void afl_reset(afl_observer_t *channel) {
+void afl_observer_reset(afl_observer_t *channel) {
 
   (void)channel;
 
@@ -69,9 +71,10 @@ void afl_observer_post_exec(afl_observer_t *channel) {
 
 }
 
-afl_ret_t afl_observer_covmap_init(afl_observer_covmap_t *map_channel, size_t channel_id, size_t map_size) {
+afl_ret_t afl_observer_covmap_init(afl_observer_covmap_t *map_channel, size_t map_size) {
 
-  afl_observer_init(&(map_channel->base), channel_id);
+  afl_observer_init(&map_channel->base);
+  map_channel->base.tag = AFL_OBSERVER_TAG_COVMAP;
 
   if (!afl_shmem_init(&map_channel->shared_map, map_size)) { return AFL_RET_ERROR_INITIALIZE; }
 

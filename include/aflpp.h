@@ -57,8 +57,6 @@ struct afl_executor_funcs {
   afl_exit_t (*run_target_cb)(afl_executor_t *);          // Similar to afl_fsrv_run_target we have in afl
   u8 (*place_input_cb)(afl_executor_t *, afl_input_t *);  // similar to the write_to_testcase function in afl.
 
-  afl_observer_t *(*observers_get)(afl_executor_t *, size_t);  // Getter function for observation channels list
-
   afl_ret_t (*observer_add)(afl_executor_t *, afl_observer_t *);  // Add an observtion channel to the list
 
   afl_input_t *(*input_get)(afl_executor_t *);  // Getter function for the current input
@@ -83,9 +81,8 @@ struct afl_executor {
 
 afl_ret_t       afl_executor_init(afl_executor_t *);
 void            afl_executor_deinit(afl_executor_t *);
-afl_ret_t       afl_observer_add(afl_executor_t *, afl_observer_t *);
-afl_observer_t *afl_get_observers(afl_executor_t *, size_t);
-afl_input_t *   afl_current_input_get(afl_executor_t *);
+afl_ret_t       afl_executor_add_observer(afl_executor_t *, afl_observer_t *);
+afl_input_t *   afl_executor_get_current_input(afl_executor_t *);
 void            afl_observers_reset(afl_executor_t *);
 
 // Function used to create an executor, we alloc the memory ourselves and
@@ -115,7 +112,7 @@ typedef struct afl_forkserver {
   u32 exec_tmout;                                                               /* Configurable exec timeout (ms)   */
   u32 map_size;                                                                 /* map size used by the target      */
 
-  u64 total_execs;                                                          /* How often fsrv_run_target was called */
+  u64 total_execs;                                                              /* How often run_target was called  */
 
   char *out_file,                                                               /* File to fuzz, if any             */
       *target_path;                                                             /* Path of the target               */
@@ -123,6 +120,7 @@ typedef struct afl_forkserver {
   char **target_args;
 
   u32 last_run_timed_out;                                                       /* Traced process timed out?        */
+  u32 last_run_time;                                                            /* Time this exec took to execute   */
 
   u8 last_kill_signal;                                                          /* Signal that killed the child     */
 

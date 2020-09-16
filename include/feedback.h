@@ -30,6 +30,9 @@
 #include "queue.h"
 #include "observer.h"
 
+#define AFL_FEEDBACK_TAG_BASE (0xFEEDB43E)
+#define AFL_FEEDBACK_TAG_COV (0xFEEDC0F8)
+
 typedef struct afl_queue_feedback afl_queue_feedback_t;
 typedef struct afl_feedback       afl_feedback_t;
 
@@ -45,58 +48,48 @@ struct afl_feedback {
 
   afl_queue_feedback_t *queue;
 
-  struct afl_feedback_metadata *metadata; /* We can have a void pointer for the
-                                         struct here. What do you guys say? */
-
   struct afl_feedback_funcs funcs;
-  size_t                    channel_id;  // ID of the observation channel this feedback is watching
-  afl_observer_t *          channel;     // This array holds the observation channels the feedback is
-                                         // looking at. Specific fpr each feedback. btw, Better name for
-                                         // this? :p
+  u32 tag;
 
 };
 
-typedef struct afl_feedback_metadata {
-
-  // This struct is more dependent on user's implementation.
-  afl_feedback_t *feedback;
-
-} afl_feedback_metadata_t;
-
-// Default implementation of the vtables functions
+// Default implementation of the functions
 
 void                  afl_feedback_set_queue(afl_feedback_t *, afl_queue_feedback_t *);
 afl_queue_feedback_t *afl_feedback_get_queue(afl_feedback_t *);
 
 // "Constructors" and "destructors" for the feedback
 void      afl_feedback_deinit(afl_feedback_t *);
-afl_ret_t afl_feedback_init(afl_feedback_t *, afl_queue_feedback_t *, size_t channel_id);
+afl_ret_t afl_feedback_init(afl_feedback_t *, afl_queue_feedback_t *queue);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback, AFL_DECL_PARAMS(afl_queue_feedback_t *queue, size_t channel_id),
-                                   AFL_CALL_PARAMS(queue, channel_id))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback, AFL_DECL_PARAMS(afl_queue_feedback_t *queue), AFL_CALL_PARAMS(queue))
 
 /* Simple MaximizeMapFeedback implementation */
-
-#define MAP_CHANNEL_ID 0x1
 
 /* Coverage Feedback */
 typedef struct afl_feedback_cov {
 
   afl_feedback_t base;
 
+  /* This array holds the coveragemap observation channels the feedback is looking at */
+  afl_observer_covmap_t *observer_cov;   
+
   u8 *   virgin_bits;
   size_t size;
 
 } afl_feedback_cov_t;
 
-afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, size_t size,
-                                size_t channel_id);
+afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, afl_observer_covmap_t *map_observer);
 void      afl_feedback_cov_deinit();
 
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback_cov,
-                                   AFL_DECL_PARAMS(afl_queue_feedback_t *queue, size_t size, size_t channel_id),
-                                   AFL_CALL_PARAMS(queue, size, channel_id))
+                                   AFL_DECL_PARAMS(afl_queue_feedback_t *queue, afl_observer_covmap_t *map_observer),
+                                   AFL_CALL_PARAMS(queue, map_observer))
 
+/* Set virgin bits according to the map passed into the func */
+afl_ret_t afl_feedback_cov_set_virgin_bits(afl_feedback_cov_t *feedback, u8 *virgin_bits_copy_from, size_t size);
+
+/* Returns the "interestingness" of the current feedback */
 float afl_feedback_cov_is_interesting(afl_feedback_t *feedback, afl_executor_t *fsrv);
 
 #endif

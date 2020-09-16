@@ -26,23 +26,57 @@
 #include "aflpp.h"
 #include "afl-returns.h"
 
-#define SUPER_INTERESTING 0.5
-#define VERY_INTERESTING 0.4
-#define INTERESTING 0.3
-#define MAP_CHANNEL_ID 0x1
-#define TIMEOUT_CHANNEL_ID 0x2
+#define SUPER_INTERESTING (0.5)
+#define VERY_INTERESTING (0.4)
+#define INTERESTING (0.3)
+
+#define AFL_FEEDBACK_TAG_TIME (0xFEEDC10C)
+
 
 typedef struct timeout_obs_channel {
 
   afl_observer_t base;
 
-  u32 last_run_time;
+  u32 *last_run_time_p;
   u32 avg_exec_time;
 
-} timeout_obs_channel_t;
+} obs_channel_time_t;
+
+typedef struct time_fbck {
+
+  afl_feedback_t base;
+  obs_channel_time_t *timeout_observer;
+
+} time_fbck_t;
 
 llmp_broker_t *llmp_broker;
 int            broker_port;
+
+/* the is_interesting func for our custom timed feedback channel */
+static float timeout_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_t *executor);
+
+/* Initialize this feedback */
+afl_ret_t time_fbck_init(time_fbck_t *time_fbck, afl_queue_feedback_t *queue, obs_channel_time_t *timeout_observer) {
+
+  AFL_TRY(afl_feedback_init(&time_fbck->base, queue), { return err; });
+  time_fbck->base.funcs.is_interesting = timeout_fbck_is_interesting;
+  time_fbck->timeout_observer = timeout_observer;
+  time_fbck->base.tag = AFL_FEEDBACK_TAG_TIME;
+  return AFL_RET_SUCCESS;
+
+}
+
+void time_fbck_deinit(time_fbck_t *time_fbck) {
+
+  afl_feedback_deinit(&time_fbck->base);
+
+}
+
+/* Create new and delete functions from init and deinit. */
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(time_fbck,
+                                  AFL_DECL_PARAMS(afl_queue_feedback_t *queue, obs_channel_time_t *observer),
+                                  AFL_CALL_PARAMS(queue, observer))
+
 
 /* Execute target application, monitoring for timeouts. Return status
    information. The called program will update afl->fsrv->trace_bits. */
@@ -83,9 +117,7 @@ static afl_exit_t fsrv_run_target_custom(afl_executor_t *fsrv_executor) {
 
   exec_ms = afl_read_s32_timed(fsrv->fsrv_st_fd, &fsrv->child_status, fsrv->exec_tmout);
 
-  /* Update the timeout observation channel */
-  timeout_obs_channel_t *timeout_channel = (timeout_obs_channel_t *)fsrv->base.funcs.observers_get(&fsrv->base, 1);
-  timeout_channel->last_run_time = exec_ms;
+  fsrv->last_run_time = exec_ms;
 
   if (exec_ms > fsrv->exec_tmout) {
 
@@ -129,18 +161,18 @@ static afl_exit_t fsrv_run_target_custom(afl_executor_t *fsrv_executor) {
 
 void timeout_channel_reset(afl_observer_t *obs_channel) {
 
-  timeout_obs_channel_t *timeout_channel = (timeout_obs_channel_t *)obs_channel;
+  obs_channel_time_t *observer_time = (obs_channel_time_t *)obs_channel;
 
-  timeout_channel->last_run_time = 0;
+  *observer_time->last_run_time_p = 0;
 
 }
 
 void timeout_channel_post_exec(afl_observer_t *obs_channel, afl_engine_t *engine) {
 
-  timeout_obs_channel_t *timeout_channel = (timeout_obs_channel_t *)obs_channel;
+  obs_channel_time_t *observer_time = (obs_channel_time_t *)obs_channel;
 
-  timeout_channel->avg_exec_time =
-      (timeout_channel->avg_exec_time + timeout_channel->last_run_time) / (engine->executions);
+  observer_time->avg_exec_time =
+      (observer_time->avg_exec_time + *observer_time->last_run_time_p) / (engine->executions);
 
 }
 
@@ -150,12 +182,10 @@ static float timeout_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)executor;
   u32               exec_timeout = fsrv->exec_tmout;
+  time_fbck_t *time_fbck = (time_fbck_t *)feedback;
 
-  if (!feedback->channel) { feedback->channel = executor->funcs.observers_get(executor, feedback->channel_id); }
-
-  timeout_obs_channel_t *timeout_channel = (timeout_obs_channel_t *)feedback->channel;
-
-  u32 last_run_time = timeout_channel->last_run_time;
+  obs_channel_time_t *observer_time = time_fbck->timeout_observer;
+  u32 last_run_time = *observer_time->last_run_time_p;
 
   if (last_run_time == exec_timeout) {
 
@@ -178,16 +208,6 @@ static float timeout_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_
 
 afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char **target_args) {
 
-  /* Let's now create a simple map-based observation channel */
-  afl_observer_covmap_t *trace_bits_channel = afl_observer_covmap_new(MAP_CHANNEL_ID, MAP_SIZE);
-
-  /* Another timing based observation channel */
-  timeout_obs_channel_t *timeout_channel = calloc(1, sizeof(timeout_obs_channel_t));
-  if (!timeout_channel) { FATAL("Error initializing observation channel"); }
-  afl_observer_init(&timeout_channel->base, TIMEOUT_CHANNEL_ID);
-  timeout_channel->base.funcs.post_exec = timeout_channel_post_exec;
-  timeout_channel->base.funcs.reset = timeout_channel_reset;
-
   /* We initialize the forkserver we want to use here. */
 
   afl_forkserver_t *fsrv = fsrv_init(target_path, target_args);
@@ -196,12 +216,22 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   fsrv->exec_tmout = 10000;
   fsrv->target_args = target_args;
 
-  fsrv->base.funcs.observer_add(&fsrv->base, &trace_bits_channel->base);
-  fsrv->base.funcs.observer_add(&fsrv->base, &timeout_channel->base);
+  /* Another timing based observation channel. We initialize here instead of adding an init func. */
+  obs_channel_time_t *observer_time = calloc(1, sizeof(obs_channel_time_t));
+  if (!observer_time) { FATAL("Error initializing observation channel"); }
+  afl_observer_init(&observer_time->base);
+  observer_time->base.funcs.post_exec = timeout_channel_post_exec;
+  observer_time->base.funcs.reset = timeout_channel_reset;
+  /* The observer directly observes the run_time of the forkserver */
+  observer_time->last_run_time_p = &fsrv->last_run_time;
+  /* Add to the executor */
+  fsrv->base.funcs.observer_add(&fsrv->base, &observer_time->base);
 
-  char shm_str[256];
-  snprintf(shm_str, sizeof(shm_str), "%d", trace_bits_channel->shared_map.shm_id);
-  setenv("__AFL_SHM_ID", (char *)shm_str, 1);
+  /* Let's now create a simple map-based observation channel */
+  afl_observer_covmap_t *trace_bits_channel = afl_observer_covmap_new(MAP_SIZE);
+  fsrv->base.funcs.observer_add(&fsrv->base, &trace_bits_channel->base);
+
+  afl_shmem_to_env_var(&trace_bits_channel->shared_map, "__AFL_SHM_ID");
   fsrv->trace_bits = trace_bits_channel->shared_map.map;
 
   /* We create a simple feedback queue for coverage here*/
@@ -220,22 +250,19 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
 
   /* Coverage Feedback initialization */
   afl_feedback_cov_t *coverage_feedback =
-      afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel->shared_map.map_size, MAP_CHANNEL_ID);
+      afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
   coverage_feedback_queue->feedback = &coverage_feedback->base;
 
   /* Timeout Feedback initialization */
-  afl_feedback_t *timeout_feedback = afl_feedback_new(timeout_feedback_queue, TIMEOUT_CHANNEL_ID);
-  if (!timeout_feedback) { FATAL("Error initializing feedback"); }
-  timeout_feedback_queue->feedback = timeout_feedback;
-  timeout_feedback->funcs.is_interesting = timeout_fbck_is_interesting;
+  time_fbck_t *timeout_feedback = time_fbck_new(timeout_feedback_queue, observer_time);
 
   /* Let's build an engine now */
   afl_engine_t *engine = afl_engine_new((afl_executor_t *)fsrv, NULL, global_queue);
   engine->in_dir = in_dir;
   if (!engine) { FATAL("Error initializing Engine"); }
-  engine->funcs.add_feedback(engine, (afl_feedback_t *)coverage_feedback);
-  engine->funcs.add_feedback(engine, timeout_feedback);
+  engine->funcs.add_feedback(engine, &coverage_feedback->base);
+  engine->funcs.add_feedback(engine, &timeout_feedback->base);
 
   afl_fuzz_one_t *fuzz_one = afl_fuzz_one_new(engine);
   if (!fuzz_one) { FATAL("Error initializing fuzz_one"); }
@@ -263,7 +290,7 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
 
   afl_forkserver_t *     fsrv = (afl_forkserver_t *)engine->executor;
   afl_observer_covmap_t *trace_bits_channel = (afl_observer_covmap_t *)fsrv->base.observors[0];
-  timeout_obs_channel_t *timeout_channel = (timeout_obs_channel_t *)fsrv->base.observors[1];
+  obs_channel_time_t *observer_time = (obs_channel_time_t *)fsrv->base.observors[1];
 
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
@@ -289,7 +316,7 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
 
   afl_executor_delete(&fsrv->base);
   afl_observer_covmap_delete(trace_bits_channel);
-  afl_observer_delete(&timeout_channel->base);
+  afl_observer_delete(&observer_time->base);
   afl_mutator_scheduled_delete(mutators_havoc);
   afl_fuzzing_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);

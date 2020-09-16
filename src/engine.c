@@ -325,15 +325,6 @@ u8 afl_engine_execute(afl_engine_t *engine, afl_input_t *input) {
 
 afl_ret_t afl_engine_loop(afl_engine_t *engine) {
 
-  /* Just before looping, we find the observation channels for every feedback */
-
-  for (size_t i = 0; i < engine->feedbacks_count; ++i) {
-
-    engine->feedbacks[i]->channel =
-        engine->executor->funcs.observers_get(engine->executor, engine->feedbacks[i]->channel_id);
-
-  }
-
   while (true) {
 
     afl_ret_t fuzz_one_ret = engine->fuzz_one->funcs.perform(engine->fuzz_one);

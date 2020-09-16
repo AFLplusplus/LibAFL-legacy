@@ -37,9 +37,7 @@ afl_ret_t afl_executor_init(afl_executor_t *executor) {
   executor->funcs.destroy_cb = NULL;
   executor->funcs.place_input_cb = NULL;
   executor->funcs.run_target_cb = NULL;
-  executor->funcs.observer_add = afl_observer_add;
-  executor->funcs.observers_get = afl_get_observers;
-  executor->funcs.input_get = afl_current_input_get;
+  executor->funcs.observer_add = afl_executor_add_observer;
   executor->funcs.observers_reset = afl_observers_reset;
 
   return AFL_RET_SUCCESS;
@@ -65,7 +63,7 @@ void afl_executor_deinit(afl_executor_t *executor) {
 
 }
 
-afl_ret_t afl_observer_add(afl_executor_t *executor, afl_observer_t *obs_channel) {
+afl_ret_t afl_executor_add_observer(afl_executor_t *executor, afl_observer_t *obs_channel) {
 
   executor->observors_count++;
 
@@ -77,19 +75,7 @@ afl_ret_t afl_observer_add(afl_executor_t *executor, afl_observer_t *obs_channel
 
 }
 
-afl_observer_t *afl_get_observers(afl_executor_t *executor, size_t channel_id) {
-
-  for (size_t i = 0; i < executor->observors_count; ++i) {
-
-    if (executor->observors[i]->channel_id == channel_id) { return executor->observors[i]; }
-
-  }
-
-  return NULL;
-
-}
-
-afl_input_t *afl_current_input_get(afl_executor_t *executor) {
+afl_input_t *afl_executor_get_current_input(afl_executor_t *executor) {
 
   return executor->current_input;
 

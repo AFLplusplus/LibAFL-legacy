@@ -38,6 +38,8 @@
 #include "alloc-inl.h"
 #include "afl-returns.h"
 
+#define AFL_DEINITIALIZED (0xAF1DA10C)
+
 // We're declaring a few structs here which have an interdependency between them
 
 typedef struct afl_fuzz_one afl_fuzz_one_t;
