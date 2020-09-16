@@ -79,11 +79,11 @@ struct afl_executor {
 
 };
 
-afl_ret_t       afl_executor_init(afl_executor_t *);
-void            afl_executor_deinit(afl_executor_t *);
-afl_ret_t       afl_executor_add_observer(afl_executor_t *, afl_observer_t *);
-afl_input_t *   afl_executor_get_current_input(afl_executor_t *);
-void            afl_observers_reset(afl_executor_t *);
+afl_ret_t    afl_executor_init(afl_executor_t *);
+void         afl_executor_deinit(afl_executor_t *);
+afl_ret_t    afl_executor_add_observer(afl_executor_t *, afl_observer_t *);
+afl_input_t *afl_executor_get_current_input(afl_executor_t *);
+void         afl_observers_reset(afl_executor_t *);
 
 // Function used to create an executor, we alloc the memory ourselves and
 // initialize the executor

@@ -49,7 +49,7 @@ struct afl_feedback {
   afl_queue_feedback_t *queue;
 
   struct afl_feedback_funcs funcs;
-  u32 tag;
+  u32                       tag;
 
 };
 
@@ -72,14 +72,15 @@ typedef struct afl_feedback_cov {
   afl_feedback_t base;
 
   /* This array holds the coveragemap observation channels the feedback is looking at */
-  afl_observer_covmap_t *observer_cov;   
+  afl_observer_covmap_t *observer_cov;
 
   u8 *   virgin_bits;
   size_t size;
 
 } afl_feedback_cov_t;
 
-afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue, afl_observer_covmap_t *map_observer);
+afl_ret_t afl_feedback_cov_init(afl_feedback_cov_t *feedback, afl_queue_feedback_t *queue,
+                                afl_observer_covmap_t *map_observer);
 void      afl_feedback_cov_deinit();
 
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_feedback_cov,

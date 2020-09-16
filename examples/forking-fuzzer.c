@@ -32,19 +32,18 @@
 
 #define AFL_FEEDBACK_TAG_TIME (0xFEEDC10C)
 
-
 typedef struct timeout_obs_channel {
 
   afl_observer_t base;
 
   u32 *last_run_time_p;
-  u32 avg_exec_time;
+  u32  avg_exec_time;
 
 } obs_channel_time_t;
 
 typedef struct time_fbck {
 
-  afl_feedback_t base;
+  afl_feedback_t      base;
   obs_channel_time_t *timeout_observer;
 
 } time_fbck_t;
@@ -74,9 +73,8 @@ void time_fbck_deinit(time_fbck_t *time_fbck) {
 
 /* Create new and delete functions from init and deinit. */
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(time_fbck,
-                                  AFL_DECL_PARAMS(afl_queue_feedback_t *queue, obs_channel_time_t *observer),
-                                  AFL_CALL_PARAMS(queue, observer))
-
+                                   AFL_DECL_PARAMS(afl_queue_feedback_t *queue, obs_channel_time_t *observer),
+                                   AFL_CALL_PARAMS(queue, observer))
 
 /* Execute target application, monitoring for timeouts. Return status
    information. The called program will update afl->fsrv->trace_bits. */
@@ -182,10 +180,10 @@ static float timeout_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_
 
   afl_forkserver_t *fsrv = (afl_forkserver_t *)executor;
   u32               exec_timeout = fsrv->exec_tmout;
-  time_fbck_t *time_fbck = (time_fbck_t *)feedback;
+  time_fbck_t *     time_fbck = (time_fbck_t *)feedback;
 
   obs_channel_time_t *observer_time = time_fbck->timeout_observer;
-  u32 last_run_time = *observer_time->last_run_time_p;
+  u32                 last_run_time = *observer_time->last_run_time_p;
 
   if (last_run_time == exec_timeout) {
 
@@ -249,8 +247,7 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   global_queue->funcs.add_feedback_queue(global_queue, timeout_feedback_queue);
 
   /* Coverage Feedback initialization */
-  afl_feedback_cov_t *coverage_feedback =
-      afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel);
+  afl_feedback_cov_t *coverage_feedback = afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
   coverage_feedback_queue->feedback = &coverage_feedback->base;
 
@@ -290,7 +287,7 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
 
   afl_forkserver_t *     fsrv = (afl_forkserver_t *)engine->executor;
   afl_observer_covmap_t *trace_bits_channel = (afl_observer_covmap_t *)fsrv->base.observors[0];
-  obs_channel_time_t *observer_time = (obs_channel_time_t *)fsrv->base.observors[1];
+  obs_channel_time_t *   observer_time = (obs_channel_time_t *)fsrv->base.observors[1];
 
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];

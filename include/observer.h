@@ -48,7 +48,7 @@ struct afl_observer_funcs {
 
 struct afl_observer {
 
-  u32 tag;
+  u32                       tag;
   struct afl_observer_funcs funcs;
 
 };

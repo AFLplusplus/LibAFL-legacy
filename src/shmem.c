@@ -191,24 +191,18 @@ u8 *afl_shmem_by_str(afl_shmem_t *shm, char *shm_str, size_t map_size) {
 /* Write sharedmap as env var and the size as name#_SIZE */
 afl_ret_t afl_shmem_to_env_var(afl_shmem_t *shmem, char *env_name) {
 
-  if (!env_name || !shmem || !env_name[0] || !shmem->shm_str[0] || strlen(env_name) > 200) {
-    return AFL_RET_NULL_PTR;
-  }
+  if (!env_name || !shmem || !env_name[0] || !shmem->shm_str[0] || strlen(env_name) > 200) { return AFL_RET_NULL_PTR; }
 
   char shm_str[256];
   snprintf(shm_str, sizeof(shm_str), "%d", shmem->shm_id);
-  if (setenv(env_name, (char *)shm_str, 1) < 0) {
-    return AFL_RET_ERRNO;
-  }
+  if (setenv(env_name, (char *)shm_str, 1) < 0) { return AFL_RET_ERRNO; }
 
   /* Write the size to env, too */
   char size_env_name[256];
   snprintf(size_env_name, sizeof(size_env_name), "%s_SIZE", env_name);
   snprintf(shm_str, sizeof(shm_str), "%d", shmem->shm_id);
-  if (setenv(size_env_name, (char *)shm_str, 1) < 0) {
-    return AFL_RET_ERRNO;
-  }
-  
+  if (setenv(size_env_name, (char *)shm_str, 1) < 0) { return AFL_RET_ERRNO; }
+
   return AFL_RET_SUCCESS;
 
 }

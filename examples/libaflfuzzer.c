@@ -78,11 +78,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
   afl_observer_covmap_t *trace_bits_channel = afl_observer_covmap_new(MAP_SIZE);
-  if (!trace_bits_channel) {
-
-    PFATAL("Trace bits channel error");
-
-  }
+  if (!trace_bits_channel) { PFATAL("Trace bits channel error"); }
 
   /* Since we don't use afl_observer_covmap_new function, we have to add reset
    * function manually */
@@ -116,8 +112,7 @@ afl_engine_t *initialize_fuzzer(int argc, char **argv, char *in_dir, char *queue
   global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
 
   /* Coverage Feedback initialization */
-  afl_feedback_cov_t *coverage_feedback =
-      afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel);
+  afl_feedback_cov_t *coverage_feedback = afl_feedback_cov_new(coverage_feedback_queue, trace_bits_channel);
   if (!coverage_feedback) {
 
     FATAL("Error initializing feedback");

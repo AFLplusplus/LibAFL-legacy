@@ -22,7 +22,7 @@ extern u8 *__afl_area_ptr;
 static llmp_client_t *current_client = NULL;
 /* Ptr to the message we're trying to fuzz right now - in case we crash... */
 static llmp_message_t *current_fuzz_input_msg = NULL;
-static afl_input_t *current_input = NULL;
+static afl_input_t *   current_input = NULL;
 
 /* Stats message the client will send every once in a while */
 typedef struct client_stats_msg {
@@ -90,13 +90,14 @@ static void handle_timeout(int sig, siginfo_t *info, void *ucontext) {
   }
 
   if (current_fuzz_input_msg->buf_len != current_input->len) {
-      FATAL("Unexpected current_input during timeout handling!");
+
+    FATAL("Unexpected current_input during timeout handling!");
+
   }
+
   memcpy(current_fuzz_input_msg->buf, current_input->bytes, current_fuzz_input_msg->buf_len);
   current_fuzz_input_msg->tag = LLMP_TAG_TIMEOUT_V1;
-  if (!llmp_client_send(current_client, current_fuzz_input_msg)) {
-    FATAL("Error sending timeout info!");
-  }
+  if (!llmp_client_send(current_client, current_fuzz_input_msg)) { FATAL("Error sending timeout info!"); }
   DBG("We sent off the timeout at %p. Now waiting for broker to kill us :)", info->si_addr);
 
   llmp_page_t *current_out_map = shmem2page(&current_client->out_maps[current_client->out_map_count - 1]);
@@ -120,11 +121,13 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
 
   /* TODO: write info and ucontext to sharedmap */
 
-  if (!current_client) { 
+  if (!current_client) {
+
     WARNF("We died accessing addr %p, but are not in a client...", info->si_addr);
     fflush(stdout);
-    /* let's crash */ 
+    /* let's crash */
     return;
+
   }
 
   llmp_page_t *current_out_map = shmem2page(&current_client->out_maps[current_client->out_map_count - 1]);
@@ -134,8 +137,11 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
   if (current_fuzz_input_msg) {
 
     if (!current_input || current_fuzz_input_msg->buf_len != current_input->len) {
+
       FATAL("Unexpected current_input during crash handling!");
+
     }
+
     memcpy(current_fuzz_input_msg->buf, current_input->bytes, current_fuzz_input_msg->buf_len);
     llmp_client_send(current_client, current_fuzz_input_msg);
     DBG("We sent off the crash at %p. Now waiting for broker...", info->si_addr);
@@ -154,7 +160,7 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
   }
 
   DBG("Returning from crash handler.");
-  /* let's crash */ 
+  /* let's crash */
 
 }
 
@@ -286,8 +292,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
   global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
 
   /* Coverage Feedback initialization */
-  afl_feedback_cov_t *coverage_feedback =
-      afl_feedback_cov_new(coverage_feedback_queue, observer_covmap);
+  afl_feedback_cov_t *coverage_feedback = afl_feedback_cov_new(coverage_feedback_queue, observer_covmap);
   if (!coverage_feedback) { FATAL("Error initializing feedback"); }
 
   /* Let's build an engine now */
