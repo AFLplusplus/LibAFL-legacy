@@ -117,14 +117,14 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
     for (j = 0; j < fuzz_stage->mutators_count; ++j) {
 
       afl_mutator_t *mutator = fuzz_stage->mutators[j];
-      // If the mutator decides not to fuzz this input, don't fuzz it. This is to support the custom mutator API of AFL++
+      // If the mutator decides not to fuzz this input, don't fuzz it. This is to support the custom mutator API of
+      // AFL++
       if (mutator->funcs.custom_queue_get) {
 
         mutator->funcs.custom_queue_get(mutator, copy);
         continue;
 
-      }  
-
+      }
 
       if (mutator->funcs.trim) {
 
@@ -155,27 +155,35 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
 
     for (j = 0; j < stage->engine->feedbacks_count; ++j) {
 
-      interestingness += stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j], stage->engine->executor);
+      interestingness +=
+          stage->engine->feedbacks[j]->funcs.is_interesting(stage->engine->feedbacks[j], stage->engine->executor);
 
     }
-    
+
     if (interestingness >= 0.5) {
 
       /* TODO: Use queue abstraction instead */
       llmp_message_t *msg = llmp_client_alloc_next(stage->engine->llmp_client, copy->len);
-      if (!msg) { 
+      if (!msg) {
+
         DBG("Error allocating llmp message");
         return AFL_RET_ALLOC;
+
       }
+
       memcpy(msg->buf, copy->bytes, copy->len);
       msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY_V1;
       if (!llmp_client_send(stage->engine->llmp_client, msg)) {
+
         DBG("An error occurred sending our previously allocated msg");
         return AFL_RET_UNKNOWN_ERROR;
+
       }
-      /* we don't add it to the queue but wait for it to come back from the broker for now. 
+
+      /* we don't add it to the queue but wait for it to come back from the broker for now.
       TODO: Tidy this up. */
       interestingness = 0.0f;
+
     }
 
     /* If the input is interesting and there is a global queue add the input to

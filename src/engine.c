@@ -251,9 +251,7 @@ afl_ret_t afl_engine_handle_new_message(afl_engine_t *engine, llmp_message_t *ms
   if (msg->tag == LLMP_TAG_NEW_QUEUE_ENTRY_V1) {
 
     afl_input_t *input = afl_input_new();
-    if (!input) {
-      return AFL_RET_ALLOC;
-    }
+    if (!input) { return AFL_RET_ALLOC; }
 
     /* the msg will stick around forever, so this is safe. */
     input->bytes = msg->buf;
@@ -347,8 +345,10 @@ afl_ret_t afl_engine_loop(afl_engine_t *engine) {
       /* Let's read the broadcasted messages now */
       llmp_message_t *msg = NULL;
 
-      while((msg = llmp_client_recv(engine->llmp_client))) {
+      while ((msg = llmp_client_recv(engine->llmp_client))) {
+
         AFL_TRY(engine->funcs.handle_new_message(engine, msg), { return err; });
+
       }
 
     }

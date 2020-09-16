@@ -130,8 +130,6 @@ bool llmp_msg_in_page(llmp_page_t *page, llmp_message_t *msg) {
 
 }
 
-
-
 /* allign to LLMP_ALIGNNMENT bytes */
 static inline size_t llmp_align(size_t to_align) {
 
@@ -360,7 +358,8 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
 
     ret = _llmp_next_msg_ptr(last_msg);
     ret->message_id = last_msg->message_id + 1;
-    /* DBG("XXX ret %p id %u buf_len_padded %lu complete_msg_size %lu\n", ret, ret->message_id, buf_len_padded, complete_msg_size); */
+    /* DBG("XXX ret %p id %u buf_len_padded %lu complete_msg_size %lu\n", ret, ret->message_id, buf_len_padded,
+     * complete_msg_size); */
 
   }
 
@@ -623,7 +622,8 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
       llmp_payload_new_page_t *pageinfo = LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
       if (!pageinfo) {
 
-        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len_padded, sizeof(llmp_payload_new_page_t));
+        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len_padded,
+              sizeof(llmp_payload_new_page_t));
 
       }
 
@@ -934,7 +934,8 @@ llmp_message_t *llmp_client_recv(llmp_client_t *client) {
       llmp_payload_new_page_t *pageinfo = LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
       if (!pageinfo) {
 
-        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len_padded, sizeof(llmp_payload_new_page_t));
+        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len_padded,
+              sizeof(llmp_payload_new_page_t));
 
       }
 

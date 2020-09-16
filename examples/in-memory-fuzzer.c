@@ -51,8 +51,10 @@ afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
   (void)executor;
 
   if (input[0] == 'a' && input[1] == 'a') {
+
     DBG("Crashing happy");
     force_segfault();
+
   }
 
   png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
@@ -85,6 +87,7 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
   current_out_map->sender_dead = true;
 
   if (current_crash_msg) {
+
     llmp_client_send(current_client, current_crash_msg);
     DBG("We sent off the crash at %p. Now waiting for broker...", info->si_addr);
 
@@ -122,8 +125,6 @@ static void handle_alarm(int signum) {
 
 */
 
-
-
 static void setup_signal_handlers(void) {
 
   struct sigaction sa = {0};
@@ -146,7 +147,6 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
   executor->funcs.observers_reset(executor);
   executor->funcs.place_input_cb(executor, input);
 
-
   // TODO move to execute_init()
   if (unlikely(engine->start_time == 0)) {
 
@@ -156,11 +156,9 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
   }
 
   current_crash_msg = llmp_client_alloc_next(engine->llmp_client, input->len);
-  if (!current_crash_msg) {
-    FATAL("Could not allocate crash message. Quitting!");
-  }
+  if (!current_crash_msg) { FATAL("Could not allocate crash message. Quitting!"); }
 
-  /* we may crash, who knows. 
+  /* we may crash, who knows.
   TODO: Actually use this buffer to mutate and fuzz, saves us copy time. */
   current_crash_msg->tag = LLMP_TAG_CRASH_V1;
 
@@ -212,8 +210,6 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
     engine->last_update = afl_get_cur_time_s();
 
   }
-
-
 
 }
 
@@ -341,28 +337,29 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 bool message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *clientdata, llmp_message_t *msg, void *data) {
 
   (void)broker;
-  switch(msg->tag) {
+  switch (msg->tag) {
+
     case LLMP_TAG_NEW_QUEUE_ENTRY_V1:
       ((fuzzer_stats_t *)data)->queue_entry_count++;
-      return true; // Forward this to the clients
+      return true;  // Forward this to the clients
     case LLMP_TAG_EXEC_STATS_V1:
       ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].total_execs = *(u64 *)msg->buf;
-      return false; // don't forward this to the clients
+      return false;  // don't forward this to the clients
     case LLMP_TAG_CRASH_V1:
       DBG("We found a crash!");
       afl_input_t crashing_input = {0};
-      AFL_TRY(afl_input_init(&crashing_input), {
-        FATAL("Error initializing input for crash: %s", afl_ret_stringify(err));
-      });
+      AFL_TRY(afl_input_init(&crashing_input),
+              { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
       crashing_input.bytes = msg->buf;
       crashing_input.len = msg->buf_len;
       dump_crash_to_file(&crashing_input, NULL);
       /* TODO: collect and restart the client, etc... */
-      return false; // no need to foward this to clients.
+      return false;  // no need to foward this to clients.
     default:
       /* We'll foward anything else we don't know. */
       DBG("Unknown message id: %X", msg->tag);
       return true;
+
   }
 
 }

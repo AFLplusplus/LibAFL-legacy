@@ -92,7 +92,7 @@ void      afl_set_global_queue(afl_engine_t *engine, afl_queue_global_t *global_
 u8        afl_engine_execute(afl_engine_t *, afl_input_t *);
 afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *, char *, afl_input_t *(*custom_input_init)());
 void      afl_engine_load_zero_testcase(size_t);
-afl_ret_t      afl_engine_handle_new_message(afl_engine_t *, llmp_message_t *);
+afl_ret_t afl_engine_handle_new_message(afl_engine_t *, llmp_message_t *);
 
 afl_ret_t afl_engine_loop(afl_engine_t *);  // Not sure about this functions
                                             // use-case. Was in FFF though.
