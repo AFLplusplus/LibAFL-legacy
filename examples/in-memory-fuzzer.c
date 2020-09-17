@@ -408,7 +408,6 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
 
   /* Check for engine to be configured properly */
-  engine->fuzz_one = NULL;
   if (afl_check_engine_configuration(engine) != AFL_RET_SUCCESS) { FATAL("Engine configured incompletely"); };
 
   /* Now we can simply load the testcases from the directory given */
