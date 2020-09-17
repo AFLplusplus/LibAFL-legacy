@@ -26,7 +26,7 @@ all:	examples $(TARGETS)
 
 clean:
 	rm -f src/*.o
-	rm -f $(TARGETS)
+	rm -f $(TARGETS) example-fuzzer
 	$(MAKE) -C examples clean
 
 deepclean: clean

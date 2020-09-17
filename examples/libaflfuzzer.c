@@ -33,7 +33,6 @@ static llmp_client_t *current_client = NULL;
 static llmp_message_t *current_fuzz_input_msg = NULL;
 static afl_input_t *   current_input = NULL;
 
-
 typedef struct cur_state {
 
   size_t map_size;
@@ -125,7 +124,11 @@ static afl_ret_t in_memory_fuzzer_initialize(afl_executor_t *executor) {
 
 void write_cur_state(llmp_message_t *out_msg) {
 
-  if (out_msg->buf_len < sizeof(cur_state_t) + __afl_map_size + current_input->len) { FATAL("Message not large enough for our state!"); }
+  if (out_msg->buf_len < sizeof(cur_state_t) + __afl_map_size + current_input->len) {
+
+    FATAL("Message not large enough for our state!");
+
+  }
 
   /* first virgin bits[map_size], then the crasing/timeouting input buf */
   cur_state_t *state = LLMP_MSG_BUF_AS(out_msg, cur_state_t);
@@ -198,7 +201,8 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
 
   if (current_fuzz_input_msg) {
 
-    if (!current_input || current_fuzz_input_msg->buf_len != sizeof(cur_state_t) + __afl_map_size + current_input->len) {
+    if (!current_input ||
+        current_fuzz_input_msg->buf_len != sizeof(cur_state_t) + __afl_map_size + current_input->len) {
 
       FATAL("Unexpected current_fuzz_input_msg length during crash handling!");
 
@@ -270,7 +274,8 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
   /* TODO: use the msg buf in input directly */
   current_input = input;
-  current_fuzz_input_msg = llmp_client_alloc_next(engine->llmp_client, sizeof(cur_state_t) + __afl_map_size + input->len);
+  current_fuzz_input_msg =
+      llmp_client_alloc_next(engine->llmp_client, sizeof(cur_state_t) + __afl_map_size + input->len);
   if (!current_fuzz_input_msg) { FATAL("Could not allocate crash message. Quitting!"); }
 
   /* we may crash, who knows.
@@ -583,22 +588,26 @@ int main(int argc, char **argv) {
 
   if (argc < 4) { FATAL("Usage: ./in-memory-fuzzer number_of_threads /path/to/input/dir /path/to/queue/dir"); }
 
-  s32 i = 0;
-  int status = 0;
-  int pid = 0;
+  s32   i = 0;
+  int   status = 0;
+  int   pid = 0;
   char *in_dir = argv[2];
   int   thread_count = atoi(argv[1]);
   char *queue_dirpath = argv[3];
 
   SAYF("libaflfuzzer running as:");
-  for (i = 0; i < argc; i++) SAYF(" %s", argv[i]);
+  for (i = 0; i < argc; i++)
+    SAYF(" %s", argv[i]);
   SAYF("\n");
-  OKF("map_size=%u\n", __afl_map_size);
+  OKF("map_size=%u", __afl_map_size);
 
-  if (thread_count <= 0) { 
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST "Number of threads should be greater than 0, exiting gracefully.");     \
-    SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __func__, __FILE__, __LINE__); \
+  if (thread_count <= 0) {
+
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST
+                                              "Number of threads should be greater than 0, exiting gracefully.");
+    SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __func__, __FILE__, __LINE__);
     exit(0);
+
   }
 
   int broker_port = 0xAF1;

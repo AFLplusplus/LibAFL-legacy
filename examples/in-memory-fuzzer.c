@@ -391,8 +391,6 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   AFL_TRY(afl_engine_check_configuration(engine),
           { FATAL("Incomplete engine setup for engine (%s) - Won't start", afl_ret_stringify(err)); });
 
-
-
   afl_observer_covmap_t *observer_covmap = NULL;
   for (i = 0; i < engine->executor->observors_count; i++) {
 
