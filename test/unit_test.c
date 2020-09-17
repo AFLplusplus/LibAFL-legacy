@@ -165,7 +165,7 @@ void test_input_save_to_file(void **state) {
   input.len = strlen(test_string);
 
   /* We just have to test the default func, we don't use the vtable here */
-  afl_input_save_to_file(&input, fname);
+  afl_input_write_to_file(&input, fname);
 
   int fd = open(fname, O_RDONLY);
 

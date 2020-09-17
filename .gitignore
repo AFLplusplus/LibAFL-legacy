@@ -58,3 +58,4 @@ out
 libaflfuzzer-test
 
 crash*
+timeout*

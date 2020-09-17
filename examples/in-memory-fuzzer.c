@@ -8,6 +8,10 @@
 #include "png.h"
 #include "llmp.h"
 #include "shmem.h"
+#include "afl-returns.h"
+
+/* Time after which we kill the clients */
+#define KILL_IDLE_CLIENT_MS (3000)
 
 /* Heartbeat message subprocesses send to the main broker every few secs */
 #define LLMP_TAG_EXEC_STATS_V1 (0xEC574751)
@@ -35,18 +39,21 @@ typedef struct cur_state {
 } cur_state_t;
 
 /* Stats message the client will send every once in a while */
-typedef struct client_stats_msg {
+typedef struct broker_client_stats {
 
   u64 total_execs;
+  u64 crashes;
+  u32 last_msg_time;
 
-} client_stats_msg_t;
+} broker_client_stats_t;
 
 /* all stats about the current run */
 typedef struct fuzzer_stats {
 
-  u64                      queue_entry_count;
-  u64                      crashes;
-  struct client_stats_msg *clients;
+  u64                         queue_entry_count;
+  u64                         crashes;
+  u64                         timeouts;
+  struct broker_client_stats *clients;
 
 } fuzzer_stats_t;
 
@@ -56,8 +63,17 @@ typedef struct fuzzer_stats {
 /* for testing */
 static void force_segfault(void) {
 
+  DBG("Crashing...");
   /* If you don't segfault, what else will? */
-  printf("%d", ((int *)1337)[1]);
+  printf("%d", ((int *)1337)[42]);
+
+}
+
+static void force_timeout(void) {
+
+  DBG("Timeouting...");
+  static volatile int a = 1337;
+  while (a) {}
 
 }
 
@@ -70,6 +86,13 @@ afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
 
     DBG("Crashing happy");
     force_segfault();
+
+  }
+
+  if (len > 2 && input[0] == 'b' && input[1] == 'b' && input[2] == 'b') {
+
+    DBG("Timeouting happy");
+    force_timeout();
 
   }
 
@@ -105,7 +128,7 @@ static void handle_timeout(int sig, siginfo_t *info, void *ucontext) {
   (void)info;
   (void)ucontext;
 
-  DBG("TIMEOUT/SIGUSR1 received.");
+  DBG("TIMEOUT/SIGUSR2 received.");
 
   if (!current_fuzz_input_msg) {
 
@@ -202,9 +225,9 @@ static void setup_signal_handlers(void) {
   /* Handle segfaults by writing the crashing input to the shared map, then exiting */
   if (sigaction(SIGSEGV, &sa, NULL) < 0) { PFATAL("Could not set setgfault handler"); }
 
-  /* If the broker notices we didn't send anything for a long time, it kills us using SIGUSR1 */
+  /* If the broker notices we didn't send anything for a long time, it kills us using SIGUSR2 */
   sa.sa_sigaction = handle_timeout;
-  if (sigaction(SIGUSR1, &sa, NULL) < 0) { PFATAL("Could not set sigusr handler"); }
+  if (sigaction(SIGUSR2, &sa, NULL) < 0) { PFATAL("Could not set sigusr handler"); }
 
 }
 
@@ -253,22 +276,6 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
   // Now based on the return of executor's run target, we basically return an
   // afl_ret_t type to the callee
 
-  switch (run_result) {
-
-    case AFL_EXIT_OK:
-    case AFL_EXIT_TIMEOUT:
-      return AFL_RET_SUCCESS;
-    default: {
-
-      /* TODO: We'll never reach this, actually... */
-      engine->crashes++;
-      afl_input_dump_to_crashfile(executor->current_input, engine);  // Crash written
-      return AFL_RET_WRITE_TO_CRASH;
-
-    }
-
-  }
-
   /* Gather some stats */
   if (engine->executions % 12345 && engine->last_update < afl_get_cur_time_s()) {
 
@@ -279,6 +286,22 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
     *x = engine->executions;
     llmp_client_send(llmp_client, msg);
     engine->last_update = afl_get_cur_time_s();
+
+  }
+
+  switch (run_result) {
+
+    case AFL_EXIT_OK:
+    case AFL_EXIT_TIMEOUT:
+      return AFL_RET_SUCCESS;
+    default: {
+
+      /* TODO: We'll never reach this, actually... */
+      engine->crashes++;
+      afl_input_dump_to_crashfile(executor->current_input);  // Crash written
+      return AFL_RET_WRITE_TO_CRASH;
+
+    }
 
   }
 
@@ -356,7 +379,8 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   /* global variable (ugh) for our signal handler */
   current_client = llmp_client;
 
-  /* We're in the child, capture segfaults and SIGUSR1 from here on. */
+  /* We're in the child, capture segfaults and SIGUSR2 from here on.
+  (We SIGUSR2 = timeout, delived by the broker when no new messages reached him for a while) */
   setup_signal_handlers();
 
   afl_engine_t *engine = (afl_engine_t *)data;
@@ -422,21 +446,15 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 }
 
 /* In the broker, if we find out a client crashed, write the crashing testcase and respawn the child */
-bool broker_handle_crashed_client(llmp_broker_t *broker, llmp_broker_clientdata_t *clientdata, cur_state_t *state) {
+bool broker_handle_client_restart(llmp_broker_t *broker, llmp_broker_clientdata_t *clientdata, cur_state_t *state) {
 
-  afl_input_t crashing_input = {0};
-  AFL_TRY(afl_input_init(&crashing_input),
-          { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
+  u32 client_id = clientdata->client_state->id;
   if (!state) {
 
     WARNF("Illegal state received during crash");
     return false;  // don't forward
 
   }
-
-  crashing_input.bytes = state->current_input_buf;
-  crashing_input.len = state->current_input_len;
-  afl_input_dump_to_crashfile(&crashing_input, NULL);
 
   /* Remove this client, then spawn a new client with the current state.*/
 
@@ -446,6 +464,8 @@ bool broker_handle_crashed_client(llmp_broker_t *broker, llmp_broker_clientdata_
   afl_shmem_deinit(clientdata->cur_client_map);
 
   clientdata->client_state = llmp_client_new_unconnected();
+  /* restore old client id */
+  clientdata->client_state->id = client_id;
   if (!clientdata->client_state) { PFATAL("Error allocating replacement client after crash"); }
   /* link the new broker to the client at the position of the old client by connecting shmems. */
   clientdata->client_state->current_broadcast_map = &broker->broadcast_maps[0];
@@ -479,6 +499,7 @@ bool broker_handle_crashed_client(llmp_broker_t *broker, llmp_broker_clientdata_
 bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *clientdata, llmp_message_t *msg, void *data) {
 
   DBG("Broker: msg hook called with msg tag %X", msg->tag);
+  cur_state_t *state = NULL;
 
   (void)broker;
   switch (msg->tag) {
@@ -487,15 +508,42 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       ((fuzzer_stats_t *)data)->queue_entry_count++;
       return true;  // Forward this to the clients
     case LLMP_TAG_EXEC_STATS_V1:
-      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].total_execs = *(u64 *)msg->buf;
+      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].last_msg_time = afl_get_cur_time();
+      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].total_execs = *(LLMP_MSG_BUF_AS(msg, u64));
       return false;  // don't forward this to the clients
+    case LLMP_TAG_TIMEOUT_V1:
+      DBG("We found a timeout...");
+      ((fuzzer_stats_t *)data)->timeouts++;
+      /* write timeout output */
+      state = LLMP_MSG_BUF_AS(msg, cur_state_t);
+      afl_input_t timeout_input = {0};
+      AFL_TRY(afl_input_init(&timeout_input),
+              { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
+
+      timeout_input.bytes = state->current_input_buf;
+      timeout_input.len = state->current_input_len;
+
+      AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input), { WARNF("Could not write crashfile!"); });
+
+      broker_handle_client_restart(broker, clientdata, state);
+      return false;  // Don't foward this msg to clients.
+
     case LLMP_TAG_CRASH_V1:
 
       DBG("We found a crash!");
       ((fuzzer_stats_t *)data)->crashes++;
       /* write crash output */
-      cur_state_t *state = LLMP_MSG_BUF_AS(msg, cur_state_t);
-      broker_handle_crashed_client(broker, clientdata, state);
+      state = LLMP_MSG_BUF_AS(msg, cur_state_t);
+      afl_input_t crashing_input = {0};
+      AFL_TRY(afl_input_init(&crashing_input),
+              { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
+
+      crashing_input.bytes = state->current_input_buf;
+      crashing_input.len = state->current_input_len;
+
+      AFL_TRY(afl_input_dump_to_crashfile(&crashing_input), { WARNF("Could not write crashfile!"); });
+
+      broker_handle_client_restart(broker, clientdata, state);
 
       return false;  // no need to foward this to clients.
     default:
@@ -538,7 +586,7 @@ int main(int argc, char **argv) {
   /* The message hook will intercept all messages from all clients - and listen for stats. */
   fuzzer_stats_t fuzzer_stats = {0};
   llmp_broker_add_message_hook(llmp_broker, broker_message_hook, &fuzzer_stats);
-  fuzzer_stats.clients = malloc(thread_count * sizeof(client_stats_msg_t));
+  fuzzer_stats.clients = malloc(thread_count * sizeof(broker_client_stats_t));
   if (!fuzzer_stats.clients) { PFATAL("Unable to alloc memory"); }
 
   for (i = 0; i < thread_count; i++) {
@@ -587,30 +635,38 @@ int main(int argc, char **argv) {
     /* Paint ui every second */
     if ((time_cur = afl_get_cur_time_s()) > time_prev) {
 
+      u32 time_cur_ms = afl_get_cur_time();
+
       u64 time_elapsed = (time_cur - time_initial);
       time_prev = time_cur;
       u64 total_execs = 0;
       for (i = 0; i < thread_count; i++) {
 
-        total_execs += fuzzer_stats.clients[i].total_execs;
+        broker_client_stats_t *client_status = &fuzzer_stats.clients[i];
+
+        total_execs += client_status->total_execs;
+
+        if (client_status->last_msg_time && time_cur_ms - client_status->last_msg_time > KILL_IDLE_CLIENT_MS) {
+
+          /* Note that the interesting client_ids start with 1 as 0 is the broker tcp server. */
+          DBG("Detected timeout for client %d", i + 1);
+          kill(llmp_broker->llmp_clients[i + 1].pid, SIGUSR2);
+
+        }
 
       }
 
-      /* TODO: Send heartbeat messages from clients for more stats :) */
-
-      SAYF("threads=%u  paths=%llu crashes=%llu elapsed=%llu  execs=%llu  exec/s=%llu\r", thread_count,
-           fuzzer_stats.queue_entry_count, fuzzer_stats.crashes, time_elapsed, total_execs, total_execs / time_elapsed);
+      SAYF("threads=%u  paths=%llu crashes=%llu timeouts=%llu elapsed=%llu  execs=%llu  exec/s=%llu\r", thread_count,
+           fuzzer_stats.queue_entry_count, fuzzer_stats.crashes, fuzzer_stats.timeouts, time_elapsed, total_execs,
+           total_execs / time_elapsed);
 
       fflush(stdout);
 
       if ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
 
         // this pid is gone
-        // restart it
-        // clean shm?
-
-        // TODO
-        fprintf(stderr, "TODO: implement child re-fork\n");
+        // TODO: Check if we missed a crash via llmp?
+        DBG("Child with pid %d is gone.", pid);
 
       }
 

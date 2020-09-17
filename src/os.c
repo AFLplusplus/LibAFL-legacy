@@ -9,26 +9,6 @@
 #include "engine.h"
 #include "xxh3.h"
 
-// Crash related functions
-afl_ret_t afl_input_dump_to_crashfile(afl_input_t *data, afl_engine_t *engine) {
-
-  char filename[128];
-  (void)(engine);
-
-  /* TODO: This filename should be replaced by "crashes-SHA_OF_BYTES" later */
-
-  u64 input_data_checksum = XXH64(data->bytes, data->len, HASH_CONST);
-  snprintf(filename, sizeof(filename) - 1, "crashes-%016llx", input_data_checksum);
-
-  FILE *f = fopen(filename, "w+");
-  if (!f) { return AFL_RET_FILE_OPEN_ERROR; }
-  fwrite(data->bytes, 1, data->len, f);
-
-  fclose(f);
-  return AFL_RET_SUCCESS;
-
-}
-
 // Process related functions
 
 void _afl_process_init_internal(afl_os_t *afl_os) {

@@ -31,6 +31,8 @@
 
 #include "input.h"
 #include "afl-returns.h"
+#include "xxh3.h"
+#include "xxhash.h"
 
 afl_ret_t afl_input_init(afl_input_t *input) {
 
@@ -40,7 +42,7 @@ afl_ret_t afl_input_init(afl_input_t *input) {
   input->funcs.get_bytes = afl_input_get_bytes;
   input->funcs.load_from_file = afl_input_load_from_file;
   input->funcs.restore = afl_input_restore;
-  input->funcs.save_to_file = afl_input_save_to_file;
+  input->funcs.save_to_file = afl_input_write_to_file;
   input->funcs.serialize = afl_input_serialize;
   input->funcs.delete = afl_input_delete;
 
@@ -145,7 +147,7 @@ afl_ret_t afl_input_load_from_file(afl_input_t *input, char *fname) {
 
 }
 
-afl_ret_t afl_input_save_to_file(afl_input_t *input, char *fname) {
+afl_ret_t afl_input_write_to_file(afl_input_t *input, char *fname) {
 
   s32 fd = open(fname, O_RDWR | O_CREAT | O_EXCL, 0600);
 
@@ -172,6 +174,31 @@ u8 *afl_input_serialize(afl_input_t *input) {
 
   // Very stripped down implementation, actually depends on user alot.
   return input->bytes;
+
+}
+
+afl_ret_t afl_input_dump_to_timeoutfile(afl_input_t *data) {
+
+  char filename[128];
+
+  /* TODO: This filename should be replaced by "crashes-SHA_OF_BYTES" later */
+
+  u64 input_data_checksum = XXH64(data->bytes, data->len, HASH_CONST);
+  snprintf(filename, sizeof(filename) - 1, "timeout-%016llx", input_data_checksum);
+
+  return afl_input_write_to_file(data, filename);
+
+}
+
+// Crash related functions
+afl_ret_t afl_input_dump_to_crashfile(afl_input_t *data) {
+
+  char filename[128];
+
+  u64 input_data_checksum = XXH64(data->bytes, data->len, HASH_CONST);
+  snprintf(filename, sizeof(filename) - 1, "crash-%016llx", input_data_checksum);
+
+  return afl_input_write_to_file(data, filename);
 
 }
 
