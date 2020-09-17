@@ -250,6 +250,9 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
   size_t          i;
   afl_executor_t *executor = engine->executor;
 
+  /* Check for engine to be configured properly. Only to check setup in newly forked threads so debug only */
+  AFL_TRY(afl_engine_check_configuration(engine), { FATAL("Engine configured incompletely"); });
+
   executor->funcs.observers_reset(executor);
   executor->funcs.place_input_cb(executor, input);
 
@@ -611,8 +614,6 @@ int main(int argc, char **argv) {
     afl_engine_t *engine = initialize_fuzzer(in_dir, queue_dirpath, argc, argv);
     if (!engine) { FATAL("Error initializing fuzzing engine"); }
     engines[i] = engine;
-    /* Check for engine to be configured properly */
-    AFL_TRY(afl_engine_check_configuration(engine), { FATAL("Engine configured incompletely"); });
 
     /* All fuzzers get their own process.
     This call only allocs the data structures, but not fork yet. */
