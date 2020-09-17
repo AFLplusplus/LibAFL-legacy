@@ -597,7 +597,11 @@ int main(int argc, char **argv) {
   SAYF("\n");
   OKF("map_size=%u\n", __afl_map_size);
 
-  if (thread_count <= 0) { FATAL("Number of threads should be greater than 0"); }
+  if (thread_count <= 0) { 
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST "Number of threads should be greater than 0, exiting gracefully.");     \
+    SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __func__, __FILE__, __LINE__); \
+    exit(0);
+  }
 
   int broker_port = 0xAF1;
 
