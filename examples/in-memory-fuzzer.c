@@ -387,6 +387,12 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   afl_engine_t *engine = (afl_engine_t *)data;
   engine->llmp_client = llmp_client;
 
+  /* Check for engine to be configured properly */
+  AFL_TRY(afl_engine_check_configuration(engine),
+          { FATAL("Incomplete engine setup for engine (%s) - Won't start", afl_ret_stringify(err)); });
+
+
+
   afl_observer_covmap_t *observer_covmap = NULL;
   for (i = 0; i < engine->executor->observors_count; i++) {
 
@@ -595,9 +601,6 @@ int main(int argc, char **argv) {
     afl_engine_t *engine = initialize_fuzzer(in_dir, queue_dirpath);
     if (!engine) { FATAL("Error initializing fuzzing engine"); }
     engines[i] = engine;
-    /* Check for engine to be configured properly */
-    AFL_TRY(afl_engine_check_configuration(engine),
-            { FATAL("Incomplete engine setup for engine %ld (%s) - Won't start", i, afl_ret_stringify(err)); });
 
     /* All fuzzers get their own process.
     This call only allocs the data structures, but not fork yet. */
