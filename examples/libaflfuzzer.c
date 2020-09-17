@@ -32,6 +32,7 @@ static llmp_client_t *current_client = NULL;
 /* Ptr to the message we're trying to fuzz right now - in case we crash... */
 static llmp_message_t *current_fuzz_input_msg = NULL;
 static afl_input_t *   current_input = NULL;
+static int             debug = 0;
 
 typedef struct cur_state {
 
@@ -586,7 +587,12 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
 
 int main(int argc, char **argv) {
 
-  if (argc < 4) { FATAL("Usage: ./in-memory-fuzzer number_of_threads /path/to/input/dir /path/to/queue/dir"); }
+  if (argc < 4) {
+
+    SAYF("Usage: %s number_of_threads /path/to/input/dir /path/to/queue/dir", argv[0]);
+    exit(0);
+
+  }
 
   s32   i = 0;
   int   status = 0;
@@ -595,15 +601,22 @@ int main(int argc, char **argv) {
   int   thread_count = atoi(argv[1]);
   char *queue_dirpath = argv[3];
 
-  SAYF("libaflfuzzer running as:");
-  for (i = 0; i < argc; i++)
-    SAYF(" %s", argv[i]);
-  SAYF("\n");
-  OKF("map_size=%u", __afl_map_size);
+  if (getenv("DEBUG") || getenv("AFL_DEBUG")) debug = 1;
+
+  if (debug) {
+
+    SAYF("libaflfuzzer running as:");
+    for (i = 0; i < argc; i++)
+      SAYF(" %s", argv[i]);
+    SAYF("\n");
+
+  }
+
+  OKF("Target map_size=%u", __afl_map_size);
 
   if (thread_count <= 0) {
 
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] ERROR : " cRST
                                               "Number of threads should be greater than 0, exiting gracefully.");
     SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __func__, __FILE__, __LINE__);
     exit(0);
