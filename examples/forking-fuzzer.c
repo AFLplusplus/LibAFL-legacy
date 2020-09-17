@@ -338,7 +338,7 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
   /* Let's reduce the timeout initially to fill the queue */
   fsrv->exec_tmout = 20;
   /* Check for engine to be configured properly */
-  if (afl_check_engine_configuration(engine) != AFL_RET_SUCCESS) { FATAL("Engine configured incompletely"); };
+  if (afl_engine_check_configuration(engine) != AFL_RET_SUCCESS) { FATAL("Engine configured incompletely"); };
   /* Now we can simply load the testcases from the directory given */
   AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL),
           { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); });

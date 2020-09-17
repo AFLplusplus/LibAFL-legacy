@@ -100,7 +100,7 @@ afl_ret_t afl_engine_loop(afl_engine_t *);  // Not sure about this functions
 afl_ret_t afl_engine_init(afl_engine_t *, afl_executor_t *, afl_fuzz_one_t *, afl_queue_global_t *);
 void      afl_engine_deinit(afl_engine_t *);
 
-afl_ret_t afl_check_engine_configuration(afl_engine_t *engine);
+afl_ret_t afl_engine_check_configuration(afl_engine_t *engine);
 
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_engine,
                                    AFL_DECL_PARAMS(afl_executor_t *executor, afl_fuzz_one_t *fuzz_one,

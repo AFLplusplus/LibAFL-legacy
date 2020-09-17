@@ -369,14 +369,27 @@ afl_ret_t afl_engine_loop(afl_engine_t *engine) {
 
 }
 
-#define AFL_WARN_ENGINE(engine, str)                    \
-  WARNF("No %s present in engine-%u", str, engine->id); \
-  goto error;
-
 /* A function which can be run just before starting the fuzzing process. This checks if the engine(and all it's
  * components) is initialized or not */
 
-afl_ret_t afl_check_engine_configuration(afl_engine_t *engine) {
+afl_ret_t afl_engine_check_configuration(afl_engine_t *engine) {
+
+  bool has_warning = false;
+
+#define AFL_WARN_ENGINE(str)                              \
+  do {                                                    \
+                                                          \
+    WARNF("No " str " present in engine-%u", engine->id); \
+    has_warning = true;                                   \
+                                                          \
+  } while (0);
+
+  if (!engine) {
+
+    WARNF("Engine is null");
+    return AFL_RET_NULL_PTR;
+
+  }
 
   /* Let's start by checking the essential parts of engine, executor, feedback(if available) */
 
@@ -384,54 +397,56 @@ afl_ret_t afl_check_engine_configuration(afl_engine_t *engine) {
 
     // WARNF("No executor present in engine-%u", engine->id);
     // goto error;
-    AFL_WARN_ENGINE(engine, "executor");
+    AFL_WARN_ENGINE("executor");
 
   }
 
   afl_executor_t *executor = engine->executor;
 
-  if (!engine->global_queue) { AFL_WARN_ENGINE(engine, "global_queue") }
+  if (!engine->global_queue) { AFL_WARN_ENGINE("global_queue") }
   afl_queue_global_t *global_queue = engine->global_queue;
 
-  if (!engine->fuzz_one) { AFL_WARN_ENGINE(engine, "fuzzone") }
+  if (!engine->fuzz_one) { AFL_WARN_ENGINE("fuzzone") }
   afl_fuzz_one_t *fuzz_one = engine->fuzz_one;
 
   for (size_t i = 0; i < engine->feedbacks_count; ++i) {
 
     if (!engine->feedbacks[i]) {
 
-      WARNF("Feedback is NULL at %lu idx but feedback num is greater than it.", i);
-      goto error;
+      WARNF("Feedback is NULL at %lu idx but feedback count is greater (%llu).", i, engine->feedbacks_count);
+      has_warning = true;
+      break;
 
     }
 
   }
 
-  if (!engine->llmp_client) { AFL_WARN_ENGINE(engine, "llmp client") }
+  if (!engine->llmp_client) { AFL_WARN_ENGINE("llmp client") }
 
   for (size_t i = 0; i < executor->observors_count; ++i) {
 
-    if (!executor->observors[i]) { AFL_WARN_ENGINE(engine, "observation channel") }
+    if (!executor->observors[i]) { AFL_WARN_ENGINE("observation channel") }
 
   }
 
   for (size_t i = 0; i < global_queue->feedback_queues_count; ++i) {
 
-    if (!global_queue->feedback_queues[i]) { AFL_WARN_ENGINE(engine, "Feedback queue") }
+    if (!global_queue->feedback_queues[i]) { AFL_WARN_ENGINE("Feedback queue") }
 
   }
 
   for (size_t i = 0; i < fuzz_one->stages_count; ++i) {
 
-    if (!fuzz_one->stages[i]) { AFL_WARN_ENGINE(engine, "Stage") }
+    if (!fuzz_one->stages[i]) { AFL_WARN_ENGINE("Stage") }
     /* Stage needs to be checked properly */
 
   }
 
+  if (has_warning) { return AFL_RET_ERROR_INITIALIZE; }
+
   return AFL_RET_SUCCESS;
 
-error:
-  return AFL_RET_ERROR_INITIALIZE;
+#undef AFL_WARN_ENGINE
 
 }
 

@@ -11,7 +11,7 @@
 #include "afl-returns.h"
 
 /* Time after which we kill the clients */
-#define KILL_IDLE_CLIENT_MS (3000)
+#define KILL_IDLE_CLIENT_MS (10000)
 
 /* Heartbeat message subprocesses send to the main broker every few secs */
 #define LLMP_TAG_EXEC_STATS_V1 (0xEC574751)
@@ -424,9 +424,6 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 
   afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
 
-  /* Check for engine to be configured properly */
-  if (afl_check_engine_configuration(engine) != AFL_RET_SUCCESS) { FATAL("Engine configured incompletely"); };
-
   /* Now we can simply load the testcases from the directory given */
   AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL),
           { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); });
@@ -614,6 +611,8 @@ int main(int argc, char **argv) {
     afl_engine_t *engine = initialize_fuzzer(in_dir, queue_dirpath, argc, argv);
     if (!engine) { FATAL("Error initializing fuzzing engine"); }
     engines[i] = engine;
+    /* Check for engine to be configured properly */
+    AFL_TRY(afl_engine_check_configuration(engine), { FATAL("Engine configured incompletely"); });
 
     /* All fuzzers get their own process.
     This call only allocs the data structures, but not fork yet. */
