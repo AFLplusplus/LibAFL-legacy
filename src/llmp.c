@@ -683,6 +683,11 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
 
         llmp_hookdata_t *msg_hook = &broker->msg_hooks[i];
         forward_msg &= ((llmp_message_hook_func *)msg_hook->func)(broker, client, msg, msg_hook->data);
+        if (unlikely(!llmp_msg_in_page(shmem2page(client->cur_client_map), msg))) {
+          /* Special handling in case the client got exchanged inside the message_hook, for example after a crash. */
+          DBG("Message hook altered the client. We'll yield for now.");
+          return;
+        }
 
       }
 
@@ -786,6 +791,75 @@ static void *_llmp_client_wrapped_loop(void *llmp_client_broker_metadata_ptr) {
 
 }
 
+/* launch a specific client. This function is rarely needed - all registered clients will get launched at broker_run */
+bool llmp_broker_launch_client(llmp_broker_t *broker, llmp_broker_clientdata_t *clientdata) {
+
+  if (clientdata < broker->llmp_clients || clientdata > &broker->llmp_clients[broker->llmp_client_count - 1]) {
+    WARNF("Illegal client specified at ptr %p (instead of %p to %p)", clientdata, broker->llmp_clients, &broker->llmp_clients[broker->llmp_client_count -1]);
+    return false;
+  }
+
+  if (clientdata->client_type == LLMP_CLIENT_TYPE_CHILD_PROCESS) {
+
+    if (clientdata->pid) {
+      WARNF("Tried to relaunch already running client. Set ->pid to 0 if this is what you want.");
+      return false;
+    }
+
+    DBG("Launching new client process");
+
+    int child_id = fork();
+    if (child_id < 0) {
+
+      WARNF("Could not fork");
+      return false;
+
+    } else if (child_id == 0) { /* child */
+
+      /*
+      s32 dev_null_fd = open("/dev/null", O_WRONLY);
+      dup2(dev_null_fd, 2);
+      close(dev_null_fd);
+      */
+
+      /* in the child, start loop, exit afterwards. */
+      DBG("LLMP child process started");
+      _llmp_client_wrapped_loop(clientdata);
+      DBG("Fork child loop exited");
+      exit(1);
+
+    }
+
+    /* parent */
+
+    clientdata->pid = child_id;
+
+    return true;
+
+  } else if (clientdata->client_type == LLMP_CLIENT_TYPE_PTHREAD) {
+
+    /* Got a pthread -> threaded client. Spwan. :) */
+    int s = pthread_create(clientdata->pthread, NULL, _llmp_client_wrapped_loop, clientdata);
+
+    if (s) {
+
+      // TODO: Better Error-handling! :)
+      WARNF("Error creating thread");
+      return false;
+
+    }
+
+  } else {
+
+    WARNF("Tried to spawn llmp child with unknown thread type.");
+    return false;
+
+  }
+
+  return true;
+ 
+}
+
 /* Kicks off all threaded clients in the brackground, using pthreads */
 bool llmp_broker_launch_clientloops(llmp_broker_t *broker) {
 
@@ -797,29 +871,9 @@ bool llmp_broker_launch_clientloops(llmp_broker_t *broker) {
 
     if (broker->llmp_clients[i].client_type == LLMP_CLIENT_TYPE_CHILD_PROCESS) {
 
-      int child_id = fork();
-      if (child_id < 0) {
-
-        PFATAL("Could not fork");
-
-      } else if (child_id == 0) {
-
-        /*
-        s32 dev_null_fd = open("/dev/null", O_WRONLY);
-        dup2(dev_null_fd, 2);
-        close(dev_null_fd);
-        */
-
-        /* in the child, start loop, exit afterwards. */
-        DBG("LLMP child process started");
-        _llmp_client_wrapped_loop(&broker->llmp_clients[i]);
-        DBG("Fork child loop exited");
-        exit(1);
-
-      } else {
-
-        broker->llmp_clients[i].pid = child_id;
-
+      if (!llmp_broker_launch_client(broker, &broker->llmp_clients[i])) {
+        WARNF("Could not launch all clients");
+        return false;
       }
 
     }
@@ -831,15 +885,9 @@ bool llmp_broker_launch_clientloops(llmp_broker_t *broker) {
 
     if (broker->llmp_clients[i].client_type == LLMP_CLIENT_TYPE_PTHREAD) {
 
-      /* Got a pthread -> threaded client. Spwan. :) */
-      int s =
-          pthread_create(broker->llmp_clients[i].pthread, NULL, _llmp_client_wrapped_loop, &broker->llmp_clients[i]);
-
-      if (s) {
-
-        // TODO: Better Error-handling! :)
-        PFATAL("Error creating thread %ld", i);
-
+      if (!llmp_broker_launch_client(broker, &broker->llmp_clients[i])) {
+        WARNF("Could not launch all clients");
+        return false;
       }
 
     }
@@ -1061,7 +1109,7 @@ llmp_message_t *llmp_client_alloc_next(llmp_client_t *client, size_t size) {
 /* Cancel send of the next message, this allows us to allocate a new message without sending this one. */
 void llmp_client_cancel(llmp_client_t *client, llmp_message_t *msg) {
 
-  DBG("Client %d sends new msg at %p with tag 0x%X and size %ld", client->id, msg, msg->tag, msg->buf_len_padded);
+  /* DBG("Client %d cancels send of msg at %p with tag 0x%X and size %ld", client->id, msg, msg->tag, msg->buf_len_padded); */
   llmp_page_t *page = shmem2page(&client->out_maps[client->out_map_count - 1]);
 
 #ifdef AFL_DEBUG

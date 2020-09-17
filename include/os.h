@@ -26,7 +26,7 @@ typedef enum afl_exit {
 
 } afl_exit_t;
 
-afl_ret_t dump_crash_to_file(afl_input_t *, afl_engine_t *);  // This function dumps an input which causes a
+afl_ret_t afl_input_dump_to_crashfile(afl_input_t *, afl_engine_t *);  // This function dumps an input which causes a
                                                               // crash in the target to a crash file
 
 /* TODO: Add implementations for installing crash handlers */

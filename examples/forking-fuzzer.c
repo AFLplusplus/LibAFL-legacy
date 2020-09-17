@@ -31,6 +31,7 @@
 #define INTERESTING (0.3)
 
 #define AFL_FEEDBACK_TAG_TIME (0xFEEDC10C)
+#define AFL_OBSERVER_TAG_TIME (0x0B5EC10C)
 
 typedef struct timeout_obs_channel {
 
@@ -220,6 +221,7 @@ afl_engine_t *initialize_engine_instance(char *target_path, char *in_dir, char *
   afl_observer_init(&observer_time->base);
   observer_time->base.funcs.post_exec = timeout_channel_post_exec;
   observer_time->base.funcs.reset = timeout_channel_reset;
+  observer_time->base.tag = AFL_OBSERVER_TAG_TIME;
   /* The observer directly observes the run_time of the forkserver */
   observer_time->last_run_time_p = &fsrv->last_run_time;
   /* Add to the executor */
@@ -283,16 +285,47 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
 
   afl_engine_t *engine = (afl_engine_t *)data;
 
-  engine->llmp_client = client;
+  time_fbck_t *time_fbck = NULL;
+  afl_feedback_cov_t *coverage_feedback = NULL;
+
+  size_t i;
+  for (i = 0; i < engine->feedbacks_count; i++) {
+    switch (engine->feedbacks[i]->tag) {
+      case AFL_FEEDBACK_TAG_TIME:
+        time_fbck = (time_fbck_t *)engine->feedbacks[i];
+        break;
+      case AFL_FEEDBACK_TAG_COV:
+        coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[i]);
+        break;
+      default:
+        WARNF("Found unknown feeback tag: %X", engine->feedbacks[i]->tag);
+        break;
+    }
+  }
 
   afl_forkserver_t *     fsrv = (afl_forkserver_t *)engine->executor;
-  afl_observer_covmap_t *trace_bits_channel = (afl_observer_covmap_t *)fsrv->base.observors[0];
-  obs_channel_time_t *   observer_time = (obs_channel_time_t *)fsrv->base.observors[1];
+
+  obs_channel_time_t *   observer_time = NULL;
+  afl_observer_covmap_t *observer_covmap = NULL;
+
+  for (i = 0; i < fsrv->base.observors_count; i++) {
+    switch (engine->feedbacks[i]->tag) {
+      case AFL_OBSERVER_TAG_COVMAP:
+        observer_covmap = (afl_observer_covmap_t *)fsrv->base.observors[i];
+        break;
+      case AFL_OBSERVER_TAG_TIME:
+        observer_time = (obs_channel_time_t *)fsrv->base.observors[i];
+        break;
+      default:
+        WARNF("Found unknown feeback tag: %X", engine->feedbacks[i]->tag);
+        break;
+    }
+  }
+
+  engine->llmp_client = client;
 
   afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
-
-  afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
 
   /* Let's reduce the timeout initially to fill the queue */
   fsrv->exec_tmout = 20;
@@ -312,19 +345,20 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
    * initialized using the deleted functions provided */
 
   afl_executor_delete(&fsrv->base);
-  afl_observer_covmap_delete(trace_bits_channel);
+  time_fbck_delete(time_fbck);
+  afl_feedback_cov_delete(coverage_feedback);
+  afl_observer_covmap_delete(observer_covmap);
   afl_observer_delete(&observer_time->base);
   afl_mutator_scheduled_delete(mutators_havoc);
   afl_fuzzing_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
-  afl_feedback_cov_delete(coverage_feedback);
-  for (size_t i = 0; i < engine->feedbacks_count; ++i) {
+  for (i = 0; i < engine->feedbacks_count; ++i) {
 
     afl_feedback_delete((afl_feedback_t *)engine->feedbacks[i]);
 
   }
 
-  for (size_t i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
+  for (i = 0; i < engine->global_queue->feedback_queues_count; ++i) {
 
     afl_queue_feedback_delete(engine->global_queue->feedback_queues[i]);
 

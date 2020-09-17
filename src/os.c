@@ -10,7 +10,7 @@
 #include "xxh3.h"
 
 // Crash related functions
-afl_ret_t dump_crash_to_file(afl_input_t *data, afl_engine_t *engine) {
+afl_ret_t afl_input_dump_to_crashfile(afl_input_t *data, afl_engine_t *engine) {
 
   char filename[128];
   (void)(engine);

@@ -314,7 +314,7 @@ u8 afl_engine_execute(afl_engine_t *engine, afl_input_t *input) {
     default: {
 
       engine->crashes++;
-      dump_crash_to_file(executor->current_input, engine);  // Crash written
+      afl_input_dump_to_crashfile(executor->current_input, engine);  // Crash written
       return AFL_RET_WRITE_TO_CRASH;
 
     }
@@ -349,7 +349,7 @@ afl_ret_t afl_engine_loop(afl_engine_t *engine) {
         // case AFL_RET_WRITE_TO_CRASH:
 
         //   // crash_write_return =
-        //   // dump_crash_to_file(engine->executor->current_input);
+        //   // afl_input_dump_to_crashfile(engine->executor->current_input);
 
         //   return AFL_RET_WRITE_TO_CRASH;
 

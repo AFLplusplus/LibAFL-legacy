@@ -237,7 +237,7 @@ else NULL */
   ({                                                                  \
                                                                       \
     llmp_message_t *_msg = msg;                                       \
-    ((type *)((_msg)->buf_len == sizeof(type) ? (_msg)->buf : NULL)); \
+    ((type *)((_msg)->buf_len >= sizeof(type) ? (_msg)->buf : NULL)); \
                                                                       \
   })
 
@@ -246,7 +246,7 @@ else NULL */
   ({                                                                                       \
                                                                                            \
     llmp_message_t *_msg = msg;                                                            \
-    ((type *)(((msg)->tag == tag && (msg)->buf_len == sizeof(type)) ? (msg)->buf : NULL)); \
+    ((type *)(((msg)->tag == tag && (msg)->buf_len >= sizeof(type)) ? (msg)->buf : NULL)); \
                                                                                            \
   })
 
@@ -322,6 +322,9 @@ broker_loop() starts. Clients can also added later via
 llmp_broker_register_remote(..) or the local_tcp_client
 */
 bool llmp_broker_register_threaded_clientloop(llmp_broker_t *broker, llmp_clientloop_func clientloop, void *data);
+
+/* launch a specific client. This function is rarely needed - all registered clients will get launched at broker_run */
+bool llmp_broker_launch_client(llmp_broker_t *broker, llmp_broker_clientdata_t *clientdata);
 
 /* Kicks off all threaded clients in the brackground, using pthreads */
 bool llmp_broker_launch_clientloops(llmp_broker_t *broker);
