@@ -90,7 +90,13 @@ libafl.a: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/feed
 	@rm -f libafl.a
 	ar -crs libafl.a $^
 
-libaflfuzzer.a: libafl.a examples
+examples/AFLplusplus/llvm_mode/afl-llvm-rt.o.c:
+	test -e examples/AFLplusplus/Makefile || git clone https://github.com/AFLplusplus/AFLplusplus examples/AFLplusplus
+
+examples/AFLplusplus/afl-llvm-rt.o:	examples/AFLplusplus/llvm_mode/afl-llvm-rt.o.c
+	$(MAKE) CFLAGS= LDFLAGS= -C examples/AFLplusplus/llvm_mode ../afl-llvm-rt.o
+
+libaflfuzzer.a: libafl.a examples/AFLplusplus/afl-llvm-rt.o
 	@rm -f libaflfuzzer.a
 	clang $(CFLAGS) $(LDFLAGS) -c -o examples/libaflfuzzer.o examples/libaflfuzzer.c
 	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
