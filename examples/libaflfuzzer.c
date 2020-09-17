@@ -586,7 +586,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
 
 int main(int argc, char **argv) {
 
-  if (argc < 4) { FATAL("Usage: ./in-memory-fuzzer number_of_threads /path/to/input/dir /path/to/queue/dir"); }
+  if (argc < 4) { SAYF("Usage: %s number_of_threads /path/to/input/dir /path/to/queue/dir", argv[0]); exit(0); }
 
   s32   i = 0;
   int   status = 0;
@@ -603,7 +603,7 @@ int main(int argc, char **argv) {
 
   if (thread_count <= 0) {
 
-    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] ERROR : " cRST
                                               "Number of threads should be greater than 0, exiting gracefully.");
     SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __func__, __FILE__, __LINE__);
     exit(0);
