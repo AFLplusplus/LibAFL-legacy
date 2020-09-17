@@ -369,3 +369,69 @@ afl_ret_t afl_engine_loop(afl_engine_t *engine) {
 
 }
 
+#define AFL_WARN_ENGINE(engine, str)                    \
+  WARNF("No %s present in engine-%u", str, engine->id); \
+  goto error;
+
+/* A function which can be run just before starting the fuzzing process. This checks if the engine(and all it's
+ * components) is initialized or not */
+
+afl_ret_t afl_check_engine_configuration(afl_engine_t *engine) {
+
+  /* Let's start by checking the essential parts of engine, executor, feedback(if available) */
+
+  if (!engine->executor) {
+
+    // WARNF("No executor present in engine-%u", engine->id);
+    // goto error;
+    AFL_WARN_ENGINE(engine, "executor");
+
+  }
+
+  afl_executor_t *executor = engine->executor;
+
+  if (!engine->global_queue) { AFL_WARN_ENGINE(engine, "global_queue") }
+  afl_queue_global_t *global_queue = engine->global_queue;
+
+  if (!engine->fuzz_one) { AFL_WARN_ENGINE(engine, "fuzzone") }
+  afl_fuzz_one_t *fuzz_one = engine->fuzz_one;
+
+  for (size_t i = 0; i < engine->feedbacks_count; ++i) {
+
+    if (!engine->feedbacks[i]) {
+
+      WARNF("Feedback is NULL at %lu idx but feedback num is greater than it.", i);
+      goto error;
+
+    }
+
+  }
+
+  if (!engine->llmp_client) { AFL_WARN_ENGINE(engine, "llmp client") }
+
+  for (size_t i = 0; i < executor->observors_count; ++i) {
+
+    if (!executor->observors[i]) { AFL_WARN_ENGINE(engine, "observation channel") }
+
+  }
+
+  for (size_t i = 0; i < global_queue->feedback_queues_count; ++i) {
+
+    if (!global_queue->feedback_queues[i]) { AFL_WARN_ENGINE(engine, "Feedback queue") }
+
+  }
+
+  for (size_t i = 0; i < fuzz_one->stages_count; ++i) {
+
+    if (!fuzz_one->stages[i]) { AFL_WARN_ENGINE(engine, "Stage") }
+    /* Stage needs to be checked properly */
+
+  }
+
+  return AFL_RET_SUCCESS;
+
+error:
+  return AFL_RET_ERROR_INITIALIZE;
+
+}
+
