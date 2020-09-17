@@ -32,7 +32,7 @@ $(info AFL_PATH is $(AFL_PATH))
 
 all: target forking-fuzzer in-memory-fuzzer llmp-main
 
- $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c:
+$(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c:
 	-git submodule init 2> /dev/null
 	-git submodule update 2> /dev/null
 	test -d $(AFL_PATH) || git clone https://github.com/AFLplusplus/AFLplusplus
@@ -40,6 +40,7 @@ all: target forking-fuzzer in-memory-fuzzer llmp-main
 $(AFL_PATH)/afl-llvm-rt.o: $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c
 	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)
 	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)/llvm_mode
+#	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)/examples/aflpp_driver
 
 .PHONY: ../libafl.a
 ../libafl.a:
@@ -76,7 +77,7 @@ test: clean forking-fuzzer target
 	rm -rf ./crashes-* 2>/dev/null || trues
 
 clean:
-	rm  out forking-fuzzer target success in-memory-fuzzer llmp-main 2>/dev/null || true
+	rm -rf out forking-fuzzer target success in-memory-fuzzer llmp-main 2>/dev/null || true
 	rm -rf in 2>/dev/null	|| true
 	rm -rf crashes-* 2>/dev/null || true
 	rm -rf llmp-main || true

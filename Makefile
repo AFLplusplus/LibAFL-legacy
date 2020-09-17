@@ -1,3 +1,4 @@
+TARGETS=libafl.so libafl.a libaflfuzzer.a examples/libaflfuzzer-test
 override CFLAGS  += -g -fPIC -Iinclude -Wall -Wextra -Werror -Wshadow -fstack-protector-strong 
 
 ifdef DEBUG
@@ -21,11 +22,11 @@ ifdef MSAN
   override LDFLAGS += -fsanitize=memory
 endif
 
-all:	libafl.so libafl.a examples libaflfuzzer.a examples/libaflfuzzer-test
+all:	examples $(TARGETS)
 
 clean:
 	rm -f src/*.o
-	rm -f libafl.so libafl.a libaflfuzzer.a
+	rm -f $(TARGETS)
 	$(MAKE) -C examples clean
 
 deepclean: clean
