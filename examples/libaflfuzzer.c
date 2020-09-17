@@ -33,12 +33,12 @@ static llmp_client_t *current_client = NULL;
 static llmp_message_t *current_fuzz_input_msg = NULL;
 static afl_input_t *   current_input = NULL;
 
+
 typedef struct cur_state {
 
-  u32    map_size;
-  u8     *virgin_bits;
+  size_t map_size;
   size_t current_input_len;
-  u8     current_input_buf[];
+  u8     payload[];
 
 } cur_state_t;
 
@@ -60,9 +60,6 @@ typedef struct fuzzer_stats {
   struct broker_client_stats *clients;
 
 } fuzzer_stats_t;
-
-/* The space needed to serialize the current (static) state */
-#define STATE_LEN (current_input->len + sizeof(cur_state_t))
 
 #if 0
 /* for testing */
@@ -128,12 +125,14 @@ static afl_ret_t in_memory_fuzzer_initialize(afl_executor_t *executor) {
 
 void write_cur_state(llmp_message_t *out_msg) {
 
-  if (out_msg->buf_len < STATE_LEN) { FATAL("Message not large enough for our state!"); }
+  if (out_msg->buf_len < sizeof(cur_state_t) + __afl_map_size + current_input->len) { FATAL("Message not large enough for our state!"); }
 
+  /* first virgin bits[map_size], then the crasing/timeouting input buf */
   cur_state_t *state = LLMP_MSG_BUF_AS(out_msg, cur_state_t);
-  memcpy(state->virgin_bits, virgin_bits, state->map_size);
+  state->map_size = __afl_map_size;
+  memcpy(state->payload, virgin_bits, state->map_size);
   state->current_input_len = current_input->len;
-  memcpy(state->current_input_buf, current_input->bytes, current_input->len);
+  memcpy(state->payload + state->map_size, current_input->bytes, current_input->len);
 
 }
 
@@ -152,7 +151,7 @@ static void handle_timeout(int sig, siginfo_t *info, void *ucontext) {
 
   }
 
-  if (current_fuzz_input_msg->buf_len != STATE_LEN) {
+  if (current_fuzz_input_msg->buf_len != sizeof(cur_state_t) + __afl_map_size + current_input->len) {
 
     FATAL("Unexpected current_fuzz_input_msg length during timeout handling!");
 
@@ -199,7 +198,7 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
 
   if (current_fuzz_input_msg) {
 
-    if (!current_input || current_fuzz_input_msg->buf_len != STATE_LEN) {
+    if (!current_input || current_fuzz_input_msg->buf_len != sizeof(cur_state_t) + __afl_map_size + current_input->len) {
 
       FATAL("Unexpected current_fuzz_input_msg length during crash handling!");
 
@@ -271,7 +270,7 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
   /* TODO: use the msg buf in input directly */
   current_input = input;
-  current_fuzz_input_msg = llmp_client_alloc_next(engine->llmp_client, STATE_LEN);
+  current_fuzz_input_msg = llmp_client_alloc_next(engine->llmp_client, sizeof(cur_state_t) + __afl_map_size + input->len);
   if (!current_fuzz_input_msg) { FATAL("Could not allocate crash message. Quitting!"); }
 
   /* we may crash, who knows.
@@ -503,7 +502,7 @@ bool broker_handle_client_restart(llmp_broker_t *broker, llmp_broker_clientdata_
 
     if (engine->feedbacks[i]->tag == AFL_FEEDBACK_TAG_COV) {
 
-      afl_feedback_cov_set_virgin_bits((afl_feedback_cov_t *)engine->feedbacks[i], state->virgin_bits, __afl_map_size);
+      afl_feedback_cov_set_virgin_bits((afl_feedback_cov_t *)engine->feedbacks[i], state->payload, state->map_size);
 
     }
 
@@ -545,7 +544,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       AFL_TRY(afl_input_init(&timeout_input),
               { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
 
-      timeout_input.bytes = state->current_input_buf;
+      timeout_input.bytes = state->payload + state->map_size;
       timeout_input.len = state->current_input_len;
 
       AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input), { WARNF("Could not write timeout file!"); });
@@ -563,8 +562,8 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       AFL_TRY(afl_input_init(&crashing_input),
               { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
 
-      crashing_input.bytes = state->current_input_buf;
-      crashing_input.len = state->current_input_len;
+      timeout_input.bytes = state->payload + state->map_size;
+      timeout_input.len = state->current_input_len;
 
       AFL_TRY(afl_input_dump_to_crashfile(&crashing_input), { WARNF("Could not write crash file!"); });
 
