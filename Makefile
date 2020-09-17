@@ -94,6 +94,7 @@ examples/AFLplusplus/llvm_mode/afl-llvm-rt.o.c:
 	test -e examples/AFLplusplus/Makefile || git clone https://github.com/AFLplusplus/AFLplusplus examples/AFLplusplus
 
 examples/AFLplusplus/afl-llvm-rt.o:	examples/AFLplusplus/llvm_mode/afl-llvm-rt.o.c
+	$(MAKE) AFL_NO_X86=1 CFLAGS= LDFLAGS= -C examples/AFLplusplus afl-showmap
 	$(MAKE) CFLAGS= LDFLAGS= -C examples/AFLplusplus/llvm_mode ../afl-llvm-rt.o
 
 libaflfuzzer.a: libafl.a examples/AFLplusplus/afl-llvm-rt.o
