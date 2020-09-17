@@ -23,6 +23,7 @@ __attribute__((weak)) int LLVMFuzzerInitialize(int *argc, char ***argv);
 
 /* That's where the target's intrumentation feedback gets reported to */
 extern u8 *__afl_area_ptr;
+extern u32 __afl_map_size;
 
 /* pointer to the bitmap used by map-absed feedback, we'll report it if we crash. */
 static u8 *virgin_bits;
@@ -34,9 +35,9 @@ static afl_input_t *   current_input = NULL;
 
 typedef struct cur_state {
 
-  u8     virgin_bits[MAP_SIZE];
+  size_t map_size;
   size_t current_input_len;
-  u8     current_input_buf[];
+  u8     payload[];
 
 } cur_state_t;
 
@@ -58,9 +59,6 @@ typedef struct fuzzer_stats {
   struct broker_client_stats *clients;
 
 } fuzzer_stats_t;
-
-/* The space needed to serialize the current (static) state */
-#define STATE_LEN (current_input->len + sizeof(cur_state_t))
 
 #if 0
 /* for testing */
@@ -126,12 +124,18 @@ static afl_ret_t in_memory_fuzzer_initialize(afl_executor_t *executor) {
 
 void write_cur_state(llmp_message_t *out_msg) {
 
-  if (out_msg->buf_len < STATE_LEN) { FATAL("Message not large enough for our state!"); }
+  if (out_msg->buf_len < sizeof(cur_state_t) + __afl_map_size + current_input->len) {
 
+    FATAL("Message not large enough for our state!");
+
+  }
+
+  /* first virgin bits[map_size], then the crasing/timeouting input buf */
   cur_state_t *state = LLMP_MSG_BUF_AS(out_msg, cur_state_t);
-  memcpy(state->virgin_bits, virgin_bits, MAP_SIZE);
+  state->map_size = __afl_map_size;
+  memcpy(state->payload, virgin_bits, state->map_size);
   state->current_input_len = current_input->len;
-  memcpy(state->current_input_buf, current_input->bytes, current_input->len);
+  memcpy(state->payload + state->map_size, current_input->bytes, current_input->len);
 
 }
 
@@ -150,7 +154,7 @@ static void handle_timeout(int sig, siginfo_t *info, void *ucontext) {
 
   }
 
-  if (current_fuzz_input_msg->buf_len != STATE_LEN) {
+  if (current_fuzz_input_msg->buf_len != sizeof(cur_state_t) + __afl_map_size + current_input->len) {
 
     FATAL("Unexpected current_fuzz_input_msg length during timeout handling!");
 
@@ -197,7 +201,8 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
 
   if (current_fuzz_input_msg) {
 
-    if (!current_input || current_fuzz_input_msg->buf_len != STATE_LEN) {
+    if (!current_input ||
+        current_fuzz_input_msg->buf_len != sizeof(cur_state_t) + __afl_map_size + current_input->len) {
 
       FATAL("Unexpected current_fuzz_input_msg length during crash handling!");
 
@@ -269,7 +274,8 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
   /* TODO: use the msg buf in input directly */
   current_input = input;
-  current_fuzz_input_msg = llmp_client_alloc_next(engine->llmp_client, STATE_LEN);
+  current_fuzz_input_msg =
+      llmp_client_alloc_next(engine->llmp_client, sizeof(cur_state_t) + __afl_map_size + input->len);
   if (!current_fuzz_input_msg) { FATAL("Could not allocate crash message. Quitting!"); }
 
   /* we may crash, who knows.
@@ -340,14 +346,14 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath, int argc, cha
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
-  afl_observer_covmap_t *observer_covmap = afl_observer_covmap_new(MAP_SIZE);
+  afl_observer_covmap_t *observer_covmap = afl_observer_covmap_new(__afl_map_size);
   if (!observer_covmap) { PFATAL("Trace bits channel error"); }
 
   /* covmap new creates a covmap automatically. deinit here. */
   afl_shmem_deinit(&observer_covmap->shared_map);
 
   observer_covmap->shared_map.map = __afl_area_ptr;  // Coverage "Map" we have
-  observer_covmap->shared_map.map_size = MAP_SIZE;
+  observer_covmap->shared_map.map_size = __afl_map_size;
   observer_covmap->shared_map.shm_id = -1;
   in_memory_executor->base.funcs.observer_add(&in_memory_executor->base, &observer_covmap->base);
 
@@ -501,7 +507,7 @@ bool broker_handle_client_restart(llmp_broker_t *broker, llmp_broker_clientdata_
 
     if (engine->feedbacks[i]->tag == AFL_FEEDBACK_TAG_COV) {
 
-      afl_feedback_cov_set_virgin_bits((afl_feedback_cov_t *)engine->feedbacks[i], state->virgin_bits, MAP_SIZE);
+      afl_feedback_cov_set_virgin_bits((afl_feedback_cov_t *)engine->feedbacks[i], state->payload, state->map_size);
 
     }
 
@@ -543,7 +549,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       AFL_TRY(afl_input_init(&timeout_input),
               { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
 
-      timeout_input.bytes = state->current_input_buf;
+      timeout_input.bytes = state->payload + state->map_size;
       timeout_input.len = state->current_input_len;
 
       AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input), { WARNF("Could not write timeout file!"); });
@@ -561,8 +567,8 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       AFL_TRY(afl_input_init(&crashing_input),
               { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
 
-      crashing_input.bytes = state->current_input_buf;
-      crashing_input.len = state->current_input_len;
+      timeout_input.bytes = state->payload + state->map_size;
+      timeout_input.len = state->current_input_len;
 
       AFL_TRY(afl_input_dump_to_crashfile(&crashing_input), { WARNF("Could not write crash file!"); });
 
@@ -582,15 +588,27 @@ int main(int argc, char **argv) {
 
   if (argc < 4) { FATAL("Usage: ./in-memory-fuzzer number_of_threads /path/to/input/dir /path/to/queue/dir"); }
 
-  s32 i = 0;
-  int status = 0;
-  int pid = 0;
-
+  s32   i = 0;
+  int   status = 0;
+  int   pid = 0;
   char *in_dir = argv[2];
   int   thread_count = atoi(argv[1]);
   char *queue_dirpath = argv[3];
 
-  if (thread_count <= 0) { FATAL("Number of threads should be greater than 0"); }
+  SAYF("libaflfuzzer running as:");
+  for (i = 0; i < argc; i++)
+    SAYF(" %s", argv[i]);
+  SAYF("\n");
+  OKF("map_size=%u", __afl_map_size);
+
+  if (thread_count <= 0) {
+
+    SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST
+                                              "Number of threads should be greater than 0, exiting gracefully.");
+    SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __func__, __FILE__, __LINE__);
+    exit(0);
+
+  }
 
   int broker_port = 0xAF1;
 
