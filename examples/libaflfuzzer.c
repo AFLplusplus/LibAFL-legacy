@@ -237,7 +237,11 @@ static void setup_signal_handlers(void) {
   sa.sa_sigaction = handle_crash;
 
   /* Handle segfaults by writing the crashing input to the shared map, then exiting */
-  if (sigaction(SIGSEGV, &sa, NULL) < 0) { PFATAL("Could not set setgfault handler"); }
+  if (sigaction(SIGSEGV, &sa, NULL) < 0) { PFATAL("Could not set segfault handler"); }
+  if (sigaction(SIGBUS, &sa, NULL) < 0) { PFATAL("Could not set sigbus handler"); }
+  if (sigaction(SIGABRT, &sa, NULL) < 0) { PFATAL("Could not set abort handler"); }
+  if (sigaction(SIGILL, &sa, NULL) < 0) { PFATAL("Could not set illegal instruction handler"); }
+  if (sigaction(SIGFPE, &sa, NULL) < 0) { PFATAL("Could not set fp exception handler"); }
 
   /* If the broker notices we didn't send anything for a long time, it kills us using SIGUSR2 */
   sa.sa_sigaction = handle_timeout;
@@ -543,7 +547,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       timeout_input.bytes = state->current_input_buf;
       timeout_input.len = state->current_input_len;
 
-      AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input), { WARNF("Could not write crashfile!"); });
+      AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input), { WARNF("Could not write timeout file!"); });
 
       broker_handle_client_restart(broker, clientdata, state);
       return false;  // Don't foward this msg to clients.
@@ -561,7 +565,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       crashing_input.bytes = state->current_input_buf;
       crashing_input.len = state->current_input_len;
 
-      AFL_TRY(afl_input_dump_to_crashfile(&crashing_input), { WARNF("Could not write crashfile!"); });
+      AFL_TRY(afl_input_dump_to_crashfile(&crashing_input), { WARNF("Could not write crash file!"); });
 
       broker_handle_client_restart(broker, clientdata, state);
 
@@ -676,7 +680,7 @@ int main(int argc, char **argv) {
 
       }
 
-      SAYF("threads=%u  paths=%llu crashes=%llu timeouts=%llu elapsed=%llu  execs=%llu  exec/s=%llu\r", thread_count,
+      SAYF("threads=%u paths=%llu crashes=%llu timeouts=%llu elapsed=%llu execs=%llu exec/s=%llu\r", thread_count,
            fuzzer_stats.queue_entry_count, fuzzer_stats.crashes, fuzzer_stats.timeouts, time_elapsed, total_execs,
            total_execs / time_elapsed);
 
