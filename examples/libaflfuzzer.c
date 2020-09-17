@@ -36,7 +36,7 @@ static afl_input_t *   current_input = NULL;
 typedef struct cur_state {
 
   u32    map_size;
-  u8     virgin_bits[__afl_map_size];
+  u8     *virgin_bits;
   size_t current_input_len;
   u8     current_input_buf[];
 
@@ -131,7 +131,6 @@ void write_cur_state(llmp_message_t *out_msg) {
   if (out_msg->buf_len < STATE_LEN) { FATAL("Message not large enough for our state!"); }
 
   cur_state_t *state = LLMP_MSG_BUF_AS(out_msg, cur_state_t);
-  state->map_size = __afl_map_size;
   memcpy(state->virgin_bits, virgin_bits, state->map_size);
   state->current_input_len = current_input->len;
   memcpy(state->current_input_buf, current_input->bytes, current_input->len);
