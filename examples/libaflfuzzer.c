@@ -23,6 +23,7 @@ __attribute__((weak)) int LLVMFuzzerInitialize(int *argc, char ***argv);
 
 /* That's where the target's intrumentation feedback gets reported to */
 extern u8 *__afl_area_ptr;
+extern u32 __afl_map_size;
 
 /* pointer to the bitmap used by map-absed feedback, we'll report it if we crash. */
 static u8 *virgin_bits;
@@ -34,7 +35,8 @@ static afl_input_t *   current_input = NULL;
 
 typedef struct cur_state {
 
-  u8     virgin_bits[MAP_SIZE];
+  u32    map_size;
+  u8     virgin_bits[__afl_map_size];
   size_t current_input_len;
   u8     current_input_buf[];
 
@@ -129,7 +131,8 @@ void write_cur_state(llmp_message_t *out_msg) {
   if (out_msg->buf_len < STATE_LEN) { FATAL("Message not large enough for our state!"); }
 
   cur_state_t *state = LLMP_MSG_BUF_AS(out_msg, cur_state_t);
-  memcpy(state->virgin_bits, virgin_bits, MAP_SIZE);
+  state->map_size = __afl_map_size;
+  memcpy(state->virgin_bits, virgin_bits, state->map_size);
   state->current_input_len = current_input->len;
   memcpy(state->current_input_buf, current_input->bytes, current_input->len);
 
@@ -340,14 +343,14 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath, int argc, cha
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
-  afl_observer_covmap_t *observer_covmap = afl_observer_covmap_new(MAP_SIZE);
+  afl_observer_covmap_t *observer_covmap = afl_observer_covmap_new(__afl_map_size);
   if (!observer_covmap) { PFATAL("Trace bits channel error"); }
 
   /* covmap new creates a covmap automatically. deinit here. */
   afl_shmem_deinit(&observer_covmap->shared_map);
 
   observer_covmap->shared_map.map = __afl_area_ptr;  // Coverage "Map" we have
-  observer_covmap->shared_map.map_size = MAP_SIZE;
+  observer_covmap->shared_map.map_size = __afl_map_size;
   observer_covmap->shared_map.shm_id = -1;
   in_memory_executor->base.funcs.observer_add(&in_memory_executor->base, &observer_covmap->base);
 
@@ -501,7 +504,7 @@ bool broker_handle_client_restart(llmp_broker_t *broker, llmp_broker_clientdata_
 
     if (engine->feedbacks[i]->tag == AFL_FEEDBACK_TAG_COV) {
 
-      afl_feedback_cov_set_virgin_bits((afl_feedback_cov_t *)engine->feedbacks[i], state->virgin_bits, MAP_SIZE);
+      afl_feedback_cov_set_virgin_bits((afl_feedback_cov_t *)engine->feedbacks[i], state->virgin_bits, __afl_map_size);
 
     }
 
@@ -585,10 +588,14 @@ int main(int argc, char **argv) {
   s32 i = 0;
   int status = 0;
   int pid = 0;
-
   char *in_dir = argv[2];
   int   thread_count = atoi(argv[1]);
   char *queue_dirpath = argv[3];
+
+  SAYF("libaflfuzzer running as:");
+  for (i = 0; i < argc; i++) SAYF(" %s", argv[i]);
+  SAYF("\n");
+  OKF("map_size=%u\n", __afl_map_size);
 
   if (thread_count <= 0) { FATAL("Number of threads should be greater than 0"); }
 
