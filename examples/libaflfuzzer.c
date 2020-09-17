@@ -5,7 +5,6 @@
 #include <sys/wait.h>
 
 #include "aflpp.h"
-#include "png.h"
 #include "llmp.h"
 #include "shmem.h"
 #include "afl-returns.h"
