@@ -28,9 +28,9 @@ static afl_input_t *   current_input = NULL;
 
 typedef struct cur_state {
 
-  u8 virgin_bits[MAP_SIZE];
+  u8     virgin_bits[MAP_SIZE];
   size_t current_input_len;
-  u8 current_input_buf[];
+  u8     current_input_buf[];
 
 } cur_state_t;
 
@@ -45,14 +45,13 @@ typedef struct client_stats_msg {
 typedef struct fuzzer_stats {
 
   u64                      queue_entry_count;
-  u64 crashes;
+  u64                      crashes;
   struct client_stats_msg *clients;
 
 } fuzzer_stats_t;
 
 /* The space needed to serialize the current (static) state */
 #define STATE_LEN (current_input->len + sizeof(cur_state_t))
-
 
 /* for testing */
 static void force_segfault(void) {
@@ -91,9 +90,7 @@ afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
 
 void write_cur_state(llmp_message_t *out_msg) {
 
-  if(out_msg->buf_len < STATE_LEN) {
-    FATAL("Message not large enough for our state!");
-  }
+  if (out_msg->buf_len < STATE_LEN) { FATAL("Message not large enough for our state!"); }
 
   cur_state_t *state = LLMP_MSG_BUF_AS(out_msg, cur_state_t);
   memcpy(state->virgin_bits, virgin_bits, MAP_SIZE);
@@ -101,8 +98,6 @@ void write_cur_state(llmp_message_t *out_msg) {
   memcpy(state->current_input_buf, current_input->bytes, current_input->len);
 
 }
-
-
 
 static void handle_timeout(int sig, siginfo_t *info, void *ucontext) {
 
@@ -369,10 +364,15 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 
   afl_observer_covmap_t *observer_covmap = NULL;
   for (i = 0; i < engine->executor->observors_count; i++) {
+
     if (engine->executor->observors[i]->tag == AFL_OBSERVER_TAG_COVMAP) {
+
       observer_covmap = (afl_observer_covmap_t *)engine->executor->observors[0];
+
     }
+
   }
+
   if (!observer_covmap) { FATAL("Got no covmap observer"); }
 
   /* set the global virgin_bits for error handlers, so we can restore them after a crash */
@@ -428,8 +428,10 @@ bool broker_handle_crashed_client(llmp_broker_t *broker, llmp_broker_clientdata_
   AFL_TRY(afl_input_init(&crashing_input),
           { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
   if (!state) {
+
     WARNF("Illegal state received during crash");
-    return false; // don't forward
+    return false;  // don't forward
+
   }
 
   crashing_input.bytes = state->current_input_buf;
@@ -439,25 +441,27 @@ bool broker_handle_crashed_client(llmp_broker_t *broker, llmp_broker_clientdata_
   /* Remove this client, then spawn a new client with the current state.*/
 
   /* TODO: We should probably waite for the old client pid to finish (or kill it?) before creating a new one */
-  clientdata->client_state->current_broadcast_map = NULL; // Don't kill our map :)
+  clientdata->client_state->current_broadcast_map = NULL;  // Don't kill our map :)
   llmp_client_delete(clientdata->client_state);
   afl_shmem_deinit(clientdata->cur_client_map);
 
   clientdata->client_state = llmp_client_new_unconnected();
-  if (!clientdata->client_state) {
-    PFATAL("Error allocating replacement client after crash");
-  }
+  if (!clientdata->client_state) { PFATAL("Error allocating replacement client after crash"); }
   /* link the new broker to the client at the position of the old client by connecting shmems. */
   clientdata->client_state->current_broadcast_map = &broker->broadcast_maps[0];
   clientdata->cur_client_map = &clientdata->client_state->out_maps[0];
 
   /* restore the old virgin_bits for this fuzzer before reforking */
   afl_engine_t *engine = (afl_engine_t *)clientdata->data;
-  size_t i;
+  size_t        i;
   for (i = 0; i < engine->feedbacks_count; i++) {
+
     if (engine->feedbacks[i]->tag == AFL_FEEDBACK_TAG_COV) {
+
       afl_feedback_cov_set_virgin_bits((afl_feedback_cov_t *)engine->feedbacks[i], state->virgin_bits, MAP_SIZE);
+
     }
+
   }
 
   clientdata->last_msg_broker_read = NULL;
@@ -465,9 +469,7 @@ bool broker_handle_crashed_client(llmp_broker_t *broker, llmp_broker_clientdata_
   clientdata->pid = 0;
 
   /* fork off the new child */
-  if (!llmp_broker_launch_client(broker, clientdata)) {
-    FATAL("Error spawning new client after crash");
-  }
+  if (!llmp_broker_launch_client(broker, clientdata)) { FATAL("Error spawning new client after crash"); }
 
   return true;
 
@@ -494,7 +496,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       /* write crash output */
       cur_state_t *state = LLMP_MSG_BUF_AS(msg, cur_state_t);
       broker_handle_crashed_client(broker, clientdata, state);
-      
+
       return false;  // no need to foward this to clients.
     default:
       /* We'll foward anything else we don't know. */
@@ -542,9 +544,7 @@ int main(int argc, char **argv) {
   for (i = 0; i < thread_count; i++) {
 
     afl_engine_t *engine = initialize_fuzzer(in_dir, queue_dirpath);
-    if (!engine) {
-      FATAL("Error initializing fuzzing engine");
-    }
+    if (!engine) { FATAL("Error initializing fuzzing engine"); }
     engines[i] = engine;
 
     /* All fuzzers get their own process.

@@ -285,12 +285,14 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
 
   afl_engine_t *engine = (afl_engine_t *)data;
 
-  time_fbck_t *time_fbck = NULL;
+  time_fbck_t *       time_fbck = NULL;
   afl_feedback_cov_t *coverage_feedback = NULL;
 
   size_t i;
   for (i = 0; i < engine->feedbacks_count; i++) {
+
     switch (engine->feedbacks[i]->tag) {
+
       case AFL_FEEDBACK_TAG_TIME:
         time_fbck = (time_fbck_t *)engine->feedbacks[i];
         break;
@@ -300,16 +302,20 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
       default:
         WARNF("Found unknown feeback tag: %X", engine->feedbacks[i]->tag);
         break;
+
     }
+
   }
 
-  afl_forkserver_t *     fsrv = (afl_forkserver_t *)engine->executor;
+  afl_forkserver_t *fsrv = (afl_forkserver_t *)engine->executor;
 
   obs_channel_time_t *   observer_time = NULL;
   afl_observer_covmap_t *observer_covmap = NULL;
 
   for (i = 0; i < fsrv->base.observors_count; i++) {
+
     switch (engine->feedbacks[i]->tag) {
+
       case AFL_OBSERVER_TAG_COVMAP:
         observer_covmap = (afl_observer_covmap_t *)fsrv->base.observors[i];
         break;
@@ -319,7 +325,9 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
       default:
         WARNF("Found unknown feeback tag: %X", engine->feedbacks[i]->tag);
         break;
+
     }
+
   }
 
   engine->llmp_client = client;
