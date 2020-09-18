@@ -75,10 +75,10 @@ u8 *         afl_input_get_bytes(afl_input_t *this_input);
 afl_ret_t afl_input_write_to_file(afl_input_t *data, char *filename);
 
 /* Write the contents of the input to a timeoutfile */
-afl_ret_t afl_input_dump_to_timeoutfile(afl_input_t *data);
+afl_ret_t afl_input_dump_to_timeoutfile(afl_input_t *data, char *);
 
 /* Write the contents of the input which causes a crash in the target to a crashfile */
-afl_ret_t afl_input_dump_to_crashfile(afl_input_t *);
+afl_ret_t afl_input_dump_to_crashfile(afl_input_t *, char *);
 
 /* Function to create and destroy a new input, allocates memory and initializes
   it. In destroy, it first deinitializes the struct and then frees it. */

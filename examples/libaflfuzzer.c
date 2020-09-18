@@ -33,6 +33,7 @@ static llmp_client_t *current_client = NULL;
 static llmp_message_t *current_fuzz_input_msg = NULL;
 static afl_input_t *   current_input = NULL;
 static int             debug = 0;
+static char *          queue_dirpath;
 
 typedef struct cur_state {
 
@@ -325,7 +326,7 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
       /* TODO: We'll never reach this, actually... */
       engine->crashes++;
-      afl_input_dump_to_crashfile(executor->current_input);  // Crash written
+      afl_input_dump_to_crashfile(executor->current_input, queue_dirpath);  // Crash written
       return AFL_RET_WRITE_TO_CRASH;
 
     }
@@ -335,7 +336,7 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 }
 
 /* This initializeds the fuzzer */
-afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath, int argc, char *argv[]) {
+afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *argv[]) {
 
   /* Let's create an in-memory executor */
   in_memory_executor_t *in_memory_executor = calloc(1, sizeof(in_memory_executor_t));
@@ -361,13 +362,13 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath, int argc, cha
   /* We create a simple feedback queue for coverage here*/
   afl_queue_feedback_t *coverage_feedback_queue = afl_queue_feedback_new(NULL, (char *)"Coverage feedback queue");
   if (!coverage_feedback_queue) { FATAL("Error initializing feedback queue"); }
-  coverage_feedback_queue->base.funcs.set_dirpath(&coverage_feedback_queue->base, queue_dirpath);
+  coverage_feedback_queue->base.funcs.set_dirpath(&coverage_feedback_queue->base, queue_dir);
 
   /* Global queue creation */
   afl_queue_global_t *global_queue = afl_queue_global_new();
   if (!global_queue) { FATAL("Error initializing global queue"); }
   global_queue->funcs.add_feedback_queue(global_queue, coverage_feedback_queue);
-  global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dirpath);
+  global_queue->base.funcs.set_dirpath(&global_queue->base, queue_dir);
 
   /* Coverage Feedback initialization */
   afl_feedback_cov_t *coverage_feedback = afl_feedback_cov_new(coverage_feedback_queue, observer_covmap);
@@ -553,7 +554,8 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       timeout_input.bytes = state->payload + state->map_size;
       timeout_input.len = state->current_input_len;
 
-      AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input), { WARNF("Could not write timeout file!"); });
+      AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input, queue_dirpath),
+              { WARNF("Could not write timeout file!"); });
 
       broker_handle_client_restart(broker, clientdata, state);
       return false;  // Don't foward this msg to clients.
@@ -571,7 +573,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       timeout_input.bytes = state->payload + state->map_size;
       timeout_input.len = state->current_input_len;
 
-      AFL_TRY(afl_input_dump_to_crashfile(&crashing_input), { WARNF("Could not write crash file!"); });
+      AFL_TRY(afl_input_dump_to_crashfile(&crashing_input, queue_dirpath), { WARNF("Could not write crash file!"); });
 
       broker_handle_client_restart(broker, clientdata, state);
 
@@ -597,9 +599,9 @@ int main(int argc, char **argv) {
   s32   i = 0;
   int   status = 0;
   int   pid = 0;
-  char *in_dir = argv[2];
   int   thread_count = atoi(argv[1]);
-  char *queue_dirpath = argv[3];
+  char *in_dir = argv[2];
+  queue_dirpath = argv[3];
 
   if (getenv("DEBUG") || getenv("AFL_DEBUG")) debug = 1;
 

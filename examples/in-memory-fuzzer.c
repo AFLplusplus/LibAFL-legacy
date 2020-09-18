@@ -299,7 +299,8 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
       /* TODO: We'll never reach this, actually... */
       engine->crashes++;
-      afl_input_dump_to_crashfile(executor->current_input);  // Crash written
+      afl_queue_global_t *global_queue = afl_engine_get_queue(engine);
+      afl_input_dump_to_crashfile(executor->current_input, global_queue->base.dirpath);  // Crash written
       return AFL_RET_WRITE_TO_CRASH;
 
     }
@@ -527,8 +528,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
 
       timeout_input.bytes = state->current_input_buf;
       timeout_input.len = state->current_input_len;
-
-      AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input), { WARNF("Could not write crashfile!"); });
+      AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input, NULL), { WARNF("Could not write timeout file!"); });
 
       broker_handle_client_restart(broker, clientdata, state);
       return false;  // Don't foward this msg to clients.
@@ -546,7 +546,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       crashing_input.bytes = state->current_input_buf;
       crashing_input.len = state->current_input_len;
 
-      AFL_TRY(afl_input_dump_to_crashfile(&crashing_input), { WARNF("Could not write crashfile!"); });
+      AFL_TRY(afl_input_dump_to_crashfile(&crashing_input, NULL), { WARNF("Could not write crash file!"); });
 
       broker_handle_client_restart(broker, clientdata, state);
 

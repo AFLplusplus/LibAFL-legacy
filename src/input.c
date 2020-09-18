@@ -177,28 +177,33 @@ u8 *afl_input_serialize(afl_input_t *input) {
 
 }
 
-afl_ret_t afl_input_dump_to_timeoutfile(afl_input_t *data) {
+afl_ret_t afl_input_dump_to_file(char *text, afl_input_t *data, char *directory) {
 
-  char filename[128];
+  char filename[PATH_MAX];
 
   /* TODO: This filename should be replaced by "crashes-SHA_OF_BYTES" later */
 
   u64 input_data_checksum = XXH64(data->bytes, data->len, HASH_CONST);
-  snprintf(filename, sizeof(filename) - 1, "timeout-%016llx", input_data_checksum);
+  if (directory)
+    snprintf(filename, sizeof(filename), "%s/%s-%016llx", directory, text, input_data_checksum);
+  else
+    snprintf(filename, sizeof(filename), "%s-%016llx", text, input_data_checksum);
 
   return afl_input_write_to_file(data, filename);
 
 }
 
+// Timeout related functions
+afl_ret_t afl_input_dump_to_timeoutfile(afl_input_t *data, char *directory) {
+
+  return afl_input_dump_to_file("timeout", data, directory);
+
+}
+
 // Crash related functions
-afl_ret_t afl_input_dump_to_crashfile(afl_input_t *data) {
+afl_ret_t afl_input_dump_to_crashfile(afl_input_t *data, char *directory) {
 
-  char filename[128];
-
-  u64 input_data_checksum = XXH64(data->bytes, data->len, HASH_CONST);
-  snprintf(filename, sizeof(filename) - 1, "crash-%016llx", input_data_checksum);
-
-  return afl_input_write_to_file(data, filename);
+  return afl_input_dump_to_file("crash", data, directory);
 
 }
 

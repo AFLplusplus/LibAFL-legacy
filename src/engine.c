@@ -314,7 +314,8 @@ u8 afl_engine_execute(afl_engine_t *engine, afl_input_t *input) {
     default: {
 
       engine->crashes++;
-      afl_input_dump_to_crashfile(executor->current_input);  // Crash written
+      afl_queue_global_t *global_queue = afl_engine_get_queue(engine);
+      afl_input_dump_to_crashfile(executor->current_input, global_queue->base.dirpath);  // Crash written
       return AFL_RET_WRITE_TO_CRASH;
 
     }
