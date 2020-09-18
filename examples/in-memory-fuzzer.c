@@ -661,7 +661,7 @@ int main(int argc, char **argv) {
 
       }
 
-      SAYF("threads=%u paths=%llu crashes=%llu timeouts=%llu elapsed=%llu execs=%llu  exec/s=%llu\r", thread_count,
+      SAYF("threads=%u paths=%llu crashes=%llu timeouts=%llu elapsed=%llu execs=%llu exec/s=%llu\r", thread_count,
            fuzzer_stats.queue_entry_count, fuzzer_stats.crashes, fuzzer_stats.timeouts, time_elapsed, total_execs,
            total_execs / time_elapsed);
 
