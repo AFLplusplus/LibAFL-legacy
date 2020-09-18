@@ -51,9 +51,8 @@ libpng-1.6.37.tar.gz:
 
 libpng16.a:	libpng-1.6.37.tar.gz
 	tar -xvzf ./libpng-1.6.37.tar.gz || rm -f ./libpng-1.6.37.tar.gz
-	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure CFLAGS=-D_DEFAULT_SOURCE LDFLAGS= --disable-shared && $(MAKE) CFLAGS=-D_DEFAULT_SOURCE LDFLAGS=
+	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure CFLAGS="-D_DEFAULT_SOURCE" LDFLAGS="" --disable-shared && $(MAKE) CFLAGS=-D_DEFAULT_SOURCE LDFLAGS=
 	cp libpng-1.6.37/.libs/libpng16.a ./
-	rm -rf libpng-1.6.37
 
 target: $(AFL_PATH)/afl-llvm-rt.o target.c
 	$(AFL_CC) -g target.c -o target
@@ -65,7 +64,7 @@ llmp-main: ./llmp-main.c  ../libafl.a
 	$(CC) $(CFLAGS) llmp-main.c -o llmp-main $(LDFLAGS)
 
 in-memory-fuzzer: libpng16.a $(AFL_PATH)/afl-llvm-rt.o in-memory-fuzzer.c ../libafl.a
-	clang in-memory-fuzzer.c ./libpng16.a -g $(CFLAGS) -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -o in-memory-fuzzer $(AFL_PATH)/afl-llvm-rt.o $(LDFLAGS) -lz -lm
+	$(CC) -no-pie in-memory-fuzzer.c ./libpng16.a -g $(CFLAGS) -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -o in-memory-fuzzer $(AFL_PATH)/afl-llvm-rt.o $(LDFLAGS) -lz -lm
 
 test: clean forking-fuzzer target
 	mkdir ./in || true
