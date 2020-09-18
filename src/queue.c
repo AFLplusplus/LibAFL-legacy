@@ -169,8 +169,8 @@ afl_ret_t afl_queue_insert(afl_queue_t *queue, afl_entry_t *entry) {
     size_t i;
     for (i = 0; i < fuzz_one->stages_count; ++i) {
 
-      afl_fuzzing_stage_t *stage = (afl_fuzzing_stage_t *)fuzz_one->stages[i];
-      size_t               j;
+      afl_stage_t *stage = fuzz_one->stages[i];
+      size_t       j;
       for (j = 0; j < stage->mutators_count; ++j) {
 
         if (stage->mutators[j]->funcs.custom_queue_new_entry) {

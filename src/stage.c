@@ -33,6 +33,8 @@ afl_ret_t afl_stage_init(afl_stage_t *stage, afl_engine_t *engine) {
   if (engine) { engine->fuzz_one->funcs.add_stage(engine->fuzz_one, stage); }
 
   stage->funcs.get_iters = afl_stage_get_iters;
+  stage->funcs.perform = afl_stage_perform;
+  stage->funcs.add_mutator_to_stage = afl_stage_add_mutator;
 
   return AFL_RET_SUCCESS;
 
@@ -42,42 +44,18 @@ void afl_stage_deinit(afl_stage_t *stage) {
 
   stage->engine = NULL;
 
-}
+  for (size_t i = 0; i < stage->mutators_count; ++i) {
 
-afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_stage_t *fuzz_stage, afl_engine_t *engine) {
-
-  AFL_TRY(afl_stage_init(&(fuzz_stage->base), engine), {
-
-    return err;
-
-  });
-
-  fuzz_stage->funcs.add_mutator_to_stage = afl_fuzzing_stage_add_mutator;
-  fuzz_stage->base.funcs.perform = afl_stage_perform;
-
-  return AFL_RET_SUCCESS;
-
-}
-
-void afl_fuzzing_stage_deinit(afl_fuzzing_stage_t *fuzz_stage) {
-
-  size_t i;
-  /* We deinitialize the mutators associated with the stage here */
-
-  afl_stage_deinit(&(fuzz_stage->base));
-
-  for (i = 0; i < fuzz_stage->mutators_count; ++i) {
-
-    afl_mutator_deinit(fuzz_stage->mutators[i]);
+    afl_mutator_deinit(stage->mutators[i]);
 
   }
 
-  afl_free(fuzz_stage->mutators);
-  fuzz_stage->mutators = NULL;
+  afl_free(stage->mutators);
+  stage->mutators = NULL;
 
 }
 
-afl_ret_t afl_fuzzing_stage_add_mutator(afl_fuzzing_stage_t *stage, afl_mutator_t *mutator) {
+afl_ret_t afl_stage_add_mutator(afl_stage_t *stage, afl_mutator_t *mutator) {
 
   if (!stage || !mutator) { return AFL_RET_NULL_PTR; }
 
@@ -104,9 +82,8 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
-  afl_fuzzing_stage_t *fuzz_stage = (afl_fuzzing_stage_t *)stage;
 
-  size_t num = fuzz_stage->base.funcs.get_iters(stage);
+  size_t num = stage->funcs.get_iters(stage);
 
   for (size_t i = 0; i < num; ++i) {
 
@@ -114,9 +91,9 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
     if (!copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
     size_t j;
-    for (j = 0; j < fuzz_stage->mutators_count; ++j) {
+    for (j = 0; j < stage->mutators_count; ++j) {
 
-      afl_mutator_t *mutator = fuzz_stage->mutators[j];
+      afl_mutator_t *mutator = stage->mutators[j];
       // If the mutator decides not to fuzz this input, don't fuzz it. This is to support the custom mutator API of
       // AFL++
       if (mutator->funcs.custom_queue_get) {
@@ -140,9 +117,9 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
     }
 
     /* Let's post process the mutated data now. */
-    for (j = 0; j < fuzz_stage->mutators_count; ++j) {
+    for (j = 0; j < stage->mutators_count; ++j) {
 
-      afl_mutator_t *mutator = fuzz_stage->mutators[j];
+      afl_mutator_t *mutator = stage->mutators[j];
 
       if (mutator->funcs.post_process) { mutator->funcs.post_process(mutator, copy); }
 
