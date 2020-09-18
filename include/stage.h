@@ -32,6 +32,7 @@ struct afl_stage_funcs {
                                        // inputs to generate out of a given input
   /* Change the void pointer to a mutator * once it is ready */
   afl_ret_t (*add_mutator_to_stage)(afl_stage_t *, afl_mutator_t *);
+
 };
 
 struct afl_stage {
@@ -41,7 +42,8 @@ struct afl_stage {
   /* The list of mutator operators that this stage has */
   afl_mutator_t **mutators;
 
-  size_t                         mutators_count;
+  size_t mutators_count;
+
 };
 
 afl_ret_t afl_stage_perform(afl_stage_t *, afl_input_t *);

@@ -332,7 +332,7 @@ void fuzzer_process_main(llmp_client_t *client, void *data) {
 
   engine->llmp_client = client;
 
-  afl_stage_t *    stage = engine->fuzz_one->stages[0];
+  afl_stage_t *            stage = engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
 
   /* Let's reduce the timeout initially to fill the queue */

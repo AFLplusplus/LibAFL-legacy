@@ -43,7 +43,7 @@ afl_ret_t afl_stage_init(afl_stage_t *stage, afl_engine_t *engine) {
 void afl_stage_deinit(afl_stage_t *stage) {
 
   stage->engine = NULL;
-  
+
   for (size_t i = 0; i < stage->mutators_count; ++i) {
 
     afl_mutator_deinit(stage->mutators[i]);
@@ -52,6 +52,7 @@ void afl_stage_deinit(afl_stage_t *stage) {
 
   afl_free(stage->mutators);
   stage->mutators = NULL;
+
 }
 
 afl_ret_t afl_stage_add_mutator(afl_stage_t *stage, afl_mutator_t *mutator) {

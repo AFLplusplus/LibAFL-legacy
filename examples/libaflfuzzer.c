@@ -433,7 +433,7 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   /* set the global virgin_bits for error handlers, so we can restore them after a crash */
   virgin_bits = observer_covmap->shared_map.map;
 
-  afl_stage_t *    stage = engine->fuzz_one->stages[0];
+  afl_stage_t *            stage = engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
 
   afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
