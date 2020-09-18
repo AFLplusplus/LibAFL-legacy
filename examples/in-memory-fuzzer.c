@@ -365,7 +365,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dirpath) {
   AFL_TRY(afl_mutator_scheduled_add_havoc_funcs(mutators_havoc),
           { FATAL("Error adding mutators: %s", afl_ret_stringify(err)); });
 
-  afl_fuzzing_stage_t *stage = afl_fuzzing_stage_new(engine);
+  afl_stage_t *stage = afl_stage_new(engine);
   if (!stage) { FATAL("Error creating fuzzing stage"); }
   AFL_TRY(stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base),
           { FATAL("Error adding mutator: %s", afl_ret_stringify(err)); });
@@ -408,7 +408,7 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   /* set the global virgin_bits for error handlers, so we can restore them after a crash */
   virgin_bits = observer_covmap->shared_map.map;
 
-  afl_fuzzing_stage_t *    stage = (afl_fuzzing_stage_t *)engine->fuzz_one->stages[0];
+  afl_stage_t *    stage = engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
 
   afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
@@ -431,7 +431,7 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   afl_feedback_cov_delete(coverage_feedback);
   afl_observer_covmap_delete(observer_covmap);
   afl_mutator_scheduled_delete(mutators_havoc);
-  afl_fuzzing_stage_delete(stage);
+  afl_stage_delete(stage);
   afl_fuzz_one_delete(engine->fuzz_one);
 
   for (i = 0; i < engine->feedbacks_count; ++i) {

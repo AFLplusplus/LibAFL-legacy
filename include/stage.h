@@ -30,57 +30,27 @@ struct afl_stage_funcs {
   afl_ret_t (*perform)(afl_stage_t *, afl_input_t *input);
   size_t (*get_iters)(afl_stage_t *);  // A function which tells how many mutated
                                        // inputs to generate out of a given input
-
+  /* Change the void pointer to a mutator * once it is ready */
+  afl_ret_t (*add_mutator_to_stage)(afl_stage_t *, afl_mutator_t *);
 };
 
 struct afl_stage {
 
   afl_engine_t *         engine;
   struct afl_stage_funcs funcs;
+  /* The list of mutator operators that this stage has */
+  afl_mutator_t **mutators;
 
+  size_t                         mutators_count;
 };
 
 afl_ret_t afl_stage_perform(afl_stage_t *, afl_input_t *);
 size_t    afl_stage_get_iters(afl_stage_t *);
 afl_ret_t afl_stage_init(afl_stage_t *, afl_engine_t *);
 void      afl_stage_deinit(afl_stage_t *);
+afl_ret_t afl_stage_add_mutator(afl_stage_t *, afl_mutator_t *);
 
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_stage, AFL_DECL_PARAMS(afl_engine_t *engine), AFL_CALL_PARAMS(engine))
-
-/*
-This structure here represents a single fuzzing stage in  the process. e.g It
-can be used to model a single fuzzing stage in AFL++, like the determinisitc
-phase, or the havoc phase. Since each of the stages can have their own mutators,
-a list of mutators can be added to the stage.
-*/
-
-typedef struct afl_fuzzing_stage afl_fuzzing_stage_t;
-
-struct afl_fuzzing_stage_funcs {
-
-  /* Change the void pointer to a mutator * once it is ready */
-  afl_ret_t (*add_mutator_to_stage)(afl_fuzzing_stage_t *, afl_mutator_t *);
-
-};
-
-struct afl_fuzzing_stage {
-
-  /* Standard "inheritence" from stage */
-  afl_stage_t base;
-  /* The list of mutator operators that this stage has */
-  afl_mutator_t **mutators;
-
-  struct afl_fuzzing_stage_funcs funcs;
-  size_t                         mutators_count;
-
-};
-
-afl_ret_t afl_fuzzing_stage_add_mutator(afl_fuzzing_stage_t *, afl_mutator_t *);
-
-afl_ret_t afl_fuzzing_stage_init(afl_fuzzing_stage_t *, afl_engine_t *);
-void      afl_fuzzing_stage_deinit(afl_fuzzing_stage_t *);
-
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_fuzzing_stage, AFL_DECL_PARAMS(afl_engine_t *engine), AFL_CALL_PARAMS(engine))
 
 #endif
 
