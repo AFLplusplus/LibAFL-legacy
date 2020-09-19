@@ -107,7 +107,17 @@ afl_exit_t harness_func(afl_executor_t *executor, u8 *input, size_t len) {
   (void)executor;
 
   LLVMFuzzerTestOneInput(input, len);
-  // debug_LLVMFuzzerTestOneInput(input, len);
+
+  return AFL_EXIT_OK;
+
+}
+
+/* The actual harness call: LLVMFuzzerTestOneInput */
+afl_exit_t debug_harness_func(afl_executor_t *executor, u8 *input, size_t len) {
+
+  (void)executor;
+
+  debug_LLVMFuzzerTestOneInput(input, len);
 
   return AFL_EXIT_OK;
 
@@ -151,7 +161,7 @@ static void handle_timeout(int sig, siginfo_t *info, void *ucontext) {
 
   if (!current_fuzz_input_msg) {
 
-    WARNF("SIGUSR/timeout happened, but not currently fuzzing!");
+    if (debug) WARNF("SIGUSR/timeout happened, but not currently fuzzing!");
     return;
 
   }
@@ -341,7 +351,10 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
   /* Let's create an in-memory executor */
   in_memory_executor_t *in_memory_executor = calloc(1, sizeof(in_memory_executor_t));
   if (!in_memory_executor) { PFATAL("Unable to allocate mem."); }
-  in_memory_executor_init(in_memory_executor, harness_func);
+  if (debug)
+    in_memory_executor_init(in_memory_executor, debug_harness_func);
+  else
+    in_memory_executor_init(in_memory_executor, harness_func);
   in_memory_executor->argc = argc;
   in_memory_executor->argv = afl_argv_cpy_dup(argc, argv);
   in_memory_executor->base.funcs.init_cb = in_memory_fuzzer_initialize;
@@ -637,7 +650,7 @@ int main(int argc, char **argv) {
   /* This is not necessary but gives us the option to add additional processes to the fuzzer at runtime. */
   if (!llmp_broker_register_local_server(llmp_broker, broker_port)) { FATAL("Broker register failed"); }
 
-  OKF("Created broker for successfully.");
+  OKF("Created broker successfully.");
 
   /* The message hook will intercept all messages from all clients - and listen for stats. */
   fuzzer_stats_t fuzzer_stats = {0};

@@ -1,7 +1,5 @@
 MAKEFILE_PATH := $(abspath .)
-AFL_PATH ?= $(MAKEFILE_PATH)/AFLplusplus
 LIBAFL_PATH := $(MAKEFILE_PATH)/..
-AFL_CC := $(AFL_PATH)/afl-clang-fast
 CFLAGS += -g -Wall -Wextra -Wshadow -fstack-protector-strong
 override CFLAGS += -I../include
 override LDFLAGS += ../libafl.a -lpthread -lrt
@@ -28,19 +26,10 @@ ifdef MSAN
   override LDFLAGS += -fsanitize=memory
 endif
 
-$(info AFL_PATH is $(AFL_PATH))
+all: target forking-fuzzer libaflfuzzer-libpng llmp-main
 
-all: target forking-fuzzer in-memory-fuzzer llmp-main
-
-$(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c:
-	-git submodule init 2> /dev/null
-	-git submodule update 2> /dev/null
-	test -d $(AFL_PATH) || git clone https://github.com/AFLplusplus/AFLplusplus
-
-$(AFL_PATH)/afl-llvm-rt.o: $(AFL_PATH)/llvm_mode/afl-llvm-rt.o.c
-	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)
-	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)/llvm_mode
-#	$(MAKE) CFLAGS= LDFLAGS= -C $(AFL_PATH)/examples/aflpp_driver
+afl-compiler-rt.o: afl-compiler-rt.o.c
+	clang -O3 -I../include -c -o afl-compiler-rt.o afl-compiler-rt.o.c
 
 .PHONY: ../libafl.a
 ../libafl.a:
@@ -51,20 +40,25 @@ libpng-1.6.37.tar.gz:
 
 libpng16.a:	libpng-1.6.37.tar.gz
 	tar -xvzf ./libpng-1.6.37.tar.gz || rm -f ./libpng-1.6.37.tar.gz
-	cd libpng-1.6.37 && CC=$(AFL_CC) CXX=$(AFL_PATH)/afl-clang-fast++ ./configure CFLAGS="-D_DEFAULT_SOURCE" LDFLAGS="" --disable-shared && $(MAKE) CFLAGS=-D_DEFAULT_SOURCE LDFLAGS=
+	cd libpng-1.6.37 && \
+	export CC=clang && export CXX=clang++ && \
+	export CFLAGS="-D_DEFAULT_SOURCE -fsanitize-coverage=trace-pc-guard" && \
+	export CXXFLAGS="$CFLAGS" && unset LDFLAGS && \
+	./configure --disable-shared && \
+	$(MAKE)
 	cp libpng-1.6.37/.libs/libpng16.a ./
 
-target: $(AFL_PATH)/afl-llvm-rt.o target.c
-	$(AFL_CC) -g target.c -o target
+target: afl-compiler-rt.o target.c
+	clang -fsanitize-coverage=trace-pc-guard -g target.c -o target
 
-forking-fuzzer: ./forking-fuzzer.c ../libafl.a
+forking-fuzzer: forking-fuzzer.c ../libafl.a
 	$(CC) $(CFLAGS) forking-fuzzer.c -o forking-fuzzer $(LDFLAGS)
 
-llmp-main: ./llmp-main.c  ../libafl.a
+llmp-main: llmp-main.c  ../libafl.a
 	$(CC) $(CFLAGS) llmp-main.c -o llmp-main $(LDFLAGS)
 
-in-memory-fuzzer: libpng16.a $(AFL_PATH)/afl-llvm-rt.o in-memory-fuzzer.c ../libafl.a
-	$(CC) -no-pie in-memory-fuzzer.c ./libpng16.a -g $(CFLAGS) -Ilibpng-1.6.37 -Iexecutors -Ifeedbacks -o in-memory-fuzzer $(AFL_PATH)/afl-llvm-rt.o $(LDFLAGS) -lz -lm
+libaflfuzzer-libpng: libpng16.a libaflfuzzer-harness-libpng.c ../libaflfuzzer.a
+	clang -g -fsanitize-coverage=trace-pc-guard -Ilibpng-1.6.37 -o libaflfuzzer-libpng ../libaflfuzzer.a libaflfuzzer-harness-libpng.c ./libpng16.a -pthread -lrt  -lz -lm
 
 test: clean forking-fuzzer target
 	mkdir ./in || true
@@ -76,12 +70,11 @@ test: clean forking-fuzzer target
 	rm -rf ./crashes-* 2>/dev/null || trues
 
 clean:
-	rm -rf out forking-fuzzer target success in-memory-fuzzer llmp-main 2>/dev/null || true
+	rm -rf out forking-fuzzer target success libaflfuzzer-libpng llmp-main 2>/dev/null || true
 	rm -rf in 2>/dev/null	|| true
 	rm -rf crashes-* 2>/dev/null || true
 	rm -rf llmp-main || true
 	rm -rf out-* || true
 
 deepclean: clean
-	$(make) -C $(AFL_PATH) clean || true
 	rm -rf libpng-1.6.37 libpng16.a 2>/dev/null || true

@@ -22,10 +22,10 @@ ifdef MSAN
   override LDFLAGS += -fsanitize=memory
 endif
 
-all:	examples $(TARGETS)
+all:	$(TARGETS) examples 
 
 clean:
-	rm -f src/*.o
+	rm -f src/*.o examples/*.o
 	rm -f $(TARGETS) example-fuzzer
 	$(MAKE) -C examples clean
 
@@ -90,20 +90,16 @@ libafl.a: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/feed
 	@rm -f libafl.a
 	ar -crs libafl.a $^
 
-examples/AFLplusplus/llvm_mode/afl-llvm-rt.o.c:
-	test -e examples/AFLplusplus/Makefile || git clone https://github.com/AFLplusplus/AFLplusplus examples/AFLplusplus
+examples/afl-compiler-rt.o:	examples/afl-compiler-rt.o.c
+	clang -O3 -Iinclude -c -o examples/afl-compiler-rt.o examples/afl-compiler-rt.o.c
 
-examples/AFLplusplus/afl-llvm-rt.o:	examples/AFLplusplus/llvm_mode/afl-llvm-rt.o.c
-	$(MAKE) AFL_NO_X86=1 CFLAGS= LDFLAGS= -C examples/AFLplusplus afl-showmap
-	$(MAKE) CFLAGS= LDFLAGS= -C examples/AFLplusplus/llvm_mode ../afl-llvm-rt.o
-
-libaflfuzzer.a: libafl.a examples/AFLplusplus/afl-llvm-rt.o
+libaflfuzzer.a: libafl.a examples/afl-compiler-rt.o
 	@rm -f libaflfuzzer.a
 	clang $(CFLAGS) $(LDFLAGS) -c -o examples/libaflfuzzer.o examples/libaflfuzzer.c
-	ar -crs libaflfuzzer.a src/*.o examples/AFLplusplus/afl-llvm-rt.o examples/libaflfuzzer.o
+	ar -crs libaflfuzzer.a src/*.o examples/afl-compiler-rt.o examples/libaflfuzzer.o
 
 examples/libaflfuzzer-test:	libaflfuzzer.a
-	clang -fsanitize-coverage=trace-pc-guard -Iexamples/AFLplusplus/include/ -o examples/libaflfuzzer-test examples/AFLplusplus/examples/aflpp_driver/aflpp_driver_test.c libaflfuzzer.a examples/AFLplusplus/src/afl-performance.o -pthread $(LDFLAGS) -lrt
+	clang -Iinclude -fsanitize-coverage=trace-pc-guard -o examples/libaflfuzzer-test examples/libaflfuzzer-harness-test.c libaflfuzzer.a -pthread -lrt
 
 .PHONY: examples
 examples:
