@@ -62,38 +62,18 @@ typedef struct fuzzer_stats {
 
 } fuzzer_stats_t;
 
-#if 0
-/* for testing */
-static void force_segfault(void) {
-
-  DBG("Crashing...");
-  /* If you don't segfault, what else will? */
-  printf("%d", ((int *)1337)[42]);
-
-}
-
-static void force_timeout(void) {
-
-  DBG("Timeout...");
-  static volatile int a = 1337;
-  while (a) {}
-
-}
-
-#endif
-
 int debug_LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 
   u32 i;
   fprintf(stderr, "Enter harness function %p %lu\n", data, size);
-  for (i = 0; i < 65536; i++)
+  for (i = 0; i < __afl_map_size; i++)
     if (__afl_area_ptr[i])
       fprintf(stderr, "Error: map unclean before harness: map[%04x]=0x%02x\n", i, __afl_area_ptr[i]);
 
   int ret = LLVMFuzzerTestOneInput(data, size);
 
   fprintf(stderr, "MAP:");
-  for (i = 0; i < 65536; i++)
+  for (i = 0; i < __afl_map_size; i++)
     if (__afl_area_ptr[i]) fprintf(stderr, " map[%04x]=0x%02x", i, __afl_area_ptr[i]);
   fprintf(stderr, "\n");
 

@@ -93,12 +93,12 @@ libafl.a: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/feed
 examples/afl-compiler-rt.o:	examples/afl-compiler-rt.o.c
 	clang -O3 -Iinclude -c -o examples/afl-compiler-rt.o examples/afl-compiler-rt.o.c
 
-libaflfuzzer.a: libafl.a examples/afl-compiler-rt.o
+libaflfuzzer.a: libafl.a examples/afl-compiler-rt.o examples/libaflfuzzer.c
 	@rm -f libaflfuzzer.a
 	clang $(CFLAGS) $(LDFLAGS) -c -o examples/libaflfuzzer.o examples/libaflfuzzer.c
 	ar -crs libaflfuzzer.a src/*.o examples/afl-compiler-rt.o examples/libaflfuzzer.o
 
-examples/libaflfuzzer-test:	libaflfuzzer.a
+examples/libaflfuzzer-test:	libaflfuzzer.a examples/libaflfuzzer-harness-test.c
 	clang -Iinclude -fsanitize-coverage=trace-pc-guard -o examples/libaflfuzzer-test examples/libaflfuzzer-harness-test.c libaflfuzzer.a -pthread -lrt
 
 .PHONY: examples
