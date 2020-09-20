@@ -118,7 +118,7 @@ static inline u32 afl_read_s32_timed(s32 fd, s32 *buf, u32 timeout_ms) {
   timeout.tv_sec = (timeout_ms / 1000);
   timeout.tv_usec = (timeout_ms % 1000) * 1000;
 #if !defined(__linux__)
-  u64 read_start = get_cur_time_us();
+  u64 read_start = afl_get_cur_time_us();
 #endif
 
   /* set exceptfds as well to return when a child exited/closed the pipe. */
@@ -135,7 +135,7 @@ restart_select:
 #if defined(__linux__)
       u32 exec_ms = MIN(timeout_ms, ((u64)timeout_ms - (timeout.tv_sec * 1000 + timeout.tv_usec / 1000)));
 #else
-      u32 exec_ms = MIN(timeout_ms, get_cur_time_us() - read_start);
+      u32 exec_ms = MIN(timeout_ms, afl_get_cur_time_us() - read_start);
 #endif
 
       // ensure to report 1 ms has passed (0 is an error)
