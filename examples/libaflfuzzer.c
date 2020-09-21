@@ -37,6 +37,7 @@ static char *          queue_dirpath;
 
 typedef struct cur_state {
 
+  u64    new_execs;
   size_t map_size;
   size_t current_input_len;
   u8     payload[];
@@ -311,7 +312,7 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
   // afl_ret_t type to the callee
 
   /* Gather some stats */
-  if (unlikely(engine->executions % 12345 && engine->last_update < afl_get_cur_time_s())) { client_send_stats(engine); }
+  if (unlikely(engine->executions % 123 && engine->last_update < afl_get_cur_time_s())) { client_send_stats(engine); }
 
   switch (run_result) {
 
@@ -536,7 +537,9 @@ bool broker_handle_client_restart(llmp_broker_t *broker, llmp_broker_clientdata_
 /* A hook to keep stats in the broker thread */
 bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *clientdata, llmp_message_t *msg, void *data) {
 
-  ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].last_msg_time = afl_get_cur_time();
+  fuzzer_stats_t *       fuzzer_stats = ((fuzzer_stats_t *)data);
+  broker_client_stats_t *client_stats = &fuzzer_stats->clients[clientdata->client_state->id - 1];
+  client_stats->last_msg_time = afl_get_cur_time();
 
   DBG("Broker: msg hook called with msg tag %X", msg->tag);
   cur_state_t *state = NULL;
@@ -545,14 +548,14 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
   switch (msg->tag) {
 
     case LLMP_TAG_NEW_QUEUE_ENTRY_V1:
-      ((fuzzer_stats_t *)data)->queue_entry_count++;
+      fuzzer_stats->queue_entry_count++;
       return true;  // Forward this to the clients
     case LLMP_TAG_EXEC_STATS_V1:
-      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].total_execs += *(LLMP_MSG_BUF_AS(msg, u64));
+      client_stats->total_execs += *(LLMP_MSG_BUF_AS(msg, u64));
       return false;  // don't forward this to the clients
     case LLMP_TAG_TIMEOUT_V1:
       DBG("We found a timeout...");
-      ((fuzzer_stats_t *)data)->timeouts++;
+      fuzzer_stats->timeouts++;
       /* write timeout output */
       state = LLMP_MSG_BUF_AS(msg, cur_state_t);
       afl_input_t timeout_input = {0};
@@ -567,15 +570,16 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
 
       broker_handle_client_restart(broker, clientdata, state);
 
+      client_stats->total_execs += state->new_execs;
       // Reset timeout
-      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].last_msg_time = 0;
+      client_stats->last_msg_time = 0;
 
       return false;  // Don't foward this msg to clients.
 
     case LLMP_TAG_CRASH_V1:
 
       DBG("We found a crash!");
-      ((fuzzer_stats_t *)data)->crashes++;
+      fuzzer_stats->crashes++;
       /* write crash output */
       state = LLMP_MSG_BUF_AS(msg, cur_state_t);
       afl_input_t crashing_input = {0};
@@ -589,8 +593,9 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
 
       broker_handle_client_restart(broker, clientdata, state);
 
+      client_stats->total_execs += state->new_execs;
       // Reset timeout
-      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].last_msg_time = 0;
+      client_stats->last_msg_time = 0;
 
       return false;  // no need to foward this to clients.
     default:
@@ -700,9 +705,11 @@ int main(int argc, char **argv) {
 
   while (1) {
 
+    /* Chill a bit */
+    usleep(200);
+
     /* Forward all messages that arrived in the meantime */
     llmp_broker_once(llmp_broker);
-    usleep(100);
 
     /* Paint ui every second */
     if ((time_cur = afl_get_cur_time_s()) > time_prev) {
