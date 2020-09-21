@@ -212,10 +212,10 @@ float __attribute__((hot)) afl_feedback_cov_is_interesting(afl_feedback_t *feedb
   }
 
 #ifdef DEBUG
-  DBG("MAP: %p %lu ", obs_channel->shared_map.map, obs_channel->shared_map.map_size);
+  DBG("MAP: %p %lu", obs_channel->shared_map.map, obs_channel->shared_map.map_size);
   for (u32 j = 0; j < obs_channel->shared_map.map_size; j++) {
 
-    if (obs_channel->shared_map.map[j]) { printf("    %02x=%02x", j, obs_channel->shared_map.map[j]); }
+    if (obs_channel->shared_map.map[j]) { printf(" %04x=%02x", j, obs_channel->shared_map.map[j]); }
 
   }
 
