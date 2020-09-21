@@ -245,13 +245,26 @@ static void setup_signal_handlers(void) {
 
 }
 
+void client_send_stats(afl_engine_t *engine) {
+
+  llmp_client_t * llmp_client = engine->llmp_client;
+  llmp_message_t *msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
+  msg->tag = LLMP_TAG_EXEC_STATS_V1;
+  u64 *x = (u64 *)msg->buf;
+  *x = engine->executions;
+  engine->executions = 0;
+  llmp_client_send(llmp_client, msg);
+  engine->last_update = afl_get_cur_time_s();
+
+}
+
 u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
   size_t          i;
   afl_executor_t *executor = engine->executor;
 
   /* Check for engine to be configured properly. Only to check setup in newly forked threads so debug only */
-  AFL_TRY(afl_engine_check_configuration(engine), { FATAL("Engine configured incompletely"); });
+  // AFL_TRY(afl_engine_check_configuration(engine), { FATAL("Engine configured incompletely"); });
 
   executor->funcs.observers_reset(executor);
   executor->funcs.place_input_cb(executor, input);
@@ -259,8 +272,11 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
   // TODO move to execute_init()
   if (unlikely(engine->start_time == 0)) {
 
+    engine->executions = 0;
+
     engine->start_time = afl_get_cur_time();
     engine->last_update = afl_get_cur_time_s();
+    client_send_stats(engine);
 
   }
 
@@ -295,17 +311,7 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
   // afl_ret_t type to the callee
 
   /* Gather some stats */
-  if (engine->executions % 12345 && engine->last_update < afl_get_cur_time_s()) {
-
-    llmp_client_t * llmp_client = engine->llmp_client;
-    llmp_message_t *msg = llmp_client_alloc_next(llmp_client, sizeof(u64));
-    msg->tag = LLMP_TAG_EXEC_STATS_V1;
-    u64 *x = (u64 *)msg->buf;
-    *x = engine->executions;
-    llmp_client_send(llmp_client, msg);
-    engine->last_update = afl_get_cur_time_s();
-
-  }
+  if (unlikely(engine->executions % 12345 && engine->last_update < afl_get_cur_time_s())) { client_send_stats(engine); }
 
   switch (run_result) {
 
@@ -530,6 +536,8 @@ bool broker_handle_client_restart(llmp_broker_t *broker, llmp_broker_clientdata_
 /* A hook to keep stats in the broker thread */
 bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *clientdata, llmp_message_t *msg, void *data) {
 
+  ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].last_msg_time = afl_get_cur_time();
+
   DBG("Broker: msg hook called with msg tag %X", msg->tag);
   cur_state_t *state = NULL;
 
@@ -540,8 +548,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       ((fuzzer_stats_t *)data)->queue_entry_count++;
       return true;  // Forward this to the clients
     case LLMP_TAG_EXEC_STATS_V1:
-      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].last_msg_time = afl_get_cur_time();
-      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].total_execs = *(LLMP_MSG_BUF_AS(msg, u64));
+      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].total_execs += *(LLMP_MSG_BUF_AS(msg, u64));
       return false;  // don't forward this to the clients
     case LLMP_TAG_TIMEOUT_V1:
       DBG("We found a timeout...");
