@@ -218,6 +218,8 @@ afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath
 
     afl_ret_t run_result = engine->funcs.execute(engine, input);
 
+    if (engine->verbose) OKF("Loaded seed %s", infile);
+
     /* We add the corpus to the queue initially for all the feedback queues */
 
     for (i = 0; i < engine->feedbacks_count; ++i) {

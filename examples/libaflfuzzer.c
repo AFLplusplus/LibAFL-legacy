@@ -274,7 +274,6 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
   if (unlikely(engine->start_time == 0)) {
 
     engine->executions = 0;
-
     engine->start_time = afl_get_cur_time();
     engine->last_update = afl_get_cur_time_s();
     client_send_stats(engine);
@@ -377,6 +376,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
   /* Let's build an engine now */
   afl_engine_t *engine = afl_engine_new(&in_memory_executor->base, NULL, global_queue);
   if (!engine) { FATAL("Error initializing Engine"); }
+  engine->verbose = 1;
   engine->funcs.add_feedback(engine, &coverage_feedback->base);
   engine->funcs.set_global_queue(engine, global_queue);
   engine->in_dir = in_dir;
@@ -438,6 +438,7 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 
   afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
 
+  engine->funcs.load_testcases_from_dir(engine, queue_dirpath, NULL);  // ignore if it fails.
   /* Now we can simply load the testcases from the directory given */
   AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL),
           { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); });
@@ -706,7 +707,7 @@ int main(int argc, char **argv) {
   while (1) {
 
     /* Chill a bit */
-    usleep(200);
+    usleep(175);
 
     /* Forward all messages that arrived in the meantime */
     llmp_broker_once(llmp_broker);

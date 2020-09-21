@@ -69,6 +69,7 @@ struct afl_engine {
                                     // feedback would already be allocated
   u64   executions, start_time, last_update, crashes, feedbacks_count;
   u32   id;
+  u8    verbose;
   char *in_dir;  // Input corpus directory
 
   afl_rand_t rand;
