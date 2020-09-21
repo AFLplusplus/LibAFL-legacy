@@ -58,7 +58,7 @@ llmp-main: llmp-main.c  ../libafl.a
 	$(CC) $(CFLAGS) llmp-main.c -o llmp-main $(LDFLAGS)
 
 libaflfuzzer-libpng: libpng16.a libaflfuzzer-harness-libpng.c ../libaflfuzzer.a
-	clang -g -fsanitize-coverage=trace-pc-guard -Ilibpng-1.6.37 -o libaflfuzzer-libpng ../libaflfuzzer.a libaflfuzzer-harness-libpng.c ./libpng16.a -pthread -lrt  -lz -lm
+	clang -g -fsanitize-coverage=trace-pc-guard -Ilibpng-1.6.37 -o libaflfuzzer-libpng ../libaflfuzzer.a libaflfuzzer-harness-libpng.c ./libpng16.a -pthread -lrt  -lz -lm $(LDFLAGS)
 
 test: clean forking-fuzzer target
 	mkdir ./in || true

@@ -424,22 +424,34 @@ afl_ret_t afl_engine_check_configuration(afl_engine_t *engine) {
 
   if (!engine->llmp_client) { AFL_WARN_ENGINE("llmp client") }
 
-  for (size_t i = 0; i < executor->observors_count; ++i) {
+  if (executor) {
 
-    if (!executor->observors[i]) { AFL_WARN_ENGINE("observation channel") }
+    for (size_t i = 0; i < executor->observors_count; ++i) {
 
-  }
+      if (!executor->observors[i]) { AFL_WARN_ENGINE("observation channel") }
 
-  for (size_t i = 0; i < global_queue->feedback_queues_count; ++i) {
-
-    if (!global_queue->feedback_queues[i]) { AFL_WARN_ENGINE("Feedback queue") }
+    }
 
   }
 
-  for (size_t i = 0; i < fuzz_one->stages_count; ++i) {
+  if (global_queue) {
 
-    if (!fuzz_one->stages[i]) { AFL_WARN_ENGINE("Stage") }
-    /* Stage needs to be checked properly */
+    for (size_t i = 0; i < global_queue->feedback_queues_count; ++i) {
+
+      if (!global_queue->feedback_queues[i]) { AFL_WARN_ENGINE("Feedback queue") }
+
+    }
+
+  }
+
+  if (fuzz_one) {
+
+    for (size_t i = 0; i < fuzz_one->stages_count; ++i) {
+
+      if (!fuzz_one->stages[i]) { AFL_WARN_ENGINE("Stage") }
+      /* Stage needs to be checked properly */
+
+    }
 
   }
 

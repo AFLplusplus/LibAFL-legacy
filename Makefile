@@ -3,7 +3,7 @@ override CFLAGS  += -g -fPIC -Iinclude -Wall -Wextra -Werror -Wshadow -fstack-pr
 
 ifdef DEBUG
   AFL_DEBUG=1 # always enable logs for now
-  override CFLAGS += -DDEBUG -ggdb -Og -DAFL_DEBUG=1
+  override CFLAGS += -DDEBUG -ggdb -O0 -DAFL_DEBUG=1
 endif
 ifndef DEBUG
   override CFLAGS += -D_FORTIFY_SOURCE=2 -O3
@@ -99,7 +99,7 @@ libaflfuzzer.a: libafl.a examples/afl-compiler-rt.o examples/libaflfuzzer.c
 	ar -crs libaflfuzzer.a src/*.o examples/afl-compiler-rt.o examples/libaflfuzzer.o
 
 examples/libaflfuzzer-test:	libaflfuzzer.a examples/libaflfuzzer-harness-test.c
-	clang -Iinclude -fsanitize-coverage=trace-pc-guard -o examples/libaflfuzzer-test examples/libaflfuzzer-harness-test.c libaflfuzzer.a -pthread -lrt
+	clang -Iinclude -fsanitize-coverage=trace-pc-guard -o examples/libaflfuzzer-test examples/libaflfuzzer-harness-test.c libaflfuzzer.a -pthread -lrt $(CFLAGS) $(LDFLAGS)
 
 .PHONY: examples
 examples:

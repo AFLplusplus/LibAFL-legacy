@@ -1179,7 +1179,14 @@ void llmp_clientloop_process_server(llmp_client_t *client_state, void *data) {
   /* port 2801 */
   serv_addr.sin_port = htons(port);
 
-  if (bind(listenfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) { PFATAL("Could not bind to %d", port); }
+  uint32_t backoff = 2;
+  while (bind(listenfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1) {
+
+    WARNF("Could not bind to %d! Retrying in %d seconds.", port, backoff);
+    sleep(backoff);
+    backoff *= 2;
+
+  }
 
   if (listen(listenfd, 10) == -1) { PFATAL("Coult not listen to %d", port); }
 

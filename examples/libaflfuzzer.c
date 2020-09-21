@@ -481,19 +481,27 @@ bool broker_handle_client_restart(llmp_broker_t *broker, llmp_broker_clientdata_
   }
 
   /* Remove this client, then spawn a new client with the current state.*/
+  DBG("Removing old/crashed client");
 
   /* TODO: We should probably waite for the old client pid to finish (or kill it?) before creating a new one */
   clientdata->client_state->current_broadcast_map = NULL;  // Don't kill our map :)
   llmp_client_delete(clientdata->client_state);
   afl_shmem_deinit(clientdata->cur_client_map);
 
+  DBG("Creating new client #phoenix");
   clientdata->client_state = llmp_client_new_unconnected();
+  if (!clientdata->client_state) { PFATAL("Error allocating replacement client after crash"); }
   /* restore old client id */
   clientdata->client_state->id = client_id;
-  if (!clientdata->client_state) { PFATAL("Error allocating replacement client after crash"); }
   /* link the new broker to the client at the position of the old client by connecting shmems. */
-  clientdata->client_state->current_broadcast_map = &broker->broadcast_maps[0];
-  clientdata->cur_client_map = &clientdata->client_state->out_maps[0];
+  /* TODO: Do this inside the forked thread instead? Right now, we're mapping it twice... */
+  afl_shmem_t *broadcast_map = calloc(1, sizeof(afl_shmem_t));
+  if (!broadcast_map) { PFATAL("Could not alloc mem for broadcast map"); }
+  afl_shmem_by_str(broadcast_map, broker->broadcast_maps[0].shm_str, broker->broadcast_maps[0].map_size);
+  clientdata->client_state->current_broadcast_map = broadcast_map;
+
+  afl_shmem_by_str(clientdata->cur_client_map, clientdata->client_state->out_maps[0].shm_str,
+                   clientdata->client_state->out_maps[0].map_size);
 
   /* restore the old virgin_bits for this fuzzer before reforking */
   afl_engine_t *engine = (afl_engine_t *)clientdata->data;
@@ -551,6 +559,10 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
               { WARNF("Could not write timeout file!"); });
 
       broker_handle_client_restart(broker, clientdata, state);
+
+      // Reset timeout
+      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].last_msg_time = 0;
+
       return false;  // Don't foward this msg to clients.
 
     case LLMP_TAG_CRASH_V1:
@@ -569,6 +581,9 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       AFL_TRY(afl_input_dump_to_crashfile(&crashing_input, queue_dirpath), { WARNF("Could not write crash file!"); });
 
       broker_handle_client_restart(broker, clientdata, state);
+
+      // Reset timeout
+      ((fuzzer_stats_t *)data)->clients[clientdata->client_state->id - 1].last_msg_time = 0;
 
       return false;  // no need to foward this to clients.
     default:
@@ -627,6 +642,7 @@ int main(int argc, char **argv) {
 
   llmp_broker_t *llmp_broker = llmp_broker_new();
   if (!llmp_broker) { FATAL("Broker creation failed"); }
+
   /* This is not necessary but gives us the option to add additional processes to the fuzzer at runtime. */
   if (!llmp_broker_register_local_server(llmp_broker, broker_port)) { FATAL("Broker register failed"); }
 
