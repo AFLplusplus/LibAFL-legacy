@@ -26,7 +26,9 @@
 #include <dirent.h>
 #include <time.h>
 #include <limits.h>
-
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include "engine.h"
 #include "aflpp.h"
 #include "afl-returns.h"
@@ -152,33 +154,17 @@ afl_ret_t afl_engine_add_feedback(afl_engine_t *engine, afl_feedback_t *feedback
 
 }
 
-afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath,
-                                             afl_input_t *(*custom_input_new)(void)) {
+afl_ret_t __afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath,
+                                               afl_input_t *(*custom_input_new)(void)) {
 
   DIR *          dir_in = NULL;
   struct dirent *dir_ent = NULL;
   char           infile[PATH_MAX];
   size_t         i;
+  uint32_t       ok = 0;
 
   afl_input_t *input;
-  size_t       dir_name_size = strlen(dirpath);
-
-  if (dirpath[dir_name_size - 1] == '/') { dirpath[dir_name_size - 1] = '\x00'; }
-
   if (!(dir_in = opendir(dirpath))) { return AFL_RET_FILE_OPEN_ERROR; }
-
-  /* Since, this'll be the first execution, Let's start up the executor here */
-
-  if ((engine->executions == 0) && engine->executor->funcs.init_cb) {
-
-    AFL_TRY(engine->executor->funcs.init_cb(engine->executor), {
-
-      closedir(dir_in);
-      return err;
-
-    });
-
-  }
 
   while ((dir_ent = readdir(dir_in))) {
 
@@ -188,14 +174,27 @@ afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath
 
     }
 
+    snprintf((char *)infile, sizeof(infile), "%s/%s", dirpath, dir_ent->d_name);
+    infile[sizeof(infile) - 1] = '\0';
+
+    /* TODO: Error handling? */
+    struct stat st;
+    if (access(infile, R_OK) != 0 || stat(infile, &st) != 0) continue;
+    if (S_ISDIR(st.st_mode)) {
+
+      if (__afl_engine_load_testcases_from_dir(engine, infile, custom_input_new) == AFL_RET_SUCCESS) ok = 1;
+      continue;
+
+    }
+
+    if (!S_ISREG(st.st_mode)) continue;
+
     /* TODO: Not sure if this makes any sense at all? */
     if (custom_input_new) {
 
       input = custom_input_new();
 
-    }
-
-    else {
+    } else {
 
       input = afl_input_new();
 
@@ -210,15 +209,20 @@ afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath
 
     }
 
-    snprintf((char *)infile, sizeof(infile), "%s/%s", dirpath, dir_ent->d_name);
-    infile[sizeof(infile) - 1] = '\0';
-
-    /* TODO: Error handling? */
     input->funcs.load_from_file(input, infile);
 
     afl_ret_t run_result = engine->funcs.execute(engine, input);
 
-    if (engine->verbose) OKF("Loaded seed %s", infile);
+    if (run_result == AFL_RET_SUCCESS) {
+
+      if (engine->verbose) OKF("Loaded seed %s", infile);
+      ok = 1;
+
+    } else {
+
+      WARNF("Error loading seed %s", infile);
+
+    }
 
     /* We add the corpus to the queue initially for all the feedback queues */
 
@@ -241,7 +245,32 @@ afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath
 
   closedir(dir_in);
 
-  return AFL_RET_SUCCESS;
+  if (ok)
+    return AFL_RET_SUCCESS;
+  else
+    return AFL_RET_EMPTY;
+
+}
+
+afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath,
+                                             afl_input_t *(*custom_input_new)(void)) {
+
+  size_t dir_name_size = strlen(dirpath);
+  if (dirpath[dir_name_size - 1] == '/') { dirpath[dir_name_size - 1] = 0; }
+  if (access(dirpath, R_OK | X_OK) != 0) return AFL_RET_FILE_OPEN_ERROR;
+
+  /* Since, this'll be the first execution, Let's start up the executor here */
+  if ((engine->executions == 0) && engine->executor->funcs.init_cb) {
+
+    AFL_TRY(engine->executor->funcs.init_cb(engine->executor), {
+
+      return err;
+
+    });
+
+  }
+
+  return __afl_engine_load_testcases_from_dir(engine, dirpath, custom_input_new);
 
 }
 
