@@ -478,8 +478,14 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 
   afl_stage_t *            stage = engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
-
-  afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
+  afl_feedback_cov_t *coverage_feedback = NULL;
+  for (i = 0; i < engine->feedbacks_count; i++) {
+    if (engine->feedbacks[i]->tag == AFL_FEEDBACK_TAG_COV) {
+      coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[i]);
+      break;
+    }
+  }
+  if (!coverage_feedback) { FATAL("No coverage feedback added to engine"); }
 
   /* The actual fuzzing */
   AFL_TRY(engine->funcs.loop(engine), { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err)); });
@@ -565,6 +571,9 @@ bool broker_handle_client_restart(llmp_broker_t *broker, llmp_broker_clientdata_
   clientdata->last_msg_broker_read = NULL;
   /* Get ready for a new child. TODO: Collect old ones... */
   clientdata->pid = 0;
+
+  /* Make sure the next fork won't start in the same rnd state as the last... */
+  afl_rand_next(&engine->rand);
 
   /* fork off the new child */
   if (!llmp_broker_launch_client(broker, clientdata)) { FATAL("Error spawning new client after crash"); }
