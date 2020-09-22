@@ -399,6 +399,32 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
   AFL_TRY(stage->funcs.add_mutator_to_stage(stage, &mutators_havoc->base),
           { FATAL("Error adding mutator: %s", afl_ret_stringify(err)); });
 
+  /* Now add the testcases */
+  /* first we want to support restarts and read the queue */
+  if (queue_dirpath && queue_dirpath[0] != 0)
+    engine->funcs.load_testcases_from_dir(engine, queue_dirpath);  // ignore if it fails.
+  /* Now we read the seeds from an input directory */
+  if (engine->in_dir && engine->in_dir[0] != 0)
+    AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir),
+            { WARNF("Error loading testcase dir: %s", afl_ret_stringify(err)); });
+
+  // no seeds? add a dummy one
+  if (((afl_queue_t *)engine->global_queue)->entries_count == 0) {
+
+    afl_input_t *input = afl_input_new();
+    u32          input_len = 64, cnt;
+    input->len = input_len;
+    input->bytes = calloc(input_len + 1, 1);
+
+    for (cnt = 0; cnt < input_len; cnt++)
+      input->bytes[cnt] = ' ' + cnt;  // values: 0x20 ... 0x60
+    input->bytes[input_len] = 0;
+
+    afl_entry_t *new_entry = afl_entry_new(input);
+    engine->global_queue->base.funcs.insert(&engine->global_queue->base, new_entry);
+
+  }
+
   return engine;
 
 }
@@ -437,28 +463,6 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
 
   afl_feedback_cov_t *coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[0]);
-
-  engine->funcs.load_testcases_from_dir(engine, queue_dirpath);  // ignore if it fails.
-  /* Now we can simply load the testcases from the directory given */
-  AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir),
-          { WARNF("Error loading testcase dir: %s", afl_ret_stringify(err)); });
-
-  // no seeds? add a dummy one
-  if (((afl_queue_t *)engine->global_queue)->entries_count == 0) {
-
-    afl_input_t *input = afl_input_new();
-    u32          input_len = 64, cnt;
-    input->len = input_len;
-    input->bytes = calloc(input_len + 1, 1);
-
-    for (cnt = 0; cnt < input_len; cnt++)
-      input->bytes[cnt] = ' ' + cnt;  // values: 0x20 ... 0x60
-    input->bytes[input_len] = 0;
-
-    afl_entry_t *new_entry = afl_entry_new(input);
-    engine->global_queue->base.funcs.insert(&engine->global_queue->base, new_entry);
-
-  }
 
   /* The actual fuzzing */
   AFL_TRY(engine->funcs.loop(engine), { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err)); });
