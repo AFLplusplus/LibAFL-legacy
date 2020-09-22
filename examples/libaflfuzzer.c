@@ -37,10 +37,11 @@ static char *          queue_dirpath;
 
 typedef struct cur_state {
 
-  u64    new_execs;
-  size_t map_size;
-  size_t current_input_len;
-  u8     payload[];
+  ssize_t calibration_idx;
+  u64     new_execs;
+  size_t  map_size;
+  size_t  current_input_len;
+  u8      payload[];
 
 } cur_state_t;
 
@@ -337,10 +338,16 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
   /* Let's create an in-memory executor */
   in_memory_executor_t *in_memory_executor = calloc(1, sizeof(in_memory_executor_t));
   if (!in_memory_executor) { PFATAL("Unable to allocate mem."); }
-  if (debug)
+  if (debug) {
+
     in_memory_executor_init(in_memory_executor, debug_harness_func);
-  else
+
+  } else {
+
     in_memory_executor_init(in_memory_executor, harness_func);
+
+  }
+
   in_memory_executor->argc = argc;
   in_memory_executor->argv = afl_argv_cpy_dup(argc, argv);
   in_memory_executor->base.funcs.init_cb = in_memory_fuzzer_initialize;
@@ -412,15 +419,22 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
   if (((afl_queue_t *)engine->global_queue)->entries_count == 0) {
 
     afl_input_t *input = afl_input_new();
-    u32          input_len = 64, cnt;
+    if (!input) { FATAL("Could not create input"); }
+    u32 input_len = 64, cnt;
     input->len = input_len;
     input->bytes = calloc(input_len + 1, 1);
+    if (!input->bytes) { PFATAL("Could not allocate input bytes"); }
 
-    for (cnt = 0; cnt < input_len; cnt++)
+    for (cnt = 0; cnt < input_len; cnt++) {
+
       input->bytes[cnt] = ' ' + cnt;  // values: 0x20 ... 0x60
+
+    }
+
     input->bytes[input_len] = 0;
 
     afl_entry_t *new_entry = afl_entry_new(input);
+    if (!new_entry) { FATAL("Could not create new entry"); }
     engine->global_queue->base.funcs.insert(&engine->global_queue->base, new_entry);
 
   }
