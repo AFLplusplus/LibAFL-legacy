@@ -163,6 +163,7 @@ static size_t choose_block_len(afl_rand_t *rand, size_t limit) {
 
 void afl_mutfunc_flip_bit(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
   int         bit = afl_rand_below(rand, input->len * 8 - 1) + 1;
 
@@ -172,6 +173,7 @@ void afl_mutfunc_flip_bit(afl_mutator_t *mutator, afl_input_t *input) {
 
 void afl_mutfunc_flip_2_bits(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
   size_t      size = input->len;
 
@@ -187,6 +189,7 @@ void afl_mutfunc_flip_2_bits(afl_mutator_t *mutator, afl_input_t *input) {
 
 void afl_mutfunc_flip_4_bits(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
@@ -209,6 +212,7 @@ void afl_mutfunc_flip_4_bits(afl_mutator_t *mutator, afl_input_t *input) {
 
 inline void afl_mutfunc_flip_byte(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
@@ -225,6 +229,7 @@ inline void afl_mutfunc_flip_byte(afl_mutator_t *mutator, afl_input_t *input) {
 
 inline void afl_mutfunc_flip_2_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
@@ -240,6 +245,7 @@ inline void afl_mutfunc_flip_2_bytes(afl_mutator_t *mutator, afl_input_t *input)
 
 inline void afl_mutfunc_flip_4_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
@@ -259,6 +265,7 @@ inline void afl_mutfunc_flip_4_bytes(afl_mutator_t *mutator, afl_input_t *input)
 
 inline void afl_mutfunc_random_byte_add_sub(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
@@ -274,6 +281,7 @@ inline void afl_mutfunc_random_byte_add_sub(afl_mutator_t *mutator, afl_input_t 
 
 inline void afl_mutfunc_random_byte(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
@@ -286,6 +294,7 @@ inline void afl_mutfunc_random_byte(afl_mutator_t *mutator, afl_input_t *input) 
 
 inline void afl_mutfunc_delete_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
@@ -302,6 +311,7 @@ inline void afl_mutfunc_delete_bytes(afl_mutator_t *mutator, afl_input_t *input)
 
 void afl_mutfunc_clone_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
+  if (unlikely(!input->len)) { return; }
   afl_rand_t *rand = &mutator->engine->rand;
 
   size_t size = input->len;
@@ -365,6 +375,7 @@ void afl_mutfunc_splice(afl_mutator_t *mutator, afl_input_t *input) {
 
   /* Let's grab the engine for random num generation and queue */
 
+  if (unlikely(!input->len)) { return; }
   afl_engine_t *      engine = mutator->engine;
   afl_queue_global_t *global_queue = engine->global_queue;
 

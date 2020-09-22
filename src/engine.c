@@ -213,8 +213,13 @@ afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath
     snprintf((char *)infile, sizeof(infile), "%s/%s", dirpath, dir_ent->d_name);
     infile[sizeof(infile) - 1] = '\0';
 
-    /* TODO: Error handling? */
-    input->funcs.load_from_file(input, infile);
+    AFL_TRY(input->funcs.load_from_file(input, infile), {return err;});
+
+    if (!input->len) {
+      DBG("Empty input read from %s", infile);
+      free(input);
+      continue;
+    }
 
     afl_ret_t run_result = engine->funcs.execute(engine, input);
 
