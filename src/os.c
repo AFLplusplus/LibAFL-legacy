@@ -124,18 +124,9 @@ static afl_ret_t __afl_for_each_file(char *dirpath, bool (*handle_file)(char *fi
 
     }
 
-    if (!S_ISREG(st.st_mode)) { continue; }
+    if (!S_ISREG(st.st_mode) || st.st_size == 0) { continue; }
 
-    if (!handle_file(infile, data)) {
-
-      DBG("Finishing recursive file read");
-      break;
-
-    } else {
-
-      ok = 1;
-
-    }
+    if (handle_file(infile, data) == true) { ok = 1; }
 
   }
 

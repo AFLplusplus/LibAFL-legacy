@@ -424,7 +424,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
     engine->global_queue->base.funcs.insert(&engine->global_queue->base, new_entry);
 
   }
-  
+
   OKF("Starting seed count: %llu", ((afl_queue_t *)engine->global_queue)->entries_count);
 
   return engine;

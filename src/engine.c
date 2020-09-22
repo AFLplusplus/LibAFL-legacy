@@ -158,14 +158,12 @@ static bool afl_engine_handle_single_testcase_load(char *infile, void *data) {
 
   afl_engine_t *engine = (afl_engine_t *)data;
 
-  size_t i;
-
   afl_input_t *input = afl_input_new();
 
   if (!input) {
 
     DBG("Error allocating input %s", infile);
-    return true;
+    return false;
 
   }
 
@@ -173,41 +171,56 @@ static bool afl_engine_handle_single_testcase_load(char *infile, void *data) {
 
     WARNF("Error loading seed %s: %s", infile, afl_ret_stringify(err));
     free(input);
-    return true;
+    return false;
 
   });
 
-/*
-  afl_ret_t run_result = engine->funcs.execute(engine, input);
+  /*
+    afl_ret_t run_result = engine->funcs.execute(engine, input);
 
-  if (run_result == AFL_RET_SUCCESS) {
+    if (run_result == AFL_RET_SUCCESS) {
 
-    if (engine->verbose) OKF("Loaded seed %s", infile);
-    return true;
+      if (engine->verbose) OKF("Loaded seed %s", infile);
 
-  } else {
+    } else {
 
-    WARNF("Error loading seed %s", infile);
-
-  }
-*/
-  /* We add the corpus to the queue initially for all the feedback queues */
-
-  for (i = 0; i < engine->feedbacks_count; ++i) {
-
-    afl_entry_t *entry = afl_entry_new(input);
-    if (!entry) {
-
-      DBG("Error allocating entry.");
-      return true;
+      WARNF("Error loading seed %s", infile);
+      // free(input); // should we?
+      return false;
 
     }
 
-    engine->feedbacks[i]->queue->base.funcs.insert(&engine->feedbacks[i]->queue->base, entry);
+    // We add the corpus to the queue initially for all the feedback queues
+
+    size_t i;
+    for (i = 0; i < engine->feedbacks_count; ++i) {
+
+      afl_entry_t *entry = afl_entry_new(input);
+      if (!entry) {
+
+        DBG("Error allocating entry.");
+        return false;
+
+      }
+
+      engine->feedbacks[i]->queue->base.funcs.insert(&engine->feedbacks[i]->queue->base, entry);
+
+    }
+
+    //if (run_result == AFL_RET_WRITE_TO_CRASH) { if (engine->verbose) WARNF("Crashing input found in initial corpus,
+    this is usually not a good idea.\n"); }
+  */
+  /* We add the corpus to the global queue */
+  afl_entry_t *entry = afl_entry_new(input);
+  if (!entry) {
+
+    DBG("Error allocating entry.");
+    return false;
 
   }
 
-  //if (run_result == AFL_RET_WRITE_TO_CRASH) { if (engine->verbose) WARNF("Crashing input found in initial corpus, this is usually not a good idea.\n"); }
+  engine->global_queue->base.funcs.insert(&engine->global_queue->base, entry);
+  if (engine->verbose) OKF("Loaded seed %s", infile);
 
   return true;
 
