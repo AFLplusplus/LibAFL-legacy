@@ -441,7 +441,7 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   engine->funcs.load_testcases_from_dir(engine, queue_dirpath, NULL);  // ignore if it fails.
   /* Now we can simply load the testcases from the directory given */
   AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir, NULL),
-          { PFATAL("Error loading testcase dir: %s", afl_ret_stringify(err)); });
+          { WARNF("Error loading testcase dir: %s", afl_ret_stringify(err)); });
 
   /* The actual fuzzing */
   AFL_TRY(engine->funcs.loop(engine), { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err)); });
