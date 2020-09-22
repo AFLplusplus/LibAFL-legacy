@@ -443,6 +443,23 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   AFL_TRY(engine->funcs.load_testcases_from_dir(engine, engine->in_dir),
           { WARNF("Error loading testcase dir: %s", afl_ret_stringify(err)); });
 
+  // no seeds? add a dummy one
+  if (((afl_queue_t *)engine->global_queue)->entries_count == 0) {
+
+    afl_input_t *input = afl_input_new();
+    u32          input_len = 64, cnt;
+    input->len = input_len;
+    input->bytes = calloc(input_len + 1, 1);
+
+    for (cnt = 0; cnt < input_len; cnt++)
+      input->bytes[cnt] = ' ' + cnt;  // values: 0x20 ... 0x60
+    input->bytes[input_len] = 0;
+
+    afl_entry_t *new_entry = afl_entry_new(input);
+    engine->global_queue->base.funcs.insert(&engine->global_queue->base, new_entry);
+
+  }
+
   /* The actual fuzzing */
   AFL_TRY(engine->funcs.loop(engine), { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err)); });
 

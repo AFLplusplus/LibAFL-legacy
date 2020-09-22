@@ -206,7 +206,7 @@ static bool afl_engine_handle_single_testcase_load(char *infile, void *data) {
 
   }
 
-  if (run_result == AFL_RET_WRITE_TO_CRASH) { SAYF("Crashing input found in initial corpus\n"); }
+  if (run_result == AFL_RET_WRITE_TO_CRASH) { if (engine->verbose) WARNF("Crashing input found in initial corpus, this is usually not a good idea.\n"); }
 
   return true;
 
