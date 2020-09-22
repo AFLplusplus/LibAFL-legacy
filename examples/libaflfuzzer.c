@@ -420,7 +420,8 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
 
     afl_input_t *input = afl_input_new();
     if (!input) { FATAL("Could not create input"); }
-    u32 input_len = 64, cnt;
+    u32 cnt;
+    u32 input_len = 64;
     input->len = input_len;
     input->bytes = calloc(input_len + 1, 1);
     if (!input->bytes) { PFATAL("Could not allocate input bytes"); }
