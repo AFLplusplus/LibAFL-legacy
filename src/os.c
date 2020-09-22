@@ -1,9 +1,12 @@
 #include <signal.h>
 #include <assert.h>
 #include <types.h>
-#include <sys/types.h>
 #include <unistd.h>
+#include <stdbool.h>
+#include <dirent.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "os.h"
 #include "engine.h"
@@ -88,6 +91,78 @@ afl_exit_t afl_proc_wait(afl_os_t *afl_os, bool untraced) {
     FATAL("BUG: Currently Unhandled");
 
   }
+
+}
+
+static afl_ret_t __afl_for_each_file(char *dirpath, bool (*handle_file)(char *filename, void *data), void *data) {
+
+  DIR *          dir_in = NULL;
+  struct dirent *dir_ent = NULL;
+  char           infile[PATH_MAX];
+  uint32_t       ok = 0;
+
+  if (!(dir_in = opendir(dirpath))) { return AFL_RET_FILE_OPEN_ERROR; }
+
+  while ((dir_ent = readdir(dir_in))) {
+
+    if (dir_ent->d_name[0] == '.') {
+
+      continue;  // skip anything that starts with '.'
+
+    }
+
+    snprintf((char *)infile, sizeof(infile), "%s/%s", dirpath, dir_ent->d_name);
+    infile[sizeof(infile) - 1] = '\0';
+
+    /* TODO: Error handling? */
+    struct stat st;
+    if (access(infile, R_OK) != 0 || stat(infile, &st) != 0) { continue; }
+    if (S_ISDIR(st.st_mode)) {
+
+      if (__afl_for_each_file(infile, handle_file, data) == AFL_RET_SUCCESS) { ok = 1; }
+      continue;
+
+    }
+
+    if (!S_ISREG(st.st_mode)) { continue; }
+
+    if (!handle_file(infile, data)) {
+
+      DBG("Finishing recursive file read");
+      break;
+
+    } else {
+
+      ok = 1;
+
+    }
+
+  }
+
+  closedir(dir_in);
+
+  if (ok) {
+
+    return AFL_RET_SUCCESS;
+
+  } else {
+
+    return AFL_RET_EMPTY;
+
+  }
+
+}
+
+/* Run `handle_file` for each file in the dirpath, recursively.
+void *data will be passed to handle_file as 2nd param.
+if handle_file returns false, further execution stops. */
+afl_ret_t afl_for_each_file(char *dirpath, bool (*handle_file)(char *filename, void *data), void *data) {
+
+  size_t dir_name_size = strlen(dirpath);
+  if (dirpath[dir_name_size - 1] == '/') { dirpath[dir_name_size - 1] = '\0'; }
+  if (access(dirpath, R_OK | X_OK) != 0) return AFL_RET_FILE_OPEN_ERROR;
+
+  return __afl_for_each_file(dirpath, handle_file, data);
 
 }
 

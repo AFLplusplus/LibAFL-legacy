@@ -51,7 +51,7 @@ struct afl_engine_func {
 
   u8 (*execute)(afl_engine_t *, afl_input_t *);
   afl_ret_t (*handle_new_message)(afl_engine_t *, llmp_message_t *);
-  afl_ret_t (*load_testcases_from_dir)(afl_engine_t *, char *, afl_input_t *(*custom_input_init)(void));
+  afl_ret_t (*load_testcases_from_dir)(afl_engine_t *, char *);
   void (*load_zero_testcase)(size_t);
 
   afl_ret_t (*loop)(afl_engine_t *);
@@ -91,7 +91,7 @@ afl_ret_t afl_engine_add_feedback(afl_engine_t *, afl_feedback_t *);
 void      afl_set_global_queue(afl_engine_t *engine, afl_queue_global_t *global_queue);
 
 u8        afl_engine_execute(afl_engine_t *, afl_input_t *);
-afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *, char *, afl_input_t *(*custom_input_init)());
+afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *, char *);
 void      afl_engine_load_zero_testcase(size_t);
 afl_ret_t afl_engine_handle_new_message(afl_engine_t *, llmp_message_t *);
 
