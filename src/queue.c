@@ -113,6 +113,7 @@ afl_ret_t afl_queue_init(afl_queue_t *queue) {
   queue->funcs.set_dirpath = afl_queue_set_dirpath;
   queue->funcs.set_engine = afl_queue_set_engine;
   queue->funcs.get_next_in_queue = afl_queue_next_base_queue;
+  queue->funcs.get_queue_entry = afl_queue_get_entry;
 
   return AFL_RET_SUCCESS;
 
@@ -266,20 +267,23 @@ void afl_queue_set_engine(afl_queue_t *queue, afl_engine_t *engine) {
 
 }
 
+afl_entry_t *afl_queue_get_entry(afl_queue_t *queue, u32 entry) {
+
+  if (queue->entries_count <= entry) { return NULL; }
+  return queue->entries[entry];
+
+}
+
 afl_entry_t *afl_queue_next_base_queue(afl_queue_t *queue, int engine_id) {
 
   if (queue->entries_count) {
 
     afl_entry_t *current = queue->entries[queue->current];
 
-    if (engine_id != queue->engine_id) {
+    if (engine_id != queue->engine_id) { return current; }
 
-      return current;
-
-    }  // If some other engine grabs from the queue, don't update the queue's
-
+    // If some other engine grabs from the queue, don't update the queue's
     // current entry
-
     // If we reach the end of queue, start from beginning
     queue->current = (queue->current + 1) % queue->entries_count;
 

@@ -46,6 +46,7 @@ struct afl_stage {
 
 };
 
+afl_ret_t afl_stage_run(afl_stage_t *, afl_input_t *, bool);
 afl_ret_t afl_stage_perform(afl_stage_t *, afl_input_t *);
 size_t    afl_stage_get_iters(afl_stage_t *);
 afl_ret_t afl_stage_init(afl_stage_t *, afl_engine_t *);

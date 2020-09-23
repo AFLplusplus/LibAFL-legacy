@@ -75,6 +75,32 @@ size_t afl_stage_get_iters(afl_stage_t *stage) {
 
 }
 
+afl_ret_t afl_stage_run(afl_stage_t *stage, afl_input_t *input, bool overwrite) {
+
+  afl_input_t *copy;
+  if (!overwrite)
+    copy = input->funcs.copy(input);
+  else
+    copy = input;
+
+  /* Let's post process the mutated data now. */
+  size_t j;
+  for (j = 0; j < stage->mutators_count; ++j) {
+
+    afl_mutator_t *mutator = stage->mutators[j];
+
+    if (mutator->funcs.post_process) { mutator->funcs.post_process(mutator, copy); }
+
+  }
+
+  afl_ret_t ret = stage->engine->funcs.execute(stage->engine, copy);
+
+  if (!overwrite) afl_input_delete(copy);
+
+  return ret;
+
+}
+
 /* Perform default for fuzzing stage */
 afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
 
@@ -116,18 +142,9 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
 
     }
 
-    /* Let's post process the mutated data now. */
-    for (j = 0; j < stage->mutators_count; ++j) {
+    afl_ret_t ret = afl_stage_run(stage, copy, true);
 
-      afl_mutator_t *mutator = stage->mutators[j];
-
-      if (mutator->funcs.post_process) { mutator->funcs.post_process(mutator, copy); }
-
-    }
-
-    afl_ret_t ret = stage->engine->funcs.execute(stage->engine, copy);
     /* Let's collect some feedback on the input now */
-
     bool interestingness = 0.0f;
 
     afl_feedback_t **feedbacks = stage->engine->feedbacks;

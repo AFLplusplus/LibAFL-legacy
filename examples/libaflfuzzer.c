@@ -34,6 +34,7 @@ static llmp_message_t *current_fuzz_input_msg = NULL;
 static afl_input_t *   current_input = NULL;
 static int             debug = 0;
 static char *          queue_dirpath;
+static ssize_t         calibration_idx = -1;
 
 typedef struct cur_state {
 
@@ -105,12 +106,33 @@ afl_exit_t debug_harness_func(afl_executor_t *executor, u8 *input, size_t len) {
 
 }
 
-/* Initializer: LLVMFuzzerInitialize */
+/* Initializer: run initial seeds and run LLVMFuzzerInitialize */
 static afl_ret_t in_memory_fuzzer_initialize(afl_executor_t *executor) {
 
   in_memory_executor_t *in_memory_fuzzer = (in_memory_executor_t *)executor;
 
   if (LLVMFuzzerInitialize) { LLVMFuzzerInitialize(&in_memory_fuzzer->argc, &in_memory_fuzzer->argv); }
+
+  /* TODO
+    while(calibration_idx > 0) {
+
+      --calibration_idx;
+      afl_entry_t *queue_entry = global_queue->base.funcs.get_queue_entry((afl_queue_t *)global_queue, calibration_idx);
+      if (queue_entry && queue_entry->skip_entry == false) {
+
+        if (afl_stage_run(stage, queue_entry->input) != AFL_RET_SUCCESS) {
+
+          WARNF("Queue entry %d misbehaved, disabling...", calibration_idx);
+          queue_entry->skip_entry = true;
+
+        }
+
+      }
+
+    }
+
+    calibration_idx = -1; // we are done
+  */
 
   return AFL_RET_SUCCESS;
 
@@ -129,6 +151,7 @@ void write_cur_state(llmp_message_t *out_msg) {
   state->map_size = __afl_map_size;
   memcpy(state->payload, virgin_bits, state->map_size);
   state->current_input_len = current_input->len;
+  state->calibration_idx = calibration_idx;
   memcpy(state->payload + state->map_size, current_input->bytes, current_input->len);
 
 }
@@ -322,8 +345,7 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
     default: {
 
       /* TODO: We'll never reach this, actually... */
-      if (afl_input_dump_to_crashfile(executor->current_input, queue_dirpath) == AFL_RET_SUCCESS)
-        engine->crashes++;
+      if (afl_input_dump_to_crashfile(executor->current_input, queue_dirpath) == AFL_RET_SUCCESS) engine->crashes++;
       return AFL_RET_WRITE_TO_CRASH;
 
     }
@@ -332,7 +354,7 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 
 }
 
-/* This initializeds the fuzzer */
+/* This initializes the fuzzer */
 afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *argv[]) {
 
   /* Let's create an in-memory executor */
@@ -440,7 +462,8 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
 
   }
 
-  OKF("Starting seed count: %llu", ((afl_queue_t *)engine->global_queue)->entries_count);
+  calibration_idx = (ssize_t)((afl_queue_t *)engine->global_queue)->entries_count;
+  OKF("Starting seed count: %llu", calibration_idx);
 
   return engine;
 
@@ -478,13 +501,18 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 
   afl_stage_t *            stage = engine->fuzz_one->stages[0];
   afl_mutator_scheduled_t *mutators_havoc = (afl_mutator_scheduled_t *)stage->mutators[0];
-  afl_feedback_cov_t *coverage_feedback = NULL;
+  afl_feedback_cov_t *     coverage_feedback = NULL;
   for (i = 0; i < engine->feedbacks_count; i++) {
+
     if (engine->feedbacks[i]->tag == AFL_FEEDBACK_TAG_COV) {
+
       coverage_feedback = (afl_feedback_cov_t *)(engine->feedbacks[i]);
       break;
+
     }
+
   }
+
   if (!coverage_feedback) { FATAL("No coverage feedback added to engine"); }
 
   /* The actual fuzzing */
@@ -605,6 +633,22 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       DBG("We found a timeout...");
       /* write timeout output */
       state = LLMP_MSG_BUF_AS(msg, cur_state_t);
+      if (state->calibration_idx < calibration_idx) calibration_idx = state->calibration_idx;
+      /*
+            if (state->calibration_idx >= 0) {
+
+              afl_entry_t *queue_entry = global_queue->base.funcs.get_queue_entry((afl_queue_t *)global_queue,
+         calibration_idx); if (queue_entry && queue_entry->skip_entry == false) { if (afl_stage_run(stage,
+         queue_entry->input) != AFL_RET_SUCCESS) { WARNF("Queue entry %d misbehaved, disabling...", calibration_idx);
+                  queue_entry->skip_entry = true;
+
+                }
+
+              }
+
+            }
+
+       */
       afl_input_t timeout_input = {0};
       AFL_TRY(afl_input_init(&timeout_input),
               { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
@@ -613,10 +657,13 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       timeout_input.len = state->current_input_len;
 
       if (timeout_input.len) {
-        if (afl_input_dump_to_timeoutfile(&timeout_input, queue_dirpath) == AFL_RET_SUCCESS)
-          fuzzer_stats->timeouts++;
+
+        if (afl_input_dump_to_timeoutfile(&timeout_input, queue_dirpath) == AFL_RET_SUCCESS) fuzzer_stats->timeouts++;
+
       } else {
+
         WARNF("Crash input has zero length, this cannot happen.");
+
       }
 
       broker_handle_client_restart(broker, clientdata, state);
@@ -632,6 +679,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       DBG("We found a crash!");
       /* write crash output */
       state = LLMP_MSG_BUF_AS(msg, cur_state_t);
+      if (state->calibration_idx < calibration_idx) calibration_idx = state->calibration_idx;
       afl_input_t crashing_input = {0};
       AFL_TRY(afl_input_init(&crashing_input),
               { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
@@ -640,10 +688,13 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       crashing_input.len = state->current_input_len;
 
       if (crashing_input.len) {
-        if (afl_input_dump_to_crashfile(&crashing_input, queue_dirpath) == AFL_RET_SUCCESS)
-          fuzzer_stats->crashes++;
+
+        if (afl_input_dump_to_crashfile(&crashing_input, queue_dirpath) == AFL_RET_SUCCESS) fuzzer_stats->crashes++;
+
       } else {
+
         WARNF("Crash input has zero length, this cannot happen.");
+
       }
 
       broker_handle_client_restart(broker, clientdata, state);
