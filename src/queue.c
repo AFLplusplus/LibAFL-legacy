@@ -38,6 +38,7 @@
 afl_ret_t afl_entry_init(afl_entry_t *entry, afl_input_t *input) {
 
   entry->input = input;
+  entry->skip_entry = false;
   memset(entry->filename, 0, FILENAME_LEN_MAX);
 
   entry->funcs.get_input = afl_entry_get_input;
@@ -280,7 +281,7 @@ afl_entry_t *afl_queue_next_base_queue(afl_queue_t *queue, int engine_id) {
 
     afl_entry_t *current = queue->entries[queue->current];
 
-    if (engine_id != queue->engine_id) { return current; }
+    if (engine_id != queue->engine_id && current->skip_entry == false) { return current; }
 
     // If some other engine grabs from the queue, don't update the queue's
     // current entry
@@ -397,17 +398,13 @@ afl_entry_t *afl_queue_next_global_queue(afl_queue_t *queue, int engine_id) {
 
       return next_entry;
 
-    }
-
-    else {
+    } else {
 
       return afl_queue_next_base_queue(queue, engine_id);
 
     }
 
-  }
-
-  else {
+  } else {
 
     // We don't have any more entries feedback queue, so base queue it is.
     return afl_queue_next_base_queue(queue, engine_id);
