@@ -613,8 +613,11 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       timeout_input.bytes = state->payload + state->map_size;
       timeout_input.len = state->current_input_len;
 
-      AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input, queue_dirpath),
-              { WARNF("Could not write timeout file!"); });
+      if (timeout_input.len) {
+        AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input, queue_dirpath), { WARNF("Could not write timeout file!"); });
+      } else {
+        WARNF("Crash input has zero length, this cannot happen.");
+      }
 
       broker_handle_client_restart(broker, clientdata, state);
 
@@ -634,10 +637,14 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       AFL_TRY(afl_input_init(&crashing_input),
               { FATAL("Error initializing input for crash: %s", afl_ret_stringify(err)); });
 
-      timeout_input.bytes = state->payload + state->map_size;
-      timeout_input.len = state->current_input_len;
+      crashing_input.bytes = state->payload + state->map_size;
+      crashing_input.len = state->current_input_len;
 
-      AFL_TRY(afl_input_dump_to_crashfile(&crashing_input, queue_dirpath), { WARNF("Could not write crash file!"); });
+      if (crashing_input.len) {
+        AFL_TRY(afl_input_dump_to_crashfile(&crashing_input, queue_dirpath), { WARNF("Could not write crash file!"); });
+      } else {
+        WARNF("Crash input has zero length, this cannot happen.");
+      }
 
       broker_handle_client_restart(broker, clientdata, state);
 
@@ -654,6 +661,12 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
   }
 
 }
+
+/*
+ ****************
+ ***** MAIN *****
+ ****************
+ */
 
 int main(int argc, char **argv) {
 
@@ -682,10 +695,11 @@ int main(int argc, char **argv) {
 
   }
 
-  OKF("Target map_size=%u", __afl_map_size);
+  OKF("Target coverage map size: %u", __afl_map_size);
 
   if (thread_count <= 0) {
 
+    // we cannot use FATAL because some build scripts fail otherwise
     SAYF(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] ERROR : " cRST
                                               "Number of threads should be greater than 0, exiting gracefully.");
     SAYF(cLRD "\n         Location : " cRST "%s(), %s:%u\n\n", __func__, __FILE__, __LINE__);
@@ -695,7 +709,7 @@ int main(int argc, char **argv) {
 
   int broker_port = 0xAF1;
 
-  if (!afl_dir_exists(in_dir)) { FATAL("Oops, input directory %s does not seem to be valid.", in_dir); }
+  if (!afl_dir_exists(in_dir)) { FATAL("Oops, seed input directory %s does not seem to be valid.", in_dir); }
 
   afl_engine_t **engines = malloc(sizeof(afl_engine_t *) * thread_count);
   if (!engines) { PFATAL("Could not allocate engine buffer!"); }
@@ -706,7 +720,7 @@ int main(int argc, char **argv) {
   /* This is not necessary but gives us the option to add additional processes to the fuzzer at runtime. */
   if (!llmp_broker_register_local_server(llmp_broker, broker_port)) { FATAL("Broker register failed"); }
 
-  OKF("Created broker successfully.");
+  OKF("Created broker.");
 
   /* The message hook will intercept all messages from all clients - and listen for stats. */
   fuzzer_stats_t fuzzer_stats = {0};
@@ -748,7 +762,7 @@ int main(int argc, char **argv) {
   - all fuzzer instances (using fork()) */
   llmp_broker_launch_clientloops(llmp_broker);
 
-  OKF("Clients started running");
+  OKF("%u client%s started running.", thread_count, thread_count == 1 ? "" : "s");
   sleep(1);
 
   while (1) {
@@ -783,7 +797,7 @@ int main(int argc, char **argv) {
 
       }
 
-      SAYF("threads=%u paths=%llu crashes=%llu timeouts=%llu elapsed=%llu execs=%llu exec/s=%llu\r", thread_count,
+      SAYF("paths=%llu crashes=%llu timeouts=%llu elapsed=%llu execs=%llu exec/s=%llu\r",
            fuzzer_stats.queue_entry_count, fuzzer_stats.crashes, fuzzer_stats.timeouts, time_elapsed, total_execs,
            total_execs / time_elapsed);
 
