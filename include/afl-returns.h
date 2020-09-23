@@ -32,6 +32,7 @@ typedef enum afl_ret {
 
   AFL_RET_SUCCESS = 0,
   AFL_RET_UNKNOWN_ERROR,
+  AFL_RET_FILE_DUPLICATE,
   AFL_RET_ALLOC,
   AFL_RET_FILE_OPEN_ERROR,
   AFL_RET_FILE_SIZE,
@@ -70,6 +71,8 @@ static inline char *afl_ret_stringify(afl_ret_t afl_ret) {
       return "Error creating input copy";
     case AFL_RET_EMPTY:
       return "Empty data";
+    case AFL_RET_FILE_DUPLICATE:
+      return "File exists";
     case AFL_RET_ALLOC:
       if (!errno) { return "Allocation failed"; }
       /* fall-through */

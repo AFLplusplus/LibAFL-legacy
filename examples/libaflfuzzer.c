@@ -322,8 +322,8 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
     default: {
 
       /* TODO: We'll never reach this, actually... */
-      engine->crashes++;
-      afl_input_dump_to_crashfile(executor->current_input, queue_dirpath);  // Crash written
+      if (afl_input_dump_to_crashfile(executor->current_input, queue_dirpath) == AFL_RET_SUCCESS)
+        engine->crashes++;
       return AFL_RET_WRITE_TO_CRASH;
 
     }
@@ -603,7 +603,6 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       return false;  // don't forward this to the clients
     case LLMP_TAG_TIMEOUT_V1:
       DBG("We found a timeout...");
-      fuzzer_stats->timeouts++;
       /* write timeout output */
       state = LLMP_MSG_BUF_AS(msg, cur_state_t);
       afl_input_t timeout_input = {0};
@@ -614,7 +613,8 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       timeout_input.len = state->current_input_len;
 
       if (timeout_input.len) {
-        AFL_TRY(afl_input_dump_to_timeoutfile(&timeout_input, queue_dirpath), { WARNF("Could not write timeout file!"); });
+        if (afl_input_dump_to_timeoutfile(&timeout_input, queue_dirpath) == AFL_RET_SUCCESS)
+          fuzzer_stats->timeouts++;
       } else {
         WARNF("Crash input has zero length, this cannot happen.");
       }
@@ -630,7 +630,6 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
     case LLMP_TAG_CRASH_V1:
 
       DBG("We found a crash!");
-      fuzzer_stats->crashes++;
       /* write crash output */
       state = LLMP_MSG_BUF_AS(msg, cur_state_t);
       afl_input_t crashing_input = {0};
@@ -641,7 +640,8 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       crashing_input.len = state->current_input_len;
 
       if (crashing_input.len) {
-        AFL_TRY(afl_input_dump_to_crashfile(&crashing_input, queue_dirpath), { WARNF("Could not write crash file!"); });
+        if (afl_input_dump_to_crashfile(&crashing_input, queue_dirpath) == AFL_RET_SUCCESS)
+          fuzzer_stats->crashes++;
       } else {
         WARNF("Crash input has zero length, this cannot happen.");
       }

@@ -149,7 +149,10 @@ afl_ret_t afl_input_load_from_file(afl_input_t *input, char *fname) {
 
 afl_ret_t afl_input_write_to_file(afl_input_t *input, char *fname) {
 
-  s32 fd = open(fname, O_RDWR | O_CREAT /*| O_EXCL*/, 0600);
+  // if it already exists we will not overwrite it
+  if (access(fname, W_OK) == 0) return AFL_RET_FILE_DUPLICATE;
+ 
+  s32 fd = open(fname, O_RDWR | O_CREAT | O_EXCL, 0600);
 
   if (fd < 0) { return AFL_RET_FILE_OPEN_ERROR; }
 
