@@ -27,9 +27,8 @@
 #ifndef LIBAFL_EXECUTOR_EXECUTOR_H
 #define LIBAFL_EXECUTOR_EXECUTOR_H
 
-#include <types.h>
-
-#include "afl-returns.h"
+#include "returns.h"
+#include "types.h"
 #include "observer.h"
 #include "input.h"
 
@@ -59,6 +58,8 @@ struct afl_executor_funcs {
 // This is like the generic vtable for the executor.
 
 struct afl_executor {
+
+  INHERITS(afl_object)
 
   afl_observer_t **observors;  // This will be swapped for the observation channel once its ready
 
