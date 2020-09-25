@@ -157,7 +157,7 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
     if (interestingness >= 0.5) {
 
       /* TODO: Use queue abstraction instead */
-      llmp_message_t *msg = llmp_client_alloc_next(stage->engine->llmp_client, copy->len);
+      llmp_message_t *msg = llmp_client_alloc_next(stage->engine->llmp_client, copy->len + sizeof(afl_entry_info_t));
       if (!msg) {
 
         DBG("Error allocating llmp message");
@@ -166,6 +166,11 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
       }
 
       memcpy(msg->buf, copy->bytes, copy->len);
+
+      /* TODO FIXME - here we fill in the entry info structure on the queue */
+      // afl_entry_info_t *info_ptr = (afl_entry_info_t*)((u8*)(msg->buf + copy->len));
+      // e.g. fill map hash
+
       msg->tag = LLMP_TAG_NEW_QUEUE_ENTRY_V1;
       if (!llmp_client_send(stage->engine->llmp_client, msg)) {
 
@@ -189,7 +194,7 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
 
       if (!input_copy) { return AFL_RET_ERROR_INPUT_COPY; }
 
-      afl_entry_t *entry = afl_entry_new(input_copy);
+      afl_entry_t *entry = afl_entry_new(input_copy, NULL);
 
       if (!entry) { return AFL_RET_ALLOC; }
 

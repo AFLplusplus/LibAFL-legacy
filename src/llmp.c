@@ -786,6 +786,25 @@ static void *_llmp_client_wrapped_loop(void *llmp_client_broker_metadata_ptr) {
   /* Before doing anything else:, notify registered hooks about the new page we're about to use */
   llmp_client_trigger_new_out_page_hooks(metadata->client_state);
 
+  if (metadata->data && (unsigned long int) metadata->data > 0x10000) {
+
+    afl_engine_t *engine = (afl_engine_t *)metadata->data;
+
+    if (engine->executor->funcs.init_cb) {
+
+      DBG("Client init");
+
+      AFL_TRY(engine->executor->funcs.init_cb(engine->executor), {
+
+        FATAL("could not execute custom init function of the child");
+
+      });
+
+    }
+
+  }
+
+  DBG("Client looping");
   metadata->clientloop(metadata->client_state, metadata->data);
 
   WARNF("Client loop exited for client %d", metadata->client_state->id);
@@ -831,6 +850,7 @@ bool llmp_broker_launch_client(llmp_broker_t *broker, llmp_broker_clientdata_t *
 
       /* in the child, start loop, exit afterwards. */
       DBG("LLMP child process started");
+      DBG("Fork child loop");
       _llmp_client_wrapped_loop(clientdata);
       DBG("Fork child loop exited");
       exit(1);

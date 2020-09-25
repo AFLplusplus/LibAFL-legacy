@@ -137,18 +137,20 @@ afl_ret_t         fsrv_start(afl_executor_t *fsrv_executor);
 /* Function ptr for the harness */
 typedef afl_exit_t (*harness_function_type)(afl_executor_t *executor, u8 *, size_t);
 
-typedef struct in_memeory_executor {
+typedef struct in_memory_executor {
 
   afl_executor_t        base;
   harness_function_type harness;
   char **               argv;  // These are to support the libfuzzer harnesses
   int                   argc;  // To support libfuzzer harnesses
+  afl_stage_t *         stage;
+  afl_queue_global_t *  global_queue;
 
 } in_memory_executor_t;
 
 afl_exit_t in_memory_run_target(afl_executor_t *executor);
 u8         in_mem_executor_place_input(afl_executor_t *executor, afl_input_t *input);
-void       in_memory_executor_init(in_memory_executor_t *in_memeory_executor, harness_function_type harness);
+void       in_memory_executor_init(in_memory_executor_t *in_memory_executor, harness_function_type harness);
 
 #endif
 

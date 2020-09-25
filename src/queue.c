@@ -35,11 +35,20 @@
 #include "config.h"
 
 // We start with the implementation of queue_entry functions here.
-afl_ret_t afl_entry_init(afl_entry_t *entry, afl_input_t *input) {
+afl_ret_t afl_entry_init(afl_entry_t *entry, afl_input_t *input, afl_entry_info_t *info) {
 
   entry->input = input;
-  entry->skip_entry = false;
-  memset(entry->filename, 0, FILENAME_LEN_MAX);
+  if (!info) {
+
+    entry->info = calloc(1, sizeof(afl_entry_info_t));
+    if (!entry->info) { return AFL_RET_ALLOC; }
+    entry->info_calloc = 1;
+
+  } else {
+
+    entry->info = info;
+
+  }
 
   entry->funcs.get_input = afl_entry_get_input;
   entry->funcs.get_next = afl_entry_get_next;
@@ -58,14 +67,21 @@ void afl_entry_deinit(afl_entry_t *entry) {
 
   if (entry->prev) { entry->prev->next = entry->next; }
 
+  /* we also delete the input associated with it */
+  entry->input->funcs.delete(entry->input);
+
+  /* and the info structure */
+  if (entry->info_calloc) { free(entry->info); }
+
+  /*
+  // Unneeded as the structure is free'd via the macro
   entry->next = NULL;
   entry->prev = NULL;
   entry->queue = NULL;
   entry->parent = NULL;
-
-  /* we also delete the input associated with it */
-  entry->input->funcs.delete(entry->input);
+  entry->info = NULL;
   entry->input = NULL;
+  */
 
 }
 
@@ -281,7 +297,7 @@ afl_entry_t *afl_queue_next_base_queue(afl_queue_t *queue, int engine_id) {
 
     afl_entry_t *current = queue->entries[queue->current];
 
-    if (engine_id != queue->engine_id && current->skip_entry == false) { return current; }
+    if (engine_id != queue->engine_id && current->info->skip_entry) { return current; }
 
     // If some other engine grabs from the queue, don't update the queue's
     // current entry

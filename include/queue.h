@@ -56,10 +56,20 @@ struct afl_entry_funcs {
 
 };
 
+typedef struct __attribute__((__packed__)) afl_entry_info {
+
+  u64 hash, exec_us;
+  u32 bytes_set, bits_set;
+  u8  trimmed, has_new_coverage, variable, skip_entry;
+
+} afl_entry_info_t;
+
 struct afl_entry {
 
+  afl_entry_info_t *info;
   afl_input_t *     input;
-  bool              on_disk;
+  u8 *              map;
+  bool              on_disk, info_calloc;
   char              filename[FILENAME_LEN_MAX];
   struct afl_queue *queue;
   struct afl_entry *next;
@@ -70,10 +80,13 @@ struct afl_entry {
 
 };
 
-afl_ret_t afl_entry_init(afl_entry_t *, afl_input_t *);
+afl_ret_t afl_entry_init(afl_entry_t *, afl_input_t *, afl_entry_info_t *);
 void      afl_entry_deinit(afl_entry_t *);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_entry, AFL_DECL_PARAMS(afl_input_t *input), AFL_CALL_PARAMS(input))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_entry, AFL_DECL_PARAMS(afl_input_t *input, afl_entry_info_t *info),
+                                   AFL_CALL_PARAMS(input, info))
+// AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_queue_feedback, AFL_DECL_PARAMS(afl_feedback_t *feedback, char *name),
+//                                   AFL_CALL_PARAMS(feedback, name));
 
 // Default implementations for the functions for queue_entry vtable
 afl_input_t *afl_entry_get_input(afl_entry_t *entry);
@@ -115,7 +128,6 @@ struct afl_queue {
   size_t                 names_id;
   bool                   save_to_files;
   bool                   fuzz_started;
-  bool                   skip_entry;
   struct afl_queue_funcs funcs;
 
 };

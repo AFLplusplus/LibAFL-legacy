@@ -211,7 +211,7 @@ static bool afl_engine_handle_single_testcase_load(char *infile, void *data) {
     this is usually not a good idea.\n"); }
   */
   /* We add the corpus to the global queue */
-  afl_entry_t *entry = afl_entry_new(input);
+  afl_entry_t *entry = afl_entry_new(input, NULL);
   if (!entry) {
 
     DBG("Error allocating entry.");
@@ -227,17 +227,6 @@ static bool afl_engine_handle_single_testcase_load(char *infile, void *data) {
 }
 
 afl_ret_t afl_engine_load_testcases_from_dir(afl_engine_t *engine, char *dirpath) {
-
-  /* Since, this'll be the first execution, Let's start up the executor here */
-  if ((engine->executions == 0) && engine->executor->funcs.init_cb) {
-
-    AFL_TRY(engine->executor->funcs.init_cb(engine->executor), {
-
-      return err;
-
-    });
-
-  }
 
   return afl_for_each_file(dirpath, afl_engine_handle_single_testcase_load, (void *)engine);
 
@@ -257,9 +246,9 @@ afl_ret_t afl_engine_handle_new_message(afl_engine_t *engine, llmp_message_t *ms
     input->bytes = msg->buf;
     input->len = msg->buf_len;
 
-    if (!input) { FATAL("Error creating a copy of input"); }
+    afl_entry_info_t *info_ptr = (afl_entry_info_t *)((u8 *)(msg->buf + msg->buf_len));
 
-    afl_entry_t *new_entry = afl_entry_new(input);
+    afl_entry_t *new_entry = afl_entry_new(input, info_ptr);
 
     /* Users can experiment here, adding entries to different queues based on
      * the message tag. Right now, let's just add it to all queues*/

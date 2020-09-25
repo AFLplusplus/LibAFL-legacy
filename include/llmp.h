@@ -210,6 +210,8 @@ struct llmp_broker_client_metadata {
   int pid;
   /* the client loop function */
   llmp_clientloop_func clientloop;
+  /* the engine */
+  afl_engine_t *engine;
   /* Additional data for this client loop */
   void *data;
 

@@ -186,18 +186,18 @@ static float timeout_fbck_is_interesting(afl_feedback_t *feedback, afl_executor_
   obs_channel_time_t *observer_time = time_fbck->timeout_observer;
   u32                 last_run_time = *observer_time->last_run_time_p;
 
-  if (last_run_time == exec_timeout) {
+  if (last_run_time >= exec_timeout) {
 
     afl_input_t *input = fsrv->base.current_input->funcs.copy(fsrv->base.current_input);
     if (!input) { FATAL("Error creating a copy of input"); }
 
-    afl_entry_t *new_entry = afl_entry_new(input);
+    afl_entry_t *new_entry = afl_entry_new(input, NULL);
+    new_entry->info->skip_entry = 1;
+
     feedback->queue->base.funcs.insert(&feedback->queue->base, new_entry);
     return 0.0;
 
-  }
-
-  else {
+  } else {
 
     return 0.0;
 

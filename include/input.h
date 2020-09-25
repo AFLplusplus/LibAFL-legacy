@@ -50,8 +50,7 @@ struct afl_input_funcs {
 struct afl_input {
 
   u8 *   bytes;  // Raw input bytes
-  size_t len;    // Length of the input field. C++ had strings, we have to make do
-                 // with storing the lengths :/
+  size_t len;    // Length of the input
 
   struct afl_input_funcs funcs;
 
