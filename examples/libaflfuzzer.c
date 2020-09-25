@@ -116,20 +116,20 @@ static afl_ret_t in_memory_fuzzer_initialize(afl_executor_t *executor) {
 
   global_queue = in_memory_fuzzer->global_queue;
 
-  fprintf(stderr, "Calibration todo %d\n", calibration_idx);
+  fprintf(stderr, "Calibration todo %ld\n", calibration_idx);
   sleep(1);
   while (calibration_idx > 0) {
 
     --calibration_idx;
-    fprintf(stderr, "Seed %u\n", calibration_idx);
+    fprintf(stderr, "Seed %ld\n", calibration_idx);
     afl_entry_t *queue_entry = in_memory_fuzzer->global_queue->base.funcs.get_queue_entry(
         (afl_queue_t *)in_memory_fuzzer->global_queue, calibration_idx);
     if (queue_entry && !queue_entry->info->skip_entry) {
 
-      fprintf(stderr, "Seed %u testing ...\n", calibration_idx);
+      fprintf(stderr, "Seed %ld testing ...\n", calibration_idx);
       if (afl_stage_run(in_memory_fuzzer->stage, queue_entry->input, false) != AFL_RET_SUCCESS) {
 
-        WARNF("Queue entry %d misbehaved, disabling...", calibration_idx);
+        WARNF("Queue entry %ld misbehaved, disabling...", calibration_idx);
         queue_entry->info->skip_entry = 1;
 
       }
@@ -189,7 +189,7 @@ static void handle_timeout(int sig, siginfo_t *info, void *ucontext) {
 
     if (queue_entry && !queue_entry->info->skip_entry) {
 
-      WARNF("Seed entry %d timed out, disabling...", calibration_idx);
+      WARNF("Seed entry %ld timed out, disabling...", calibration_idx);
       queue_entry->info->skip_entry = 1;
 
     }
@@ -237,7 +237,7 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
 
     if (queue_entry && !queue_entry->info->skip_entry) {
 
-      WARNF("Seed entry %d crashed, disabling...", calibration_idx);
+      WARNF("Seed entry %ld crashed, disabling...", calibration_idx);
       queue_entry->info->skip_entry = 1;
 
     }
@@ -406,7 +406,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
 
   in_memory_executor->argc = argc;
   in_memory_executor->argv = afl_argv_cpy_dup(argc, argv);
-  in_memory_executor->base.funcs.init_cb = in_memory_fuzzer_initialize;
+  // in_memory_executor->base.funcs.init_cb = in_memory_fuzzer_initialize;
 
   /* Observation channel, map based, we initialize this ourselves since we don't
    * actually create a shared map */
@@ -499,7 +499,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
   }
 
   calibration_idx = (ssize_t)((afl_queue_t *)engine->global_queue)->entries_count;
-  OKF("Starting seed count: %llu", calibration_idx);
+  OKF("Starting seed count: %lu", calibration_idx);
 
   return engine;
 
@@ -550,6 +550,8 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
   }
 
   if (!coverage_feedback) { FATAL("No coverage feedback added to engine"); }
+
+  in_memory_fuzzer_initialize(engine->executor);
 
   /* The actual fuzzing */
   AFL_TRY(engine->funcs.loop(engine), { PFATAL("Error fuzzing the target: %s", afl_ret_stringify(err)); });
@@ -678,7 +680,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
 
         if (queue_entry && !queue_entry->info->skip_entry) {
 
-          WARNF("Seed entry %d timed out, disabling...", state->calibration_idx);
+          WARNF("Seed entry %ld timed out, disabling...", state->calibration_idx);
           queue_entry->info->skip_entry = 1;
 
         }
@@ -724,7 +726,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
 
         if (queue_entry && !queue_entry->info->skip_entry) {
 
-          WARNF("Seed entry %d crashed, disabling...", state->calibration_idx);
+          WARNF("Seed entry %ld crashed, disabling...", state->calibration_idx);
           queue_entry->info->skip_entry = 1;
 
         }

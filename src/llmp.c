@@ -786,23 +786,26 @@ static void *_llmp_client_wrapped_loop(void *llmp_client_broker_metadata_ptr) {
   /* Before doing anything else:, notify registered hooks about the new page we're about to use */
   llmp_client_trigger_new_out_page_hooks(metadata->client_state);
 
-  if (metadata->data && (unsigned long int) metadata->data > 0x10000) {
+  /*
+    if (metadata->data && (unsigned long int) metadata->data > 0x10000) {
 
-    afl_engine_t *engine = (afl_engine_t *)metadata->data;
+      afl_engine_t *engine = (afl_engine_t *)metadata->data;
 
-    if (engine->executor->funcs.init_cb) {
+      if (engine->executor->funcs.init_cb) {
 
-      DBG("Client init");
+        DBG("Client init");
 
-      AFL_TRY(engine->executor->funcs.init_cb(engine->executor), {
+        AFL_TRY(engine->executor->funcs.init_cb(engine->executor), {
 
-        FATAL("could not execute custom init function of the child");
+          FATAL("could not execute custom init function of the child");
 
-      });
+        });
+
+      }
 
     }
 
-  }
+  */
 
   DBG("Client looping");
   metadata->clientloop(metadata->client_state, metadata->data);
@@ -1090,6 +1093,8 @@ llmp_message_t *llmp_client_recv_blocking(llmp_client_t *client) {
 
 /* Alloc the next message, internally handling end of page by allocating a new one. */
 llmp_message_t *llmp_client_alloc_next(llmp_client_t *client, size_t size) {
+
+  if (!client) FATAL("client is NULL");
 
   llmp_message_t *msg;
 
