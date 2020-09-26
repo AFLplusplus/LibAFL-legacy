@@ -118,19 +118,21 @@ static afl_ret_t in_memory_fuzzer_initialize(afl_executor_t *executor) {
 
   if (calibration_idx > 0) {
 
-    fprintf(stderr, "\nCalibrations to check: %ld\n", calibration_idx);
+    if (debug) fprintf(stderr, "\nCalibrations to check: %ld\n", calibration_idx);
     while (calibration_idx > 0) {
 
       --calibration_idx;
-      fprintf(stderr, "Seed %ld\n", calibration_idx);
+      if (debug) fprintf(stderr, "Seed %ld\n", calibration_idx);
       afl_entry_t *queue_entry = in_memory_fuzzer->global_queue->base.funcs.get_queue_entry(
           (afl_queue_t *)in_memory_fuzzer->global_queue, calibration_idx);
       if (queue_entry && !queue_entry->info->skip_entry) {
 
-        fprintf(stderr, "Seed %ld testing ...\n", calibration_idx);
+        if (debug) fprintf(stderr, "Seed %ld testing ...\n", calibration_idx);
         queue_entry->info->skip_entry = 1;
         if (afl_stage_run(in_memory_fuzzer->stage, queue_entry->input, false) == AFL_RET_SUCCESS) {
 
+          // We want to clear from the virgin bits what is already in the seeds
+          afl_stage_is_interesting(in_memory_fuzzer->stage);
           queue_entry->info->skip_entry = 0;
 
         } else {
@@ -147,9 +149,9 @@ static afl_ret_t in_memory_fuzzer_initialize(afl_executor_t *executor) {
 
   if (calibration_idx == 0) {
 
-    fprintf(stderr, "Calibration checks done.\n");
     if (debug) {
 
+      fprintf(stderr, "Calibration checks done.\n");
       u32 i;
       fprintf(stderr, "%u seeds:\n", (u32)((afl_queue_t *)in_memory_fuzzer->global_queue)->entries_count);
       for (i = 0; i < (u32)((afl_queue_t *)in_memory_fuzzer->global_queue)->entries_count; i++) {

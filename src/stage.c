@@ -101,6 +101,22 @@ afl_ret_t afl_stage_run(afl_stage_t *stage, afl_input_t *input, bool overwrite) 
 
 }
 
+float afl_stage_is_interesting(afl_stage_t *stage) {
+
+  float interestingness = 0.0f;
+
+  afl_feedback_t **feedbacks = stage->engine->feedbacks;
+  size_t           j;
+  for (j = 0; j < stage->engine->feedbacks_count; ++j) {
+
+    interestingness += feedbacks[j]->funcs.is_interesting(feedbacks[j], stage->engine->executor);
+
+  }
+
+  return interestingness;
+
+}
+
 /* Perform default for fuzzing stage */
 afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
 
@@ -145,14 +161,7 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
     afl_ret_t ret = afl_stage_run(stage, copy, true);
 
     /* Let's collect some feedback on the input now */
-    bool interestingness = 0.0f;
-
-    afl_feedback_t **feedbacks = stage->engine->feedbacks;
-    for (j = 0; j < stage->engine->feedbacks_count; ++j) {
-
-      interestingness += feedbacks[j]->funcs.is_interesting(feedbacks[j], stage->engine->executor);
-
-    }
+    float interestingness = afl_stage_is_interesting(stage);
 
     if (interestingness >= 0.5) {
 
