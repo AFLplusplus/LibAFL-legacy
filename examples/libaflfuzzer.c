@@ -31,7 +31,7 @@ static u8 *virgin_bits;
 static llmp_client_t *current_client = NULL;
 /* Ptr to the message we're trying to fuzz right now - in case we crash... */
 static llmp_message_t *    current_fuzz_input_msg = NULL;
-static afl_queue_global_t *global_queue;
+static afl_queue_global_t *global_queue, *broker_queue;
 static afl_input_t *       current_input = NULL;
 static int                 debug = 0;
 static char *              queue_dirpath;
@@ -116,21 +116,28 @@ static afl_ret_t in_memory_fuzzer_initialize(afl_executor_t *executor) {
 
   global_queue = in_memory_fuzzer->global_queue;
 
-  fprintf(stderr, "Calibration todo %ld\n", calibration_idx);
-  sleep(1);
-  while (calibration_idx > 0) {
+  if (calibration_idx > 0) {
 
-    --calibration_idx;
-    fprintf(stderr, "Seed %ld\n", calibration_idx);
-    afl_entry_t *queue_entry = in_memory_fuzzer->global_queue->base.funcs.get_queue_entry(
-        (afl_queue_t *)in_memory_fuzzer->global_queue, calibration_idx);
-    if (queue_entry && !queue_entry->info->skip_entry) {
+    fprintf(stderr, "\nCalibrations to check: %ld\n", calibration_idx);
+    while (calibration_idx > 0) {
 
-      fprintf(stderr, "Seed %ld testing ...\n", calibration_idx);
-      if (afl_stage_run(in_memory_fuzzer->stage, queue_entry->input, false) != AFL_RET_SUCCESS) {
+      --calibration_idx;
+      fprintf(stderr, "Seed %ld\n", calibration_idx);
+      afl_entry_t *queue_entry = in_memory_fuzzer->global_queue->base.funcs.get_queue_entry(
+          (afl_queue_t *)in_memory_fuzzer->global_queue, calibration_idx);
+      if (queue_entry && !queue_entry->info->skip_entry) {
 
-        WARNF("Queue entry %ld misbehaved, disabling...", calibration_idx);
+        fprintf(stderr, "Seed %ld testing ...\n", calibration_idx);
         queue_entry->info->skip_entry = 1;
+        if (afl_stage_run(in_memory_fuzzer->stage, queue_entry->input, false) == AFL_RET_SUCCESS) {
+
+          queue_entry->info->skip_entry = 0;
+
+        } else {
+
+          WARNF("Queue entry %ld misbehaved, disabling...", calibration_idx);
+
+        }
 
       }
 
@@ -138,7 +145,26 @@ static afl_ret_t in_memory_fuzzer_initialize(afl_executor_t *executor) {
 
   }
 
-  calibration_idx = -1;  // we are done
+  if (calibration_idx == 0) {
+
+    fprintf(stderr, "Calibration checks done.\n");
+    if (debug) {
+
+      u32 i;
+      fprintf(stderr, "%u seeds:\n", (u32)((afl_queue_t *)in_memory_fuzzer->global_queue)->entries_count);
+      for (i = 0; i < (u32)((afl_queue_t *)in_memory_fuzzer->global_queue)->entries_count; i++) {
+
+        afl_entry_t *queue_entry = in_memory_fuzzer->global_queue->base.funcs.get_queue_entry(
+            (afl_queue_t *)in_memory_fuzzer->global_queue, i);
+        if (queue_entry && queue_entry->info->skip_entry) fprintf(stderr, "Seed #%u is disabled\n", i);
+
+      }
+
+    }
+
+    calibration_idx = -1;  // we are done
+
+  }
 
   return AFL_RET_SUCCESS;
 
@@ -387,7 +413,7 @@ u8 execute(afl_engine_t *engine, afl_input_t *input) {
 }
 
 /* This initializes the fuzzer */
-afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *argv[], u32 instance) {
+afl_engine_t *initialize_broker(char *in_dir, char *queue_dir, int argc, char *argv[], u32 instance) {
 
   (void)(instance);
 
@@ -498,6 +524,7 @@ afl_engine_t *initialize_fuzzer(char *in_dir, char *queue_dir, int argc, char *a
 
   }
 
+  broker_queue = engine->global_queue;
   calibration_idx = (ssize_t)((afl_queue_t *)engine->global_queue)->entries_count;
   OKF("Starting seed count: %lu", calibration_idx);
 
@@ -676,7 +703,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       if (state->calibration_idx >= 0) {
 
         afl_entry_t *queue_entry =
-            global_queue->base.funcs.get_queue_entry((afl_queue_t *)global_queue, state->calibration_idx);
+            broker_queue->base.funcs.get_queue_entry((afl_queue_t *)broker_queue, state->calibration_idx);
 
         if (queue_entry && !queue_entry->info->skip_entry) {
 
@@ -722,7 +749,7 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
       if (state->calibration_idx >= 0) {
 
         afl_entry_t *queue_entry =
-            global_queue->base.funcs.get_queue_entry((afl_queue_t *)global_queue, state->calibration_idx);
+            broker_queue->base.funcs.get_queue_entry((afl_queue_t *)broker_queue, state->calibration_idx);
 
         if (queue_entry && !queue_entry->info->skip_entry) {
 
@@ -834,8 +861,8 @@ int main(int argc, char **argv) {
 
   for (i = 0; i < thread_count; i++) {
 
-    afl_engine_t *engine = initialize_fuzzer(in_dir, queue_dirpath, argc, argv, thread_count);
-    if (!engine) { FATAL("Error initializing fuzzing engine"); }
+    afl_engine_t *engine = initialize_broker(in_dir, queue_dirpath, argc, argv, thread_count);
+    if (!engine) { FATAL("Error initializing broker fuzzing engine"); }
     engines[i] = engine;
 
     /* All fuzzers get their own process.
@@ -866,7 +893,6 @@ int main(int argc, char **argv) {
   - all fuzzer instances (using fork()) */
   llmp_broker_launch_clientloops(llmp_broker);
 
-  global_queue = afl_queue_global_new();
   OKF("%u client%s started running.", thread_count, thread_count == 1 ? "" : "s");
   sleep(1);
 
