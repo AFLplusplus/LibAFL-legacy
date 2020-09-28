@@ -805,8 +805,7 @@ int main(int argc, char **argv) {
 
   if (argc < 4) {
 
-    SAYF("Usage: %s number_of_threads /path/to/input/dir /path/to/queue/dir", argv[0]);
-    exit(0);
+    FATAL("Usage: %s number_of_threads /path/to/input/dir /path/to/queue/dir", argv[0]);
 
   }
 
