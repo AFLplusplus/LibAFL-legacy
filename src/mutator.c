@@ -325,7 +325,6 @@ void afl_mutfunc_clone_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
   clone_to = afl_rand_below(rand, size);
 
-  // u8 *current_bytes = input->bytes;
 
   if (actually_clone) {
 
@@ -349,7 +348,6 @@ void afl_mutfunc_clone_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
   }
 
-  // free(current_bytes);
 
 }
 
