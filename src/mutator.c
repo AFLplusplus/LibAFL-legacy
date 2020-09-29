@@ -36,6 +36,8 @@
 afl_ret_t afl_mutator_init(afl_mutator_t *mutator, afl_engine_t *engine) {
 
   mutator->engine = engine;
+  mutator->mutate_buf = NULL;
+
   return AFL_RET_SUCCESS;
 
 }
@@ -323,27 +325,29 @@ void afl_mutfunc_clone_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
   clone_to = afl_rand_below(rand, size);
 
-  u8 *current_bytes = input->bytes;
+  // u8 *current_bytes = input->bytes;
 
   if (actually_clone) {
 
     clone_len = choose_block_len(rand, size);
     clone_from = afl_rand_below(rand, size - clone_len + 1);
 
-    input->bytes = afl_insert_substring(input->bytes, size, input->bytes + clone_from, clone_len, clone_to);
+    mutator->mutate_buf = afl_realloc(mutator->mutate_buf, clone_len + size);
+
+    input->bytes = afl_insert_substring(input->bytes, mutator->mutate_buf, size, input->bytes + clone_from, clone_len, clone_to);
     input->len += clone_len;
 
   } else {
 
     clone_len = choose_block_len(rand, HAVOC_BLK_XL);
 
-    input->bytes = afl_insert_bytes(input->bytes, size, afl_rand_below(rand, 255), clone_len, clone_to);
+    input->bytes = afl_insert_bytes(input->bytes, mutator->mutate_buf, size, afl_rand_below(rand, 255), clone_len, clone_to);
 
     input->len += clone_len;
 
   }
 
-  free(current_bytes);
+  // free(current_bytes);
 
 }
 
@@ -432,7 +436,10 @@ void afl_mutfunc_splice(afl_mutator_t *mutator, afl_input_t *input) {
 
   input->len = splice_input->len;
 
-  input->bytes = realloc(input->bytes, input->len);
+  /* Let's use the mutate_buf for splicing */
+  mutator->mutate_buf = afl_realloc(mutator->mutate_buf, input->len);
+  memcpy(mutator->mutate_buf, input->bytes, split_at);
+  input->bytes = mutator->mutate_buf;
   memcpy(input->bytes + split_at, splice_input->bytes + split_at, splice_input->len - split_at);
 
 }

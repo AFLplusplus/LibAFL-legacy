@@ -197,6 +197,7 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
     /* If the input is interesting and there is a global queue add the input to
      * the queue */
     /* TODO: 0.5 is a random value. How do we want to chose interesting input? */
+    /* This block of code is never reached in the above case where we wait for it to return from the broker*/
     if (interestingness >= 0.5 && stage->engine->global_queue) {
 
       afl_input_t *input_copy = copy->funcs.copy(copy);
