@@ -334,14 +334,16 @@ void afl_mutfunc_clone_bytes(afl_mutator_t *mutator, afl_input_t *input) {
 
     mutator->mutate_buf = afl_realloc(mutator->mutate_buf, clone_len + size);
 
-    input->bytes = afl_insert_substring(input->bytes, mutator->mutate_buf, size, input->bytes + clone_from, clone_len, clone_to);
+    input->bytes =
+        afl_insert_substring(input->bytes, mutator->mutate_buf, size, input->bytes + clone_from, clone_len, clone_to);
     input->len += clone_len;
 
   } else {
 
     clone_len = choose_block_len(rand, HAVOC_BLK_XL);
 
-    input->bytes = afl_insert_bytes(input->bytes, mutator->mutate_buf, size, afl_rand_below(rand, 255), clone_len, clone_to);
+    input->bytes =
+        afl_insert_bytes(input->bytes, mutator->mutate_buf, size, afl_rand_below(rand, 255), clone_len, clone_to);
 
     input->len += clone_len;
 

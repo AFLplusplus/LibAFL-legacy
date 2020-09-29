@@ -58,10 +58,13 @@ afl_ret_t afl_input_init(afl_input_t *input) {
 
 void afl_input_deinit(afl_input_t *input) {
 
-  /* Deiniting requires a little hack. We free the byte ONLY if copy buf is not NULL. Because then we can assume that the input is in the queue*/
-  if (input->bytes && input->copy_buf) { 
+  /* Deiniting requires a little hack. We free the byte ONLY if copy buf is not NULL. Because then we can assume that
+   * the input is in the queue*/
+  if (input->bytes && input->copy_buf) {
+
     free(input->bytes);
     afl_free(input->copy_buf);
+
   }
 
   input->bytes = NULL;

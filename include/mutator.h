@@ -55,7 +55,7 @@ struct afl_mutator_funcs {
 struct afl_mutator {
 
   afl_engine_t *engine;
-  u8 *mutate_buf; // Extra buf for mutators to work with for afl_realloc
+  u8 *          mutate_buf;  // Extra buf for mutators to work with for afl_realloc
 
   struct afl_mutator_funcs funcs;
 

@@ -52,7 +52,7 @@ struct afl_input {
   u8 *   bytes;  // Raw input bytes
   size_t len;    // Length of the input
 
-  u8 * copy_buf;
+  u8 *copy_buf;
 
   struct afl_input_funcs funcs;
 
