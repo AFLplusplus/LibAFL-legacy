@@ -260,8 +260,8 @@ llmp_message_t *llmp_alloc_eop(llmp_page_t *page, llmp_message_t *last_msg) {
   if (page->size_used + LLMP_MSG_END_OF_PAGE_LEN > page->size_total) {
 
     FATAL(
-        "BUG: EOP does not fit in page! page %p, size_current %ld, size_total "
-        "%ld",
+        "BUG: EOP does not fit in page! page %p, size_current %zu, size_total "
+        "%zu",
         page, page->size_used, page->size_total);
 
   }
@@ -335,7 +335,7 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
     /* Oops, wrong usage! */
     FATAL(
         "BUG: The current message never got commited using llmp_send! "
-        "(page->current_msg_id %ld, last_msg->message_id: %d)",
+        "(page->current_msg_id %zu, last_msg->message_id: %d)",
         page->current_msg_id, last_msg->message_id);
 
   } else {
@@ -373,7 +373,7 @@ llmp_message_t *llmp_alloc_next(llmp_page_t *page, llmp_message_t *last_msg, siz
 
     FATAL(
         "Allocated new message without calling send() inbetween. ret: %p, "
-        "page: %p, complete_msg_size: %ld, size_used: %ld, last_msg: %p, "
+        "page: %p, complete_msg_size: %zu, size_used: %zu, last_msg: %p, "
         "page->messages %p",
         ret, page, buf_len_padded, page->size_used, last_msg, page->messages);
 
@@ -530,7 +530,7 @@ llmp_message_t *llmp_broker_alloc_next(llmp_broker_t *broker, size_t len) {
     out = llmp_alloc_next(broadcast_page, broker->last_msg_sent, len);
     if (!out) {
 
-      FATAL("Error allocating %ld bytes in shmap %s", len, _llmp_broker_current_broadcast_map(broker)->shm_str);
+      FATAL("Error allocating %zu bytes in shmap %s", len, _llmp_broker_current_broadcast_map(broker)->shm_str);
 
     }
 
@@ -622,7 +622,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
       llmp_payload_new_page_t *pageinfo = LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
       if (!pageinfo) {
 
-        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len_padded,
+        FATAL("Illegal message length for EOP (is %zu, expected %u)", msg->buf_len_padded,
               sizeof(llmp_payload_new_page_t));
 
       }
@@ -642,7 +642,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
 
       if (!afl_shmem_by_str(client_map, pageinfo->shm_str, pageinfo->map_size)) {
 
-        FATAL("Could not get shmem by str for map %s of size %ld", pageinfo->shm_str, pageinfo->map_size);
+        FATAL("Could not get shmem by str for map %s of size %zu", pageinfo->shm_str, pageinfo->map_size);
 
       }
 
@@ -657,7 +657,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
 
         WARNF(
             "Ignoring broken CLIENT_ADDED msg due to incorrect size. "
-            "Expected %ld but got %ld",
+            "Expected %zu but got %zu",
             sizeof(llmp_payload_new_page_t), msg->buf_len_padded);
 
       }
@@ -700,7 +700,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
 
         if (!out) {
 
-          FATAL("Error allocating %ld bytes in shmap %s", msg->buf_len_padded,
+          FATAL("Error allocating %zu bytes in shmap %s", msg->buf_len_padded,
                 _llmp_broker_current_broadcast_map(broker)->shm_str);
 
         }
@@ -1016,7 +1016,7 @@ llmp_message_t *llmp_client_recv(llmp_client_t *client) {
       llmp_payload_new_page_t *pageinfo = LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
       if (!pageinfo) {
 
-        FATAL("Illegal message length for EOP (is %ld, expected %ld)", msg->buf_len_padded,
+        FATAL("Illegal message length for EOP (is %zu, expected %zu)", msg->buf_len_padded,
               sizeof(llmp_payload_new_page_t));
 
       }
@@ -1030,7 +1030,7 @@ llmp_message_t *llmp_client_recv(llmp_client_t *client) {
 
       if (!afl_shmem_by_str(client->current_broadcast_map, pageinfo->shm_str, pageinfo->map_size)) {
 
-        FATAL("Could not get shmem by str for map %s of size %ld", pageinfo->shm_str, pageinfo->map_size);
+        FATAL("Could not get shmem by str for map %s of size %zu", pageinfo->shm_str, pageinfo->map_size);
 
       }
 

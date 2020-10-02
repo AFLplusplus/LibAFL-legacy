@@ -403,7 +403,7 @@ afl_ret_t afl_engine_check_configuration(afl_engine_t *engine) {
 
     if (!engine->feedbacks[i]) {
 
-      WARNF("Feedback is NULL at %lu idx but feedback count is greater (%llu).", i, engine->feedbacks_count);
+      WARNF("Feedback is NULL at %zu idx but feedback count is greater (%llu).", i, engine->feedbacks_count);
       has_warning = true;
       break;
 
