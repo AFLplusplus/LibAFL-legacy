@@ -41,11 +41,8 @@ libpng-1.6.37.tar.gz:
 libpng16.a:	libpng-1.6.37.tar.gz
 	tar -xvzf ./libpng-1.6.37.tar.gz || rm -f ./libpng-1.6.37.tar.gz
 	cd libpng-1.6.37 && \
-	export CC=clang && export CXX=clang++ && \
-	export CFLAGS="-D_DEFAULT_SOURCE -fsanitize-coverage=trace-pc-guard" && \
-	export CXXFLAGS="$CFLAGS" && unset LDFLAGS && \
 	./configure --disable-shared && \
-	$(MAKE)
+	$(MAKE) CC=clang CXX=clang++ CFLAGS="-D_DEFAULT_SOURCE -fsanitize-coverage=trace-pc-guard" CXXFLAGS="-D_DEFAULT_SOURCE -fsanitize-coverage=trace-pc-guard" LDFLAGS=
 	cp libpng-1.6.37/.libs/libpng16.a ./
 
 target: afl-compiler-rt.o target.c
