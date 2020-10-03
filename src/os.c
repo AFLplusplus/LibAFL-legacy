@@ -392,9 +392,8 @@ s32 get_core_count() {
 }
 
 
-afl_ret_t bind_to_cpu(afl_engine_t * engine) {
+afl_ret_t bind_to_cpu() {
 
-  (void)  engine;
   u8 cpu_used[4096];
 
   #if defined(__linux__)

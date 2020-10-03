@@ -70,7 +70,7 @@ struct afl_engine {
   u64   executions, start_time, last_update, crashes, feedbacks_count;
   u32   id;
   u8    verbose;
-  u8    bind_to_cpu;  // 1 if we want to bind to a cpu, 0 else 
+  s32    cpu_bound;  // 1 if we want to bind to a cpu, 0 else 
   char *in_dir;  // Input corpus directory
 
   afl_rand_t rand;

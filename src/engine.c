@@ -46,7 +46,7 @@ afl_ret_t afl_engine_init(afl_engine_t *engine, afl_executor_t *executor, afl_fu
   engine->feedbacks = NULL;
   engine->feedbacks_count = 0;
   engine->executions = 0;
-  engine->bind_to_cpu = 0;
+  engine->cpu_bound = -1; // Initialize bound cpu to -1 (0xffffffff) bit mask for non affinity
 
   if (global_queue) { global_queue->base.funcs.set_engine(&global_queue->base, engine); }
 

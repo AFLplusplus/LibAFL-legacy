@@ -547,9 +547,9 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 
   afl_engine_t *engine = (afl_engine_t *)data;
   engine->llmp_client = llmp_client;
-  engine->bind_to_cpu = 1;
+  engine->cpu_bound = bind_to_cpu();
 
-  AFL_TRY(bind_to_cpu(engine), { WARNF("Couldn't bind to CPU"); });
+  if (engine->cpu_bound == -1) { FATAL("Error binding to CPU :("); }
 
   afl_observer_covmap_t *observer_covmap = NULL;
   for (i = 0; i < engine->executor->observors_count; i++) {
