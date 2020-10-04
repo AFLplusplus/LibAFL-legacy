@@ -28,10 +28,12 @@
 #define LIBAFL_EXECUTOR_EXECUTOR_H
 
 #include "object.h"
-#include "returns.h"
+#include "error.h"
 
 #include "observation_channel/observation_channel.h"
 #include "input/input.h"
+
+typedef struct afl_executor afl_executor_t;
 
 struct afl_executor_vtable {
 
@@ -39,7 +41,7 @@ struct afl_executor_vtable {
     The destroy() method is optional.
     It is invoked just before the destroy of the object.
   */
-  u8 (*destroy)(afl_executor_t *);
+  void (*destroy)(afl_executor_t *);
 
   /*
     The run_target() method is mandatory.
@@ -47,7 +49,7 @@ struct afl_executor_vtable {
   afl_exit_t (*run_target)(afl_executor_t *);
 
   /*
-    The run_target() method is mandatory.
+    The place_input() method is mandatory.
   */
   u8 (*place_input)(afl_executor_t *, afl_input_t *);
 
@@ -79,12 +81,6 @@ struct afl_executor {
 afl_ret_t afl_executor_init(afl_executor_t *);
 
 /*
-  Destroy an afl_executor_t object, you must call this method before releasing
-  the memory used by the object.
-*/
-void afl_executor_destroy(afl_executor_t *);
-
-/*
   Add an afl_observation_channel_t to the list.
 */
 afl_ret_t afl_executor_add_observation_channel(afl_executor_t *, afl_observation_channel_t *);
@@ -93,6 +89,48 @@ afl_ret_t afl_executor_add_observation_channel(afl_executor_t *, afl_observation
   Reset the state of all the observation channels.
 */
 void afl_executor_reset_observation_channels(afl_executor_t *);
+
+/*
+  Add an afl_observation_channel_t to the list.
+*/
+afl_ret_t afl_executor_add_oracle(afl_executor_t *, afl_oracle_t *);
+
+/*
+  Destroy an afl_executor_t object, you must call this method before releasing
+  the memory used by the object.
+*/
+static inline void afl_executor_destroy(afl_executor_t * self) {
+  
+  DCHECK(self);
+  if (self->v.destroy)
+    self->v.destroy(self);
+
+}
+
+/*
+  Run the target represented by the executor.
+*/
+static inline afl_exit_t afl_executor_run_target(afl_executor_t * self) {
+  
+  DCHECK(self);
+  CHECK(self->v.run_target);
+  
+  return self->v.run_target(self);
+
+}
+
+/*
+  Instruct the SUT about the input.
+*/
+static inline u8 afl_executor_place_input(afl_executor_t * self, afl_input_t * input) {
+  
+  DCHECK(self);
+  DCHECK(input);
+  CHECK(self->v.place_input);
+  
+  return self->v.place_input(self, input);
+
+}
 
 AFL_NEW_AND_DELETE_FOR(afl_executor)
 

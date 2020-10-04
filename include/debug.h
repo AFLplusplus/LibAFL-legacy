@@ -28,13 +28,11 @@
 #include <errno.h>
 
 #include "types.h"
-#include "config.h"
 
 /* wrap __LINE__ (int) as string using preprocessor magic, see
 http://decompile.com/cpp/faq/file_and_line_error_string.htm
 */
-#define _STR(x) #x
-#define TOSTRING(x) _STR(x)
+#define TOSTRING(x) #x
 
 /*******************
  * Terminal colors *
@@ -290,4 +288,3 @@ http://decompile.com/cpp/faq/file_and_line_error_string.htm
    appropriate. */
 
 #endif                                                                                           /* ! _HAVE_DEBUG_H */
-
