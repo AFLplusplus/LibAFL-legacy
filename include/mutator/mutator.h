@@ -62,10 +62,10 @@ struct afl_mutator {
 };
 
 /*
-  Destroy an afl_input_t object, you must call this method before releasing
+  Deinit an afl_input_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_mutator_destroy(afl_mutator_t *self) {
+static inline void afl_mutator_deinit(afl_mutator_t *self) {
 
   DCHECK(self);
   if (self->v->destroy) self->v->destroy(self);

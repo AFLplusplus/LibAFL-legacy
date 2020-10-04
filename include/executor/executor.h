@@ -82,6 +82,11 @@ struct afl_executor {
 afl_ret_t afl_executor_init__protected(afl_executor_t *);
 
 /*
+  Destroy the context of an afl_executor_t.
+*/
+void afl_executor_destroy(afl_executor_t *self);
+
+/*
   Add an afl_observation_channel_t to the list.
 */
 afl_ret_t afl_executor_add_observation_channel(afl_executor_t *, afl_observation_channel_t *);
@@ -97,10 +102,10 @@ void afl_executor_reset_observation_channels(afl_executor_t *);
 afl_ret_t afl_executor_add_oracle(afl_executor_t *, afl_oracle_t *);
 
 /*
-  Destroy an afl_executor_t object, you must call this method before releasing
+  Deinit an afl_executor_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_executor_destroy(afl_executor_t *self) {
+static inline void afl_executor_deinit(afl_executor_t *self) {
 
   DCHECK(self);
   if (self->v->destroy) self->v->destroy(self);

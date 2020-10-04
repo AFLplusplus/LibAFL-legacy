@@ -98,6 +98,11 @@ static inline u32 afl_scheduled_mutator_schedule(afl_scheduled_mutator_t *self) 
 }
 
 /*
+  Destroy the context of an afl_scheduled_mutator_t.
+*/
+void afl_scheduled_mutator_init_destroy(afl_mutator_t * self);
+
+/*
   Mutate an input.
 */
 static inline u32 afl_scheduled_mutator_mutate(afl_mutator_t *self, afl_input_t *input, u32 stage_idx) {

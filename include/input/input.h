@@ -85,10 +85,10 @@ afl_ret_t afl_input_load_from_file(afl_input_t *self, char *filename);
 afl_ret_t afl_input_save_to_file(afl_input_t *self, char *filename);
 
 /*
-  Destroy an afl_input_t object, you must call this method before releasing
+  Deinit an afl_input_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_input_destroy(afl_executor_t *self) {
+static inline void afl_input_deinit(afl_executor_t *self) {
 
   DCHECK(self);
   if (self->v->destroy) self->v->destroy(self);

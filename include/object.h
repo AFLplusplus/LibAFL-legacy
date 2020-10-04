@@ -65,7 +65,7 @@ For decl and call, use AFL_DECL/CALL_PARAMS
 #define AFL_DELETE_FOR(init_type)  \
   static inline void init_type##_delete(init_type##_t *init_type) {                  \
                                                                                      \
-    init_type##_destroy(init_type);                                                   \
+    init_type##_deinit(init_type);                                                   \
     free(init_type);                                                                 \
                                                                                      \
   }
