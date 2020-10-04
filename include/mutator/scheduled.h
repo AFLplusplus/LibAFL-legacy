@@ -43,23 +43,23 @@ struct afl_scheduled_mutator_vtable {
   /*
     The iterations() method is mandatory.
   */
-  u32 (*iterations)(afl_scheduled_mutator_t*);
-  
+  u32 (*iterations)(afl_scheduled_mutator_t *);
+
   /*
     The schedule() method is mandatory.
   */
-  u32 (*schedule)(afl_scheduled_mutator_t*);
-  
+  u32 (*schedule)(afl_scheduled_mutator_t *);
+
 };
 
 struct afl_scheduled_mutator {
 
   INHERITS(afl_mutator)
-  
-  afl_mutation_function_t* mutations;
-  size_t mutations_count;
-  
-  struct afl_scheduled_mutator_vtable* v;
+
+  afl_mutation_function_t *mutations;
+  size_t                   mutations_count;
+
+  struct afl_scheduled_mutator_vtable *v;
 
 };
 
@@ -71,16 +71,16 @@ afl_ret_t afl_scheduled_mutator_init(afl_scheduled_mutator_t *);
 /*
   Add a mutation to the mutator.
 */
-void afl_scheduled_mutator_add_mutation(afl_scheduled_mutator_t *, afl_mutation_function_t*);
+void afl_scheduled_mutator_add_mutation(afl_scheduled_mutator_t *, afl_mutation_function_t *);
 
 /*
   Get the number of mutations to apply.
 */
-static inline u32 afl_scheduled_mutator_iterations(afl_scheduled_mutator_t * self) {
-  
+static inline u32 afl_scheduled_mutator_iterations(afl_scheduled_mutator_t *self) {
+
   DCHECK(self);
   DCHECK(self->v->iterations)
-  
+
   return self->v->iterations(self);
 
 }
@@ -88,11 +88,11 @@ static inline u32 afl_scheduled_mutator_iterations(afl_scheduled_mutator_t * sel
 /*
   Get the next mutation to apply (as index).
 */
-static inline u32 afl_scheduled_mutator_schedule(afl_scheduled_mutator_t * self) {
-  
+static inline u32 afl_scheduled_mutator_schedule(afl_scheduled_mutator_t *self) {
+
   DCHECK(self);
   DCHECK(self->v->schedule)
-  
+
   return self->v->schedule(self);
 
 }
@@ -100,21 +100,24 @@ static inline u32 afl_scheduled_mutator_schedule(afl_scheduled_mutator_t * self)
 /*
   Mutate an input.
 */
-static inline u32 afl_scheduled_mutator_mutate(afl_mutator_t * self, afl_input_t* input, u32 stage_idx) {
-  
+static inline u32 afl_scheduled_mutator_mutate(afl_mutator_t *self, afl_input_t *input, u32 stage_idx) {
+
   (void)stage_idx;
-  
+
   DCHECK(self);
   DCHECK(INSTANCE_OF(afl_scheduled_mutator, self));
-  
+
   u32 i, num;
 
-  afl_scheduled_mutator_t* s = (afl_scheduled_mutator*)self;
+  afl_scheduled_mutator_t *s = (afl_scheduled_mutator *)self;
   num = afl_scheduled_mutator_iterations(s);
   for (i = 0; i < num; ++i) {
+
     s->mutations[afl_scheduled_mutator_schedule(s)](self, input);
+
   }
 
 }
 
 #endif
+

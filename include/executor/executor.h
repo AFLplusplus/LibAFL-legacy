@@ -71,7 +71,7 @@ struct afl_executor {
 
   afl_input_t *current_input;
 
-  struct afl_executor_vtable* v;
+  struct afl_executor_vtable *v;
 
 };
 
@@ -100,22 +100,21 @@ afl_ret_t afl_executor_add_oracle(afl_executor_t *, afl_oracle_t *);
   Destroy an afl_executor_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_executor_destroy(afl_executor_t * self) {
-  
+static inline void afl_executor_destroy(afl_executor_t *self) {
+
   DCHECK(self);
-  if (self->v->destroy)
-    self->v->destroy(self);
+  if (self->v->destroy) self->v->destroy(self);
 
 }
 
 /*
   Run the target represented by the executor.
 */
-static inline afl_exit_t afl_executor_run_target(afl_executor_t * self) {
-  
+static inline afl_exit_t afl_executor_run_target(afl_executor_t *self) {
+
   DCHECK(self);
   CHECK(self->v->run_target);
-  
+
   return self->v->run_target(self);
 
 }
@@ -123,12 +122,12 @@ static inline afl_exit_t afl_executor_run_target(afl_executor_t * self) {
 /*
   Instruct the SUT about the input.
 */
-static inline u8 afl_executor_place_input(afl_executor_t * self, afl_input_t * input) {
-  
+static inline u8 afl_executor_place_input(afl_executor_t *self, afl_input_t *input) {
+
   DCHECK(self);
   DCHECK(input);
   CHECK(self->v->place_input);
-  
+
   return self->v->place_input(self, input);
 
 }

@@ -45,8 +45,8 @@ struct afl_inmemory_executor {
   afl_harness_function_t harness_function;
 
   /* libFuzzer compatibility */
-  char **               argv;
-  int                   argc;
+  char **argv;
+  int    argc;
 
 };
 
@@ -65,7 +65,8 @@ afl_exit_t afl_inmemory_executor_run_target(afl_executor_t *);
 */
 afl_exit_t afl_inmemory_executor_place_input(afl_executor_t *);
 
-AFL_NEW_FOR_WITH_PARAMS(afl_inmemory_executor, AFL_DECL_PARAMS(afl_harness_function_t harness_function), AFL_CALL_PARAMS(harness_function))
+AFL_NEW_FOR_WITH_PARAMS(afl_inmemory_executor, AFL_DECL_PARAMS(afl_harness_function_t harness_function),
+                        AFL_CALL_PARAMS(harness_function))
 
 #endif
 

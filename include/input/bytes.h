@@ -39,8 +39,8 @@ typedef struct afl_bytes_input afl_bytes_input_t;
 struct afl_bytes_input {
 
   INHERITS(afl_input)
-  
-  u8 *bytes;
+
+  u8 *   bytes;
   size_t size;
 
 };
@@ -53,28 +53,28 @@ afl_ret_t afl_bytes_input_init(afl_bytes_input_t *self);
 /*
   Deserialize the input from a bytes array.
 */
-afl_ret_t afl_bytes_input_deserialize(afl_input_t * self, u8* buffer, size_t size);
+afl_ret_t afl_bytes_input_deserialize(afl_input_t *self, u8 *buffer, size_t size);
 
 /*
   Serialize the input to a bytes array.
   If *size_out is already set and the real size does not fit, return an error.
 */
-afl_ret_t afl_bytes_input_serialize(afl_input_t * self, u8** buffer_out, size_t* size_out);
+afl_ret_t afl_bytes_input_serialize(afl_input_t *self, u8 **buffer_out, size_t *size_out);
 
 /*
   Copy the input.
 */
-afl_input_t* afl_bytes_input_copy(afl_input_t * self);
+afl_input_t *afl_bytes_input_copy(afl_input_t *self);
 
 /*
   Clear the input.
 */
-static inline void afl_bytes_input_clear(afl_input_t * self) {
-  
+static inline void afl_bytes_input_clear(afl_input_t *self) {
+
   DCHECK(self);
   DCHECK(INSTANCE_OF(afl_bytes_input, self));
 
-  afl_bytes_input_t* b = (afl_bytes_input_t*)self;
+  afl_bytes_input_t *b = (afl_bytes_input_t *)self;
   b->bytes = NULL;
   b->size = 0;
 
@@ -83,3 +83,4 @@ static inline void afl_bytes_input_clear(afl_input_t * self) {
 AFL_NEW_FOR(afl_bytes_input)
 
 #endif
+

@@ -44,12 +44,11 @@ struct afl_mutator_vtable {
     The mutate() method is mandatory.
   */
   void (*mutate)(afl_mutator_t *, afl_input_t *, u32);
-  
-  // TBD
-  //void (*merge)(afl_mutator_t * self, afl_input_t ** inputs, size_t inputs_count);
-  
-};
 
+  // TBD
+  // void (*merge)(afl_mutator_t * self, afl_input_t ** inputs, size_t inputs_count);
+
+};
 
 /*
   A Mutator is an entity that takes one or more inputs and generates a new derived one.
@@ -58,7 +57,7 @@ struct afl_mutator {
 
   INHERIT(afl_object)
 
-  struct afl_mutator_vtable* v;
+  struct afl_mutator_vtable *v;
 
 };
 
@@ -66,22 +65,21 @@ struct afl_mutator {
   Destroy an afl_input_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_mutator_destroy(afl_mutator_t * self) {
-  
+static inline void afl_mutator_destroy(afl_mutator_t *self) {
+
   DCHECK(self);
-  if (self->v->destroy)
-    self->v->destroy(self);
+  if (self->v->destroy) self->v->destroy(self);
 
 }
 
 /*
   Deserialize the input from a bytes array.
 */
-static inline void afl_mutator_mutate(afl_mutator_t * self, afl_input_t* input, u32 stage_idx) {
-  
+static inline void afl_mutator_mutate(afl_mutator_t *self, afl_input_t *input, u32 stage_idx) {
+
   DCHECK(self);
   CHECK(self->v->mutate);
-  
+
   return self->v->mutate(self, input, stage_idx);
 
 }
@@ -89,3 +87,4 @@ static inline void afl_mutator_mutate(afl_mutator_t * self, afl_input_t* input, 
 AFL_DELETE_FOR(afl_input)
 
 #endif
+
