@@ -53,7 +53,15 @@ struct afl_inmemory_executor {
 */
 afl_ret_t afl_inmemory_executor_init(afl_inmemory_executor_t *, afl_harness_function_t);
 
-// TODO run_target and place_input override in src/
+/*
+  Run thet harness function.
+*/
+afl_exit_t afl_inmemory_executor_run_target(afl_executor_t *);
+
+/*
+  Prepare harness arguments.
+*/
+afl_exit_t afl_inmemory_executor_place_input(afl_executor_t *);
 
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_inmemory_executor, AFL_DECL_PARAMS(afl_harness_function_t harness_function), AFL_CALL_PARAMS(harness_function))
 

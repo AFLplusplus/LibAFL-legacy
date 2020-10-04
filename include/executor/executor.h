@@ -77,8 +77,9 @@ struct afl_executor {
 
 /*
   Initialize an empty, just allocated, afl_executor_t object.
+  Virtual class, protected init.
 */
-afl_ret_t afl_executor_init(afl_executor_t *);
+afl_ret_t afl_executor_init__protected(afl_executor_t *);
 
 /*
   Add an afl_observation_channel_t to the list.
@@ -132,7 +133,7 @@ static inline u8 afl_executor_place_input(afl_executor_t * self, afl_input_t * i
 
 }
 
-AFL_NEW_AND_DELETE_FOR(afl_executor)
+AFL_DELETE_FOR(afl_executor)
 
 #endif
 
