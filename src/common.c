@@ -75,33 +75,31 @@ inline u64 afl_get_cur_time_s(void) {
 
 /* Few helper functions */
 
-void *afl_insert_substring(u8 *buf, size_t len, void *token, size_t token_len, size_t offset) {
+void *afl_insert_substring(u8 *src_buf, u8 *dest_buf, size_t len, void *token, size_t token_len, size_t offset) {
 
-  void *new_buf = calloc(len + token_len + 1, 1);
-  memmove(new_buf, buf, offset);
+  // void *new_buf = calloc(len + token_len + 1, 1);
+  memmove(dest_buf, src_buf, offset);
 
-  memmove(new_buf + offset, token, token_len);
+  memmove(dest_buf + offset, token, token_len);
 
-  memmove(new_buf + offset + token_len, buf + offset, len - offset);
+  memmove(dest_buf + offset + token_len, src_buf + offset, len - offset);
 
-  return new_buf;
+  return dest_buf;
 
 }
 
 /* This function inserts given number of bytes at a certain offset in a string
   and returns a ptr to the newly allocated memory. NOTE: You have to free the
   original memory(if malloced) yourself*/
-u8 *afl_insert_bytes(u8 *buf, size_t len, u8 byte, size_t insert_len, size_t offset) {
+u8 *afl_insert_bytes(u8 *src_buf, u8 *dest_buf, size_t len, u8 byte, size_t insert_len, size_t offset) {
 
-  u8 *new_buf = calloc(len + insert_len + 1, 1);
+  memmove(dest_buf, src_buf, offset);
 
-  memmove(new_buf, buf, offset);
+  memset(dest_buf + offset, byte, insert_len);
 
-  memset(new_buf + offset, byte, insert_len);
+  memmove(dest_buf + offset + insert_len, src_buf + offset, len - offset);
 
-  memmove(new_buf + offset + insert_len, buf + offset, len - offset);
-
-  return new_buf;
+  return dest_buf;
 
 }
 

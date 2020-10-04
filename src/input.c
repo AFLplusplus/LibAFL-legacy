@@ -33,6 +33,7 @@
 #include "afl-returns.h"
 #include "xxh3.h"
 #include "xxhash.h"
+#include "alloc-inl.h"
 
 afl_ret_t afl_input_init(afl_input_t *input) {
 
@@ -46,6 +47,8 @@ afl_ret_t afl_input_init(afl_input_t *input) {
   input->funcs.serialize = afl_input_serialize;
   input->funcs.delete = afl_input_delete;
 
+  input->copy_buf = NULL;
+
   input->bytes = NULL;
   input->len = 0;
 
@@ -55,7 +58,14 @@ afl_ret_t afl_input_init(afl_input_t *input) {
 
 void afl_input_deinit(afl_input_t *input) {
 
-  if (input->bytes) { free(input->bytes); }
+  /* Deiniting requires a little hack. We free the byte ONLY if copy buf is not NULL. Because then we can assume that
+   * the input is in the queue*/
+  if (input->bytes && input->copy_buf) {
+
+    free(input->bytes);
+    afl_free(input->copy_buf);
+
+  }
 
   input->bytes = NULL;
   input->len = 0;
@@ -79,7 +89,8 @@ afl_input_t *afl_input_copy(afl_input_t *orig_inp) {
 
   afl_input_t *copy_inp = afl_input_new();
   if (!copy_inp) { return NULL; }
-  copy_inp->bytes = malloc((orig_inp->len) * sizeof(u8));
+  copy_inp->bytes = afl_realloc(orig_inp->copy_buf, (orig_inp->len) * sizeof(u8));
+  orig_inp->copy_buf = copy_inp->bytes;
   if (!copy_inp->bytes) {
 
     afl_input_delete(copy_inp);

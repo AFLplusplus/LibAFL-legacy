@@ -547,6 +547,9 @@ void fuzzer_process_main(llmp_client_t *llmp_client, void *data) {
 
   afl_engine_t *engine = (afl_engine_t *)data;
   engine->llmp_client = llmp_client;
+  engine->cpu_bound = bind_to_cpu();
+
+  if (engine->cpu_bound == -1) { FATAL("Error binding to CPU :("); }
 
   afl_observer_covmap_t *observer_covmap = NULL;
   for (i = 0; i < engine->executor->observors_count; i++) {
@@ -803,11 +806,9 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
 
 int main(int argc, char **argv) {
 
-  if (argc < 4) {
-
-    SAYF("Usage: %s number_of_threads /path/to/input/dir /path/to/queue/dir", argv[0]);
-    exit(0);
-
+  if (argc < 4) { 
+    SAYF("Usage: %s number_of_threads /path/to/input/dir /path/to/queue/dir\n", argv[0]);
+    exit(0);  
   }
 
   s32   i = 0;
