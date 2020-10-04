@@ -31,6 +31,7 @@
 
 #define INHERITS(name) struct name base;
 #define BASE_CAST(obj) ((obj)->base)
+#define INSTANCE_OF(type, ptr) ((ptr)->v == &type##_vtable_instance)
 
 #define AFL_DECL_PARAMS(...) __VA_ARGS__
 #define AFL_CALL_PARAMS(...) ret, __VA_ARGS__

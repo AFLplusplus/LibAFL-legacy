@@ -32,6 +32,8 @@
 
 #include "executor/executor.h"
 
+extern struct afl_executor_vtable afl_inmemory_executor_vtable_instance;
+
 typedef struct afl_inmemory_executor afl_inmemory_executor_t;
 
 typedef afl_exit_t (*afl_harness_function_t)(afl_inmemory_executor_t *, u8 *, size_t);
@@ -63,7 +65,7 @@ afl_exit_t afl_inmemory_executor_run_target(afl_executor_t *);
 */
 afl_exit_t afl_inmemory_executor_place_input(afl_executor_t *);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_inmemory_executor, AFL_DECL_PARAMS(afl_harness_function_t harness_function), AFL_CALL_PARAMS(harness_function))
+AFL_NEW_FOR_WITH_PARAMS(afl_inmemory_executor, AFL_DECL_PARAMS(afl_harness_function_t harness_function), AFL_CALL_PARAMS(harness_function))
 
 #endif
 
