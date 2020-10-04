@@ -60,7 +60,7 @@ typedef struct __attribute__((__packed__)) afl_entry_info {
 
   u64 hash, exec_us;
   u32 bytes_set, bits_set;
-  u8  trimmed, has_new_coverage, variable, skip_entry;
+  u8  trimmed, has_new_coverage, variable, skip_entry, det_done;
 
 } afl_entry_info_t;
 

@@ -118,12 +118,14 @@ float afl_stage_is_interesting(afl_stage_t *stage) {
 }
 
 /* Perform default for fuzzing stage */
-afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
+afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_entry_t *queue_entry) {
 
   // size_t i;
   // This is to stop from compiler complaining about the incompatible pointer
   // type for the function ptrs. We need a better solution for this to pass the
   // scheduled_mutator rather than the mutator as an argument.
+
+  afl_input_t * input = queue_entry->input;
 
   size_t num = stage->funcs.get_iters(stage);
 
@@ -232,3 +234,46 @@ afl_ret_t afl_stage_perform(afl_stage_t *stage, afl_input_t *input) {
 
 }
 
+
+/* Functions related to det stage */
+
+afl_ret_t afl_det_stage_init(afl_stage_t * det_stage, afl_engine_t * engine) {
+
+  if (afl_stage_init(det_stage, engine) != AFL_RET_SUCCESS) { return AFL_RET_ERROR_INITIALIZE; }
+
+  det_stage->funcs.perform = afl_det_stage_perform;
+  return AFL_RET_SUCCESS;
+
+}
+
+afl_ret_t afl_det_stage_perform(afl_stage_t * det_stage, afl_entry_t * entry) {
+
+  if (entry->info->det_done) { return AFL_RET_SUCCESS; }  // Deterministic stage done for this entry
+
+
+  afl_input_t * input = entry->input;
+
+  /* Let's make a copy of the input now */
+
+  for (size_t i = 0; i < det_stage->mutators_count; ++i ) {
+
+    afl_mutator_deterministic_t * mutator_det = (afl_mutator_deterministic_t *)(det_stage->mutators[i]);
+    mutator_det->stage_max = mutator_det->funcs.get_iters(mutator_det, input);
+
+    for (mutator_det->stage_cur = 0; mutator_det->stage_cur < mutator_det->stage_max; ++mutator_det->stage_cur) {
+
+      // Much better to have a post-exec function here to restore the original input? So that we don't always have to copy?
+      afl_input_t * copy = input->funcs.copy(input);
+      mutator_det->base.funcs.mutate((afl_mutator_t *)mutator_det, copy);
+
+    }
+
+  }
+
+  // Deterministic stage done for this entry.
+  DBG("Det stage done for %s", entry->filename);
+  entry->info->det_done = 1;
+
+  return AFL_RET_SUCCESS;
+
+}

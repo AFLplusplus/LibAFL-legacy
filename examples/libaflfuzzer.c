@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/signal.h>
 
 #include "aflpp.h"
 #include "llmp.h"
@@ -478,6 +479,16 @@ afl_engine_t *initialize_broker(char *in_dir, char *queue_dir, int argc, char *a
 
   // We also add the fuzzone to the engine here.
   engine->funcs.set_fuzz_one(engine, fuzz_one);
+
+  afl_stage_t * det_stage = calloc(1, sizeof(afl_stage_t));
+  afl_det_stage_init(det_stage, engine);
+
+  det_stage->funcs.add_mutator_to_stage(det_stage, (afl_mutator_t *)afl_mutator_deterministic_new(afl_mutate_bitflip_det, afl_get_iters_bitflip_det));
+  det_stage->funcs.add_mutator_to_stage(det_stage, (afl_mutator_t *)afl_mutator_deterministic_new(afl_mutate_det_flip_two, afl_get_iters_flip_two_det));
+  det_stage->funcs.add_mutator_to_stage(det_stage, (afl_mutator_t *)afl_mutator_deterministic_new(afl_mutate_det_flip_four, afl_get_iters_flip_four_det));
+  det_stage->funcs.add_mutator_to_stage(det_stage, (afl_mutator_t *)afl_mutator_deterministic_new(afl_mutate_det_flip_byte, afl_get_iters_flip_byte_det));
+  det_stage->funcs.add_mutator_to_stage(det_stage, (afl_mutator_t *)afl_mutator_deterministic_new(afl_mutate_det_flip_two_byte, afl_get_iters_flip_two_byte_det));
+
 
   afl_mutator_scheduled_t *mutators_havoc = afl_mutator_scheduled_new(engine, 8);
   if (!mutators_havoc) { FATAL("Error initializing Mutators"); }

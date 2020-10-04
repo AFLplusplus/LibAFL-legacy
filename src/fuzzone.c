@@ -76,7 +76,7 @@ afl_ret_t afl_fuzz_one_perform(afl_fuzz_one_t *fuzz_one) {
   for (i = 0; i < fuzz_one->stages_count; ++i) {
 
     afl_stage_t *current_stage = fuzz_one->stages[i];
-    afl_ret_t    stage_ret = current_stage->funcs.perform(current_stage, queue_entry->input);
+    afl_ret_t    stage_ret = current_stage->funcs.perform(current_stage, queue_entry);
 
     switch (stage_ret) {
 

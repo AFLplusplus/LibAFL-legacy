@@ -50,6 +50,8 @@ afl_ret_t afl_entry_init(afl_entry_t *entry, afl_input_t *input, afl_entry_info_
 
   }
 
+  entry->info->det_done = 0;
+
   entry->funcs.get_input = afl_entry_get_input;
   entry->funcs.get_next = afl_entry_get_next;
   entry->funcs.get_prev = afl_entry_get_prev;
