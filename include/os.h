@@ -77,6 +77,7 @@ void              afl_proc_suspend(afl_os_t *);
 void              afl_proc_resume(afl_os_t *);
 afl_exit_t        afl_proc_wait(afl_os_t *, bool);
 
+afl_ret_t bind_to_cpu();
 /* Run `handle_file` for each file in the dirpath, recursively.
 void *data will be passed to handle_file as 2nd param.
 if handle_file returns false, further execution stops. */
