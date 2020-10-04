@@ -122,7 +122,8 @@ void afl_mutfunc_delete_bytes(afl_mutator_t *mutator, afl_input_t *input);
 void afl_mutfunc_clone_bytes(afl_mutator_t *mutator, afl_input_t *input);
 void afl_mutfunc_splice(afl_mutator_t *mutator, afl_input_t *input);
 
-/* Let's create a deterministic mutator structure now. Unlike havoc, deterministic stage isn't "completely" random mutation AND we need to keep the state of previous mutations*/
+/* Let's create a deterministic mutator structure now. Unlike havoc, deterministic stage isn't "completely" random
+ * mutation AND we need to keep the state of previous mutations*/
 
 typedef struct afl_mutator_deterministic afl_mutator_deterministic_t;
 
@@ -134,39 +135,42 @@ struct afl_mutator_deterministic_func {
 
 struct afl_mutator_deterministic {
 
-  afl_mutator_t base;
+  afl_mutator_t                         base;
   struct afl_mutator_deterministic_func funcs;
   s32 stage_cur;  // Keeps track of the state of random mutations such as "bitflip" etc
   s32 stage_max;
-
 
 };
 
 typedef size_t (*det_mutate_func)(afl_mutator_t *, afl_input_t *);
 
-afl_ret_t afl_mutator_deterministic_init(afl_mutator_deterministic_t * det_mut, det_mutate_func mutate_func, size_t (*get_iters)(afl_mutator_deterministic_t *, afl_input_t *));
+afl_ret_t afl_mutator_deterministic_init(afl_mutator_deterministic_t *det_mut, det_mutate_func mutate_func,
+                                         size_t (*get_iters)(afl_mutator_deterministic_t *, afl_input_t *));
 
-void afl_mutator_deterministic_deinit(afl_mutator_deterministic_t * det_mut);
+void afl_mutator_deterministic_deinit(afl_mutator_deterministic_t *det_mut);
 
-AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_mutator_deterministic, AFL_DECL_PARAMS(det_mutate_func mutate_func, size_t (*get_iters)(afl_mutator_deterministic_t *, afl_input_t *)), AFL_CALL_PARAMS(mutate_func, get_iters))
+AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_mutator_deterministic,
+                                   AFL_DECL_PARAMS(det_mutate_func mutate_func,
+                                                   size_t (*get_iters)(afl_mutator_deterministic_t *, afl_input_t *)),
+                                   AFL_CALL_PARAMS(mutate_func, get_iters))
 
-size_t afl_mutate_bitflip_det(afl_mutator_t * mutator, afl_input_t * input);
-size_t afl_get_iters_bitflip_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input);
+size_t afl_mutate_bitflip_det(afl_mutator_t *mutator, afl_input_t *input);
+size_t afl_get_iters_bitflip_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input);
 
-size_t afl_mutate_det_flip_two(afl_mutator_t * mutator, afl_input_t * input);
-size_t afl_get_iters_flip_two_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input);
+size_t afl_mutate_det_flip_two(afl_mutator_t *mutator, afl_input_t *input);
+size_t afl_get_iters_flip_two_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input);
 
-size_t afl_mutate_det_flip_four(afl_mutator_t * mutator, afl_input_t * input);
-size_t afl_get_iters_flip_four_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input);
+size_t afl_mutate_det_flip_four(afl_mutator_t *mutator, afl_input_t *input);
+size_t afl_get_iters_flip_four_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input);
 
-size_t afl_mutate_det_flip_byte(afl_mutator_t * mutator, afl_input_t * input);
-size_t afl_get_iters_flip_byte_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input);
+size_t afl_mutate_det_flip_byte(afl_mutator_t *mutator, afl_input_t *input);
+size_t afl_get_iters_flip_byte_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input);
 
-size_t afl_mutate_det_flip_two_byte(afl_mutator_t * mutator, afl_input_t * input);
-size_t afl_get_iters_flip_two_byte_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input);
+size_t afl_mutate_det_flip_two_byte(afl_mutator_t *mutator, afl_input_t *input);
+size_t afl_get_iters_flip_two_byte_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input);
 
-size_t afl_mutate_det_flip_four_byte(afl_mutator_t * mutator, afl_input_t * input);
-size_t afl_get_iters_flip_four_byte_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input);
+size_t afl_mutate_det_flip_four_byte(afl_mutator_t *mutator, afl_input_t *input);
+size_t afl_get_iters_flip_four_byte_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input);
 
 #endif
 

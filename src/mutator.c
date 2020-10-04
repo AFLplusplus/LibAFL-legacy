@@ -454,7 +454,8 @@ afl_ret_t afl_mutator_scheduled_add_havoc_funcs(afl_mutator_scheduled_t *mutator
 
 }
 
-afl_ret_t afl_mutator_deterministic_init(afl_mutator_deterministic_t * det_mut, det_mutate_func mutate_func, size_t (*get_iters)(afl_mutator_deterministic_t *, afl_input_t *)) {
+afl_ret_t afl_mutator_deterministic_init(afl_mutator_deterministic_t *det_mut, det_mutate_func mutate_func,
+                                         size_t (*get_iters)(afl_mutator_deterministic_t *, afl_input_t *)) {
 
   det_mut->base.funcs.mutate = mutate_func;
   det_mut->funcs.get_iters = get_iters;
@@ -466,106 +467,120 @@ afl_ret_t afl_mutator_deterministic_init(afl_mutator_deterministic_t * det_mut, 
 
 }
 
-void afl_mutator_deterministic_deinit(afl_mutator_deterministic_t * det_stage) {
+void afl_mutator_deterministic_deinit(afl_mutator_deterministic_t *det_stage) {
 
   afl_mutator_deinit(&det_stage->base);
 
 }
 
-#define FLIP_BIT(token, bit) {  \
-    u8 *token_case = (u8 *)(token); \
-    u32 bit_cast = (u32)(bit);  \
-    token_case[bit_cast >> 3] ^= (128 >> (bit_cast & 7));\
-}
-
+#define FLIP_BIT(token, bit)                              \
+  {                                                       \
+                                                          \
+    u8 *token_case = (u8 *)(token);                       \
+    u32 bit_cast = (u32)(bit);                            \
+    token_case[bit_cast >> 3] ^= (128 >> (bit_cast & 7)); \
+                                                          \
+  }
 
 // All the above mutators, but as deterministic form.
 
-size_t afl_mutate_bitflip_det(afl_mutator_t * mutator, afl_input_t * input) {
-  
-  afl_mutator_deterministic_t * det_mutator = (afl_mutator_deterministic_t *)mutator;
+size_t afl_mutate_bitflip_det(afl_mutator_t *mutator, afl_input_t *input) {
+
+  afl_mutator_deterministic_t *det_mutator = (afl_mutator_deterministic_t *)mutator;
 
   FLIP_BIT(input->bytes, det_mutator->stage_cur);
   return input->len;
 
 }
-size_t afl_get_iters_bitflip_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input) {
-(void)  det_mut;
-  return (input->len<<3);
+
+size_t afl_get_iters_bitflip_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input) {
+
+  (void)det_mut;
+  return (input->len << 3);
 
 }
 
-size_t afl_mutate_det_flip_two(afl_mutator_t * mutator, afl_input_t * input) {
+size_t afl_mutate_det_flip_two(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_mutator_deterministic_t * det_mutator = (afl_mutator_deterministic_t *)mutator;
+  afl_mutator_deterministic_t *det_mutator = (afl_mutator_deterministic_t *)mutator;
 
   FLIP_BIT(input->bytes, det_mutator->stage_cur);
   FLIP_BIT(input->bytes, det_mutator->stage_cur + 1);
   return input->len;
-}
-size_t afl_get_iters_flip_two_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input) {
-(void)  det_mut;
-  return ((input->len<<3) - 1);
 
 }
 
+size_t afl_get_iters_flip_two_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input) {
 
-size_t afl_mutate_det_flip_four(afl_mutator_t * mutator, afl_input_t * input) {
+  (void)det_mut;
+  return ((input->len << 3) - 1);
 
-  afl_mutator_deterministic_t * det_mutator = (afl_mutator_deterministic_t *)mutator;
+}
+
+size_t afl_mutate_det_flip_four(afl_mutator_t *mutator, afl_input_t *input) {
+
+  afl_mutator_deterministic_t *det_mutator = (afl_mutator_deterministic_t *)mutator;
 
   FLIP_BIT(input->bytes, det_mutator->stage_cur);
   FLIP_BIT(input->bytes, det_mutator->stage_cur + 1);
   FLIP_BIT(input->bytes, det_mutator->stage_cur + 2);
   FLIP_BIT(input->bytes, det_mutator->stage_cur + 3);
   return input->len;
-}
-size_t afl_get_iters_flip_four_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input) {
-(void)  det_mut;
-  return ((input->len<<3) - 3);
 
 }
 
+size_t afl_get_iters_flip_four_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input) {
 
-size_t afl_mutate_det_flip_byte(afl_mutator_t * mutator, afl_input_t * input) {
+  (void)det_mut;
+  return ((input->len << 3) - 3);
 
-  afl_mutator_deterministic_t * det_mutator = (afl_mutator_deterministic_t *)mutator;
+}
+
+size_t afl_mutate_det_flip_byte(afl_mutator_t *mutator, afl_input_t *input) {
+
+  afl_mutator_deterministic_t *det_mutator = (afl_mutator_deterministic_t *)mutator;
 
   input->bytes[det_mutator->stage_cur] ^= 0xff;
   return input->len;
 
 }
-size_t afl_get_iters_flip_byte_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input) {
-  (void)  det_mut;
+
+size_t afl_get_iters_flip_byte_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input) {
+
+  (void)det_mut;
   return (input->len);
 
 }
 
+size_t afl_mutate_det_flip_two_byte(afl_mutator_t *mutator, afl_input_t *input) {
 
-size_t afl_mutate_det_flip_two_byte(afl_mutator_t * mutator, afl_input_t * input) {
-
-  afl_mutator_deterministic_t * det_mutator = (afl_mutator_deterministic_t *)mutator;
+  afl_mutator_deterministic_t *det_mutator = (afl_mutator_deterministic_t *)mutator;
 
   *(u16 *)(input->bytes + det_mutator->stage_cur) ^= 0xffff;
   return input->len;
 
 }
-size_t afl_get_iters_flip_two_byte_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input) {
-(void)  det_mut;
+
+size_t afl_get_iters_flip_two_byte_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input) {
+
+  (void)det_mut;
   return (input->len - 1);
 
 }
 
-size_t afl_mutate_det_flip_four_byte(afl_mutator_t * mutator, afl_input_t * input) {
+size_t afl_mutate_det_flip_four_byte(afl_mutator_t *mutator, afl_input_t *input) {
 
-  afl_mutator_deterministic_t * det_mutator = (afl_mutator_deterministic_t *)mutator;
+  afl_mutator_deterministic_t *det_mutator = (afl_mutator_deterministic_t *)mutator;
 
   *(u32 *)(input->bytes + det_mutator->stage_cur) ^= 0xffffffff;
-return input->len;
+  return input->len;
+
 }
 
-size_t afl_get_iters_flip_four_byte_det(afl_mutator_deterministic_t * det_mut, afl_input_t *input) {
-(void)  det_mut;
+size_t afl_get_iters_flip_four_byte_det(afl_mutator_deterministic_t *det_mut, afl_input_t *input) {
+
+  (void)det_mut;
   return (input->len - 3);
 
 }
+

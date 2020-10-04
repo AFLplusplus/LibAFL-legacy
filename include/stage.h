@@ -56,13 +56,11 @@ afl_ret_t afl_stage_add_mutator(afl_stage_t *, afl_mutator_t *);
 
 AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_stage, AFL_DECL_PARAMS(afl_engine_t *engine), AFL_CALL_PARAMS(engine))
 
-
 /* Let's create a new stage, the deterministic stage for the fuzzer */
 
-afl_ret_t afl_det_stage_perform(afl_stage_t * det_stage, afl_entry_t *entry);  // The perform function for the det stage. 
-afl_ret_t afl_det_stage_get_iters(afl_stage_t * det_stage);
-afl_ret_t afl_det_stage_init(afl_stage_t * det_stage, afl_engine_t * engine);
-
+afl_ret_t afl_det_stage_perform(afl_stage_t *det_stage, afl_entry_t *entry);  // The perform function for the det stage.
+afl_ret_t afl_det_stage_get_iters(afl_stage_t *det_stage);
+afl_ret_t afl_det_stage_init(afl_stage_t *det_stage, afl_engine_t *engine);
 
 #endif
 
