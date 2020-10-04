@@ -806,11 +806,9 @@ bool broker_message_hook(llmp_broker_t *broker, llmp_broker_clientdata_t *client
 
 int main(int argc, char **argv) {
 
-  if (argc < 4) {
-
-    SAYF("Usage: %s number_of_threads /path/to/input/dir /path/to/queue/dir", argv[0]);
-    exit(0);
-
+  if (argc < 4) { 
+    SAYF("Usage: %s number_of_threads /path/to/input/dir /path/to/queue/dir\n", argv[0]);
+    exit(0);  
   }
 
   s32   i = 0;
