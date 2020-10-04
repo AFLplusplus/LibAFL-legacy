@@ -71,7 +71,7 @@ struct afl_executor {
 
   afl_input_t *current_input;
 
-  struct afl_executor_vtable v;
+  struct afl_executor_vtable* v;
 
 };
 
@@ -103,8 +103,8 @@ afl_ret_t afl_executor_add_oracle(afl_executor_t *, afl_oracle_t *);
 static inline void afl_executor_destroy(afl_executor_t * self) {
   
   DCHECK(self);
-  if (self->v.destroy)
-    self->v.destroy(self);
+  if (self->v->destroy)
+    self->v->destroy(self);
 
 }
 
@@ -114,9 +114,9 @@ static inline void afl_executor_destroy(afl_executor_t * self) {
 static inline afl_exit_t afl_executor_run_target(afl_executor_t * self) {
   
   DCHECK(self);
-  CHECK(self->v.run_target);
+  CHECK(self->v->run_target);
   
-  return self->v.run_target(self);
+  return self->v->run_target(self);
 
 }
 
@@ -127,9 +127,9 @@ static inline u8 afl_executor_place_input(afl_executor_t * self, afl_input_t * i
   
   DCHECK(self);
   DCHECK(input);
-  CHECK(self->v.place_input);
+  CHECK(self->v->place_input);
   
-  return self->v.place_input(self, input);
+  return self->v->place_input(self, input);
 
 }
 

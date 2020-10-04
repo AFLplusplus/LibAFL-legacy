@@ -24,8 +24,8 @@
 
  */
 
-#ifndef LIBAFL_INPUT_INPUT_H
-#define LIBAFL_INPUT_INPUT_H
+#ifndef LIBAFL_INPUT_BYTES_H
+#define LIBAFL_INPUT_BYTES_H
 
 #include "object.h"
 #include "error.h"

@@ -34,14 +34,30 @@ typedef struct afl_input afl_input_t;
 
 struct afl_input_vtable {
 
+  /*
+    The destroy() method is optional.
+    It is invoked just before the destroy of the object.
+  */
   void (*destroy)(afl_input_t *);
 
+  /*
+    The deserialize() method is mandatory.
+  */
   afl_ret_t (*deserialize)(afl_input_t *, u8 *, size_t);
   
+  /*
+    The serialize() method is mandatory.
+  */
   afl_ret_t (*serialize)(afl_input_t *, u8**, size_t*);
   
+  /*
+    The copy() method is mandatory.
+  */
   afl_input_t *(*copy)(afl_input_t *);
   
+  /*
+    The clear() method is mandatory.
+  */
   void (*clear)(afl_input_t *);
   
 };
@@ -54,7 +70,7 @@ struct afl_input {
 
   INHERIT(afl_object)
 
-  struct afl_input_vtable v;
+  struct afl_input_vtable* v;
 
 };
 
@@ -75,8 +91,8 @@ afl_ret_t afl_input_save_to_file(afl_input_t * self, char* filename);
 static inline void afl_input_destroy(afl_executor_t * self) {
   
   DCHECK(self);
-  if (self->v.destroy)
-    self->v.destroy(self);
+  if (self->v->destroy)
+    self->v->destroy(self);
 
 }
 
@@ -86,9 +102,9 @@ static inline void afl_input_destroy(afl_executor_t * self) {
 static inline afl_ret_t afl_input_deserialize(afl_input_t * self, u8* buffer, size_t size) {
   
   DCHECK(self);
-  CHECK(self->v.deserialize);
+  CHECK(self->v->deserialize);
   
-  return self->v.deserialize(self, buffer, size);
+  return self->v->deserialize(self, buffer, size);
 
 }
 
@@ -99,9 +115,9 @@ static inline afl_ret_t afl_input_deserialize(afl_input_t * self, u8* buffer, si
 static inline afl_ret_t afl_input_serialize(afl_input_t * self, u8** buffer_out, size_t* size_out) {
   
   DCHECK(self);
-  CHECK(self->v.serialize);
+  CHECK(self->v->serialize);
   
-  return self->v.serialize(self, buffer_out, size_out);
+  return self->v->serialize(self, buffer_out, size_out);
 
 }
 
@@ -111,9 +127,9 @@ static inline afl_ret_t afl_input_serialize(afl_input_t * self, u8** buffer_out,
 static inline afl_input_t* afl_input_copy(afl_input_t * self) {
   
   DCHECK(self);
-  CHECK(self->v.copy);
+  CHECK(self->v->copy);
   
-  return self->v.copy(self);
+  return self->v->copy(self);
 
 }
 
@@ -123,9 +139,9 @@ static inline afl_input_t* afl_input_copy(afl_input_t * self) {
 static inline void afl_input_clear(afl_input_t * self) {
   
   DCHECK(self);
-  CHECK(self->v.clear);
+  CHECK(self->v->clear);
   
-  self->v.clear(self);
+  self->v->clear(self);
 
 }
 
