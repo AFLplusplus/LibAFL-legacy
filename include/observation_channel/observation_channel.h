@@ -41,12 +41,12 @@ struct afl_observation_channel_vtable {
   void (*deinit)(afl_observation_channel_t *);
 
   /*
-    The run_target() method is optional.
+    The flush() method is optional.
   */
   void (*flush)(afl_observation_channel_t *);
   
   /*
-    The run_target() method is optional.
+    The reset() method is optional.
   */
   void (*reset)(afl_observation_channel_t *);
   
