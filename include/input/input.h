@@ -56,6 +56,11 @@ struct afl_input_vtable {
   afl_input_t *(*copy)(afl_input_t *);
 
   /*
+    The assign() method is mandatory.
+  */
+  void (*assign)(afl_input_t *, afl_input_t *);
+
+  /*
     The clear() method is mandatory.
   */
   void (*clear)(afl_input_t *);
@@ -91,6 +96,8 @@ afl_ret_t afl_input_save_to_file(afl_input_t *self, char *filename);
 static inline void afl_input_deinit(afl_input_t *self) {
 
   DCHECK(self);
+  DCHECK(self->v);
+
   if (self->v->deinit) self->v->deinit(self);
 
 }
@@ -101,7 +108,8 @@ static inline void afl_input_deinit(afl_input_t *self) {
 static inline afl_ret_t afl_input_deserialize(afl_input_t *self, u8 *buffer, size_t size) {
 
   DCHECK(self);
-  CHECK(self->v->deserialize);
+  DCHECK(self->v);
+  DCHECK(self->v->deserialize);
 
   return self->v->deserialize(self, buffer, size);
 
@@ -114,7 +122,8 @@ static inline afl_ret_t afl_input_deserialize(afl_input_t *self, u8 *buffer, siz
 static inline afl_ret_t afl_input_serialize(afl_input_t *self, u8 **buffer_out, size_t *size_out) {
 
   DCHECK(self);
-  CHECK(self->v->serialize);
+  DCHECK(self->v);
+  DCHECK(self->v->serialize);
 
   return self->v->serialize(self, buffer_out, size_out);
 
@@ -126,11 +135,26 @@ static inline afl_ret_t afl_input_serialize(afl_input_t *self, u8 **buffer_out, 
 static inline afl_input_t *afl_input_copy(afl_input_t *self) {
 
   DCHECK(self);
-  CHECK(self->v->copy);
+  DCHECK(self->v);
+  DCHECK(self->v->copy);
 
   return self->v->copy(self);
 
 }
+
+/*
+  Assign an input from another.
+*/
+static inline void afl_input_assign(afl_input_t *self, afl_input_t *from) {
+
+  DCHECK(self);
+  DCHECK(self->v);
+  DCHECK(self->v->assign);
+
+  self->v->assign(self, from);
+
+}
+
 
 /*
   Clear the input.
@@ -138,7 +162,8 @@ static inline afl_input_t *afl_input_copy(afl_input_t *self) {
 static inline void afl_input_clear(afl_input_t *self) {
 
   DCHECK(self);
-  CHECK(self->v->clear);
+  DCHECK(self->v);
+  DCHECK(self->v->clear);
 
   self->v->clear(self);
 

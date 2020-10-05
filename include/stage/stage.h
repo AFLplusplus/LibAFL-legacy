@@ -24,58 +24,50 @@
 
  */
 
-#ifndef LIBAFL_FEEDBACK_FEEDBACK_H
-#define LIBAFL_FEEDBACK_FEEDBACK_H
+#ifndef LIBAFL_STAGE_STAGE_H
+#define LIBAFL_STAGE_STAGE_H
 
 #include "object.h"
 #include "error.h"
 
-#include "executor/executor.h"
-#include "corpus/corpus.h"
+#include "engine/engine.h"
 
-typedef struct afl_feedback afl_feedback_t;
+typedef struct afl_stage afl_stage_t;
 
-struct afl_feedback_vtable {
+struct afl_stage_vtable {
 
   /*
     The deinit() method is optional.
     It is invoked just before the destroy of the object.
   */
-  void (*deinit)(afl_feedback_t *);
+  void (*deinit)(afl_stage_t *);
 
   /*
-    The is_interesting() method is mandatory.
+    The perform() method is mandatory.
   */
-  float (*is_interesting)(afl_feedback_t *, afl_executor_t*);
+  void (*perform)(afl_stage_t *, afl_input_t*, afl_input*);
   
 };
 
-struct afl_feedback {
+struct afl_stage {
 
   INHERITS(afl_object)
   
-  afl_corpus_t* specific_corpus;
-
-  struct afl_feedback_vtable *v;
+  struct afl_stage_vtable *v;
 
 };
 
 /*
-  Initialize an empty, just allocated, afl_feedback_t object.
+  Initialize an empty, just allocated, afl_stage_t object.
   Virtual class, protected init.
 */
-afl_ret_t afl_feedback_init__protected(afl_feedback_t *);
+afl_ret_t afl_stage_init__protected(afl_stage_t *);
 
 /*
-  Deinit the context of an afl_feedback_t.
-*/
-void afl_feedback_deinit__nonvirtual(afl_feedback_t *self);
-
-/*
-  Deinit an afl_feedback_t object, you must call this method before releasing
+  Deinit an afl_stage_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_feedback_deinit(afl_feedback_t *self) {
+static inline void afl_stage_deinit(afl_stage_t *self) {
 
   DCHECK(self);
   DCHECK(self->v);
@@ -84,17 +76,17 @@ static inline void afl_feedback_deinit(afl_feedback_t *self) {
 
 }
 
-static inline float afl_feedback_is_interesting(afl_feedback_t *self, afl_executor_t* executor) {
+static inline float afl_stage_perform(afl_stage_t *self, afl_input_t* input, afl_input_t* original) {
 
   DCHECK(self);
   DCHECK(self->v);
-  DCHECK(self->v->is_interesting);
+  DCHECK(self->v->perform);
 
-  return self->v->is_interesting(self, executor);
+  return self->v->perform(self, input, original);
 
 }
 
-AFL_DELETE_FOR(afl_feedback)
+AFL_DELETE_FOR(afl_stage)
 
 #endif
 

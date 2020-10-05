@@ -67,6 +67,11 @@ afl_ret_t afl_bytes_input_serialize(afl_input_t *self, u8 **buffer_out, size_t *
 afl_input_t *afl_bytes_input_copy(afl_input_t *self);
 
 /*
+  Assign an input from another.
+*/
+void afl_bytes_input_assign(afl_input_t *self, afl_input_t *from);
+
+/*
   Clear the input.
 */
 static inline void afl_bytes_input_clear(afl_input_t *self) {
