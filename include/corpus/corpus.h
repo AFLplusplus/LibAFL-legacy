@@ -29,16 +29,17 @@
 
 #include "object.h"
 #include "error.h"
+#include "rand.h"
 
 typedef struct afl_corpus afl_corpus_t;
 
 struct afl_corpus_vtable {
 
   /*
-    The destroy() method is optional.
+    The deinit() method is optional.
     It is invoked just before the destroy of the object.
   */
-  void (*destroy)(afl_corpus_t *);
+  void (*deinit)(afl_corpus_t *);
 
   /*
     The insert() method is optional. It has a default implementation.
@@ -79,11 +80,6 @@ struct afl_corpus {
 afl_ret_t afl_corpus_init(afl_corpus_t *);
 
 /*
-  Raw add of an entry, it is a protected utility function for afl_corpus_t and its subclasses.
-*/
-afl_ret_t afl_corpus_insert__nonvirtual_protected(afl_corpus_t *self, afl_entry_t* entry);
-
-/*
   Destroy the context of an afl_corpus_t.
 */
 void afl_corpus_destroy(afl_corpus_t *self);
@@ -92,16 +88,24 @@ void afl_corpus_destroy(afl_corpus_t *self);
   Deinit an afl_corpus_t object, you must call this method before releasing
   the memory used by the object.
 */
+void afl_corpus_deinit__nonvirtual(afl_corpus_t *self);
+
 static inline void afl_corpus_deinit(afl_corpus_t *self) {
 
   DCHECK(self);
+  DCHECK(self->v);
+
   if (self->v->deinit) self->v->deinit(self);
+  else afl_corpus_deinit__nonvirtual(self);
 
 }
+
+afl_ret_t afl_corpus_insert__nonvirtual(afl_corpus_t *self, afl_entry_t* entry);
 
 static inline afl_ret_t afl_corpus_insert(afl_corpus_t *self, afl_entry_t* entry) {
 
   DCHECK(self);
+  DCHECK(self->v);
   
   if(self->v->insert);
     return self->v->insert(self);
@@ -110,22 +114,38 @@ static inline afl_ret_t afl_corpus_insert(afl_corpus_t *self, afl_entry_t* entry
 
 }
 
+afl_ret_t afl_corpus_remove__nonvirtual(afl_corpus_t *self, afl_entry_t* entry);
+
 static inline afl_ret_t afl_corpus_remove(afl_corpus_t *self, afl_entry_t* entry) {
 
   DCHECK(self);
+  DCHECK(self->v);
 
   if (self->v->remove)
     return self->v->remove(self);
+  
+}
+
+static inline afl_entry_t* afl_corpus_insert__nonvirtual(afl_corpus_t *self) {
+
+  /* Random policy by default */
+  return self->entries[RAND_BELOW(self->entries_count)];
 
 }
 
 static inline afl_entry_t* afl_corpus_get(afl_corpus_t *self) {
 
   DCHECK(self);
-  if (self->v->post_exec) self->v->post_exec(self, executor);
+  DCHECK(self->v);
+
+  if (self->v->post_exec)
+    return self->v->post_exec(self, executor);
+  
+  return afl_corpus_insert__nonvirtual(self);
 
 }
 
+AFL_NEW_FOR(afl_corpus)
 AFL_DELETE_FOR(afl_corpus)
 
 #endif

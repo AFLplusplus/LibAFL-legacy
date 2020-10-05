@@ -50,6 +50,15 @@ struct afl_havoc_mutator {
 */
 afl_ret_t afl_havoc_mutator_init(afl_havoc_mutator_t *);
 
+/*
+  Destroy the context of an afl_havoc_mutator_t.
+*/
+static inline void afl_havoc_mutator_deinit(afl_havoc_mutator_t * self) {
+
+  afl_scheduled_mutator_deinit((afl_scheduled_mutator_t*)self);
+
+}
+
 void afl_mutation_flip_bit(afl_mutator_t *, afl_input_t *);
 void afl_mutation_flip_2_bits(afl_mutator_t *, afl_input_t *);
 void afl_mutation_flip_4_bits(afl_mutator_t *, afl_input_t *);

@@ -35,10 +35,10 @@ typedef struct afl_mutator afl_mutator_t;
 struct afl_mutator_vtable {
 
   /*
-    The destroy() method is optional.
+    The deinit() method is optional.
     It is invoked just before the destroy of the object.
   */
-  void (*destroy)(afl_mutator_t *);
+  void (*deinit)(afl_mutator_t *);
 
   /*
     The mutate() method is mandatory.
@@ -65,10 +65,17 @@ struct afl_mutator {
   Deinit an afl_input_t object, you must call this method before releasing
   the memory used by the object.
 */
+static inline void afl_mutator_deinit__nonvirtual(afl_mutator_t *self) {}
+
 static inline void afl_mutator_deinit(afl_mutator_t *self) {
 
   DCHECK(self);
-  if (self->v->destroy) self->v->destroy(self);
+  DCHECK(self->v);
+
+  if (self->v->deinit)
+    self->v->deinit(self);
+  else
+    afl_mutator_deinit__nonvirtual(self);
 
 }
 
@@ -78,7 +85,8 @@ static inline void afl_mutator_deinit(afl_mutator_t *self) {
 static inline void afl_mutator_mutate(afl_mutator_t *self, afl_input_t *input, u32 stage_idx) {
 
   DCHECK(self);
-  CHECK(self->v->mutate);
+  DCHECK(self->v);
+  DCHECK(self->v->mutate);
 
   return self->v->mutate(self, input, stage_idx);
 

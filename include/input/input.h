@@ -35,10 +35,10 @@ typedef struct afl_input afl_input_t;
 struct afl_input_vtable {
 
   /*
-    The destroy() method is optional.
+    The deinit() method is optional.
     It is invoked just before the destroy of the object.
   */
-  void (*destroy)(afl_input_t *);
+  void (*deinit)(afl_input_t *);
 
   /*
     The deserialize() method is mandatory.
@@ -88,10 +88,10 @@ afl_ret_t afl_input_save_to_file(afl_input_t *self, char *filename);
   Deinit an afl_input_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_input_deinit(afl_executor_t *self) {
+static inline void afl_input_deinit(afl_input_t *self) {
 
   DCHECK(self);
-  if (self->v->destroy) self->v->destroy(self);
+  if (self->v->deinit) self->v->deinit(self);
 
 }
 

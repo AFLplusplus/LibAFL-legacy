@@ -80,7 +80,17 @@ static inline void afl_bytes_input_clear(afl_input_t *self) {
 
 }
 
+/*
+  Destroy the context of an afl_bytes_input_t.
+*/
+static inline void afl_bytes_input_deinit(afl_executor_t *self) {
+
+  afl_input_deinit(self);
+
+}
+
 AFL_NEW_FOR(afl_bytes_input)
+AFL_DELETE_FOR(afl_bytes_input)
 
 #endif
 

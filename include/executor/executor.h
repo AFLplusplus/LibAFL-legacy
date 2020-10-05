@@ -38,10 +38,10 @@ typedef struct afl_executor afl_executor_t;
 struct afl_executor_vtable {
 
   /*
-    The destroy() method is optional.
+    The deinit() method is optional.
     It is invoked just before the destroy of the object.
   */
-  void (*destroy)(afl_executor_t *);
+  void (*deinit)(afl_executor_t *);
 
   /*
     The run_target() method is mandatory.
@@ -84,7 +84,7 @@ afl_ret_t afl_executor_init__protected(afl_executor_t *);
 /*
   Destroy the context of an afl_executor_t.
 */
-void afl_executor_destroy(afl_executor_t *self);
+void afl_executor_deinit__nonvirtual(afl_executor_t *self);
 
 /*
   Add an afl_observation_channel_t to the list.
@@ -108,7 +108,7 @@ afl_ret_t afl_executor_add_oracle(afl_executor_t *, afl_oracle_t *);
 static inline void afl_executor_deinit(afl_executor_t *self) {
 
   DCHECK(self);
-  if (self->v->destroy) self->v->destroy(self);
+  if (self->v->deinit) self->v->deinit(self);
 
 }
 

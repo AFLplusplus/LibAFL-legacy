@@ -35,10 +35,10 @@ typedef struct afl_observation_channel afl_observation_channel_t;
 struct afl_observation_channel_vtable {
 
   /*
-    The destroy() method is optional.
+    The deinit() method is optional.
     It is invoked just before the destroy of the object.
   */
-  void (*destroy)(afl_observation_channel_t *);
+  void (*deinit)(afl_observation_channel_t *);
 
   /*
     The run_target() method is optional.
@@ -72,9 +72,9 @@ struct afl_observation_channel {
 afl_ret_t afl_observation_channel_init__protected(afl_observation_channel_t *);
 
 /*
-  Destroy the context of an afl_observation_channel_t.
+  Deinit the context of an afl_observation_channel_t.
 */
-void afl_observation_channel_destroy(afl_observation_channel_t *self);
+void afl_observation_channel_deinit__nonvirtual(afl_observation_channel_t *self);
 
 /*
   Deinit an afl_observation_channel_t object, you must call this method before releasing
@@ -83,7 +83,7 @@ void afl_observation_channel_destroy(afl_observation_channel_t *self);
 static inline void afl_observation_channel_deinit(afl_observation_channel_t *self) {
 
   DCHECK(self);
-  if (self->v->destroy) self->v->destroy(self);
+  if (self->v->deinit) self->v->deinit(self);
 
 }
 

@@ -65,8 +65,18 @@ afl_exit_t afl_inmemory_executor_run_target(afl_executor_t *);
 */
 afl_exit_t afl_inmemory_executor_place_input(afl_executor_t *);
 
+/*
+  Destroy the context of an afl_inmemory_executor_t.
+*/
+static inline void afl_inmemory_executor_deinit(afl_executor_t *self) {
+
+  afl_executor_deinit(self);
+
+}
+
 AFL_NEW_FOR_WITH_PARAMS(afl_inmemory_executor, AFL_DECL_PARAMS(afl_harness_function_t harness_function),
                         AFL_CALL_PARAMS(harness_function))
+AFL_DELETE_FOR(afl_inmemory_executor)
 
 #endif
 

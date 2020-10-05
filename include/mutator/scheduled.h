@@ -77,7 +77,7 @@ void afl_scheduled_mutator_add_mutation(afl_scheduled_mutator_t *, afl_mutation_
 /*
   Get the number of mutations to apply.
 */
-static inline u32 afl_scheduled_mutator_iterations__nonvirtual_protected(afl_scheduled_mutator_t *self, afl_input_t* input) {
+static inline u32 afl_scheduled_mutator_iterations__nonvirtual(afl_scheduled_mutator_t *self, afl_input_t* input) {
 
   return 1 << (1 + (u32)RAND_BELOW(7));
 
@@ -90,14 +90,14 @@ static inline u32 afl_scheduled_mutator_iterations(afl_scheduled_mutator_t *self
   if(self->v->iterations)
     return self->v->iterations(self, input);
 
-  return afl_scheduled_mutator_iterations__nonvirtual_protected(self, input);  
+  return afl_scheduled_mutator_iterations__nonvirtual(self, input);  
 
 }
 
 /*
   Get the next mutation to apply (as index).
 */
-static inline u32 afl_scheduled_mutator_schedule__nonvirtual_protected(afl_scheduled_mutator_t *self, afl_input_t* input) {
+static inline u32 afl_scheduled_mutator_schedule__nonvirtual(afl_scheduled_mutator_t *self, afl_input_t* input) {
   
   return (u32)RAND_BELOW(self->mutations_count);
   
@@ -110,23 +110,30 @@ static inline u32 afl_scheduled_mutator_schedule(afl_scheduled_mutator_t *self, 
   if(self->v->schedule)
     return self->v->schedule(self, input);
 
-  return afl_scheduled_mutator_schedule__nonvirtual_protected(self, input);
+  return afl_scheduled_mutator_schedule__nonvirtual(self, input);
 
 }
 
 /*
   Destroy the context of an afl_scheduled_mutator_t.
 */
-void afl_scheduled_mutator_destroy(afl_mutator_t * self);
+void afl_scheduled_mutator_deinit__nonvirtual(afl_mutator_t * self);
+
+static inline void afl_scheduled_mutator_deinit(afl_scheduled_mutator_t * self) {
+
+  afl_mutator_deinit((afl_mutator_t*)self);
+
+}
 
 /*
   Mutate an input.
 */
-static inline u32 afl_scheduled_mutator_mutate(afl_mutator_t *self, afl_input_t *input, u32 stage_idx) {
+static inline u32 afl_scheduled_mutator_mutate__nonvirtual(afl_mutator_t *self, afl_input_t *input, u32 stage_idx) {
 
   (void)stage_idx;
 
   DCHECK(self);
+  DCHECK(input);
   DCHECK(INSTANCE_OF(afl_scheduled_mutator, self));
 
   u32 i, num;
@@ -141,7 +148,14 @@ static inline u32 afl_scheduled_mutator_mutate(afl_mutator_t *self, afl_input_t 
 
 }
 
+static inline u32 afl_scheduled_mutator_mutate(afl_scheduled_mutator_t *self, afl_input_t *input, u32 stage_idx) {
+
+  return afl_mutator_mutate((afl_mutator_t*)self, input, stage_idx);  
+
+}
+
 AFL_NEW_FOR(afl_scheduled_mutator)
+AFL_DELETE_FOR(afl_scheduled_mutator)
 
 #endif
 
