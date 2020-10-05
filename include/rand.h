@@ -16,6 +16,17 @@ typedef struct afl_rand {
 
 } afl_rand_t;
 
+extern __thread afl_rand_t afl_rand_state_tls;
+
+/* Helper macro for TLS-based rand */
+
+#define RAND_INIT_THREAD() afl_rand_init(&afl_rand_state_tls)
+#define RAND_INIT_THREAD_SEEDED(seed) afl_rand_init_fixed_seed(&afl_rand_state_tls, (seed))
+#define RAND_DEINIT_THREAD() afl_rand_deinit(&afl_rand_state_tls)
+
+#define RAND_BELOW(limit) afl_rand_below(&afl_rand_state_tls, (limit))
+#define RAND_BETWEEN(min, max) afl_rand_between(&afl_rand_state_tls, (min), (max))
+
 static inline u64 afl_rand_rotl(const u64 x, int k) {
 
   return (x << k) | (x >> (64 - k));
@@ -99,6 +110,8 @@ static inline afl_ret_t afl_rand_init_fixed_seed(afl_rand_t *rnd, s64 init_seed)
   return AFL_RET_SUCCESS;
 
 }
+
+// TODO get rid of posix API, use platform
 
 /* initialize feeded by urandom */
 static inline afl_ret_t afl_rand_init(afl_rand_t *rnd) {

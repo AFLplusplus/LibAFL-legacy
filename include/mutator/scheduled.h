@@ -29,6 +29,7 @@
 
 #include "object.h"
 #include "error.h"
+#include "rand.h"
 
 #include "mutator/mutator.h"
 
@@ -41,14 +42,14 @@ typedef void (*afl_mutation_function_t)(afl_mutator_t *, afl_input_t *);
 struct afl_scheduled_mutator_vtable {
 
   /*
-    The iterations() method is mandatory.
+    The iterations() method is optional. It has a default implementation.
   */
-  u32 (*iterations)(afl_scheduled_mutator_t *);
+  u32 (*iterations)(afl_scheduled_mutator_t *, afl_input_t*);
 
   /*
-    The schedule() method is mandatory.
+    The schedule() method is optional. It has a default implementation.
   */
-  u32 (*schedule)(afl_scheduled_mutator_t *);
+  u32 (*schedule)(afl_scheduled_mutator_t *, afl_input_t*);
 
 };
 
@@ -76,31 +77,47 @@ void afl_scheduled_mutator_add_mutation(afl_scheduled_mutator_t *, afl_mutation_
 /*
   Get the number of mutations to apply.
 */
-static inline u32 afl_scheduled_mutator_iterations(afl_scheduled_mutator_t *self) {
+static inline u32 afl_scheduled_mutator_iterations__nonvirtual_protected(afl_scheduled_mutator_t *self, afl_input_t* input) {
+
+  return 1 << (1 + (u32)RAND_BELOW(7));
+
+}
+
+static inline u32 afl_scheduled_mutator_iterations(afl_scheduled_mutator_t *self, afl_input_t* input) {
 
   DCHECK(self);
-  DCHECK(self->v->iterations)
+  
+  if(self->v->iterations)
+    return self->v->iterations(self, input);
 
-  return self->v->iterations(self);
+  return afl_scheduled_mutator_iterations__nonvirtual_protected(self, input);  
 
 }
 
 /*
   Get the next mutation to apply (as index).
 */
-static inline u32 afl_scheduled_mutator_schedule(afl_scheduled_mutator_t *self) {
+static inline u32 afl_scheduled_mutator_schedule__nonvirtual_protected(afl_scheduled_mutator_t *self, afl_input_t* input) {
+  
+  return (u32)RAND_BELOW(self->mutations_count);
+  
+}
+
+static inline u32 afl_scheduled_mutator_schedule(afl_scheduled_mutator_t *self, afl_input_t* input) {
 
   DCHECK(self);
-  DCHECK(self->v->schedule)
+  
+  if(self->v->schedule)
+    return self->v->schedule(self, input);
 
-  return self->v->schedule(self);
+  return afl_scheduled_mutator_schedule__nonvirtual_protected(self, input);
 
 }
 
 /*
   Destroy the context of an afl_scheduled_mutator_t.
 */
-void afl_scheduled_mutator_init_destroy(afl_mutator_t * self);
+void afl_scheduled_mutator_destroy(afl_mutator_t * self);
 
 /*
   Mutate an input.
@@ -115,14 +132,16 @@ static inline u32 afl_scheduled_mutator_mutate(afl_mutator_t *self, afl_input_t 
   u32 i, num;
 
   afl_scheduled_mutator_t *s = (afl_scheduled_mutator *)self;
-  num = afl_scheduled_mutator_iterations(s);
+  num = afl_scheduled_mutator_iterations(s, input);
   for (i = 0; i < num; ++i) {
 
-    s->mutations[afl_scheduled_mutator_schedule(s)](self, input);
+    s->mutations[afl_scheduled_mutator_schedule(s, input)](self, input);
 
   }
 
 }
+
+AFL_NEW_FOR(afl_scheduled_mutator)
 
 #endif
 
