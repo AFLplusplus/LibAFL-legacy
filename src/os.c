@@ -18,6 +18,33 @@
 #include "engine.h"
 #include "xxh3.h"
 
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) || \
+    defined(__NetBSD__) || defined(__DragonFly__)
+  #include <sys/sysctl.h>
+#endif                           /* __APPLE__ || __FreeBSD__ || __OpenBSD__ */
+
+#if defined(__linux__) || defined(__FreeBSD__) || defined(__NetBSD__) || \
+    defined(__DragonFly__) || defined(__sun)
+  #define HAVE_AFFINITY 1
+  #if defined(__FreeBSD__) || defined(__DragonFly__)
+    #include <sys/param.h>
+    #if defined(__FreeBSD__)
+      #include <sys/cpuset.h>
+    #endif
+    #include <sys/user.h>
+    #include <pthread.h>
+    #include <pthread_np.h>
+    #define cpu_set_t cpuset_t
+  #elif defined(__NetBSD__)
+    #include <pthread.h>
+  #elif defined(__sun)
+    #include <sys/types.h>
+    #include <kstat.h>
+    #include <sys/sysinfo.h>
+    #include <sys/pset.h>
+  #endif
+#endif                                                         /* __linux__ */
+
 // Process related functions
 
 void _afl_process_init_internal(afl_os_t *afl_os) {
@@ -315,13 +342,13 @@ s32 get_core_count() {
   #ifdef __APPLE__
 
   if (sysctlbyname("hw.logicalcpu", &cpu_core_count, &s, NULL, 0) < 0)
-    return;
+    return 0;
 
   #else
 
   int s_name[2] = {CTL_HW, HW_NCPU};
 
-  if (sysctl(s_name, 2, &cpu_core_count, &s, NULL, 0) < 0) return;
+  if (sysctl(s_name, 2, &cpu_core_count, &s, NULL, 0) < 0) return 0;
 
   #endif                                                      /* ^__APPLE__ */
 
@@ -396,6 +423,8 @@ afl_ret_t bind_to_cpu() {
 
   u8 cpu_used[4096];
 
+  s32 i;
+
   #if defined(__linux__)
 
   // Let's open up /proc and check if there are any CPU cores available
@@ -449,13 +478,12 @@ afl_ret_t bind_to_cpu() {
 
   struct kinfo_proc *procs;
   size_t             nprocs;
-  size_t             proccount;
+  s32                proccount;
   int                s_name[] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL};
   size_t             s_name_l = sizeof(s_name) / sizeof(s_name[0]);
 
   if (sysctl(s_name, s_name_l, NULL, &nprocs, NULL, 0) != 0) {
 
-    if (lockfile[0]) unlink(lockfile);
     return AFL_RET_UNKNOWN_ERROR;
 
   }
@@ -466,9 +494,8 @@ afl_ret_t bind_to_cpu() {
   procs = ck_alloc(nprocs);
   if (sysctl(s_name, s_name_l, procs, &nprocs, NULL, 0) != 0) {
 
-    if (lockfile[0]) unlink(lockfile);
     ck_free(procs);
-    return;
+    return AFL_RET_UNKNOWN_ERROR;
 
   }
 
@@ -488,7 +515,7 @@ afl_ret_t bind_to_cpu() {
 
     #elif defined(__DragonFly__)
 
-    if (procs[i].kp_lwp.kl_cpuid < sizeof(cpu_used) &&
+    if (procs[i].kp_lwp.kl_cpuid < (s32)(sizeof(cpu_used)) &&
         procs[i].kp_lwp.kl_pctcpu > 10)
       cpu_used[procs[i].kp_lwp.kl_cpuid] = 1;
 
@@ -510,7 +537,6 @@ afl_ret_t bind_to_cpu() {
 
   if (sysctl(s_name, s_name_l, NULL, &nprocs, NULL, 0) != 0) {
 
-    if (lockfile[0]) unlink(lockfile);
     return AFL_RET_UNKNOWN_ERROR;
 
   }
@@ -521,9 +547,8 @@ afl_ret_t bind_to_cpu() {
 
   if (sysctl(s_name, s_name_l, procs, &nprocs, NULL, 0) != 0) {
 
-    if (lockfile[0]) unlink(lockfile);
     ck_free(procs);
-    return;
+    return AFL_RET_UNKNOWN_ERROR;
 
   }
 
@@ -552,7 +577,6 @@ afl_ret_t bind_to_cpu() {
 
   if (!k) {
 
-    if (lockfile[0]) unlink(lockfile);
     kstat_close(m);
     return AFL_RET_UNKNOWN_ERROR;
 
@@ -560,7 +584,6 @@ afl_ret_t bind_to_cpu() {
 
   if (kstat_read(m, k, NULL)) {
 
-    if (lockfile[0]) unlink(lockfile);
     kstat_close(m);
     return AFL_RET_UNKNOWN_ERROR;
 
@@ -576,7 +599,6 @@ afl_ret_t bind_to_cpu() {
     k = kstat_lookup(m, "cpu_stat", i, NULL);
     if (kstat_read(m, k, &cs)) {
 
-      if (lockfile[0]) unlink(lockfile);
       kstat_close(m);
       return AFL_RET_UNKNOWN_ERROR;
 
@@ -593,12 +615,10 @@ afl_ret_t bind_to_cpu() {
 
   #else
     #warning \
-        "For this platform we do not have free CPU binding code yet. If possible, please supply a PR to https://github.com/AFLplusplus/AFLplusplus"
+        "For this platform we do not have free CPU binding code yet. If possible, please supply a PR to https://github.com/AFLplusplus/libAFL"
   #endif
   size_t cpu_start = 0;
   s32 cpu_core_count = get_core_count();
-
-  s32 i;
 
   #if !defined(__ANDROID__)
 

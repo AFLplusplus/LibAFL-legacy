@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+#include <signal.h>
 #include <sys/wait.h>
 
 #include "aflpp.h"
@@ -309,7 +310,8 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
 
 static void setup_signal_handlers(void) {
 
-  struct sigaction sa = {{0},{0},0,0};
+  struct sigaction sa;
+  sa.sa_sigaction = NULL;
 
   memset(&sa, 0, sizeof(sigaction));
   sigemptyset(&sa.sa_mask);
