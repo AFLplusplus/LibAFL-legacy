@@ -309,7 +309,7 @@ static void handle_crash(int sig, siginfo_t *info, void *ucontext) {
 
 static void setup_signal_handlers(void) {
 
-  struct sigaction sa = {0};
+  struct sigaction sa = {{0},{0},0,0};
 
   memset(&sa, 0, sizeof(sigaction));
   sigemptyset(&sa.sa_mask);

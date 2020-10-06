@@ -622,7 +622,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
       llmp_payload_new_page_t *pageinfo = LLMP_MSG_BUF_AS(msg, llmp_payload_new_page_t);
       if (!pageinfo) {
 
-        FATAL("Illegal message length for EOP (is %zu, expected %u)", msg->buf_len_padded,
+        FATAL("Illegal message length for EOP (is %zu, expected %zu)", msg->buf_len_padded,
               sizeof(llmp_payload_new_page_t));
 
       }
