@@ -55,7 +55,7 @@ afl_ret_t afl_havoc_mutator_init(afl_havoc_mutator_t *);
 */
 static inline void afl_havoc_mutator_deinit(afl_havoc_mutator_t *self) {
 
-  afl_scheduled_mutator_deinit((afl_scheduled_mutator_t *)self);
+  afl_scheduled_mutator_deinit(AFL_BASEOF(self));
 
 }
 

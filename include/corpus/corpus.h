@@ -31,15 +31,13 @@
 #include "error.h"
 #include "rand.h"
 
+#include "corpus/entry.h"
+
 typedef struct afl_corpus afl_corpus_t;
 
 struct afl_corpus_vtable {
 
-  /*
-    The deinit() method is optional.
-    It is invoked just before the destroy of the object.
-  */
-  void (*deinit)(afl_corpus_t *);
+  AFL_VTABLE_INHERITS(afl_object)
 
   /*
     The insert() method is optional. It has a default implementation.
@@ -63,6 +61,8 @@ struct afl_corpus_vtable {
 
 };
 
+extern struct afl_corpus_vtable afl_corpus_vtable_instance;
+
 // TODO implement cache
 
 struct afl_corpus {
@@ -74,8 +74,6 @@ struct afl_corpus {
 
   char dirpath[PATH_MAX];
   u8 on_disk;
-
-  struct afl_corpus_vtable *v;
 
 };
 
@@ -89,15 +87,11 @@ afl_ret_t afl_corpus_init(afl_corpus_t *);
   Deinit an afl_corpus_t object, you must call this method before releasing
   the memory used by the object.
 */
-void afl_corpus_deinit__nonvirtual(afl_corpus_t *self);
+void afl_corpus_deinit__nonvirtual(afl_object_t *self);
 
 static inline void afl_corpus_deinit(afl_corpus_t *self) {
 
-  DCHECK(self);
-  DCHECK(self->v);
-
-  if (self->v->deinit) self->v->deinit(self);
-  else afl_corpus_deinit__nonvirtual(self);
+  afl_object_deinit(AFL_BASEOF(self));
 
 }
 
@@ -106,12 +100,12 @@ afl_ret_t afl_corpus_insert__nonvirtual(afl_corpus_t *self, afl_entry_t* entry);
 static inline afl_ret_t afl_corpus_insert(afl_corpus_t *self, afl_entry_t* entry) {
 
   DCHECK(self);
-  DCHECK(self->v);
+  DCHECK(AFL_VTABLEOF(afl_corpus, self));
   
-  if(self->v->insert);
-    return self->v->insert(self);
+  if(AFL_VTABLEOF(afl_corpus, self)->insert);
+    return AFL_VTABLEOF(afl_corpus, self)->insert(self);
     
-  return afl_corpus_insert__nonvirtual_protected(self, entry);
+  return afl_corpus_insert__nonvirtual(self, entry);
 
 }
 
@@ -120,27 +114,27 @@ afl_ret_t afl_corpus_remove__nonvirtual(afl_corpus_t *self, afl_entry_t* entry);
 static inline afl_ret_t afl_corpus_remove(afl_corpus_t *self, afl_entry_t* entry) {
 
   DCHECK(self);
-  DCHECK(self->v);
+  DCHECK(AFL_VTABLEOF(afl_corpus, self));
 
-  if (self->v->remove)
-    return self->v->remove(self, entry);
+  if (AFL_VTABLEOF(afl_corpus, self)->remove)
+    return AFL_VTABLEOF(afl_corpus, self)->remove(self, entry);
   
 }
 
 static inline afl_entry_t* afl_corpus_get__nonvirtual(afl_corpus_t *self) {
 
   /* Random policy by default */
-  return self->entries[RAND_BELOW(self->entries_count)];
+  return self->entries[AFL_RAND_BELOW(self->entries_count)];
 
 }
 
 static inline afl_entry_t* afl_corpus_get(afl_corpus_t *self) {
 
   DCHECK(self);
-  DCHECK(self->v);
+  DCHECK(AFL_VTABLEOF(afl_corpus, self));
 
-  if (self->v->get)
-    return self->v->get(self);
+  if (AFL_VTABLEOF(afl_corpus, self)->get)
+    return AFL_VTABLEOF(afl_corpus, self)->get(self);
   
   return afl_corpus_get__nonvirtual(self);
 
@@ -158,10 +152,10 @@ static inline afl_entry_t* afl_corpus_get_by_id__nonvirtual(afl_corpus_t *self, 
 static inline afl_entry_t* afl_corpus_get_by_id(afl_corpus_t *self, u32 id) {
 
   DCHECK(self);
-  DCHECK(self->v);
+  DCHECK(AFL_VTABLEOF(afl_corpus, self));
 
-  if (self->v->get_by_id)
-    return self->v->get_by_id(self, id);
+  if (AFL_VTABLEOF(afl_corpus, self)->get_by_id)
+    return AFL_VTABLEOF(afl_corpus, self)->get_by_id(self, id);
   
   return afl_corpus_insert__nonvirtual(self, id);
 

@@ -28,6 +28,7 @@
 #define LIBAFL_OBJECT_H
 
 #include "alloc.h"
+#include "error.h"
 
 #define AFL_INHERITS(type) struct type _base;
 #define AFL_BASEOF(ptr) (&(ptr)->_base)
@@ -119,6 +120,9 @@ struct afl_object {
 
 static inline void afl_object_deinit(afl_object_t *self) {
 
+  DCHECK(self);
+  DCHECK(VTABLE_OF(afl_object, self));
+
   if (VTABLE_OF(afl_object, self)->deinit) VTABLE_OF(afl_object, self)->deinit(self);
 
 }
@@ -126,4 +130,3 @@ static inline void afl_object_deinit(afl_object_t *self) {
 AFL_DELETE_FOR(afl_object)
 
 #endif
-

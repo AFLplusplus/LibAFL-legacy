@@ -90,8 +90,10 @@ static inline u32 afl_scheduled_mutator_iterations__nonvirtual(afl_scheduled_mut
 static inline u32 afl_scheduled_mutator_iterations(afl_scheduled_mutator_t *self, afl_input_t *input) {
 
   DCHECK(self);
+  DCHECK(AFL_VTABLEOF(afl_scheduled_mutator, self))
 
-  if (self->v->iterations) return self->v->iterations(self, input);
+  if (AFL_VTABLEOF(afl_scheduled_mutator, self)->iterations)
+    return AFL_VTABLEOF(afl_scheduled_mutator, self)->iterations(self, input);
 
   return afl_scheduled_mutator_iterations__nonvirtual(self, input);
 
@@ -111,8 +113,10 @@ static inline u32 afl_scheduled_mutator_schedule__nonvirtual(afl_scheduled_mutat
 static inline u32 afl_scheduled_mutator_schedule(afl_scheduled_mutator_t *self, afl_input_t *input) {
 
   DCHECK(self);
+  DCHECK(AFL_VTABLEOF(afl_scheduled_mutator, self));
 
-  if (self->v->schedule) return self->v->schedule(self, input);
+  if (AFL_VTABLEOF(afl_scheduled_mutator, self)->schedule)
+    return AFL_VTABLEOF(afl_scheduled_mutator, self)->schedule(self, input);
 
   return afl_scheduled_mutator_schedule__nonvirtual(self, input);
 
@@ -121,7 +125,7 @@ static inline u32 afl_scheduled_mutator_schedule(afl_scheduled_mutator_t *self, 
 /*
   Destroy the context of an afl_scheduled_mutator_t.
 */
-void afl_scheduled_mutator_deinit__nonvirtual(afl_mutator_t *self);
+void afl_scheduled_mutator_deinit__nonvirtual(afl_object_t *self);
 
 static inline void afl_scheduled_mutator_deinit(afl_scheduled_mutator_t *self) {
 

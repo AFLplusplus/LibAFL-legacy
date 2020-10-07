@@ -69,10 +69,7 @@ struct afl_mutator {
 */
 static inline void afl_mutator_deinit(afl_mutator_t *self) {
 
-  DCHECK(self);
-  DCHECK(self->v);
-
-  if (self->v->deinit) self->v->deinit(self);
+  afl_object_deinit(AFL_BASEOF(self));
 
 }
 
@@ -82,10 +79,10 @@ static inline void afl_mutator_deinit(afl_mutator_t *self) {
 static inline void afl_mutator_mutate(afl_mutator_t *self, afl_input_t *input, u32 stage_idx) {
 
   DCHECK(self);
-  DCHECK(self->v);
-  DCHECK(self->v->mutate);
+  DCHECK(AFL_VTABLEOF(afl_mutator, self));
+  DCHECK(AFL_VTABLEOF(afl_mutator, self)->mutate);
 
-  return self->v->mutate(self, input, stage_idx);
+  return AFL_VTABLEOF(afl_mutator, self)->mutate(self, input, stage_idx);
 
 }
 
