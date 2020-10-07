@@ -68,9 +68,9 @@ afl_exit_t afl_inmemory_executor_place_input(afl_executor_t *);
 /*
   Destroy the context of an afl_inmemory_executor_t.
 */
-static inline void afl_inmemory_executor_deinit(afl_executor_t *self) {
+static inline void afl_inmemory_executor_deinit(afl_inmemory_executor_t *self) {
 
-  afl_executor_deinit(self);
+  afl_executor_deinit(BASE_CAST(self));
 
 }
 

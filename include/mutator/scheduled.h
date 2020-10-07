@@ -79,6 +79,8 @@ void afl_scheduled_mutator_add_mutation(afl_scheduled_mutator_t *, afl_mutation_
 */
 static inline u32 afl_scheduled_mutator_iterations__nonvirtual(afl_scheduled_mutator_t *self, afl_input_t* input) {
 
+  (void)input;
+
   return 1 << (1 + (u32)RAND_BELOW(7));
 
 }
@@ -98,6 +100,8 @@ static inline u32 afl_scheduled_mutator_iterations(afl_scheduled_mutator_t *self
   Get the next mutation to apply (as index).
 */
 static inline u32 afl_scheduled_mutator_schedule__nonvirtual(afl_scheduled_mutator_t *self, afl_input_t* input) {
+
+  (void)input;
   
   return (u32)RAND_BELOW(self->mutations_count);
   

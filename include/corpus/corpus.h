@@ -56,7 +56,14 @@ struct afl_corpus_vtable {
   */
   afl_entry_t* (*get)(afl_corpus_t *);
 
+  /*
+    The get_by_id() method is optional. It has a default implementation.
+  */
+  afl_entry_t* (*get_by_id)(afl_corpus_t *, u32 id);
+
 };
+
+// TODO implement cache
 
 struct afl_corpus {
 
@@ -66,7 +73,6 @@ struct afl_corpus {
   u32 entries_count;
 
   char dirpath[PATH_MAX];
-  size_t names_id;
   u8 on_disk;
 
   struct afl_corpus_vtable *v;
@@ -78,11 +84,6 @@ struct afl_corpus {
   Virtual class, default init.
 */
 afl_ret_t afl_corpus_init(afl_corpus_t *);
-
-/*
-  Destroy the context of an afl_corpus_t.
-*/
-void afl_corpus_destroy(afl_corpus_t *self);
 
 /*
   Deinit an afl_corpus_t object, you must call this method before releasing
@@ -122,11 +123,11 @@ static inline afl_ret_t afl_corpus_remove(afl_corpus_t *self, afl_entry_t* entry
   DCHECK(self->v);
 
   if (self->v->remove)
-    return self->v->remove(self);
+    return self->v->remove(self, entry);
   
 }
 
-static inline afl_entry_t* afl_corpus_insert__nonvirtual(afl_corpus_t *self) {
+static inline afl_entry_t* afl_corpus_get__nonvirtual(afl_corpus_t *self) {
 
   /* Random policy by default */
   return self->entries[RAND_BELOW(self->entries_count)];
@@ -138,10 +139,31 @@ static inline afl_entry_t* afl_corpus_get(afl_corpus_t *self) {
   DCHECK(self);
   DCHECK(self->v);
 
-  if (self->v->post_exec)
-    return self->v->post_exec(self, executor);
+  if (self->v->get)
+    return self->v->get(self);
   
-  return afl_corpus_insert__nonvirtual(self);
+  return afl_corpus_get__nonvirtual(self);
+
+}
+
+static inline afl_entry_t* afl_corpus_get_by_id__nonvirtual(afl_corpus_t *self, u32 id) {
+
+  if (id >= self->entries_count)
+    return NULL;
+
+  return self->entries[id];
+
+}
+
+static inline afl_entry_t* afl_corpus_get_by_id(afl_corpus_t *self, u32 id) {
+
+  DCHECK(self);
+  DCHECK(self->v);
+
+  if (self->v->get_by_id)
+    return self->v->get_by_id(self, id);
+  
+  return afl_corpus_insert__nonvirtual(self, id);
 
 }
 
