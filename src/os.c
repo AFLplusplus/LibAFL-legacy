@@ -510,7 +510,7 @@ afl_ret_t bind_to_cpu() {
     oncpu = procs[i].ki_oncpu;
     if (oncpu == -1) oncpu = procs[i].ki_lastcpu;
 
-    if (oncpu != -1 && oncpu < sizeof(cpu_used) && procs[i].ki_pctcpu > 60)
+    if (oncpu != -1 && (size_t)oncpu < sizeof(cpu_used) && procs[i].ki_pctcpu > 60)
       cpu_used[oncpu] = 1;
 
     #elif defined(__DragonFly__)
