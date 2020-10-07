@@ -123,6 +123,8 @@ static inline afl_ret_t afl_corpus_remove(afl_corpus_t *self, afl_entry_t* entry
 
 static inline afl_entry_t* afl_corpus_get__nonvirtual(afl_corpus_t *self) {
 
+  if (!self->entries_count) return NULL;
+
   /* Random policy by default */
   return self->entries[AFL_RAND_BELOW(self->entries_count)];
 

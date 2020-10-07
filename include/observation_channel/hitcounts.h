@@ -32,13 +32,13 @@
 
 #include "observation_channel/map.h"
 
-extern struct afl_observation_channel_vtable afl_hitcounts_observation_channel_vtable_instance;
-
 typedef struct afl_hitcounts_observation_channel afl_hitcounts_observation_channel_t;
+
+extern struct afl_observation_channel_vtable afl_hitcounts_observation_channel_vtable_instance;
 
 struct afl_hitcounts_observation_channel {
 
-  INHERITS(afl_map_observation_channel)
+  AFL_INHERITS(afl_map_observation_channel)
 
 };
 
@@ -48,8 +48,8 @@ struct afl_hitcounts_observation_channel {
 */
 static inline afl_ret_t afl_hitcounts_observation_channel_init(afl_hitcounts_observation_channel_t * self, u8* trace_map, size_t size) {
 
-  afl_ret_t r = afl_map_observation_channel_init(BASE_CAST(self), trace_map, size);
-  BASE_CAST(self)->v = &afl_hitcounts_observation_channel_vtable_instance;
+  afl_ret_t r = afl_map_observation_channel_init(AFL_BASEOF(self), trace_map, size);
+  VTABLE_SET(self, afl_hitcounts_observation_channel_vtable_instance);
   return r;
 
 }
@@ -60,19 +60,19 @@ static inline afl_ret_t afl_hitcounts_observation_channel_init(afl_hitcounts_obs
 */
 static inline void afl_hitcounts_observation_channel_deinit(afl_hitcounts_observation_channel_t *self) {
 
-  afl_observation_channel_deinit(BASE_CAST(self));
+  afl_observation_channel_deinit(AFL_BASEOF(self));
 
 }
 
 static inline void afl_hitcounts_observation_channel_flush(afl_hitcounts_observation_channel_t *self) {
 
-  afl_observation_channel_flush(BASE_CAST(self))
+  afl_observation_channel_flush(AFL_BASEOF(self))
 
 }
 
 static inline void afl_hitcounts_observation_channel_reset(afl_hitcounts_observation_channel_t *self) {
 
-  afl_observation_channel_reset(BASE_CAST(self))
+  afl_observation_channel_reset(AFL_BASEOF(self))
 
 }
 
@@ -80,7 +80,7 @@ void afl_hitcounts_observation_channel_post_exec__nonvirtual(afl_observation_cha
 
 static inline void afl_hitcounts_observation_channel_post_exec(afl_hitcounts_observation_channel_t *self, afl_executor_t* executor) {
 
-  afl_observation_channel_post_exec(BASE_CAST(self), executor);
+  afl_observation_channel_post_exec(AFL_BASEOF(self), executor);
 
 }
 

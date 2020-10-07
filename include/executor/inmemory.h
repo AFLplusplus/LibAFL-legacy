@@ -32,11 +32,11 @@
 
 #include "executor/executor.h"
 
-extern struct afl_executor_vtable afl_inmemory_executor_vtable_instance;
+typedef afl_exit_t (*afl_harness_function_t)(afl_inmemory_executor_t *, u8 *, size_t);
 
 typedef struct afl_inmemory_executor afl_inmemory_executor_t;
 
-typedef afl_exit_t (*afl_harness_function_t)(afl_inmemory_executor_t *, u8 *, size_t);
+extern struct afl_executor_vtable afl_inmemory_executor_vtable_instance;
 
 struct afl_inmemory_executor {
 
@@ -58,24 +58,33 @@ afl_ret_t afl_inmemory_executor_init(afl_inmemory_executor_t *, afl_harness_func
 /*
   Run thet harness function.
 */
-afl_exit_t afl_inmemory_executor_run_target(afl_executor_t *);
+afl_exit_t afl_inmemory_executor_run_target__nonvirtual(afl_executor_t *);
+
+static inline afl_exit_t afl_inmemory_executor_run_target(afl_inmemory_executor_t * self) {
+
+  return afl_executor_run_target(AFL_BASEOF(self));
+
+}
 
 /*
   Prepare harness arguments.
 */
-afl_exit_t afl_inmemory_executor_place_input(afl_executor_t *);
+static inline void afl_inmemory_executor_place_input(afl_inmemory_executor_t *self) {
+
+  afl_executor_place_input(AFL_BASEOF(self));
+
+}
 
 /*
   Destroy the context of an afl_inmemory_executor_t.
 */
 static inline void afl_inmemory_executor_deinit(afl_inmemory_executor_t *self) {
 
-  afl_executor_deinit(BASE_CAST(self));
+  afl_executor_deinit(AFL_BASEOF(self));
 
 }
 
-AFL_NEW_FOR_WITH_PARAMS(afl_inmemory_executor, AFL_DECL_PARAMS(afl_harness_function_t harness_function),
-                        AFL_CALL_PARAMS(harness_function))
+AFL_NEW_FOR_WITH_PARAMS(afl_inmemory_executor, AFL_DECL_PARAMS(afl_harness_function_t harness_function), AFL_CALL_PARAMS(harness_function))
 AFL_DELETE_FOR(afl_inmemory_executor)
 
 #endif

@@ -37,11 +37,7 @@ typedef struct afl_executor afl_executor_t;
 
 struct afl_executor_vtable {
 
-  /*
-    The deinit() method is optional.
-    It is invoked just before the destroy of the object.
-  */
-  void (*deinit)(afl_executor_t *);
+  AFL_VTABLE_INHERITS(afl_object)
 
   /*
     The run_target() method is mandatory.
@@ -49,11 +45,13 @@ struct afl_executor_vtable {
   afl_exit_t (*run_target)(afl_executor_t *);
 
   /*
-    The place_input() method is mandatory.
+    The place_input() method is optional. It has a default implementation.
   */
   u8 (*place_input)(afl_executor_t *, afl_input_t *);
 
 };
+
+extern struct afl_executor_vtable afl_executor_vtable_instance;
 
 /*
   An Executor is an entity with a set of violation oracles, a set of observation channels, a function that allows
@@ -61,17 +59,15 @@ struct afl_executor_vtable {
 */
 struct afl_executor {
 
-  INHERITS(afl_object)
+  AFL_INHERITS(afl_object)
 
   afl_observation_channel_t *observation_channels;
   u32                        observation_channels_count;
 
-  afl_oracle_t *oracles;
-  u32           oracles_count;
+  //afl_oracle_t *oracles;
+  //u32           oracles_count;
 
   afl_input_t *current_input;
-
-  struct afl_executor_vtable *v;
 
 };
 
@@ -80,11 +76,6 @@ struct afl_executor {
   Virtual class, protected init.
 */
 afl_ret_t afl_executor_init__protected(afl_executor_t *);
-
-/*
-  Destroy the context of an afl_executor_t.
-*/
-void afl_executor_deinit__nonvirtual(afl_executor_t *self);
 
 /*
   Add an afl_observation_channel_t to the list.
@@ -99,16 +90,17 @@ void afl_executor_reset_observation_channels(afl_executor_t *);
 /*
   Add an afl_observation_channel_t to the list.
 */
-afl_ret_t afl_executor_add_oracle(afl_executor_t *, afl_oracle_t *);
+//afl_ret_t afl_executor_add_oracle(afl_executor_t *, afl_oracle_t *);
 
 /*
   Deinit an afl_executor_t object, you must call this method before releasing
   the memory used by the object.
 */
+void afl_executor_deinit__nonvirtual(afl_object_t *);
+
 static inline void afl_executor_deinit(afl_executor_t *self) {
 
-  DCHECK(self);
-  if (self->v->deinit) self->v->deinit(self);
+  afl_object_deinit(AFL_BASEOF(self));
 
 }
 
@@ -118,22 +110,29 @@ static inline void afl_executor_deinit(afl_executor_t *self) {
 static inline afl_exit_t afl_executor_run_target(afl_executor_t *self) {
 
   DCHECK(self);
-  CHECK(self->v->run_target);
+  DCHECK(AFL_VTABLEOF(afl_executor, self)->run_target);
 
-  return self->v->run_target(self);
+  return AFL_VTABLEOF(afl_executor, self)->run_target(self);
 
 }
 
 /*
   Instruct the SUT about the input.
 */
+static inline u8 afl_executor_place_input__nonvirtual(afl_executor_t *self, afl_input_t *input) {
+
+  self->current_input = input;
+  return AFL_RET_SUCCESS;
+
+}
+
 static inline u8 afl_executor_place_input(afl_executor_t *self, afl_input_t *input) {
 
   DCHECK(self);
   DCHECK(input);
-  CHECK(self->v->place_input);
+  DCHECK(AFL_VTABLEOF(afl_executor, self)->place_input);
 
-  return self->v->place_input(self, input);
+  return AFL_VTABLEOF(afl_executor, self)->place_input(self, input);
 
 }
 

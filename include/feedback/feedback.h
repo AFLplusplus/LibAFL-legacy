@@ -37,11 +37,7 @@ typedef struct afl_feedback afl_feedback_t;
 
 struct afl_feedback_vtable {
 
-  /*
-    The deinit() method is optional.
-    It is invoked just before the destroy of the object.
-  */
-  void (*deinit)(afl_feedback_t *);
+  AFL_VTABLE_INHERITS(afl_object)
 
   /*
     The is_interesting() method is mandatory.
@@ -50,13 +46,13 @@ struct afl_feedback_vtable {
   
 };
 
+extern struct afl_feedback_vtable afl_feedback_vtable_instance;
+
 struct afl_feedback {
 
-  INHERITS(afl_object)
+  AFL_INHERITS(afl_object)
   
   afl_corpus_t* specific_corpus;
-
-  struct afl_feedback_vtable *v;
 
 };
 
@@ -67,34 +63,30 @@ struct afl_feedback {
 afl_ret_t afl_feedback_init__protected(afl_feedback_t *);
 
 /*
-  Deinit the context of an afl_feedback_t.
-*/
-void afl_feedback_deinit__nonvirtual(afl_feedback_t *self);
-
-/*
   Deinit an afl_feedback_t object, you must call this method before releasing
   the memory used by the object.
 */
+// void afl_feedback_deinit__nonvirtual(afl_object_t *self);
+
 static inline void afl_feedback_deinit(afl_feedback_t *self) {
 
-  DCHECK(self);
-  DCHECK(self->v);
-
-  if (self->v->deinit) self->v->deinit(self);
+  afl_object_deinit(AFL_BASEOF(self));
 
 }
 
+/*
+  Determinate if the current input is interesting.
+*/
 static inline float afl_feedback_is_interesting(afl_feedback_t *self, afl_executor_t* executor) {
 
   DCHECK(self);
-  DCHECK(self->v);
-  DCHECK(self->v->is_interesting);
+  DCHECK(AFL_VTABLEOF(afl_feedback, self));
+  DCHECK(AFL_VTABLEOF(afl_feedback, self)->is_interesting);
 
-  return self->v->is_interesting(self, executor);
+  return AFL_VTABLEOF(afl_feedback, self)->is_interesting(self, executor);
 
 }
 
 AFL_DELETE_FOR(afl_feedback)
 
 #endif
-

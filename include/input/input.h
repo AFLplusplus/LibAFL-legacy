@@ -34,11 +34,7 @@ typedef struct afl_input afl_input_t;
 
 struct afl_input_vtable {
 
-  /*
-    The deinit() method is optional.
-    It is invoked just before the destroy of the object.
-  */
-  void (*deinit)(afl_input_t *);
+  AFL_VTABLE_INHERITS(afl_object)
 
   /*
     The deserialize() method is mandatory.
@@ -67,15 +63,15 @@ struct afl_input_vtable {
 
 };
 
+extern struct afl_input_vtable afl_input_vtable_instance;
+
 /*
   An Input entity defines one possible sample from the Input Space and can hold properties about the input itself, the
   relation between the input and the SUT, or the input and the specification.
 */
 struct afl_input {
 
-  INHERIT(afl_object)
-
-  struct afl_input_vtable *v;
+  AFL_INHERIT(afl_object)
 
 };
 
@@ -95,10 +91,7 @@ afl_ret_t afl_input_save_to_file(afl_input_t *self, char *filename);
 */
 static inline void afl_input_deinit(afl_input_t *self) {
 
-  DCHECK(self);
-  DCHECK(self->v);
-
-  if (self->v->deinit) self->v->deinit(self);
+  afl_object_deinit(AFL_BASEOF(self));
 
 }
 
@@ -108,10 +101,10 @@ static inline void afl_input_deinit(afl_input_t *self) {
 static inline afl_ret_t afl_input_deserialize(afl_input_t *self, u8 *buffer, size_t size) {
 
   DCHECK(self);
-  DCHECK(self->v);
-  DCHECK(self->v->deserialize);
+  DCHECK(AFL_VTABLEOF(afl_input, self));
+  DCHECK(AFL_VTABLEOF(afl_input, self)->deserialize);
 
-  return self->v->deserialize(self, buffer, size);
+  return AFL_VTABLEOF(afl_input, self)->deserialize(self, buffer, size);
 
 }
 
@@ -122,10 +115,10 @@ static inline afl_ret_t afl_input_deserialize(afl_input_t *self, u8 *buffer, siz
 static inline afl_ret_t afl_input_serialize(afl_input_t *self, u8 **buffer_out, size_t *size_out) {
 
   DCHECK(self);
-  DCHECK(self->v);
-  DCHECK(self->v->serialize);
+  DCHECK(AFL_VTABLEOF(afl_input, self));
+  DCHECK(AFL_VTABLEOF(afl_input, self)->serialize);
 
-  return self->v->serialize(self, buffer_out, size_out);
+  return AFL_VTABLEOF(afl_input, self)->serialize(self, buffer_out, size_out);
 
 }
 
@@ -135,10 +128,10 @@ static inline afl_ret_t afl_input_serialize(afl_input_t *self, u8 **buffer_out, 
 static inline afl_input_t *afl_input_copy(afl_input_t *self) {
 
   DCHECK(self);
-  DCHECK(self->v);
-  DCHECK(self->v->copy);
+  DCHECK(AFL_VTABLEOF(afl_input, self));
+  DCHECK(AFL_VTABLEOF(afl_input, self)->copy);
 
-  return self->v->copy(self);
+  return AFL_VTABLEOF(afl_input, self)->copy(self);
 
 }
 
@@ -148,10 +141,10 @@ static inline afl_input_t *afl_input_copy(afl_input_t *self) {
 static inline void afl_input_assign(afl_input_t *self, afl_input_t *from) {
 
   DCHECK(self);
-  DCHECK(self->v);
-  DCHECK(self->v->assign);
+  DCHECK(AFL_VTABLEOF(afl_input, self));
+  DCHECK(AFL_VTABLEOF(afl_input, self)->assign);
 
-  self->v->assign(self, from);
+  AFL_VTABLEOF(afl_input, self)->assign(self, from);
 
 }
 
@@ -162,10 +155,10 @@ static inline void afl_input_assign(afl_input_t *self, afl_input_t *from) {
 static inline void afl_input_clear(afl_input_t *self) {
 
   DCHECK(self);
-  DCHECK(self->v);
-  DCHECK(self->v->clear);
+  DCHECK(AFL_VTABLEOF(afl_input, self));
+  DCHECK(AFL_VTABLEOF(afl_input, self)->clear);
 
-  self->v->clear(self);
+  AFL_VTABLEOF(afl_input, self)->clear(self);
 
 }
 

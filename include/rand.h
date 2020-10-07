@@ -20,12 +20,12 @@ extern __thread afl_rand_t afl_rand_state_tls;
 
 /* Helper macro for TLS-based rand */
 
-#define RAND_INIT_THREAD() afl_rand_init(&afl_rand_state_tls)
-#define RAND_INIT_THREAD_SEEDED(seed) afl_rand_init_fixed_seed(&afl_rand_state_tls, (seed))
-#define RAND_DEINIT_THREAD() afl_rand_deinit(&afl_rand_state_tls)
+#define AFL_RAND_INIT_THREAD() afl_rand_init(&afl_rand_state_tls)
+#define AFL_RAND_INIT_THREAD_SEEDED(seed) afl_rand_init_fixed_seed(&afl_rand_state_tls, (seed))
+#define AFL_RAND_DEINIT_THREAD() afl_rand_deinit(&afl_rand_state_tls)
 
-#define RAND_BELOW(limit) afl_rand_below(&afl_rand_state_tls, (limit))
-#define RAND_BETWEEN(min, max) afl_rand_between(&afl_rand_state_tls, (min), (max))
+#define AFL_RAND_BELOW(limit) afl_rand_below(&afl_rand_state_tls, (limit))
+#define AFL_RAND_BETWEEN(min, max) afl_rand_between(&afl_rand_state_tls, (min), (max))
 
 static inline u64 afl_rand_rotl(const u64 x, int k) {
 

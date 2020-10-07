@@ -32,9 +32,9 @@
 
 #include "input/input.h"
 
-extern struct afl_input_vtable afl_bytes_input_vtable_instance;
-
 typedef struct afl_bytes_input afl_bytes_input_t;
+
+extern struct afl_input_vtable afl_bytes_input_vtable_instance;
 
 struct afl_bytes_input {
 
@@ -53,31 +53,55 @@ afl_ret_t afl_bytes_input_init(afl_bytes_input_t *self);
 /*
   Deserialize the input from a bytes array.
 */
-afl_ret_t afl_bytes_input_deserialize(afl_input_t *self, u8 *buffer, size_t size);
+afl_ret_t afl_bytes_input_deserialize__nonvirtual(afl_input_t *self, u8 *buffer, size_t size);
+
+static inline afl_ret_t afl_bytes_input_deserialize(afl_bytes_input_t *self, u8 *buffer, size_t size) {
+
+  return afl_input_deserialize(AFL_BASEOF(self), buffer, size);
+
+}
 
 /*
   Serialize the input to a bytes array.
   If *size_out is already set and the real size does not fit, return an error.
 */
-afl_ret_t afl_bytes_input_serialize(afl_input_t *self, u8 **buffer_out, size_t *size_out);
+afl_ret_t afl_bytes_input_serialize__nonvirtual(afl_input_t *self, u8 **buffer_out, size_t *size_out);
+
+static inline afl_ret_t afl_bytes_input_serialize(afl_input_t *self, u8 **buffer_out, size_t *size_out) {
+
+  return afl_input_serialize(AFL_BASEOF(self), buffer_out, size_out);
+
+}
 
 /*
   Copy the input.
 */
-afl_input_t *afl_bytes_input_copy(afl_input_t *self);
+afl_input_t *afl_bytes_input_copy__nonvritual(afl_input_t *self);
+
+static inline afl_bytes_input_t *afl_bytes_input_copy(afl_bytes_input_t *self) {
+
+  return (afl_bytes_input_t*)afl_input_copy(AFL_BASEOF(self));
+
+}
 
 /*
   Assign an input from another.
 */
-void afl_bytes_input_assign(afl_input_t *self, afl_input_t *from);
+void afl_bytes_input_assign__nonvirtual(afl_input_t *self, afl_input_t *from);
+
+static inline void afl_bytes_input_assign__nonvirtual(afl_bytes_input_t *self, afl_bytes_input* from) {
+
+  afl_input_assign(AFL_BASEOF(self), AFL_BASEOF(from));
+
+}
 
 /*
   Clear the input.
 */
-static inline void afl_bytes_input_clear(afl_input_t *self) {
+static inline void afl_bytes_input_clear__nonvirtual(afl_input_t *self) {
 
   DCHECK(self);
-  DCHECK(INSTANCE_OF(afl_bytes_input, self));
+  DCHECK(AFL_INSTANCEOF(afl_bytes_input, self));
 
   afl_bytes_input_t *b = (afl_bytes_input_t *)self;
   b->bytes = NULL;
@@ -85,12 +109,20 @@ static inline void afl_bytes_input_clear(afl_input_t *self) {
 
 }
 
+static inline void afl_bytes_input_clear__nonvirtual(afl_bytes_input_t *self) {
+
+  afl_input_clear(AFL_BASEOF(self));
+
+}
+
 /*
   Destroy the context of an afl_bytes_input_t.
 */
-static inline void afl_bytes_input_deinit(afl_executor_t *self) {
+// TODO implement deinit if we allocate the buffer to free it
 
-  afl_input_deinit(self);
+static inline void afl_bytes_input_deinit(afl_bytes_input_t *self) {
+
+  afl_input_deinit(AFL_BASEOF(self));
 
 }
 

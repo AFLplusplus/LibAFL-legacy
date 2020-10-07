@@ -24,58 +24,60 @@
 
  */
 
-#ifndef LIBAFL_STAGE_STAGE_H
-#define LIBAFL_STAGE_STAGE_H
+#ifndef LIBAFL_CORPUS_ENTRY_H
+#define LIBAFL_CORPUS_ENTRY_H
 
 #include "object.h"
 #include "error.h"
+#include "rand.h"
 
-#include "corpus/entry.h"
+#include "corpus/meta.h"
 
-typedef struct afl_stage afl_stage_t;
+typedef struct afl_entry afl_entry_t;
 
-//TODO use afl_entry instead of input
+extern struct afl_object_vtable afl_entry_vtable_instance;
 
-struct afl_stage_vtable {
+struct afl_entry {
 
-  AFL_VTABLE_INHERITS(afl_object)
-
-  /*
-    The perform() method is mandatory.
-  */
-  void (*perform)(afl_stage_t *, afl_input_t*, afl_entry_t*);
+  INHERITS(afl_object)
   
-};
-
-extern struct afl_stage_vtable afl_stage_vtable_instance;
-
-struct afl_stage {
-
-  AFL_INHERITS(afl_object)
+  afl_input* input;
   
+  afl_entry_metadata_t** meta;
+  u32 meta_count;
+  
+  char* filename;
+  u8 ondisk;
+
 };
 
 /*
-  Deinit an afl_stage_t object, you must call this method before releasing
+  Initialize an empty, just allocated, afl_entry_t object.
+*/
+afl_ret_t afl_entry_init(afl_entry_t *, afl_input*);
+
+/* Get a metadata object by typeinfo. */
+afl_entry_metadata_t* afl_entry_get_meta(afl_entry_t*, afl_typeinfo_t);
+
+/* Set metadata. */
+afl_entry_set_meta(afl_entry_t*, afl_entry_metadata_t*);
+
+/*
+  Deinit an afl_entry_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_stage_deinit(afl_stage_t *self) {
+void afl_entry_deinit__nonvirtual(afl_object_t *self);
+
+static inline void afl_entry_deinit(afl_entry_t *self) {
 
   afl_object_deinit(AFL_BASEOF(self));
 
 }
 
-static inline float afl_stage_perform(afl_stage_t *self, afl_input_t* input, afl_entry_t* entry) {
+afl_input* afl_entry_load_input(afl_entry_t *);
 
-  DCHECK(self);
-  DCHECK(AFL_VTABLEOF(afl_stage, self));
-  DCHECK(AFL_VTABLEOF(afl_stage, self)->perform);
-
-  return AFL_VTABLEOF(afl_stage, self)->perform(self, input, entry);
-
-}
-
-AFL_DELETE_FOR(afl_stage)
+AFL_NEW_FOR_WITH_PARAMS(afl_entry, AFL_DECL_PARAMS(afl_input* input), AFL_CALL_PARAMS(input))
+AFL_DELETE_FOR(afl_entry)
 
 #endif
 

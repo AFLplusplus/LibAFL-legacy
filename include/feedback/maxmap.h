@@ -35,13 +35,13 @@
 
 // TODO define with macros for different datatypes
 
-extern struct afl_feedback_vtable afl_maxmap_feedback_vtable_instance;
-
 typedef struct afl_maxmap_feedback afl_maxmap_feedback_t;
+
+extern struct afl_feedback_vtable afl_maxmap_feedback_vtable_instance;
 
 struct afl_maxmap_feedback {
 
-  INHERITS(afl_feedback)
+  AFL_INHERITS(afl_feedback)
   
   afl_map_observation_channel_t* observation_channel;
   
@@ -59,11 +59,11 @@ afl_ret_t afl_maxmap_feedback_init(afl_maxmap_feedback_t *, afl_map_observation_
   Deinit an afl_maxmap_feedback_t object, you must call this method before releasing
   the memory used by the object.
 */
-void afl_maxmap_feedback_deinit__nonvirtual(afl_feedback_t *self);
+void afl_maxmap_feedback_deinit__nonvirtual(afl_object_t *self);
 
 static inline void afl_maxmap_feedback_deinit(afl_maxmap_feedback_t *self) {
 
-  afl_feedback_deinit(BASE_CAST(self));
+  afl_feedback_deinit(AFL_BASEOF(self));
 
 }
 

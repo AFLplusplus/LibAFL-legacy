@@ -34,11 +34,7 @@ typedef struct afl_observation_channel afl_observation_channel_t;
 
 struct afl_observation_channel_vtable {
 
-  /*
-    The deinit() method is optional.
-    It is invoked just before the destroy of the object.
-  */
-  void (*deinit)(afl_observation_channel_t *);
+  AFL_VTABLE_INHERITS(afl_object)
 
   /*
     The flush() method is optional.
@@ -57,24 +53,13 @@ struct afl_observation_channel_vtable {
 
 };
 
+extern struct afl_observation_channel_vtable afl_observation_channel_vtable_instance;
+
 struct afl_observation_channel {
 
-  INHERITS(afl_object)
-
-  struct afl_observation_channel_vtable *v;
+  AFL_INHERITS(afl_object)
 
 };
-
-/*
-  Initialize an empty, just allocated, afl_observation_channel_t object.
-  Virtual class, protected init.
-*/
-afl_ret_t afl_observation_channel_init__protected(afl_observation_channel_t *);
-
-/*
-  Deinit the context of an afl_observation_channel_t.
-*/
-void afl_observation_channel_deinit__nonvirtual(afl_observation_channel_t *self);
 
 /*
   Deinit an afl_observation_channel_t object, you must call this method before releasing
@@ -82,29 +67,31 @@ void afl_observation_channel_deinit__nonvirtual(afl_observation_channel_t *self)
 */
 static inline void afl_observation_channel_deinit(afl_observation_channel_t *self) {
 
-  DCHECK(self);
-  if (self->v->deinit) self->v->deinit(self);
+  afl_object_deinit(AFL_BASEOF(self));
 
 }
 
 static inline void afl_observation_channel_flush(afl_observation_channel_t *self) {
 
   DCHECK(self);
-  if (self->v->flush) self->v->flush(self);
+  if (AFL_VTABLEOF(afl_observation_channel, self)->flush)
+    AFL_VTABLEOF(afl_observation_channel, self)->flush(self);
 
 }
 
 static inline void afl_observation_channel_reset(afl_observation_channel_t *self) {
 
   DCHECK(self);
-  if (self->v->reset) self->v->reset(self);
+  if (AFL_VTABLEOF(afl_observation_channel, self)->reset)
+    AFL_VTABLEOF(afl_observation_channel, self)->reset(self);
 
 }
 
 static inline void afl_observation_channel_post_exec(afl_observation_channel_t *self, afl_executor_t* executor) {
 
   DCHECK(self);
-  if (self->v->post_exec) self->v->post_exec(self, executor);
+  if (AFL_VTABLEOF(afl_observation_channel, self)->post_exec)
+    AFL_VTABLEOF(afl_observation_channel, self)->post_exec(self, executor);
 
 }
 

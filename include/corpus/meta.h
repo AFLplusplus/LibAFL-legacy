@@ -24,58 +24,27 @@
 
  */
 
-#ifndef LIBAFL_STAGE_STAGE_H
-#define LIBAFL_STAGE_STAGE_H
+#ifndef LIBAFL_CORPUS_META_H
+#define LIBAFL_CORPUS_META_H
 
 #include "object.h"
 #include "error.h"
+#include "rand.h"
 
-#include "corpus/entry.h"
+typedef struct afl_entry_metadata afl_entry_metadata_t;
 
-typedef struct afl_stage afl_stage_t;
+struct afl_entry_metadata {
 
-//TODO use afl_entry instead of input
+  INHERITS(afl_object)
 
-struct afl_stage_vtable {
-
-  AFL_VTABLE_INHERITS(afl_object)
-
-  /*
-    The perform() method is mandatory.
-  */
-  void (*perform)(afl_stage_t *, afl_input_t*, afl_entry_t*);
-  
 };
 
-extern struct afl_stage_vtable afl_stage_vtable_instance;
-
-struct afl_stage {
-
-  AFL_INHERITS(afl_object)
-  
-};
-
-/*
-  Deinit an afl_stage_t object, you must call this method before releasing
-  the memory used by the object.
-*/
-static inline void afl_stage_deinit(afl_stage_t *self) {
+static inline void afl_entry_metadata_deinit(afl_entry_metadata_t *self) {
 
   afl_object_deinit(AFL_BASEOF(self));
 
 }
 
-static inline float afl_stage_perform(afl_stage_t *self, afl_input_t* input, afl_entry_t* entry) {
-
-  DCHECK(self);
-  DCHECK(AFL_VTABLEOF(afl_stage, self));
-  DCHECK(AFL_VTABLEOF(afl_stage, self)->perform);
-
-  return AFL_VTABLEOF(afl_stage, self)->perform(self, input, entry);
-
-}
-
-AFL_DELETE_FOR(afl_stage)
+AFL_DELETE_FOR(afl_entry_metadata)
 
 #endif
-

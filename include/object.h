@@ -40,6 +40,8 @@
 
 #define AFL_VTABLE_SET(ptr, vtable) ((struct afl_object *)(ptr))->vptr = (struct afl_object_vtable *)&vtable
 
+#define AFL_TYPEINFO(type) ((afl_typeinfo_t)&type##_vtable_instance)
+
 // #define INSTANCE_OF(type, ptr) ((ptr)->v == &type##_vtable_instance)
 
 #define AFL_INSTANCEOF(type, ptr)                                                       \
@@ -87,6 +89,8 @@
   }
 
 typedef struct afl_object afl_object_t;
+
+typedef struct afl_object_vtable* afl_typeinfo_t;
 
 struct afl_object_vtable {
 

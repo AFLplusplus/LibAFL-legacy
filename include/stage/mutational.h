@@ -30,37 +30,38 @@
 #include "object.h"
 #include "error.h"
 
+#include "stage/stage.h"
+#include "entry/entry.h"
 #include "engine/engine.h"
-
-extern struct afl_stage_vtable afl_mutational_stage_vtable_instance;
 
 typedef struct afl_mutational_stage afl_mutational_stage_t;
 
 struct afl_mutational_stage_vtable {
 
+  AFL_VTABLE_INHERITS(afl_stage_vtable)
+
   /*
     The perform() method is optional. It has a default implementation.
   */
-  u32 (*iterations)(afl_mutational_stage_t *, afl_input_t*);
+  u32 (*iterations)(afl_mutational_stage_t *, afl_entry_t*);
 
 };
 
+extern struct afl_mutational_stage_vtable afl_mutational_stage_vtable_instance;
+
 struct afl_mutational_stage {
 
-  INHERITS(afl_stage)
+  AFL_INHERITS(afl_stage)
   
   afl_mutator_t** mutators;
   u32 mutators_count;
   
-  struct afl_mutational_stage_vtable* v;
-  
 };
 
 /*
-  Initialize an empty, just allocated, afl_stage_t object.
-  Virtual class, protected init.
+  Initialize an empty, just allocated, afl_mutational_stage_t object.
 */
-afl_ret_t afl_stage_init__protected(afl_stage_t *);
+afl_ret_t afl_mutational_stage_init(afl_mutational_stage_t *);
 
 /*
   Add a mutator to the stage.
@@ -71,42 +72,70 @@ void afl_mutational_stage_add_mutator(afl_mutational_stage_t *self, afl_mutator_
   Deinit an afl_stage_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_mutational_stage_deinit(afl_stage_t *self) {
+void afl_mutational_stage_deinit__nonvirtual(afl_object_t *self);
 
-  afl_stage_deinit(BASE_CAST(self));
+static inline void afl_mutational_stage_deinit(afl_mutational_stage_t *self) {
 
-}
-
-static inline float afl_mutational_stage_perform(afl_mutational_stage_t *self, afl_input_t* input, afl_input_t* original) {
-
-  return afl_stage_perform(BASE_CAST(self), input, original);
+  afl_stage_deinit(AFL_BASEOF(self));
 
 }
 
 /*
   Get how many iterations the stage must perform.
 */
-static inline u32 afl_mutational_stage_iterations__nonvirtual(afl_scheduled_mutator_t *self, afl_input_t* input) {
+static inline u32 afl_mutational_stage_iterations__nonvirtual(afl_mutational_stage_t *self, afl_entry_t* entry) {
   
-  (void)input;
+  (void)entry;
 
-  return (1 + (u32)RAND_BELOW(128));
+  return (1 + (u32)AFL_RAND_BELOW(128));
 
 }
 
-static inline u32 afl_mutational_stage_iterations(afl_scheduled_mutator_t *self, afl_input_t* input) {
+static inline u32 afl_mutational_stage_iterations(afl_mutational_stage_t *self, afl_entry_t* entry) {
 
   DCHECK(self);
+  DCHECK(AFL_VTABLEOF(afl_mutational_stage, self));
   
-  if(self->v->iterations)
-    return self->v->iterations(self, input);
+  if(AFL_VTABLEOF(afl_mutational_stage, self)->iterations)
+    return AFL_VTABLEOF(afl_mutational_stage, self)->iterations(self, entry);
 
-  return afl_mutational_stage_iterations__nonvirtual(self, input);  
+  return afl_mutational_stage_iterations__nonvirtual(self, entry);  
 
 }
 
-AFL_NEW_FOR(afl_stage)
-AFL_DELETE_FOR(afl_stage)
+static inline void afl_mutational_stage_perform__nonvirtual(afl_stage_t *self, afl_input_t* input, afl_entry_t* entry) {
+
+  DCHECK(self);
+  DCHECK(AFL_ISNTANCEOF(afl_mutational_stage, self));
+  DCHECK(input);
+  DCHECK(entry);
+  
+  afl_mutational_stage_t* s = (afl_mutational_stage_t*)self;
+  afl_input_t* original = afl_entry_load_input(entry);
+  
+  u32 i, j, num = afl_mutational_stage_iterations(s, entry);
+  
+  for (i = 0; i < num; ++i) {
+  
+    for (j = 0; j < s->mutators_count; ++j)
+      afl_mutator_mutate(s->mutators[j], input);
+      
+    afl_engine_execute(s->engine, input);
+    
+    afl_input_assign(input, original);
+  
+  }
+
+}
+
+static inline void afl_mutational_stage_perform(afl_mutational_stage_t *self, afl_input_t* input, afl_entry_t* entry) {
+
+  afl_stage_perform(AFL_BASEOF(self), input, entry);
+
+}
+
+AFL_NEW_FOR(afl_mutational_stage)
+AFL_DELETE_FOR(afl_mutational_stage)
 
 #endif
 

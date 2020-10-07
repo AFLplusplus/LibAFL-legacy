@@ -32,13 +32,13 @@
 
 #include "observation_channel/observation_channel.h"
 
-extern struct afl_observation_channel_vtable afl_map_observation_channel_vtable_instance;
-
 typedef struct afl_map_observation_channel afl_map_observation_channel_t;
+
+extern struct afl_observation_channel_vtable afl_map_observation_channel_vtable_instance;
 
 struct afl_map_observation_channel {
 
-  INHERITS(afl_observation_channel)
+  AFL_INHERITS(afl_observation_channel)
   
   u8* trace_map;
   size_t size;
@@ -57,20 +57,20 @@ afl_ret_t afl_map_observation_channel_init(afl_map_observation_channel_t *, u8*,
 */
 static inline void afl_map_observation_channel_deinit(afl_map_observation_channel_t *self) {
 
-  afl_observation_channel_deinit(BASE_CAST(self));
+  afl_observation_channel_deinit(AFL_BASEOF(self));
 
 }
 
 static inline void afl_map_observation_channel_flush(afl_map_observation_channel_t *self) {
 
-  afl_observation_channel_flush(BASE_CAST(self))
+  afl_observation_channel_flush(AFL_BASEOF(self))
 
 }
 
 static inline void afl_map_observation_channel_reset__nonvritual(afl_observation_channel_t *self) {
 
   DCHECK(self)
-  DCHECK(INSTANCE_OF(afl_map_observation_channel, self));
+  DCHECK(AFL_INSTANCEOF(afl_map_observation_channel, self));
   
   afl_map_observation_channel_t* o = (afl_map_observation_channel_t*)self;
 
@@ -80,13 +80,13 @@ static inline void afl_map_observation_channel_reset__nonvritual(afl_observation
 
 static inline void afl_map_observation_channel_reset(afl_map_observation_channel_t *self) {
 
-  afl_observation_channel_reset(BASE_CAST(self))
+  afl_observation_channel_reset(AFL_BASEOF(self))
 
 }
 
 static inline void afl_map_observation_channel_post_exec(afl_map_observation_channel_t *self, afl_executor_t* executor) {
 
-  afl_observation_channel_post_exec(BASE_CAST(self), executor);
+  afl_observation_channel_post_exec(AFL_BASEOF(self), executor);
 
 }
 
