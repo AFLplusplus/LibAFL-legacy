@@ -258,6 +258,7 @@ static u8 bind_cpu(s32 cpuid) {
 
   #else
 
+  (void) cpuid;
   // this will need something for other platforms
   // TODO: Solaris/Illumos has processor_bind ... might worth a try
   WARNF("Cannot bind to CPU yet on this platform.");
