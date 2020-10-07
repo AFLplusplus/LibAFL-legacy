@@ -33,15 +33,15 @@
 #include "mutator/scheduled.h"
 #include "corpus/corpus.h"
 
-extern struct afl_scheduled_mutator_vtable afl_havoc_mutator_vtable_instance;
-
 typedef struct afl_havoc_mutator afl_havoc_mutator_t;
+
+extern struct afl_scheduled_mutator_vtable afl_havoc_mutator_vtable_instance;
 
 struct afl_havoc_mutator {
 
-  INHERITS(afl_scheduled_mutator)
+  AFL_INHERITS(afl_scheduled_mutator)
 
-  afl_corpus_t* corpus;
+  afl_corpus_t *corpus;
 
 };
 
@@ -53,11 +53,14 @@ afl_ret_t afl_havoc_mutator_init(afl_havoc_mutator_t *);
 /*
   Destroy the context of an afl_havoc_mutator_t.
 */
-static inline void afl_havoc_mutator_deinit(afl_havoc_mutator_t * self) {
+static inline void afl_havoc_mutator_deinit(afl_havoc_mutator_t *self) {
 
-  afl_scheduled_mutator_deinit((afl_scheduled_mutator_t*)self);
+  afl_scheduled_mutator_deinit((afl_scheduled_mutator_t *)self);
 
 }
+
+AFL_NEW_FOR(afl_havoc_mutator)
+AFL_DELETE_FOR(afl_havoc_mutator)
 
 void afl_mutation_flip_bit(afl_mutator_t *, afl_input_t *);
 void afl_mutation_flip_2_bits(afl_mutator_t *, afl_input_t *);

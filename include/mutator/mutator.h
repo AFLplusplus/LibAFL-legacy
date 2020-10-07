@@ -34,6 +34,8 @@ typedef struct afl_mutator afl_mutator_t;
 
 struct afl_mutator_vtable {
 
+  AFL_VTABLE_INHERITS(afl_object)
+
   /*
     The deinit() method is optional.
     It is invoked just before the destroy of the object.
@@ -50,14 +52,14 @@ struct afl_mutator_vtable {
 
 };
 
+extern struct afl_mutator_vtable afl_mutator_vtable_instance;
+
 /*
   A Mutator is an entity that takes one or more inputs and generates a new derived one.
 */
 struct afl_mutator {
 
-  INHERIT(afl_object)
-
-  struct afl_mutator_vtable *v;
+  AFL_INHERITS(afl_object)
 
 };
 
@@ -65,17 +67,12 @@ struct afl_mutator {
   Deinit an afl_input_t object, you must call this method before releasing
   the memory used by the object.
 */
-static inline void afl_mutator_deinit__nonvirtual(afl_mutator_t *self) {}
-
 static inline void afl_mutator_deinit(afl_mutator_t *self) {
 
   DCHECK(self);
   DCHECK(self->v);
 
-  if (self->v->deinit)
-    self->v->deinit(self);
-  else
-    afl_mutator_deinit__nonvirtual(self);
+  if (self->v->deinit) self->v->deinit(self);
 
 }
 
@@ -92,7 +89,7 @@ static inline void afl_mutator_mutate(afl_mutator_t *self, afl_input_t *input, u
 
 }
 
-AFL_DELETE_FOR(afl_input)
+AFL_DELETE_FOR(afl_mutator)
 
 #endif
 
