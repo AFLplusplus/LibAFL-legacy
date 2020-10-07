@@ -67,7 +67,7 @@ extern struct afl_corpus_vtable afl_corpus_vtable_instance;
 
 struct afl_corpus {
 
-  INHERITS(afl_object)
+  AFL_INHERITS(afl_object)
   
   afl_entry ** entries;
   u32 entries_count;

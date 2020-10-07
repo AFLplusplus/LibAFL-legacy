@@ -39,7 +39,7 @@ extern struct afl_object_vtable afl_entry_vtable_instance;
 
 struct afl_entry {
 
-  INHERITS(afl_object)
+  AFL_INHERITS(afl_object)
   
   afl_input* input;
   

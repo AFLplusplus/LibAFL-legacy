@@ -24,27 +24,33 @@
 
  */
 
-#ifndef LIBAFL_CORPUS_META_H
-#define LIBAFL_CORPUS_META_H
+#ifndef LIBAFL_PLATFORM_FS_H
+#define LIBAFL_PLATFORM_FS_H
 
-#include "object.h"
-#include "error.h"
-#include "rand.h"
+#include "types.h"
 
-typedef struct afl_entry_metadata afl_entry_metadata_t;
+/// Files
 
-struct afl_entry_metadata {
-
-  AFL_INHERITS(afl_object)
-
+enum {
+  AFL_PERM_R,
+  AFL_PERM_W,
+  AFL_PERM_x
 };
 
-static inline void afl_entry_metadata_deinit(afl_entry_metadata_t *self) {
+typedef struct afl_file afl_file_t;
 
-  afl_object_deinit(AFL_BASEOF(self));
+afl_file_t* afl_file_open(char* filename, s32 permissions);
 
-}
+size_t afl_file_read(afl_file_t* file, u8* buf, size_t size);
 
-AFL_DELETE_FOR(afl_entry_metadata)
+size_t afl_file_write(afl_file_t* file, u8* buf, size_t size);
+
+void afl_file_flush(afl_file_t* file);
+
+void afl_file_close(afl_file_t* file);
+
+/// Dirs
+
+u8 afl_dir_exists(char* dirname);
 
 #endif

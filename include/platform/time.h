@@ -24,27 +24,18 @@
 
  */
 
-#ifndef LIBAFL_CORPUS_META_H
-#define LIBAFL_CORPUS_META_H
+#ifndef LIBAFL_PLATFORM_TIME_H
+#define LIBAFL_PLATFORM_TIME_H
 
-#include "object.h"
-#include "error.h"
-#include "rand.h"
+#include "types.h"
 
-typedef struct afl_entry_metadata afl_entry_metadata_t;
+/* Get unix time in microseconds */
+u64 afl_get_cur_time_us(void);
 
-struct afl_entry_metadata {
+/* Get unix time in milliseconds */
+u64 afl_get_cur_time(void);
 
-  AFL_INHERITS(afl_object)
-
-};
-
-static inline void afl_entry_metadata_deinit(afl_entry_metadata_t *self) {
-
-  afl_object_deinit(AFL_BASEOF(self));
-
-}
-
-AFL_DELETE_FOR(afl_entry_metadata)
+/* Get unix time in seconds */
+u64 afl_get_cur_time_s(void);
 
 #endif
