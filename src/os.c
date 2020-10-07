@@ -529,7 +529,7 @@ afl_ret_t bind_to_cpu() {
 
   struct kinfo_proc2 *procs;
   size_t              nprocs;
-  size_t              proccount;
+  s32                 proccount;
   int                 s_name[] = {
 
       CTL_KERN, KERN_PROC2, KERN_PROC_ALL, 0, sizeof(struct kinfo_proc2), 0};
