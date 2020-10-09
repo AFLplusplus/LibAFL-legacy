@@ -34,7 +34,7 @@ namespace afl {
 template<typename OkType>
 class Result {
 
-  enum { kOk, kError, kErrorkUnknownError } tag;
+  enum { kOk, kError, kUnknownError } tag;
   
   union {
     OkType ok;
@@ -51,7 +51,7 @@ public:
   
   inline OkType Expect(const char* message) {
     if(!IsOk()) {
-      if (IsUnkErr)
+      if (IsUnkErr())
         FATAL("Result::Expect failed at '", message, "' with unknown error.");
       else
         FATAL("Result::Expect failed at '", message, "' with error '", value.error, "'");
@@ -61,7 +61,7 @@ public:
   
   inline OkType Unwrap() {
     if(!IsOk()) {
-      if (IsUnkErr)
+      if (IsUnkErr())
         FATAL("Result::Unwrap failed with unknown error.");
       else
         FATAL("Result::Unwrap failed with error '", value.error, "'");

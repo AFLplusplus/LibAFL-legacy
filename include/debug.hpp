@@ -27,16 +27,6 @@
 
 #include <iostream>
 
-#ifndef CHECK
-#define CHECK(expr) if (!likely(expr)) { afl::fatal("CHECK failed: " #expr); }
-#endif
-
-#ifdef DEBUG_BUILD
-#define DCHECK(expr) if (!likely(expr)) { afl::fatal("DCHECK failed: " #expr); }
-#else
-#define DCHECK(expr) ((void) expr);
-#endif
-
 /*******************
  * Terminal colors *
  *******************/
@@ -165,8 +155,11 @@
 #define CURSOR_HIDE "\x1b[?25l"
 #define CURSOR_SHOW "\x1b[?25h"
 
+#define _TOSTRING1(x) #x
+#define _TOSTRING(x) _TOSTRING1(x)
+
 #ifdef DEBUG_BUILD
-  #define DEBUG(...) printErr(cMGN "[D]" cGRA " [" __FILE__ ":" TOSTRING(__LINE__) "] " cRST, __VA_ARGS__, cRST "\n")
+  #define DEBUG(...) printErr(cMGN "[D]" cGRA " [" __FILE__ ":" _TOSTRING(__LINE__) "] " cRST, __VA_ARGS__, cRST "\n")
 #else
   #define DEBUG(...) do {} while(0)
 #endif
@@ -176,7 +169,7 @@
 #define FATAL(...)                                                                            \
   do {                                                                                        \
                                                                                               \
-    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] FATAL : " cRST, __VA_ARGS__, cLRD "\n         Location : " cRST " __func__ "(), " __FILE__ ":" __LINE__ "\n\n"); \
+    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] FATAL ERROR : " cRST, __VA_ARGS__, cLRD "\n       Location : " cRST, __func__, "(), " __FILE__ ":", __LINE__, "\n\n"); \
     std::exit(1);                                                                             \
                                                                                               \
   } while (0)
@@ -186,7 +179,7 @@
 #define ABORT(...)  \
   do {                                                                                        \
                                                                                               \
-    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] ABORT : " cRST, __VA_ARGS__, cLRD "\n         Location : " cRST " __func__ "(), " __FILE__ ":" __LINE__ "\n\n"); \
+    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST, __VA_ARGS__, cLRD "\n         Location : " cRST, __func__, "(), " __FILE__ ":", __LINE__, "\n\n"); \
     std::abort();                                                                             \
                                                                                               \
   } while (0)
@@ -204,48 +197,62 @@
                                                                                                 \
   } while (0)*/
 
+
+#ifndef CHECK
+  #define CHECK(expr) if (!likely(expr)) { FATAL("CHECK failed: " #expr); }
+#endif
+
+#ifdef DEBUG_BUILD
+  #define DCHECK(expr) if (!likely(expr)) { FATAL("DCHECK failed: " #expr); }
+#else
+  #define DCHECK(expr) ((void) expr);
+#endif
+
+#undef _TOSTRING1
+#undef _TOSTRING
+
 namespace afl {
 
 template<typename Last>
-static inline print(Last last) {
+static inline void print(Last last) {
   std::cout << last;
 }
 
 template<typename First, typename ... Types>
-static inline print(First first, Types ... args) {
+static inline void print(First first, Types ... args) {
   std::cout << first;
-  fatal(args...);
+  print(args...);
 }
 
 template<typename Last>
-static inline printErr(Last last) {
+static inline void printErr(Last last) {
   std::cerr << last;
 }
 
 template<typename First, typename ... Types>
-static inline printErr(First first, Types ... args) {
+static inline void printErr(First first, Types ... args) {
   std::cerr << first;
-  fatal(args...);
+  printErr(args...);
 }
 
 /* Show a prefixed warning. */
 
 template<typename ... Types>
-static inline printWarn(Types ... args) {
+static inline void printWarn(Types ... args) {
   printErr(cYEL "[!] " cBRI "WARNING: ", args..., cRST "\n");
 }
 
 /* Show a prefixed "doing something" message. */
 
 template<typename ... Types>
-static inline printAct(Types ... args) {
+static inline void printAct(Types ... args) {
   print(cLBL "[*] " cRST, args..., cRST "\n");
 }
 
 /* Show a prefixed "success" message. */
 
 template<typename ... Types>
-static inline printOk(Types ... args) {
+static inline void printOk(Types ... args) {
   print(cLBL "[*] " cRST, args..., cRST "\n");
 }
 
