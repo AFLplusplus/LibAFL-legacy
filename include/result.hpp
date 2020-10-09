@@ -27,6 +27,8 @@
 #ifndef LIBAFL_RESULT_H
 #define LIBAFL_RESULT_H
 
+#include "debug.hpp"
+
 namespace afl {
 
 template<typename OkType>
@@ -36,7 +38,7 @@ class Result {
   
   union {
     OkType ok;
-    char* error;
+    const char* error;
   } value;
 
 public:
@@ -45,6 +47,30 @@ public:
   Result(OkType ok) {
     tag = kOk;
     value.ok = ok;
+  }
+  
+  inline OkType Expect(const char* message) {
+    if(!IsOk()) {
+      if (IsUnkErr)
+        FATAL("Result::Expect failed at '", message, "' with unknown error.");
+      else
+        FATAL("Result::Expect failed at '", message, "' with error '", value.error, "'");
+    }
+    return value.ok;
+  }
+  
+  inline OkType Unwrap() {
+    if(!IsOk()) {
+      if (IsUnkErr)
+        FATAL("Result::Unwrap failed with unknown error.");
+      else
+        FATAL("Result::Unwrap failed with error '", value.error, "'");
+    }
+    return value.ok;
+  }
+  
+  inline operator OkType () {
+    return Unwrap();
   }
 
   inline bool IsOk() {
@@ -63,7 +89,7 @@ public:
     return Result(ok);
   }
   
-  static Result Err(char* error) {
+  static Result Err(const char* error) {
     Result result;
     result.tag = kError;
     result.value.error = error;
