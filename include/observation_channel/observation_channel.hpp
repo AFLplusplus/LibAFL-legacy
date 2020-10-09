@@ -27,8 +27,6 @@
 #ifndef LIBAFL_OBSERVATION_CHANNEL_OBSERVATION_CHANNEL_H
 #define LIBAFL_OBSERVATION_CHANNEL_OBSERVATION_CHANNEL_H
 
-#include "error.hpp"
-
 namespace afl {
 
 class Executor;

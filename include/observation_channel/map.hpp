@@ -27,8 +27,6 @@
 #ifndef LIBAFL_OBSERVATION_CHANNEL_MAP_H
 #define LIBAFL_OBSERVATION_CHANNEL_MAP_H
 
-#include "error.h"
-
 #include "observation_channel/observation_channel.h"
 
 namespace afl {

@@ -27,8 +27,7 @@
 #ifndef LIBAFL_EXECUTOR_INMEMORY_H
 #define LIBAFL_EXECUTOR_INMEMORY_H
 
-#include "error.hpp"
-
+#include "result.hpp"
 #include "executor/executor.hpp"
 
 namespace afl {
@@ -53,7 +52,7 @@ public:
 
   InMemoryExecutor(HarnessFunction harness_function) : harnessFunction(harness_function) {}
 
-  virtual ExitType RunTarget() override;
+  virtual Result<ExitType> RunTarget() override;
 
 };
 

@@ -29,7 +29,7 @@
 
 #include <vector>
 
-#include "error.hpp"
+#include "result.hpp"
 
 namespace afl {
 
@@ -53,14 +53,13 @@ public:
   /*
     Run the target represented by the executor.
   */
-  virtual ExitType RunTarget() = 0;
+  virtual Result<ExitType> RunTarget() = 0;
   
   /*
     Instruct the SUT about the input.
   */
-  virtual Error* PlaceInput(Input* input) {
+  virtual void PlaceInput(Input* input) {
     currentInput = input;
-    return nullptr;
   }
   
   inline Input* CurrentInput() {

@@ -27,8 +27,7 @@
 #ifndef LIBAFL_INPUT_BYTES_H
 #define LIBAFL_INPUT_BYTES_H
 
-#include "error.hpp"
-
+#include "result.hpp"
 #include "input/input.hpp"
 
 namespace afl {
@@ -40,17 +39,17 @@ public:
   /*
     Serialize the input to a buffer.
   */
-  Error* Serialize(u8*, size_t) override;
+  Result<size_t> Serialize(u8* buffer, size_t size) override;
   
   /*
     Deserialize the input from a buffer.
   */
-  Error* Deserialize(u8*, size_t) override;
+  Result<size_t> Deserialize(u8* buffer, size_t size) override;
   
   /*
     Copy this instance.
   */
-  Input* Copy() override;
+  Result<Input*> Copy() override;
 
   /*
     Assign an instance. Maybe return an error on type mistmatch? But requires dyncast.

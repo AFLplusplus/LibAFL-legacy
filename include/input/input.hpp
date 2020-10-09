@@ -27,7 +27,7 @@
 #ifndef LIBAFL_INPUT_INPUT_H
 #define LIBAFL_INPUT_INPUT_H
 
-#include "error.hpp"
+#include "result.hpp"
 
 namespace afl {
 
@@ -42,17 +42,17 @@ public:
   /*
     Serialize the input to a buffer.
   */
-  virtual Error* Serialize(u8* buffer, size_t size) = 0;
+  virtual Result<size_t> Serialize(u8* buffer, size_t size) = 0;
   
   /*
     Deserialize the input from a buffer.
   */
-  virtual Error* Deserialize(u8* buffer, size_t size) = 0;
+  virtual Result<size_t> Deserialize(u8* buffer, size_t size) = 0;
   
   /*
     Copy this instance.
   */
-  virtual Input* Copy() = 0;
+  virtual Result<Input*> Copy() = 0;
 
   /*
     Assign an instance. Maybe return an error on type mistmatch? But requires dyncast.
@@ -67,8 +67,8 @@ public:
   /*
     Serialization to files functions.
   */
-  Error* SaveToFile(char* filename);
-  Error* LoadFromFile(char* filename);
+  void SaveToFile(char* filename);
+  void LoadFromFile(char* filename);
 
 };
 
