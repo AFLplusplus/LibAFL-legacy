@@ -35,7 +35,6 @@
 # IDE Stuff
 .vscode
 
-executor
 target
 
 examples/out-*

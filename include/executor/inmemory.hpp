@@ -24,56 +24,36 @@
 
  */
 
-#ifndef LIBAFL_EXECUTOR_EXECUTOR_H
-#define LIBAFL_EXECUTOR_EXECUTOR_H
-
-#include <vector>
+#ifndef LIBAFL_EXECUTOR_INMEMORY_H
+#define LIBAFL_EXECUTOR_INMEMORY_H
 
 #include "error.hpp"
 
+#include "executor/executor.hpp"
+
 namespace afl {
 
-class ObservationChannel;
-class Input;
+typedef ExitType (*HarnessFunction)(Executor *, u8 *, size_t);
 
 /*
   An Executor is an entity with a set of violation oracles, a set of observation channels, a function that allows
   instructing the SUT about the input to test, and a function to run the SUT.
 */
-class Executor {
+class InMemoryExecutor : public Executor {
 
 protected:
 
-  std::vector<ObservationChannel*> observationChannels;
+  HarnessFunction harnessFunction;
   
-  Input* currentInput;
-  
+  /* libFuzzer compatibility */
+  char **argv;
+  int    argc;
+
 public:
 
-  /*
-    Run the target represented by the executor.
-  */
-  virtual ExitType RunTarget() = 0;
-  
-  /*
-    Instruct the SUT about the input.
-  */
-  virtual Error* PlaceInput(Input* input) {
-    currentInput = input;
-    return nullptr;
-  }
-  
-  inline Input* CurrentInput() {
-    return currentInput;
-  }
-  
-  inline std::vector<ObservationChannel*>& ObservationChannels() {
-    return observationChannels;
-  }
-  
-  inline void AddObserationChannel(ObservationChannel* observation_channel) {
-    observationChannels.push_back(observation_channel);
-  }
+  InMemoryExecutor(HarnessFunction harness_function) : harnessFunction(harness_function) {}
+
+  virtual ExitType RunTarget() override;
 
 };
 

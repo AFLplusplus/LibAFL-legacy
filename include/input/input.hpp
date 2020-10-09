@@ -24,56 +24,51 @@
 
  */
 
-#ifndef LIBAFL_EXECUTOR_EXECUTOR_H
-#define LIBAFL_EXECUTOR_EXECUTOR_H
-
-#include <vector>
+#ifndef LIBAFL_INPUT_INPUT_H
+#define LIBAFL_INPUT_INPUT_H
 
 #include "error.hpp"
 
 namespace afl {
 
-class ObservationChannel;
-class Input;
-
 /*
-  An Executor is an entity with a set of violation oracles, a set of observation channels, a function that allows
-  instructing the SUT about the input to test, and a function to run the SUT.
+  An Input entity defines one possible sample from the Input Space and can hold properties about the input itself, the
+  relation between the input and the SUT, or the input and the specification.
 */
-class Executor {
-
-protected:
-
-  std::vector<ObservationChannel*> observationChannels;
-  
-  Input* currentInput;
+class Input {
   
 public:
 
   /*
-    Run the target represented by the executor.
+    Serialize the input to a buffer.
   */
-  virtual ExitType RunTarget() = 0;
+  virtual Error* Serialize(u8* buffer, size_t size) = 0;
   
   /*
-    Instruct the SUT about the input.
+    Deserialize the input from a buffer.
   */
-  virtual Error* PlaceInput(Input* input) {
-    currentInput = input;
-    return nullptr;
-  }
+  virtual Error* Deserialize(u8* buffer, size_t size) = 0;
   
-  inline Input* CurrentInput() {
-    return currentInput;
-  }
+  /*
+    Copy this instance.
+  */
+  virtual Input* Copy() = 0;
+
+  /*
+    Assign an instance. Maybe return an error on type mistmatch? But requires dyncast.
+  */
+  virtual void Assign(Input* input) = 0;
   
-  inline std::vector<ObservationChannel*>& ObservationChannels() {
-    return observationChannels;
-  }
-  
-  inline void AddObserationChannel(ObservationChannel* observation_channel) {
-    observationChannels.push_back(observation_channel);
-  }
+  /*
+    Clear the input content.
+  */
+  virtual void Clear() = 0;
+
+  /*
+    Serialization to files functions.
+  */
+  Error* SaveToFile(char* filename);
+  Error* LoadFromFile(char* filename);
 
 };
 

@@ -24,57 +24,44 @@
 
  */
 
-#ifndef LIBAFL_EXECUTOR_EXECUTOR_H
-#define LIBAFL_EXECUTOR_EXECUTOR_H
+#ifndef LIBAFL_OBSERVATION_CHANNEL_MAP_H
+#define LIBAFL_OBSERVATION_CHANNEL_MAP_H
 
-#include <vector>
+#include "error.h"
 
-#include "error.hpp"
+#include "observation_channel/observation_channel.h"
 
 namespace afl {
 
-class ObservationChannel;
-class Input;
-
-/*
-  An Executor is an entity with a set of violation oracles, a set of observation channels, a function that allows
-  instructing the SUT about the input to test, and a function to run the SUT.
-*/
-class Executor {
+template<typename EntryType>
+class MapObservationChannel {
 
 protected:
 
-  std::vector<ObservationChannel*> observationChannels;
-  
-  Input* currentInput;
-  
+  EntryType* traceMap;
+  size_t traceMapSize;
+
 public:
 
-  /*
-    Run the target represented by the executor.
-  */
-  virtual ExitType RunTarget() = 0;
-  
-  /*
-    Instruct the SUT about the input.
-  */
-  virtual Error* PlaceInput(Input* input) {
-    currentInput = input;
-    return nullptr;
-  }
-  
-  inline Input* CurrentInput() {
-    return currentInput;
-  }
-  
-  inline std::vector<ObservationChannel*>& ObservationChannels() {
-    return observationChannels;
-  }
-  
-  inline void AddObserationChannel(ObservationChannel* observation_channel) {
-    observationChannels.push_back(observation_channel);
-  }
+  MapObservationChannel(EntryType* trace_map, size_t trace_map_size) : traceMap(trace_map), traceMapSize(trace_map_size) {}
 
+  /*
+    Reset the channel.
+  */
+  virtual void Reset() override {
+    memset(traceMap, 0, traceMapSize * sizeof(traceMap));
+  }
+  
+  /*
+    Getters.
+  */
+  EntryType* GetMap() {
+    return traceMap;
+  }
+  size_t GetSize() {
+    return traceMapSize;
+  }
+  
 };
 
 } // namespace afl
