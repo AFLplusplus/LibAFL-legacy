@@ -27,83 +27,124 @@
 #ifndef LIBAFL_RESULT_H
 #define LIBAFL_RESULT_H
 
+#include "errors.hpp"
 #include "debug.hpp"
 
 namespace afl {
 
-template<typename OkType>
+template <typename OkType>
 class Result {
 
   enum { kOk, kError, kUnknownError } tag;
-  
+
   union {
+
     OkType ok;
-    const char* error;
+    Error *error;
+
   } value;
 
-public:
+ public:
+  Result() {
 
-  Result() {}
+  }
+
   Result(OkType ok) {
+
     tag = kOk;
     value.ok = ok;
+
   }
-  
-  inline OkType Expect(const char* message) {
-    if(!IsOk()) {
+
+  Result(Error *error) {
+
+    tag = kError;
+    value.error = error;
+
+  }
+
+  inline OkType Expect(const char *message) {
+
+    if (!IsOk()) {
+
       if (IsUnkErr())
         FATAL("Result::Expect failed at '", message, "' with unknown error.");
       else
-        FATAL("Result::Expect failed at '", message, "' with error '", value.error, "'");
+        FATAL("Result::Expect failed at '", message, "' with error '", value.error->Message(), "' from ",
+              value.error->GetSrcFile(), ":", value.error->GetSrcLine());
+
     }
+
     return value.ok;
+
   }
-  
+
   inline OkType Unwrap() {
-    if(!IsOk()) {
+
+    if (!IsOk()) {
+
       if (IsUnkErr())
         FATAL("Result::Unwrap failed with unknown error.");
       else
-        FATAL("Result::Unwrap failed with error '", value.error, "'");
+        FATAL("Result::Unwrap failed with error '", value.error->Message(), "' from ", value.error->GetSrcFile(), ":",
+              value.error->GetSrcLine());
+
     }
+
     return value.ok;
+
   }
-  
-  inline operator OkType () {
+
+  inline operator OkType() {
+
     return Unwrap();
+
   }
 
   inline bool IsOk() {
+
     return tag == kOk;
+
   }
-  
+
   inline bool IsErr() {
+
     return tag == kError;
+
   }
-  
+
   inline bool IsUnkErr() {
+
     return tag == kUnknownError;
+
   }
 
   static Result Ok(OkType ok) {
+
     return Result(ok);
+
   }
-  
-  static Result Err(const char* error) {
+
+  static Result Err(Error *error) {
+
     Result result;
     result.tag = kError;
     result.value.error = error;
     return result;
+
   }
-  
+
   static Result UnkErr() {
+
     Result result;
     result.tag = kUnknownError;
     return result;
+
   }
 
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
+
