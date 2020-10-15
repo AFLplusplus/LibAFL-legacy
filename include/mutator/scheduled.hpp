@@ -30,6 +30,8 @@
 #include "mutator/mutator.hpp"
 #include "utils/random.hpp"
 
+#include <vector>
+
 namespace afl {
 
 class ScheduledMutator;
@@ -39,11 +41,10 @@ typedef void (*MutationFunctionType)(ScheduledMutator*, Input*);
 class ScheduledMutator : public Mutator {
 
   std::vector<MutationFunctionType> mutations;
-  RandomState* randomState;
 
 public:
 
-  ScheduledMutator(RandomState* random_state) : randomState(random_state) {}
+  using Mutator::Mutator;
 
   virtual size_t Iterations() {
     return 1 << (1 + (size_t)GetRandomState()->Below(7));
@@ -67,10 +68,6 @@ public:
     mutations.push_back(mutation);
   }
   
-  RandomState* GetRandomState() {
-    return randomState;
-  }
-
   /*
     Mutate an Input in-place.
   */

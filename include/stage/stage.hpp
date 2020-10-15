@@ -24,23 +24,22 @@
 
  */
 
-#ifndef LIBAFL_MUTATOR_MUTATOR_H
-#define LIBAFL_MUTATOR_MUTATOR_H
+#ifndef LIBAFL_STAGE_STAGE_H
+#define LIBAFL_STAGE_STAGE_H
 
-#include "result.hpp"
+#include "engine/engine.hpp"
+#include "utils/random.hpp"
 
 namespace afl {
 
-/*
-  A Mutator is an entity that takes one or more inputs and generates a new derived one.
-*/
-class Mutator {
+class Stage {
   
   RandomState* randomState;
-
+  Engine* engine;
+  
 public:
 
-  Mutator(RandomState* random_state) : randomState(random_state) {}
+  Stage(RandomState* random_state, Engine* engine_) : randomState(random_state), engine(engine_) {}
 
   inline RandomState* GetRandomState() {
     return randomState;
@@ -50,14 +49,11 @@ public:
     randomState = random_state;
   }
 
-  /*
-    Mutate an Input in-place.
-  */
-  virtual void Mutate(Input* input, size_t stage_idx) = 0;
-
-  inline void Mutate(Input* input) {
-    Mutate(input, static_cast<size_t>(-1));
+  inline Engine* GetEngine() {
+    return engine;
   }
+
+  virtual void Perform(Input* input, Entry* entry) = 0;
 
 };
 

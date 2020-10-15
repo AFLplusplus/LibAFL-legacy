@@ -24,39 +24,56 @@
 
  */
 
-#ifndef LIBAFL_MUTATOR_MUTATOR_H
-#define LIBAFL_MUTATOR_MUTATOR_H
+#ifndef LIBAFL_STAGE_MUTATIONAL_H
+#define LIBAFL_STAGE_MUTATIONAL_H
 
-#include "result.hpp"
+#include "stage/stage.hpp"
+
+#include <vector>
 
 namespace afl {
 
-/*
-  A Mutator is an entity that takes one or more inputs and generates a new derived one.
-*/
-class Mutator {
+class MutationalStage : public Stage {
   
-  RandomState* randomState;
+  std::vector<Mutator*> mutators;
 
 public:
 
-  Mutator(RandomState* random_state) : randomState(random_state) {}
+  using Stage::Stage;
 
-  inline RandomState* GetRandomState() {
-    return randomState;
+  virtual size_t Iterations(Entry* entry) {
+    return 1 + (size_t)GetRandomState()->Below(128);
   }
   
-  inline RandomState* SetRandomState(RandomState* random_state) {
-    randomState = random_state;
+  void Perform(Input* input, Entry* entry) override {
+
+    size_t num = Iterations(entry);
+    auto original = entry->LoadInput();
+  
+    for (size_t i = 0; i < num; ++i) {
+    
+      for (auto mutator : mutators)
+        mutators->mutate(input);
+        
+      GetEngine()->Execute(input);
+      
+      input->Assign(original);
+    
+    }
+
+  }
+  
+  void AddMutator(Mutator* mutator) {
+    mutators.push_back(mutator);
   }
 
-  /*
-    Mutate an Input in-place.
-  */
-  virtual void Mutate(Input* input, size_t stage_idx) = 0;
+  template <class MutatorType, typename...ArgsTypes>
+  MutatorType* CreateMutator(ArgsTypes... args) {
 
-  inline void Mutate(Input* input) {
-    Mutate(input, static_cast<size_t>(-1));
+    MutatorType* obj = new MutatorType(GetRandomState(), args...);
+    AddMutator(obj);
+    return obj;
+
   }
 
 };

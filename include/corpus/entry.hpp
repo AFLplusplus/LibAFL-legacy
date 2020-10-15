@@ -51,6 +51,7 @@ public:
 
   Entry(Input* input_) : input(input_) {}
   
+  // TODO atomic flag to avoid cache eviction while using the input.
   Input* LoadInput();
   
   bool IsOnDisk() {
