@@ -66,7 +66,7 @@ public:
     return currentInput;
   }
   
-  inline std::vector<ObservationChannel*>& ObservationChannels() {
+  inline std::vector<ObservationChannel*>& GetObservationChannels() {
     return observationChannels;
   }
   
