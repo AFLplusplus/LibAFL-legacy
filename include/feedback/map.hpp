@@ -88,11 +88,12 @@ float BaseMapFeedback<MapType, map_size, ReduceFunction>::IsInteresting(Executor
   for (auto ob : executor->GetObservationChannels()) {
     if (auto hmob = dynamic_cast<ObvervationChannelType*>(ob)) {
     
-      if (map_size != hmob->GetSize()) continue;
+      size_t size = hmob->GetSize();
+      if (map_size < size) continue; // maybe we should abort instead?
     
-      auto trace_map = hmob->GetTraceMap();
+      auto trace_map = hmob->GetMap();
     
-      for (size_t i = 0; i < map_size; ++i) {
+      for (size_t i = 0; i < size; ++i) {
   
         MapBaseType old_entry = virginMap[i];
         MapBaseType trace_entry = static_cast<MapBaseType>(trace_map[i]);
@@ -114,11 +115,13 @@ float BaseMapFeedback<MapType, map_size, ReduceFunction>::IsInteresting(Executor
   }
   
   if (ownCorpus) {
+
     if (found_new || found_increment)
       feedback_queue->add(create<QueueEntry>(executor->getCurrentInput(), feedback_queue));
     
     // never add to the Engine corpus when there is a Feedback specific corpus
     return 0.0;
+
   }
 
   if (found_new) return 1.0;

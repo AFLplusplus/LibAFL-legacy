@@ -29,35 +29,46 @@
 
 #include "observation_channel/observation_channel.h"
 
+#include <algorithm>  // std::fill_n
+
 namespace afl {
 
-template<typename EntryType>
-class MapObservationChannel {
+template<typename MapType>
+class BaseMapObservationChannel {
 
 protected:
 
-  EntryType* traceMap;
+  MapType traceMap;
   size_t traceMapSize;
 
 public:
 
-  MapObservationChannel(EntryType* trace_map, size_t trace_map_size) : traceMap(trace_map), traceMapSize(trace_map_size) {}
+  MapObservationChannel(MapType trace_map, size_t trace_map_size) : traceMap(trace_map), traceMapSize(trace_map_size) {}
 
-  /*
-    Reset the channel.
-  */
-  virtual void Reset() override {
-    memset(traceMap, 0, traceMapSize * sizeof(traceMap));
-  }
-  
   /*
     Getters.
   */
-  EntryType* GetMap() {
+  MapType GetMap() {
     return traceMap;
   }
   size_t GetSize() {
     return traceMapSize;
+  }
+  
+};
+
+template<typename MapBaseType, MapBaseType init_value = 0>
+class MapObservationChannel : public BaseMapObservationChannel<MapBaseType*> {
+
+public:
+
+  using BaseMapObservationChannel<MapBaseType*>::BaseMapObservationChannel;
+
+  /*
+    Reset the channel.
+  */
+  void Reset() override {
+    std::fill_n(traceMap, init_value, traceMapSize);
   }
   
 };
