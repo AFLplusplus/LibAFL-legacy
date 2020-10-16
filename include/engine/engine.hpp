@@ -24,55 +24,37 @@
 
  */
 
-#ifndef LIBAFL_EXECUTOR_EXECUTOR_H
-#define LIBAFL_EXECUTOR_EXECUTOR_H
+#ifndef LIBAFL_ENGINE_ENGINE_H
+#define LIBAFL_ENGINE_ENGINE_H
+
+#include "result.hpp"
+#include "input/input.hpp"
 
 #include <vector>
 
-#include "result.hpp"
-
 namespace afl {
 
-class ObservationChannel;
-class Input;
+class Stage;
 
-/*
-  An Executor is an entity with a set of violation oracles, a set of observation channels, a function that allows
-  instructing the SUT about the input to test, and a function to run the SUT.
-*/
-class Executor {
+class Engine {
 
-protected:
+  std::vector<Stage*> stages;
+  std::vector<Feedback*> feedbacks;
 
-  std::vector<ObservationChannel*> observationChannels;
-  
-  Input* currentInput;
-  
+  Corpus* mainCorpus;
+  Executor* executor;
+
+  size_t executions;
+
 public:
 
-  /*
-    Run the target represented by the executor.
-  */
-  virtual Result<ExitType> RunTarget() = 0;
-  
-  /*
-    Instruct the SUT about the input.
-  */
-  virtual void PlaceInput(Input* input) {
-    currentInput = input;
-  }
-  
-  inline Input* GetCurrentInput() {
-    return currentInput;
-  }
-  
-  inline std::vector<ObservationChannel*>& GetObservationChannels() {
-    return observationChannels;
-  }
-  
-  inline void AddObserationChannel(ObservationChannel* observation_channel) {
-    observationChannels.push_back(observation_channel);
-  }
+  /* Useful hooks */
+  virtual void PreExec() {}
+  virtual void PostExec() {}
+
+  /* virtual */ void Execute(Input* input);
+
+  void run();
 
 };
 
