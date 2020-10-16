@@ -29,12 +29,16 @@
 
 #include "result.hpp"
 #include "input/input.hpp"
+#include "engine/monitor.hpp"
 
+#include <unordered_map>
+#include <typeinfo>
 #include <vector>
 
 namespace afl {
 
 class Stage;
+class Entry;
 
 class Engine {
 
@@ -45,16 +49,47 @@ class Engine {
   Executor* executor;
 
   size_t executions;
+  
+  std::unordered_map<std::type_index, Monitor*> monitors;
 
 public:
+
+  inline bool AddMonitor(Monitor* monitor) {
+    auto index = std::type_index(typeid(*monitor));
+    auto it = monitors.find(index);
+    if (it != monitors.end())
+      return false;
+    monitors[index] = monitor;
+    return true;
+  }
+  
+  inline Monitor* GetMonitor(const std::type_index index) {
+    auto it = monitors.find(index);
+    if (it == monitors.end())
+      return nullptr;
+    return it->second;
+  }
+  
+  inline Monitor* GetMonitor(const std::type_info& info) {
+    return GetMonitor(std::type_index(info));
+  }
+  
+  template<typename MonitorType>
+  inline MonitorType* GetMonitor() {
+    return GetMonitor(typeid(MonitorType));
+  }
 
   /* Useful hooks */
   virtual void PreExec() {}
   virtual void PostExec() {}
 
-  /* virtual */ void Execute(Input* input);
+  /* virtual */ bool Execute(Input* input, Entry* entry);
+  
+  bool Execute(Input* input) {
+    return Execute(input, nullptr);
+  }
 
-  void run();
+  void Run();
 
 };
 

@@ -24,56 +24,53 @@
 
  */
 
-#ifndef LIBAFL_STAGE_MUTATIONAL_H
-#define LIBAFL_STAGE_MUTATIONAL_H
+#ifndef LIBAFL_ENGINE_MONITOR_H
+#define LIBAFL_ENGINE_MONITOR_H
 
-#include "stage/stage.hpp"
+#include "result.hpp"
 
-#include <vector>
+#include <unordered_map>
+#include <string>
 
 namespace afl {
 
-class MutationalStage : public Stage {
-  
-  std::vector<Mutator*> mutators;
+class Monitor {
 
 public:
 
-  using Stage::Stage;
+  virtual std::string Report() = 0;
 
-  virtual size_t Iterations(Entry* entry) {
-    return 1 + (size_t)GetRandomState()->Below(128);
-  }
-  
-  void Perform(Input* input, Entry* entry) override {
+};
 
-    size_t num = Iterations(entry);
-    auto original = entry->LoadInput();
-  
-    for (size_t i = 0; i < num; ++i) {
-    
-      for (auto mutator : mutators)
-        mutators->mutate(input);
-        
-      GetEngine()->Execute(input, entry);
-      
-      input->Assign(original);
-    
-    }
+class StageMonitor : public Monitor {
 
-  }
-  
-  void AddMutator(Mutator* mutator) {
-    mutators.push_back(mutator);
+  const char* stageName;
+
+public:
+
+  void SetStageName(const char* name) {
+    stageName = name;
   }
 
-  template <class MutatorType, typename...ArgsTypes>
-  MutatorType* CreateMutator(ArgsTypes... args) {
+  std::string Report() override {
+    return stageName;
+  }
 
-    MutatorType* obj = new MutatorType(GetRandomState(), args...);
-    AddMutator(obj);
-    return obj;
+};
 
+class FindingsMonitor : public Monitor {
+
+  std::unordered_map<Mutator*, size_t> findingsByMutator;
+  size_t findingsTotalNum;
+
+public:
+
+  void AddFinding(Mutator* mutator) {
+    findingsByMutator[mutator]++;
+  }
+
+  std::string Report() override {
+    return ""; // TODO
   }
 
 };

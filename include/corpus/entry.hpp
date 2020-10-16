@@ -30,7 +30,7 @@
 #include "input/input.hpp"
 
 #include <typeinfo>
-#include <map>
+#include <unordered_map>
 
 namespace afl {
 
@@ -42,7 +42,7 @@ class Entry {
 
   Input* input;
   
-  std::map<std::type_index, EntryMetadata*> metaDatas;
+  std::unordered_map<std::type_index, EntryMetadata*> metaDatas;
 
   char* fileName;
   bool isOnDisk;
@@ -80,6 +80,11 @@ public:
   
   inline EntryMetadata* GetMeta(const std::type_info& info) {
     return GetMeta(std::type_index(info));
+  }
+  
+  template<typename EntryMetaType>
+  inline EntryMetaType* GetMeta() {
+    return GetMeta(typeid(EntryMetaType));
   }
   
 };
