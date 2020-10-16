@@ -58,6 +58,12 @@ public:
   inline void Mutate(Input* input) {
     Mutate(input, static_cast<size_t>(-1));
   }
+  
+  virtual void PostExec(bool is_interesting, size_t stage_idx) {};
+  
+  inline void PostExec(bool is_interesting) {
+    PostExec(is_interesting, static_cast<size_t>(-1));
+  }
 
 };
 

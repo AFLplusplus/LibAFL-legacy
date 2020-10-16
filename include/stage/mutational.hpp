@@ -53,9 +53,12 @@ public:
     for (size_t i = 0; i < num; ++i) {
     
       for (auto mutator : mutators)
-        mutators->mutate(input);
+        mutator->Mutate(input, i);
         
-      GetEngine()->Execute(input, entry);
+      bool interesting = GetEngine()->Execute(input, entry);
+      
+      for (auto mutator : mutators)
+        mutator->PostExec(interesting, i);
       
       input->Assign(original);
     

@@ -34,6 +34,7 @@
 #include <unordered_map>
 #include <typeinfo>
 #include <vector>
+#include <chrono>
 
 namespace afl {
 
@@ -49,6 +50,7 @@ class Engine {
   Executor* executor;
 
   size_t executions;
+  std::chrono::milliseconds startTime;
   
   std::unordered_map<std::type_index, Monitor*> monitors;
 
@@ -83,6 +85,9 @@ public:
   virtual void PreExec() {}
   virtual void PostExec() {}
 
+  /*
+    Execute an input, entry is the entry used to generate this input (optional)
+  */
   /* virtual */ bool Execute(Input* input, Entry* entry);
   
   bool Execute(Input* input) {
