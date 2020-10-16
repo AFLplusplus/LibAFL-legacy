@@ -43,20 +43,63 @@ class Entry;
 
 class Engine {
 
-  std::vector<Stage*> stages;
+protected:
+
   std::vector<Feedback*> feedbacks;
+  std::vector<Stage*> stages;
 
   Corpus* mainCorpus;
   Executor* executor;
 
   size_t executions;
   std::chrono::milliseconds startTime;
+  std::chrono::milliseconds lastFindingTime;
   
   std::unordered_map<std::type_index, Monitor*> monitors;
 
 public:
 
-  inline bool AddMonitor(Monitor* monitor) {
+  Engine(Executor* executor_, Corpus* corpus) : executor(executor_), mainCorpus(corpus) {}
+
+  void AddFeedback(Feedback* feedback) {
+    feedbacks.push_back(feedback);
+  }
+  
+  template <class FeedbackType, typename...ArgsTypes>
+  FeedbackType* CreateFeedback(ArgsTypes... args) {
+
+    FeedbackType* obj = new FeedbackType(args...);
+    AddFeedback(obj);
+    return obj;
+
+  }
+  
+  void AddStage(Stage* stage) {
+    stages.push_back(stage);
+  }
+  
+  template <class StageType, typename...ArgsTypes>
+  StageType* CreateStage(ArgsTypes... args) {
+
+    StageType* obj = new StageType(GetRandomState(), this, args...);
+    AddStage(obj);
+    return obj;
+
+  }
+
+  Corpus* GetMainCorpus() {
+    return mainCorpus;
+  }
+  
+  Executor* GetExecutor() {
+    return executor;
+  }
+
+  size_t GetExecutions() {
+    return executions;
+  }
+
+  bool AddMonitor(Monitor* monitor) {
     auto index = std::type_index(typeid(*monitor));
     auto it = monitors.find(index);
     if (it != monitors.end())
@@ -65,19 +108,19 @@ public:
     return true;
   }
   
-  inline Monitor* GetMonitor(const std::type_index index) {
+  Monitor* GetMonitor(const std::type_index index) {
     auto it = monitors.find(index);
     if (it == monitors.end())
       return nullptr;
     return it->second;
   }
   
-  inline Monitor* GetMonitor(const std::type_info& info) {
+  Monitor* GetMonitor(const std::type_info& info) {
     return GetMonitor(std::type_index(info));
   }
   
   template<typename MonitorType>
-  inline MonitorType* GetMonitor() {
+  MonitorType* GetMonitor() {
     return GetMonitor(typeid(MonitorType));
   }
 
@@ -95,7 +138,7 @@ public:
   }
 
   void Run();
-
+  
 };
 
 } // namespace afl

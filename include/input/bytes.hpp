@@ -34,7 +34,13 @@ namespace afl {
 
 class BytesInput : public Input {
 
+  u8* bytes;
+  size_t bytesCount;
+
 public:
+
+  BytesInput(u8* buffer, size_t size) bytes(buffer), bytesCount(size) {}
+  BytesInput(): BytesInput(nullptr, 0) {}
 
   /*
     Serialize the input to a buffer.

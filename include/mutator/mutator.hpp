@@ -42,11 +42,11 @@ public:
 
   Mutator(RandomState* random_state) : randomState(random_state) {}
 
-  inline RandomState* GetRandomState() {
+  RandomState* GetRandomState() {
     return randomState;
   }
   
-  inline RandomState* SetRandomState(RandomState* random_state) {
+  void SetRandomState(RandomState* random_state) {
     randomState = random_state;
   }
 
@@ -55,13 +55,13 @@ public:
   */
   virtual void Mutate(Input* input, size_t stage_idx) = 0;
 
-  inline void Mutate(Input* input) {
+  void Mutate(Input* input) {
     Mutate(input, static_cast<size_t>(-1));
   }
   
   virtual void PostExec(bool is_interesting, size_t stage_idx) {};
   
-  inline void PostExec(bool is_interesting) {
+  void PostExec(bool is_interesting) {
     PostExec(is_interesting, static_cast<size_t>(-1));
   }
 

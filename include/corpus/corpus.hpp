@@ -28,29 +28,70 @@
 #define LIBAFL_CORPUS_CORPUS_H
 
 #include "result.hpp"
+#include "errors.hpp"
 #include "corpus/entry.hpp"
+#include "utils/random.hpp"
+
+#include <vector>
+#include <algorithm>
 
 namespace afl {
 
 class Corpus {
 
 protected:
-  Entry** entries;
-  u32 entriesCount;
+  std::vector<Entry*> entries;
   
   char dirPath[PATH_MAX];
   u8 isOnDisk;
+  
+  RandomState* randomState;
 
 public:
 
-  virtual Result<void> Insert(Entry* entry);
-  
-  virtual bool Remove(Entry* entry);
-  
-  virtual Entry* Get();
-  
-  virtual Entry* GetByID(u32 id);
+  Corpus(RandomState* random_state) : randomState(random_state) {}
 
+  RandomState* GetRandomState() {
+    return randomState;
+  }
+  
+  void SetRandomState(RandomState* random_state) {
+    randomState = random_state;
+  }
+
+  size_t GetEntriesCount() {
+    return entries.size();
+  }
+
+  virtual Result<void> Insert(Entry* entry) {
+    entries.push_back(entry);
+  }
+  
+  virtual bool Remove(Entry* entry) {
+    auto it = std::find(entries.begin(), entries.end(), entry);
+    if (it) {
+      entries.erase(it);
+      return true;
+    }
+    return false;
+  }
+  
+  Result<Entry*> GetByIndex(size_t index) {
+    if(index >= GetEntriesCount())
+      return MAKE_ERR(OutOfBoundsError);
+    return entries[index];
+  }
+  
+  Result<Entry*> GetRandom() {
+    if(GetEntriesCount() == 0)
+      return MAKE_ERR(EmptyContainerError);
+    return GetByIndex(randomState->Below(GetEntriesCount()));
+  }
+  
+  virtual Result<Entry*> Get() {
+    return GetRandom();
+  }
+  
 };
 
 } // namespace afl

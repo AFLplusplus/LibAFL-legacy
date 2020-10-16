@@ -40,7 +40,7 @@ class Error {
   const char *srcFile;
   size_t      srcLine;
 
- public:
+public:
   Error(const char *src_file, size_t src_line) : srcFile(src_file), srcLine(src_line) {
 
   }
@@ -65,7 +65,7 @@ class RuntimeError {
 
   const char *message;
 
- public:
+public:
   RuntimeError(const char *src_file, size_t src_line, const char *msg) : Error(src_file, src_line), message(msg) {
 
   }
@@ -80,7 +80,7 @@ class RuntimeError {
 
 class AllocationError {
 
- public:
+public:
   AllocationError(const char *src_file, size_t src_line) : Error(src_file, src_line) {
 
   }
@@ -97,7 +97,7 @@ class OSError {
 
   int errNum;
 
- public:
+public:
   AllocationError(const char *src_file, size_t src_line, int err_num) : Error(src_file, src_line), errNum(err_num) {
 
   }
@@ -105,6 +105,36 @@ class OSError {
   const char *Message() override {
 
     return strerror(errNum);
+
+  }
+
+};
+
+class OutOfBoundsError {
+
+public:
+  OutOfBoundsError(const char *src_file, size_t src_line) : Error(src_file, src_line) {
+
+  }
+
+  const char *Message() override {
+
+    return "Out of bound access";
+
+  }
+
+};
+
+class EmptyContainerError {
+
+public:
+  EmptyContainerError(const char *src_file, size_t src_line) : Error(src_file, src_line) {
+
+  }
+
+  const char *Message() override {
+
+    return "Empty container";
 
   }
 

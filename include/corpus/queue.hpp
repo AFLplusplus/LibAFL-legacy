@@ -33,9 +33,30 @@ namespace afl {
 
 class QueueCorpus : public Corpus {
 
+  size_t pos = 0;
+  size_t cycles = 0;
+
 public:
 
-  virtual Entry* Get() override;
+  using Corpus::Corpus;
+
+  virtual Result<Entry*> Get() override {
+    if(GetEntriesCount() == 0)
+      return MAKE_ERR(EmptyContainerError);
+    if (pos == GetEntriesCount()) {
+      pos = 0;
+      ++cycles;
+    }
+    return GetByIndex(pos++);
+  }
+  
+  size_t GetCycles() {
+    return cycles;
+  }
+  
+  size_t GetPos() {
+    return pos;
+  }
   
 };
 
