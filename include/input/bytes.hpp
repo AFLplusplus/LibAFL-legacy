@@ -30,42 +30,69 @@
 #include "result.hpp"
 #include "input/input.hpp"
 
+#include <string>
+#include <utility>
+
 namespace afl {
+
+// TODO use incremental call to std::string::reserve()
 
 class BytesInput : public Input {
 
-  u8* bytes;
-  size_t bytesCount;
+  std::string bytes;
 
 public:
 
-  BytesInput(u8* buffer, size_t size) bytes(buffer), bytesCount(size) {}
-  BytesInput(): BytesInput(nullptr, 0) {}
+  BytesInput(u8* buffer, size_t size) : bytes(reinterpret_cast<char*>(buffer), size) {}
+  BytesInput(const std::string& string) : bytes(string) {}
+  BytesInput(std::string&& string) : bytes(string) {}
+  BytesInput(const BytesInput& bytes_input) : bytes(bytes_input.bytes) {}
+  BytesInput(BytesInput&& bytes_input) : bytes(std::move(bytes_input.bytes)) {}
+  BytesInput() {}
+
+  std::string& Bytes() {
+    return bytes;
+  }
 
   /*
     Serialize the input to a buffer.
   */
-  Result<size_t> Serialize(u8* buffer, size_t size) override;
+  Result<size_t> Serialize(u8* buffer, size_t size) override {
+    if (bytes.size() > size)
+      return MAKE_ERR(NotEnoughSpaceError);
+    std::copy_n(bytes.data(), bytes.size(), buffer);
+    return bytes.size();
+  }
   
   /*
     Deserialize the input from a buffer.
   */
-  Result<size_t> Deserialize(u8* buffer, size_t size) override;
+  Result<size_t> Deserialize(u8* buffer, size_t size) override {
+    bytes.copy(reinterpret_cast<char*>(buffer), size);
+    return bytes.size();
+  }
   
   /*
     Copy this instance.
   */
-  Result<Input*> Copy() override;
+  Result<Input*> Copy() override {
+    return new BytesInput(*this);
+  }
 
   /*
     Assign an instance. Maybe return an error on type mistmatch? But requires dyncast.
   */
-  void Assign(Input*) override;
+  void Assign(Input* input) override {
+    DCHECK(dynamic_cast<BytesInput*>(input));
+    bytes = static_cast<BytesInput*>(input)->bytes;
+  }
   
   /*
     Clear the input content.
   */
-  void Clear() override;
+  void Clear() override {
+    bytes.clear();
+  }
 
 };
 

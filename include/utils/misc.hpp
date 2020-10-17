@@ -24,43 +24,32 @@
 
  */
 
-#ifndef LIBAFL_CORPUS_QUEUE_H
-#define LIBAFL_CORPUS_QUEUE_H
+#ifndef LIBAFL_UTILS_MISC_H
+#define LIBAFL_UTILS_MISC_H
 
-#include "corpus/corpus.hpp"
+#include "types.hpp"
 
-namespace afl {
+static inline size_t NextPow2(size_t in) {
 
-class QueueCorpus : public Corpus {
+  // Commented this out as this behavior doesn't change, according to unittests
+  // if (in == 0 || in > (size_t)-1) {
+  //   return 0;                  /* avoid undefined behaviour under-/overflow */
+  // }
 
-  size_t pos = 0;
-  size_t cycles = 0;
+  size_t out = in - 1;
+  out |= out >> 1;
+  out |= out >> 2;
+  out |= out >> 4;
+  out |= out >> 8;
+  out |= out >> 16;
+  return out + 1;
 
-public:
+}
 
-  using Corpus::Corpus;
+static inline u64 Rotl(const u64 x, int k) {
 
-  virtual Result<Entry*> Get() override {
-    if(GetEntriesCount() == 0)
-      return MAKE_ERR(EmptyContainerError);
-    if (pos == GetEntriesCount()) {
-      pos = 0;
-      ++cycles;
-    }
-    return GetByIndex(pos++);
-  }
-  
-  size_t GetCycles() {
-    return cycles;
-  }
-  
-  size_t GetPos() {
-    return pos;
-  }
-  
-};
+  return (x << k) | (x >> (64 - k));
 
-} // namespace afl
+}
 
 #endif
-

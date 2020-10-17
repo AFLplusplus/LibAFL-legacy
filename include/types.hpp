@@ -28,6 +28,7 @@
 #define LIBAFL_TYPES_H
 
 #include <cstdint>
+#include <cstddef>
 
 typedef uint8_t  u8;
 typedef uint16_t u16;

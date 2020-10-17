@@ -205,7 +205,7 @@
 #ifdef DEBUG_BUILD
   #define DCHECK(expr) if (!likely(expr)) { FATAL("DCHECK failed: " #expr); }
 #else
-  #define DCHECK(expr) ((void) expr);
+  #define DCHECK(expr) do {} while(0);
 #endif
 
 #undef _TOSTRING1

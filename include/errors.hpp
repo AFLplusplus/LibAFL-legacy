@@ -24,12 +24,13 @@
 
  */
 
-#ifndef LIBAFL_RESULT_H
-#define LIBAFL_RESULT_H
+#ifndef LIBAFL_ERRORS_H
+#define LIBAFL_ERRORS_H
 
 #include "types.hpp"
 
-#include <errno.h>
+#include <cerrno>
+#include <cstring>
 
 namespace afl {
 
@@ -41,9 +42,7 @@ class Error {
   size_t      srcLine;
 
 public:
-  Error(const char *src_file, size_t src_line) : srcFile(src_file), srcLine(src_line) {
-
-  }
+  Error(const char *src_file, size_t src_line) : srcFile(src_file), srcLine(src_line) {}
 
   virtual const char *Message() = 0;
 
@@ -61,14 +60,12 @@ public:
 
 };
 
-class RuntimeError {
+class RuntimeError : public Error {
 
   const char *message;
 
 public:
-  RuntimeError(const char *src_file, size_t src_line, const char *msg) : Error(src_file, src_line), message(msg) {
-
-  }
+  RuntimeError(const char *src_file, size_t src_line, const char *msg) : Error(src_file, src_line), message(msg) {}
 
   const char *Message() override {
 
@@ -78,12 +75,10 @@ public:
 
 };
 
-class AllocationError {
+class AllocationError : public Error {
 
 public:
-  AllocationError(const char *src_file, size_t src_line) : Error(src_file, src_line) {
-
-  }
+  AllocationError(const char *src_file, size_t src_line) : Error(src_file, src_line) {}
 
   const char *Message() override {
 
@@ -93,14 +88,12 @@ public:
 
 };
 
-class OSError {
+class OSError : public Error {
 
   int errNum;
 
 public:
-  AllocationError(const char *src_file, size_t src_line, int err_num) : Error(src_file, src_line), errNum(err_num) {
-
-  }
+  OSError(const char *src_file, size_t src_line, int err_num) : Error(src_file, src_line), errNum(err_num) {}
 
   const char *Message() override {
 
@@ -110,12 +103,10 @@ public:
 
 };
 
-class OutOfBoundsError {
+class OutOfBoundsError : public Error {
 
 public:
-  OutOfBoundsError(const char *src_file, size_t src_line) : Error(src_file, src_line) {
-
-  }
+  OutOfBoundsError(const char *src_file, size_t src_line) : Error(src_file, src_line) {}
 
   const char *Message() override {
 
@@ -125,12 +116,23 @@ public:
 
 };
 
-class EmptyContainerError {
+class NotEnoughSpaceError : public Error {
 
 public:
-  EmptyContainerError(const char *src_file, size_t src_line) : Error(src_file, src_line) {
+  NotEnoughSpaceError(const char *src_file, size_t src_line) : Error(src_file, src_line) {}
+
+  const char *Message() override {
+
+    return "Not enough space in container";
 
   }
+
+};
+
+class EmptyContainerError : public Error {
+
+public:
+  EmptyContainerError(const char *src_file, size_t src_line) : Error(src_file, src_line) {}
 
   const char *Message() override {
 

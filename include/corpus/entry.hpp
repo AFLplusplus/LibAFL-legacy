@@ -30,6 +30,7 @@
 #include "input/input.hpp"
 
 #include <typeinfo>
+#include <typeindex>
 #include <unordered_map>
 
 namespace afl {

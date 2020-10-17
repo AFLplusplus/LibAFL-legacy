@@ -27,11 +27,12 @@
 #ifndef LIBAFL_UTILS_RANDOM_H
 #define LIBAFL_UTILS_RANDOM_H
 
-#include "types.h"
-#include "debug.h"
+#include "types.hpp"
+#include "debug.hpp"
 #include "utils/xxh3.h"
+#include "utils/misc.hpp"
 
-#include <bit>
+#define HASH_CONST 0xa5b35705
 
 namespace afl {
 
@@ -58,7 +59,7 @@ public:
   
   inline u64 Next() {
   
-    const u64 result = std::rotl(randSeed[0] + randSeed[3], 23) + randSeed[0];
+    const u64 result = Rotl(randSeed[0] + randSeed[3], 23) + randSeed[0];
     const u64 t = randSeed[1] << 17;
 
     randSeed[2] ^= randSeed[0];
@@ -68,7 +69,7 @@ public:
 
     randSeed[2] ^= t;
 
-    randSeed[3] = std::rotl(randSeed[3], 45);
+    randSeed[3] = Rotl(randSeed[3], 45);
 
     return result;
   

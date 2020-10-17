@@ -63,13 +63,13 @@ public:
     return entries.size();
   }
 
-  virtual Result<void> Insert(Entry* entry) {
+  virtual void Insert(Entry* entry) {
     entries.push_back(entry);
   }
   
   virtual bool Remove(Entry* entry) {
     auto it = std::find(entries.begin(), entries.end(), entry);
-    if (it) {
+    if (it != entries.end()) {
       entries.erase(it);
       return true;
     }

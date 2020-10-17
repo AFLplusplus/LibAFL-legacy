@@ -24,43 +24,15 @@
 
  */
 
-#ifndef LIBAFL_CORPUS_QUEUE_H
-#define LIBAFL_CORPUS_QUEUE_H
+#include "corpus/entry.h"
 
-#include "corpus/corpus.hpp"
+#include <fstream>
 
-namespace afl {
+using namespace afl;
 
-class QueueCorpus : public Corpus {
-
-  size_t pos = 0;
-  size_t cycles = 0;
-
-public:
-
-  using Corpus::Corpus;
-
-  virtual Result<Entry*> Get() override {
-    if(GetEntriesCount() == 0)
-      return MAKE_ERR(EmptyContainerError);
-    if (pos == GetEntriesCount()) {
-      pos = 0;
-      ++cycles;
-    }
-    return GetByIndex(pos++);
+Input* Entry::LoadInput() {
+  if (isOnDisk) {
+    input->LoadFromFile(fileName);
   }
-  
-  size_t GetCycles() {
-    return cycles;
-  }
-  
-  size_t GetPos() {
-    return pos;
-  }
-  
-};
-
-} // namespace afl
-
-#endif
-
+  return input;
+}

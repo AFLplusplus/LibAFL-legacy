@@ -28,6 +28,7 @@
 #define LIBAFL_INPUT_INPUT_H
 
 #include "result.hpp"
+#include "types.hpp"
 
 namespace afl {
 
