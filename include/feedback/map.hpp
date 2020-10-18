@@ -53,7 +53,7 @@ public:
     return virginMap;
   }
 
-  float IsInteresting(Executor* executor) override;
+  float IsInteresting(Executor* executor, Input* input) override;
 
 };
 
@@ -61,7 +61,7 @@ public:
   Track new findings using a MapEntryMetadata.
 */
 template<typename MapType, typename MapBaseType, size_t map_size, typename ObvervationChannelType, auto ReduceFunction, MapBaseType init_value, typename EntryMetaType>
-float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, ReduceFunction, init_value, EntryMetaType>::IsInteresting(Executor* executor) {
+float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, ReduceFunction, init_value, EntryMetaType>::IsInteresting(Executor* executor, Input* input) {
   
   bool found_new = false, found_increment = false;
 
@@ -105,7 +105,7 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
 
       auto entry = new Entry(executor->GetCurrentInput());
       entry->AddMeta(meta);
-      GetOwnCorpus()->Insert(entry).expect("Cannot add entry to corpus");
+      GetOwnCorpus()->Insert(entry).Expect("Cannot add entry to corpus");
       
     }
     
@@ -134,12 +134,12 @@ public:
     return virginMap;
   }
 
-  float IsInteresting(Executor* executor) override;
+  float IsInteresting(Executor* executor, Input* input) override;
 
 };
 
 template<typename MapType, typename MapBaseType, size_t map_size, typename ObvervationChannelType, auto ReduceFunction, MapBaseType init_value>
-float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, ReduceFunction, init_value, void>::IsInteresting(Executor* executor) {
+float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, ReduceFunction, init_value, void>::IsInteresting(Executor* executor, Input* input) {
   
   bool found_new = false, found_increment = false;
 
@@ -177,7 +177,7 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
     if (found_new || found_increment) {
 
       auto entry = new Entry(executor->GetCurrentInput());
-      GetOwnCorpus()->Insert(entry).expect("Cannot add entry to corpus");
+      GetOwnCorpus()->Insert(entry).Expect("Cannot add entry to corpus");
       
     }
     
@@ -206,12 +206,12 @@ public:
     return virginMap;
   }
 
-  float IsInteresting(Executor* executor) override;
+  float IsInteresting(Executor* executor, Input* input) override;
 
 };
 
 template<size_t map_size>
-float BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>, 0, void>::IsInteresting(Executor* executor) {
+float BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>, 0, void>::IsInteresting(Executor* executor, Input* input) {
   
   float ret = 0.0;
   
@@ -301,7 +301,7 @@ float BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel
     if (ret > 0.0) {
 
       auto entry = new Entry(executor->GetCurrentInput());
-      GetOwnCorpus()->Insert(entry).expect("Cannot add entry to corpus");
+      GetOwnCorpus()->Insert(entry).Expect("Cannot add entry to corpus");
       
     }
     

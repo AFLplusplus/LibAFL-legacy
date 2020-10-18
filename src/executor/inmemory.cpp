@@ -24,34 +24,12 @@
 
  */
 
-#ifndef LIBAFL_FEEDBACK_FEEDBACK_H
-#define LIBAFL_FEEDBACK_FEEDBACK_H
+#include "executor/inmemory.hpp"
 
-#include "result.hpp"
-#include "corpus/corpus.hpp"
+using namespace afl;
 
 namespace afl {
 
-class Executor;
+InMemoryExecutor* g_current_inmemory_executor;
 
-class Feedback {
-
-  Corpus* ownCorpus = nullptr;
-
-public:
-
-  virtual float IsInteresting(Executor* executor, Input* input);
-
-  inline void SetOwnCorpus(Corpus* corpus) {
-    ownCorpus = corpus;
-  }
-
-  inline Corpus* GetOwnCorpus() {
-    return ownCorpus;
-  }
-
-};
-
-} // namespace afl
-
-#endif
+}

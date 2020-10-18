@@ -72,7 +72,6 @@ public:
     randomState = random_state;
   }
 
-
   void AddFeedback(Feedback* feedback) {
     feedbacks.push_back(feedback);
   }

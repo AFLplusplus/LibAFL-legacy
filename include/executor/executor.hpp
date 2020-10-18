@@ -68,15 +68,25 @@ public:
     currentInput = input;
   }
   
-  inline Input* GetCurrentInput() {
+  Input* GetCurrentInput() {
     return currentInput;
   }
   
-  inline std::vector<ObservationChannel*>& GetObservationChannels() {
+  std::vector<ObservationChannel*>& GetObservationChannels() {
     return observationChannels;
   }
   
-  inline void AddObserationChannel(ObservationChannel* observation_channel) {
+  void ResetObservationChannels() {
+    for (auto obv : observationChannels)
+      obv->Reset();
+  }
+  
+  void PostExecObservationChannels() {
+    for (auto obv : observationChannels)
+      obv->PostExec(this);
+  }
+  
+  void AddObserationChannel(ObservationChannel* observation_channel) {
     observationChannels.push_back(observation_channel);
   }
 
