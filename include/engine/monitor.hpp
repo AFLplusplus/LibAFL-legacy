@@ -34,6 +34,8 @@
 
 namespace afl {
 
+class Mutator;
+
 class Monitor {
 
 public:

@@ -25,10 +25,17 @@
  */
 
 #include "engine/engine.hpp"
+#include "feedback/feedback.hpp"
+#include "executor/executor.hpp"
+#include "corpus/corpus.hpp"
+#include "stage/stage.hpp"
 
 using namespace afl;
 
 bool Engine::Execute(Input* input, Entry* entry) {
+
+  if (startTime == std::chrono::milliseconds{0})
+    startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
 
   executor->ResetObservationChannels();
   executor->PlaceInput(input);
@@ -54,27 +61,27 @@ bool Engine::Execute(Input* input, Entry* entry) {
   
     auto entry = new Entry(input);
     //entry->AddMeta(meta);
-    mainCorpus->Insert(entry).Expect("Cannot add entry to corpus");
+    mainCorpus->Insert(entry);
+    
+    return true;
   
   }
+  
+  return false;
 
 }
 
-void Engine::Run() {
-  startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+void Engine::FuzzOne() {
 
-  while (true) {
+  Entry* entry = mainCorpus->Get();
+  Input* input = entry->LoadInput()->Copy();
   
-    Entry* entry = mainCorpus->Get();
-    Input* input = entry->LoadInput()->Copy();
-    
-    for (auto stage : stages) {
-    
-      stage->Perform(input, entry);
-    
-    }
-    
-    delete input;
+  for (auto stage : stages) {
+  
+    stage->Perform(input, entry);
   
   }
+  
+  delete input;
+  
 }

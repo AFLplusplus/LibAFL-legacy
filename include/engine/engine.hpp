@@ -30,6 +30,7 @@
 #include "result.hpp"
 #include "input/input.hpp"
 #include "engine/monitor.hpp"
+#include "utils/random.hpp"
 
 #include <unordered_map>
 #include <typeinfo>
@@ -41,6 +42,9 @@ namespace afl {
 
 class Stage;
 class Entry;
+class Feedback;
+class Executor;
+class Corpus;
 
 class Engine {
 
@@ -55,8 +59,8 @@ protected:
   Executor* executor;
 
   size_t executions;
-  std::chrono::milliseconds startTime;
-  std::chrono::milliseconds lastFindingTime;
+  std::chrono::milliseconds startTime{0};
+  std::chrono::milliseconds lastFindingTime{0};
   
   std::unordered_map<std::type_index, Monitor*> monitors;
 
@@ -148,7 +152,11 @@ public:
     return Execute(input, nullptr);
   }
 
-  void Run();
+  void FuzzOne();
+  
+  void Fuzz() {
+    while(true) FuzzOne();
+  }
   
 };
 

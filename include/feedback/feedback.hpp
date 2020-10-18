@@ -40,13 +40,13 @@ class Feedback {
 
 public:
 
-  virtual float IsInteresting(Executor* executor, Input* input);
+  virtual float IsInteresting(Executor* executor, Input* input) = 0;
 
-  inline void SetOwnCorpus(Corpus* corpus) {
+  void SetOwnCorpus(Corpus* corpus) {
     ownCorpus = corpus;
   }
 
-  inline Corpus* GetOwnCorpus() {
+  Corpus* GetOwnCorpus() {
     return ownCorpus;
   }
 

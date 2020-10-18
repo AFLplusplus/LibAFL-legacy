@@ -26,8 +26,6 @@
 
 #include "executor/inmemory.hpp"
 
-using namespace afl;
-
 namespace afl {
 
 InMemoryExecutor* g_current_inmemory_executor;

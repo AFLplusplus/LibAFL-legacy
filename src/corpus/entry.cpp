@@ -24,7 +24,7 @@
 
  */
 
-#include "corpus/entry.h"
+#include "corpus/entry.hpp"
 
 #include <fstream>
 

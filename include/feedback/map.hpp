@@ -105,7 +105,7 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
 
       auto entry = new Entry(executor->GetCurrentInput());
       entry->AddMeta(meta);
-      GetOwnCorpus()->Insert(entry).Expect("Cannot add entry to corpus");
+      GetOwnCorpus()->Insert(entry);
       
     }
     
@@ -177,7 +177,7 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
     if (found_new || found_increment) {
 
       auto entry = new Entry(executor->GetCurrentInput());
-      GetOwnCorpus()->Insert(entry).Expect("Cannot add entry to corpus");
+      GetOwnCorpus()->Insert(entry);
       
     }
     
@@ -301,7 +301,7 @@ float BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel
     if (ret > 0.0) {
 
       auto entry = new Entry(executor->GetCurrentInput());
-      GetOwnCorpus()->Insert(entry).Expect("Cannot add entry to corpus");
+      GetOwnCorpus()->Insert(entry);
       
     }
     

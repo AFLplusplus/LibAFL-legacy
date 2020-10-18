@@ -75,4 +75,4 @@ void MutationSplice(ScheduledMutator* mutator, Input* input) {
 
 }
 
-}
+} // namespace afl

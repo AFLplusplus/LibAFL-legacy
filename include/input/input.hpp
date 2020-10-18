@@ -32,6 +32,9 @@
 
 namespace afl {
 
+// TODO configure it with command line
+const size_t kMaxInputBytes = 1048576;
+
 /*
   An Input entity defines one possible sample from the Input Space and can hold properties about the input itself, the
   relation between the input and the SUT, or the input and the specification.
@@ -39,6 +42,8 @@ namespace afl {
 class Input {
   
 public:
+
+  virtual ~Input() = default;
 
   /*
     Serialize the input to a buffer.
@@ -68,8 +73,8 @@ public:
   /*
     Serialization to files functions.
   */
-  void SaveToFile(char* filename);
-  void LoadFromFile(char* filename);
+  virtual void SaveToFile(const char* filename);
+  virtual void LoadFromFile(const char* filename);
 
 };
 

@@ -30,6 +30,7 @@
 #include <vector>
 
 #include "result.hpp"
+#include "observation_channel/observation_channel.hpp"
 
 namespace afl {
 
@@ -88,6 +89,15 @@ public:
   
   void AddObserationChannel(ObservationChannel* observation_channel) {
     observationChannels.push_back(observation_channel);
+  }
+  
+  template <class ObservationChannelType, typename...ArgsTypes>
+  ObservationChannelType* CreateObservationChannel(ArgsTypes... args) {
+
+    ObservationChannelType* obj = new ObservationChannelType(args...);
+    AddObserationChannel(obj);
+    return obj;
+
   }
 
 };

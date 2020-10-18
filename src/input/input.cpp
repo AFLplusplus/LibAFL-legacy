@@ -24,52 +24,26 @@
 
  */
 
-#ifndef LIBAFL_MUTATOR_MUTATOR_H
-#define LIBAFL_MUTATOR_MUTATOR_H
-
-#include "result.hpp"
 #include "input/input.hpp"
-#include "utils/random.hpp"
+
+#include <fstream>
 
 namespace afl {
 
-/*
-  A Mutator is an entity that takes one or more inputs and generates a new derived one.
-*/
-class Mutator {
-  
-  RandomState* randomState;
+static __thread u8 g_loadsave_file_temp_buffer[kMaxInputBytes];
 
-public:
+void Input::LoadFromFile(const char* filename) {
+  std::basic_ifstream<u8> ifile(filename, std::ios::binary);
+  ifile.read(g_loadsave_file_temp_buffer, kMaxInputBytes);
+  Deserialize(g_loadsave_file_temp_buffer, ifile.gcount()).Expect("Cannot deserialize the file content");
+  ifile.close();
+}
 
-  Mutator(RandomState* random_state) : randomState(random_state) {}
-
-  RandomState* GetRandomState() {
-    return randomState;
-  }
-  
-  void SetRandomState(RandomState* random_state) {
-    randomState = random_state;
-  }
-
-  /*
-    Mutate an Input in-place.
-  */
-  virtual void Mutate(Input* input, size_t stage_idx) = 0;
-
-  void Mutate(Input* input) {
-    Mutate(input, static_cast<size_t>(-1));
-  }
-  
-  virtual void PostExec(bool is_interesting, size_t stage_idx) {};
-  
-  void PostExec(bool is_interesting) {
-    PostExec(is_interesting, static_cast<size_t>(-1));
-  }
-
-};
+void Input::SaveToFile(const char* filename) {
+  std::basic_ofstream<u8> ofile(filename, std::ios::binary);
+  size_t size = Serialize(g_loadsave_file_temp_buffer, kMaxInputBytes).Expect("Cannot serialize and save to file");
+  ofile.write(g_loadsave_file_temp_buffer, size);
+  ofile.close();
+}
 
 } // namespace afl
-
-#endif
-

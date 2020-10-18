@@ -33,9 +33,6 @@
 
 namespace afl {
 
-// TODO configure it with command line
-const size_t kMaxInputBytes = 1048576;
-
 typedef ExitType (*HarnessFunction)(Executor *, u8 *, size_t);
 
 class InMemoryExecutor;

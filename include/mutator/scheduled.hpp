@@ -28,6 +28,7 @@
 #define LIBAFL_MUTATOR_SCHEDULED_H
 
 #include "mutator/mutator.hpp"
+#include "input/input.hpp"
 #include "utils/random.hpp"
 
 #include <vector>
@@ -71,7 +72,7 @@ public:
   /*
     Mutate an Input in-place.
   */
-  inline void Mutate(Input* input, size_t stage_idx) override {
+  virtual void Mutate(Input* input, size_t stage_idx) override {
   
     (void)stage_idx;
   

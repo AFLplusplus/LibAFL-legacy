@@ -51,7 +51,7 @@ public:
   MapType GetMap() {
     return traceMap;
   }
-  size_t GetSize() {
+  virtual size_t GetSize() {
     return traceMapSize;
   }
   
