@@ -29,22 +29,40 @@
 
 #include "debug.hpp"
 #include "errors.hpp"
+#include "types.hpp"
 
 namespace afl {
 
 #define OK Result<void>::Ok
 
-#define ERR(type, ...) new (type)(__FILE__, __LINE__, ##__VA_ARGS__)
+#define ERR(type, ...) (new (type)(__FILE__, __LINE__, ##__VA_ARGS__))
 
-#define FORWARD(result)       \
-  ({                          \
-    auto _res = (result);     \
-    if (_res.IsErr())         \
-      return _res.GetError(); \
-    _res.Unwrap();            \
+#define TRY(result)                 \
+  ({                                \
+    auto _res = (result);           \
+    if (unlikely(_res.IsErr()))     \
+      return _res.UnsafeGetError(); \
+    _res.UnsafeUnwrap();            \
   })
 
-#define R(result) FORWARD(result)
+#define TRYBLOCK(result, block)     \
+  ({                                \
+    auto _res = (result);           \
+    if (unlikely(_res.IsErr())) {   \
+      block;                        \
+      return _res.UnsafeGetError(); \
+    }                               \
+    _res.UnsafeUnwrap();            \
+  })
+
+#define NEW(type, ...)                      \
+  ({                                        \
+    try {                                   \
+      Result<type*>(new type(__VA_ARGS__)); \
+    } catch (std::bad_alloc & ba) {         \
+      Result<type*>(ERR(AllocationError));  \
+    }                                       \
+  })
 
 template <typename OkType>
 class Result {
@@ -93,6 +111,10 @@ class Result {
     return value.ok;
   }
 
+  Error* UnsafeGetError() { return value.error; }
+
+  OkType UnsafeUnwrap() { return value.ok; }
+
   // Automatic Unwrap, can be dangerous
   /* operator OkType() {
 
@@ -127,6 +149,17 @@ class Result<void> {
             error->GetSrcLine());
     }
   }
+
+  void Unwrap() {
+    if (IsErr()) {
+      FATAL("Result::Unwrap failed with error '", error->Message(), "' from ",
+            error->GetSrcFile(), ":", error->GetSrcLine());
+    }
+  }
+
+  Error* UnsafeGetError() { return error; }
+
+  void UnsafeUnwrap() {}
 
   bool IsOk() { return error == nullptr; }
 

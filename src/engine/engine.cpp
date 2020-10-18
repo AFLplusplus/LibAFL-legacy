@@ -33,35 +33,35 @@
 
 using namespace afl;
 
-bool Engine::Execute(Input* input, Entry* entry) {
+Result<bool> Engine::Execute(Input* input, Entry* entry) {
   if (startTime == std::chrono::milliseconds{0})
     startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());
 
-  executor->ResetObservationChannels();
-  executor->PlaceInput(input);
+  TRY(executor->ResetObservationChannels());
+  TRY(executor->PlaceInput(input));
 
-  PreExec();
+  TRY(PreExec());
 
   // TODO execution time
 
-  executor->RunTarget();
+  TRY(executor->RunTarget());
   ++executions;
 
-  PostExec();
+  TRY(PostExec());
 
-  executor->PostExecObservationChannels();
+  TRY(executor->PostExecObservationChannels());
 
   // TODO find a way to pass metadatas for the entry
 
   float rate = 0.0;
   for (auto feedback : feedbacks)
-    rate += feedback->IsInteresting(executor, input);
+    rate += TRY(feedback->IsInteresting(executor, input));
 
   if (rate >= 0.5) {
-    auto entry = new Entry(input);
+    auto entry = NEW(Entry, input);
     // entry->AddMeta(meta);
-    mainCorpus->Insert(entry);
+    TRY(mainCorpus->Insert(entry));
 
     return true;
   }
@@ -69,13 +69,14 @@ bool Engine::Execute(Input* input, Entry* entry) {
   return false;
 }
 
-void Engine::FuzzOne() {
-  Entry* entry =
-      mainCorpus->Get().Expect("Cannot get an entry from the corpus");
-  Input* input = entry->LoadInput()->Copy().Expect("Cannot copy the input");
+Result<void> Engine::FuzzOne() {
+  Entry* entry = TRY(mainCorpus->Get());
+  Input* input = TRY(TRY(entry->LoadInput())->Copy());
 
   for (auto stage : stages) {
-    stage->Perform(input, entry);
+    TRYBLOCK(stage->Perform(input, entry), {
+      delete input;
+    });
   }
 
   delete input;

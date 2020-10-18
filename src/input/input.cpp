@@ -35,19 +35,15 @@ static __thread u8 g_loadsave_file_temp_buffer[kMaxInputBytes];
 Result<void> Input::LoadFromFile(const char* filename) {
   std::basic_ifstream<u8> ifile(filename, std::ios::binary);
   ifile.read(g_loadsave_file_temp_buffer, kMaxInputBytes);
-  auto res = Deserialize(g_loadsave_file_temp_buffer, ifile.gcount());
-  if (!res.IsOk())
-    return res.GetError();
+  TRY(Deserialize(g_loadsave_file_temp_buffer, ifile.gcount()));
   ifile.close();
   return OK();
 }
 
 Result<void> Input::SaveToFile(const char* filename) {
   std::basic_ofstream<u8> ofile(filename, std::ios::binary);
-  auto size = Serialize(g_loadsave_file_temp_buffer, kMaxInputBytes);
-  if (!size.IsOk())
-    return size.GetError();
-  ofile.write(g_loadsave_file_temp_buffer, size.Unwrap());
+  auto size = TRY(Serialize(g_loadsave_file_temp_buffer, kMaxInputBytes));
+  ofile.write(g_loadsave_file_temp_buffer, size);
   ofile.close();
   return OK();
 }

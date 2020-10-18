@@ -55,7 +55,13 @@ class FindingsMonitor : public Monitor {
   size_t findingsTotalNum;
 
  public:
-  void AddFinding(Mutator* mutator) { findingsByMutator[mutator]++; }
+  Result<void> AddFinding(Mutator* mutator) {
+    try {
+      findingsByMutator[mutator]++;
+    } catch (std::bad_alloc& ba) {
+      return ERR(AllocationError);
+    }
+  }
 
   std::string Report() override {
     return "";  // TODO

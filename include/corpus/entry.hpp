@@ -55,28 +55,32 @@ class Entry {
 
   const char* GetFileName() { return fileName; }
 
-  inline bool AddMeta(EntryMetadata* meta) {
+  Result<bool> AddMeta(EntryMetadata* meta) {
     auto index = std::type_index(typeid(*meta));
     auto it = metaDatas.find(index);
     if (it != metaDatas.end())
       return false;
-    metaDatas[index] = meta;
+    try {
+      metaDatas[index] = meta;
+    } catch (std::bad_alloc& ba) {
+      return ERR(AllocationError);
+    }
     return true;
   }
 
-  inline EntryMetadata* GetMeta(const std::type_index index) {
+  EntryMetadata* GetMeta(const std::type_index index) {
     auto it = metaDatas.find(index);
     if (it == metaDatas.end())
       return nullptr;
     return it->second;
   }
 
-  inline EntryMetadata* GetMeta(const std::type_info& info) {
+  EntryMetadata* GetMeta(const std::type_info& info) {
     return GetMeta(std::type_index(info));
   }
 
   template <typename EntryMetaType>
-  inline EntryMetaType* GetMeta() {
+  EntryMetaType* GetMeta() {
     return GetMeta(typeid(EntryMetaType));
   }
 };

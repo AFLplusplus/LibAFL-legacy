@@ -27,9 +27,10 @@
 #ifndef LIBAFL_CORPUS_CORPUS_H
 #define LIBAFL_CORPUS_CORPUS_H
 
-#include "corpus/entry.hpp"
 #include "errors.hpp"
 #include "result.hpp"
+
+#include "corpus/entry.hpp"
 #include "utils/random.hpp"
 
 #include <algorithm>
@@ -55,7 +56,14 @@ class Corpus {
 
   size_t GetEntriesCount() { return entries.size(); }
 
-  virtual void Insert(Entry* entry) { entries.push_back(entry); }
+  virtual Result<void> Insert(Entry* entry) {
+    try {
+      entries.push_back(entry);
+    } catch (std::bad_alloc& ba) {
+      return ERR(AllocationError);
+    }
+    return OK();
+  }
 
   virtual bool Remove(Entry* entry) {
     auto it = std::find(entries.begin(), entries.end(), entry);

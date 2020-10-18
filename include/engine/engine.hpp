@@ -70,7 +70,16 @@ class Engine {
 
   void SetRandomState(RandomState* random_state) { randomState = random_state; }
 
-  void AddFeedback(Feedback* feedback) { feedbacks.push_back(feedback); }
+  Result<void> AddFeedback(Feedback* feedback) {
+    try {
+      feedbacks.push_back(feedback);
+    } catch (std::bad_alloc& ba) {
+      return ERR(AllocationError);
+    }
+    return OK();
+  }
+
+  // TODO maybe we need to wrap in a Result all the CreateX
 
   template <class FeedbackType, typename... ArgsTypes>
   FeedbackType* CreateFeedback(ArgsTypes... args) {
@@ -79,7 +88,14 @@ class Engine {
     return obj;
   }
 
-  void AddStage(Stage* stage) { stages.push_back(stage); }
+  Result<void> AddStage(Stage* stage) {
+    try {
+      stages.push_back(stage);
+    } catch (std::bad_alloc& ba) {
+      return ERR(AllocationError);
+    }
+    return OK();
+  }
 
   template <class StageType, typename... ArgsTypes>
   StageType* CreateStage(ArgsTypes... args) {
@@ -94,12 +110,16 @@ class Engine {
 
   size_t GetExecutions() { return executions; }
 
-  bool AddMonitor(Monitor* monitor) {
+  Result<bool> AddMonitor(Monitor* monitor) {
     auto index = std::type_index(typeid(*monitor));
     auto it = monitors.find(index);
     if (it != monitors.end())
       return false;
-    monitors[index] = monitor;
+    try {
+      monitors[index] = monitor;
+    } catch (std::bad_alloc& ba) {
+      return ERR(AllocationError);
+    }
     return true;
   }
 
@@ -120,21 +140,21 @@ class Engine {
   }
 
   /* Useful hooks */
-  virtual void PreExec() {}
-  virtual void PostExec() {}
+  virtual Result<void> PreExec() { return OK(); }
+  virtual Result<void> PostExec() { return OK(); }
 
   /*
     Execute an input, entry is the entry used to generate this input (optional)
   */
-  /* virtual */ bool Execute(Input* input, Entry* entry);
+  /* virtual */ Result<bool> Execute(Input* input, Entry* entry);
 
-  bool Execute(Input* input) { return Execute(input, nullptr); }
+  Result<bool> Execute(Input* input) { return Execute(input, nullptr); }
 
-  void FuzzOne();
+  Result<void> FuzzOne();
 
-  void Fuzz() {
+  Result<void> Fuzz() {
     while (true)
-      FuzzOne();
+      TRY(FuzzOne());
   }
 };
 
