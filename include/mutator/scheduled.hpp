@@ -46,11 +46,11 @@ public:
 
   using Mutator::Mutator;
 
-  virtual size_t Iterations() {
+  virtual size_t Iterations(Input* input) {
     return 1 << (1 + (size_t)GetRandomState()->Below(7));
   }
   
-  virtual MutationFunctionType Schedule() {
+  virtual MutationFunctionType Schedule(Input* input) {
     return GetMutationByIndex(GetRandomState()->Below(GetMutationsCount()));
   }
 

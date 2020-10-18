@@ -27,8 +27,8 @@
 #ifndef LIBAFL_FEEDBACK_FEEDBACK_H
 #define LIBAFL_FEEDBACK_FEEDBACK_H
 
-#include "result.h"
-#include "corpus/corpus.h"
+#include "result.hpp"
+#include "corpus/corpus.hpp"
 
 namespace afl {
 

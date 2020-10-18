@@ -27,14 +27,14 @@
 #ifndef LIBAFL_OBSERVATION_CHANNEL_MAP_H
 #define LIBAFL_OBSERVATION_CHANNEL_MAP_H
 
-#include "observation_channel/observation_channel.h"
+#include "observation_channel/observation_channel.hpp"
 
 #include <algorithm>  // std::fill_n
 
 namespace afl {
 
 template<typename MapType>
-class BaseMapObservationChannel {
+class BaseMapObservationChannel : public ObservationChannel {
 
 protected:
 
@@ -43,7 +43,7 @@ protected:
 
 public:
 
-  MapObservationChannel(MapType trace_map, size_t trace_map_size) : traceMap(trace_map), traceMapSize(trace_map_size) {}
+  BaseMapObservationChannel(MapType trace_map, size_t trace_map_size) : traceMap(trace_map), traceMapSize(trace_map_size) {}
 
   /*
     Getters.
@@ -68,7 +68,7 @@ public:
     Reset the channel.
   */
   void Reset() override {
-    std::fill_n(traceMap, init_value, traceMapSize);
+    std::fill_n(this->GetMap(), init_value, this->GetSize());
   }
   
 };

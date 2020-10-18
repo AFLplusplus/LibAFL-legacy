@@ -36,6 +36,12 @@ namespace afl {
 class ObservationChannel;
 class Input;
 
+enum class ExitType {
+  Ok,
+  Crash,
+  Oom
+};
+
 /*
   An Executor is an entity with a set of violation oracles, a set of observation channels, a function that allows
   instructing the SUT about the input to test, and a function to run the SUT.

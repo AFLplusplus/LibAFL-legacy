@@ -27,11 +27,12 @@
 #ifndef LIBAFL_FEEDBACK_MAP_H
 #define LIBAFL_FEEDBACK_MAP_H
 
-#include "feedback/feedback.h"
-#include "feedback/reducers.h"
-#include "feedback/mapmeta.h"
-#include "observation_channel/map.h"
-#include "observation_channel/hitcounts.h"
+#include "types.hpp"
+#include "feedback/feedback.hpp"
+#include "feedback/reducers.hpp"
+#include "feedback/mapmeta.hpp"
+#include "observation_channel/map.hpp"
+#include "observation_channel/hitcounts.hpp"
 
 #include <algorithm>  // std::fill_n
 
@@ -41,7 +42,7 @@ namespace afl {
   Base template type for MapFeedback, it is not limited to arrays so that can be used
   with classes such as std::bitset
 */
-template<typename MapType, typename MapBaseType, size_t map_size, typename ObvervationChannelType, typename ReduceFunction, MapBaseType init_value = 0, typename EntryMetaType = void>
+template<typename MapType, typename MapBaseType, size_t map_size, typename ObvervationChannelType, auto ReduceFunction, MapBaseType init_value = 0, typename EntryMetaType = void>
 class BaseMapFeedback : public Feedback {
 
   MapType virginMap;
@@ -57,25 +58,9 @@ public:
 };
 
 /*
-  MapFeedback use an MapBaseType array.
-*/
-template<typename MapBaseType, size_t map_size, typename ObvervationChannelType, typename ReduceFunction, MapBaseType init_value = 0, typename EntryMetaType = void>
-class MapFeedback : public BaseMapFeedback<MapBaseType[map_size], map_size, ObvervationChannelType, ReduceFunction, init_value, EntryMetaType> {
-
-public:
-
-  MapFeedback() {
-    std::fill_n(GetVirginMap(), map_size, init_value);
-  }
-
-};
-
-// TODO(andrea) maybe add an EntryMetadata with the has of the map.
-
-/*
   Track new findings using a MapEntryMetadata.
 */
-template<typename MapType, typename MapBaseType, size_t map_size, typename ObvervationChannelType, typename ReduceFunction, MapBaseType init_value = 0, typename EntryMetaType = void>
+template<typename MapType, typename MapBaseType, size_t map_size, typename ObvervationChannelType, auto ReduceFunction, MapBaseType init_value, typename EntryMetaType>
 float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, ReduceFunction, init_value, EntryMetaType>::IsInteresting(Executor* executor) {
   
   bool found_new = false, found_increment = false;
@@ -105,7 +90,7 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
             found_increment = true;
             meta->AddIncrementMapEntry(i);
           }
-          virginMap[i] = e;
+          virginMap[i] = new_entry;
 
         }
 
@@ -114,13 +99,13 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
     }
   }
   
-  if (ownCorpus) {
+  if (GetOwnCorpus()) {
 
     if (found_new || found_increment) {
 
       auto entry = new Entry(executor->GetCurrentInput());
       entry->AddMeta(meta);
-      ownCorpus->Insert(entry).expect("Cannot add entry to corpus");
+      GetOwnCorpus()->Insert(entry).expect("Cannot add entry to corpus");
       
     }
     
@@ -136,9 +121,24 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
 }
 
 /*
-  This is an unoptimized version without EntryMetaType. For the common cases, with u8 as MapBaseType, see the next spacialization.
+  This is an unoptimized version without EntryMetaType. For the common cases, with u8 as MapBaseType, see the next specialization.
 */
-template<typename MapType, typename MapBaseType, size_t map_size, typename ObvervationChannelType, typename ReduceFunction, MapBaseType init_value = 0>
+template<typename MapType, typename MapBaseType, size_t map_size, typename ObvervationChannelType, auto ReduceFunction, MapBaseType init_value>
+class BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, ReduceFunction, init_value, void> : public Feedback {
+
+  MapType virginMap;
+
+public:
+
+  MapType& GetVirginMap() {
+    return virginMap;
+  }
+
+  float IsInteresting(Executor* executor) override;
+
+};
+
+template<typename MapType, typename MapBaseType, size_t map_size, typename ObvervationChannelType, auto ReduceFunction, MapBaseType init_value>
 float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, ReduceFunction, init_value, void>::IsInteresting(Executor* executor) {
   
   bool found_new = false, found_increment = false;
@@ -163,7 +163,7 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
             found_new = true;
           else
             found_increment = true;
-          virginMap[i] = e;
+          virginMap[i] = new_entry;
 
         }
 
@@ -172,12 +172,12 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
     }
   }
   
-  if (ownCorpus) {
+  if (GetOwnCorpus()) {
 
     if (found_new || found_increment) {
 
       auto entry = new Entry(executor->GetCurrentInput());
-      ownCorpus->Insert(entry).expect("Cannot add entry to corpus");
+      GetOwnCorpus()->Insert(entry).expect("Cannot add entry to corpus");
       
     }
     
@@ -196,6 +196,21 @@ float BaseMapFeedback<MapType, MapBaseType, map_size, ObvervationChannelType, Re
   Template specialization for classic AFL hitcounts.
 */
 template<size_t map_size>
+class BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>, 0, void> : public Feedback {
+
+  u8 virginMap[map_size];
+
+public:
+
+  auto& GetVirginMap() {
+    return virginMap;
+  }
+
+  float IsInteresting(Executor* executor) override;
+
+};
+
+template<size_t map_size>
 float BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>, 0, void>::IsInteresting(Executor* executor) {
   
   float ret = 0.0;
@@ -210,15 +225,15 @@ float BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel
 
 #ifdef WORD_SIZE_64
 
-      u64 *current = static_cast<u64*>(trace_map);
-      u64 *virgin = static_cast<u64*>(virginMap);
+      u64 *current = reinterpret_cast<u64*>(trace_map);
+      u64 *virgin = reinterpret_cast<u64*>(virginMap);
 
       size_t i = (map_size >> 3);
 
 #else
 
-      u32 *current = static_cast<u32*>(trace_map);
-      u32 *virgin = static_cast<u32*>(virginMap);
+      u32 *current = reinterpret_cast<u32*>(trace_map);
+      u32 *virgin = reinterpret_cast<u32*>(virginMap);
 
       size_t i = (map_size >> 2);
 
@@ -235,8 +250,8 @@ float BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel
 
           if (likely(ret < 2)) {
 
-            u8 *cur = static_cast<u8*>(current);
-            u8 *vir = static_cast<u8*>(virgin);
+            u8 *cur = reinterpret_cast<u8*>(current);
+            u8 *vir = reinterpret_cast<u8*>(virgin);
 
             /* Looks like we have not found any new bytes yet; see if any non-zero
                bytes in current[] are pristine in virgin[]. */
@@ -281,12 +296,12 @@ float BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel
     }
   }
 
-  if (ownCorpus) {
+  if (GetOwnCorpus()) {
 
     if (ret > 0.0) {
 
       auto entry = new Entry(executor->GetCurrentInput());
-      ownCorpus->Insert(entry).expect("Cannot add entry to corpus");
+      GetOwnCorpus()->Insert(entry).expect("Cannot add entry to corpus");
       
     }
     
@@ -300,40 +315,56 @@ float BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel
 }
 
 /*
+  MapFeedback use an MapBaseType array.
+*/
+template<typename MapBaseType, size_t map_size, typename ObvervationChannelType, auto ReduceFunction, MapBaseType init_value = 0, typename EntryMetaType = void>
+class MapFeedback : public BaseMapFeedback<MapBaseType[map_size], MapBaseType, map_size, ObvervationChannelType, ReduceFunction, init_value, EntryMetaType> {
+
+public:
+
+  MapFeedback() {
+    std::fill_n(this->GetVirginMap(), map_size, init_value);
+  }
+
+};
+
+// TODO(andrea) maybe add an EntryMetadata with the has of the map.
+
+/*
   Define common MapFeedback types.
 */
 template<typename MapBaseType, size_t map_size, typename ObvervationChannelType>
-using MaxMapFeedback = MapFeedback<MapBaseType, map_size, ObvervationChannelType, ReducerMax<MapBaseType>>
+using MaxMapFeedback = MapFeedback<MapBaseType, map_size, ObvervationChannelType, ReducerMax<MapBaseType>>;
 
 template<typename MapBaseType, size_t map_size, typename ObvervationChannelType>
-using MinMapFeedback = MapFeedback<MapBaseType, map_size, ObvervationChannelType, ReducerMin<MapBaseType>, -1>
+using MinMapFeedback = MapFeedback<MapBaseType, map_size, ObvervationChannelType, ReducerMin<MapBaseType>, MapBaseType(-1)>;
 
 template<size_t map_size>
-using MaxMapFeedbackU8 = MapFeedback<MapBaseType, map_size, MapObservationChannel<u8>, ReducerMax<u8>>
+using MaxMapFeedbackU8 = MapFeedback<u8, map_size, MapObservationChannel<u8>, ReducerMax<u8>>;
 
 template<size_t map_size>
-using MinMapFeedbackU8 = MapFeedback<u8, map_size, MapObservationChannel<u8, -1>, ReducerMin<u8>, -1>
+using MinMapFeedbackU8 = MapFeedback<u8, map_size, MapObservationChannel<u8, u8(-1)>, ReducerMin<u8>, u8(-1)>;
 
 template<size_t map_size>
-using MaxMapFeedbackU16 = MapFeedback<u16, map_size, MapObservationChannel<u16>, ReducerMax<u16>>
+using MaxMapFeedbackU16 = MapFeedback<u16, map_size, MapObservationChannel<u16>, ReducerMax<u16>>;
 
 template<size_t map_size>
-using MinMapFeedbackU16 = MapFeedback<u16, map_size, MapObservationChannel<u16, -1>, ReducerMin<u16>, -1>
+using MinMapFeedbackU16 = MapFeedback<u16, map_size, MapObservationChannel<u16, u16(-1)>, ReducerMin<u16>, u16(-1)>;
 
 template<size_t map_size>
-using MaxMapFeedbackU32 = MapFeedback<u32, map_size, MapObservationChannel<u32>, ReducerMax<u32>>
+using MaxMapFeedbackU32 = MapFeedback<u32, map_size, MapObservationChannel<u32>, ReducerMax<u32>>;
 
 template<size_t map_size>
-using MinMapFeedbackU32 = MapFeedback<u32, map_size, MapObservationChannel<u32, -1>, ReducerMin<u32>, -1>
+using MinMapFeedbackU32 = MapFeedback<u32, map_size, MapObservationChannel<u32, u32(-1)>, ReducerMin<u32>, u32(-1)>;
 
 template<size_t map_size>
-using MaxMapFeedbackU64 = MapFeedback<u64, map_size, MapObservationChannel<u64>, ReducerMax<u64>>
+using MaxMapFeedbackU64 = MapFeedback<u64, map_size, MapObservationChannel<u64>, ReducerMax<u64>>;
 
 template<size_t map_size>
-using MinMapFeedbackU32 = MapFeedback<u64, map_size, MapObservationChannel<u64, -1>, ReducerMin<u64>, -1>
+using MinMapFeedbackU64 = MapFeedback<u64, map_size, MapObservationChannel<u64, u64(-1)>, ReducerMin<u64>, u64(-1)>;
 
 template<size_t map_size>
-using HitcountsMapFeedback = MapFeedback<u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>>
+using HitcountsMapFeedback = MapFeedback<u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>>;
 
 } // namespace afl
 

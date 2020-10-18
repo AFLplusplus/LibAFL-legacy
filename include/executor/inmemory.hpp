@@ -29,10 +29,17 @@
 
 #include "result.hpp"
 #include "executor/executor.hpp"
+#include "input/input.hpp"
 
 namespace afl {
 
+// TODO configure it with command line
+const size_t kMaxInputBytes = 1048576;
+
 typedef ExitType (*HarnessFunction)(Executor *, u8 *, size_t);
+
+class InMemoryExecutor;
+extern InMemoryExecutor* g_current_inmemory_executor;
 
 /*
   An Executor is an entity with a set of violation oracles, a set of observation channels, a function that allows
@@ -48,11 +55,24 @@ protected:
   char **argv;
   int    argc;
 
+  u8* buffer;
+  
 public:
 
-  InMemoryExecutor(HarnessFunction harness_function) : harnessFunction(harness_function) {}
+  InMemoryExecutor(HarnessFunction harness_function) : harnessFunction(harness_function) {
+    buffer = new u8[kMaxInputBytes];
+  }
 
-  virtual Result<ExitType> RunTarget() override;
+  virtual Result<ExitType> RunTarget() override {
+    auto res = GetCurrentInput()->Serialize(buffer, kMaxInputBytes);
+    if (res.IsOk()) {
+      g_current_inmemory_executor = this;
+      auto exit_type = harnessFunction(this, buffer, res.Unwrap());
+      g_current_inmemory_executor = nullptr;
+      return exit_type;
+    }
+    return ExitType::Ok;
+  }
 
 };
 

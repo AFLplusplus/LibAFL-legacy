@@ -88,7 +88,7 @@ public:
 
 };
 
-class MapIncrementsEntryMetadata : public T_MapEntryMetadata<MapNewsEntryMetadata> {
+class MapIncrementsEntryMetadata : public T_MapEntryMetadata<MapIncrementsEntryMetadata> {
 
 public:
 

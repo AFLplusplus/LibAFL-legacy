@@ -45,7 +45,7 @@ public:
     return randomState;
   }
   
-  inline RandomState* SetRandomState(RandomState* random_state) {
+  inline void SetRandomState(RandomState* random_state) {
     randomState = random_state;
   }
 

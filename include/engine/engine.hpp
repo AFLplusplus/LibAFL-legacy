@@ -46,6 +46,8 @@ class Engine {
 
 protected:
 
+  RandomState* randomState;
+
   std::vector<Feedback*> feedbacks;
   std::vector<Stage*> stages;
 
@@ -60,7 +62,16 @@ protected:
 
 public:
 
-  Engine(Executor* executor_, Corpus* corpus) : executor(executor_), mainCorpus(corpus) {}
+  Engine(RandomState* random_state, Executor* executor_, Corpus* corpus) : randomState(random_state), executor(executor_), mainCorpus(corpus) {}
+
+  RandomState* GetRandomState() {
+    return randomState;
+  }
+  
+  void SetRandomState(RandomState* random_state) {
+    randomState = random_state;
+  }
+
 
   void AddFeedback(Feedback* feedback) {
     feedbacks.push_back(feedback);

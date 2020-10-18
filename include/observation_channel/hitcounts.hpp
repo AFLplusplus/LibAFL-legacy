@@ -27,7 +27,7 @@
 #ifndef LIBAFL_OBSERVATION_CHANNEL_HITCOUNTS_H
 #define LIBAFL_OBSERVATION_CHANNEL_HITCOUNTS_H
 
-#include "observation_channel/map.h"
+#include "observation_channel/map.hpp"
 
 namespace afl {
 
