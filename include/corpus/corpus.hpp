@@ -78,13 +78,13 @@ public:
   
   Result<Entry*> GetByIndex(size_t index) {
     if(index >= GetEntriesCount())
-      return MAKE_ERR(OutOfBoundsError);
+      return ERR(OutOfBoundsError);
     return entries[index];
   }
   
   Result<Entry*> GetRandom() {
     if(GetEntriesCount() == 0)
-      return MAKE_ERR(EmptyContainerError);
+      return ERR(EmptyContainerError);
     return GetByIndex(randomState->Below(GetEntriesCount()));
   }
   

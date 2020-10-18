@@ -32,10 +32,23 @@
 
 namespace afl {
 
+#define OK Result<void>::Ok
+
+#define ERR(type, ...) new (type)(__FILE__, __LINE__, ##__VA_ARGS__)
+
+#define FORWARD(result) ({ \
+  auto _res = (result); \
+  if (_res.IsErr()) \
+    return _res.GetError(); \
+  _res.Unwrap(); \
+})
+
+#define R(result) FORWARD(result)
+
 template <typename OkType>
 class Result {
 
-  enum { kOk, kError, kUnknownError } tag;
+  enum { kOk, kError } tag;
 
   union {
 
@@ -45,9 +58,6 @@ class Result {
   } value;
 
  public:
-  Result() {
-
-  }
 
   Result(OkType ok) {
 
@@ -62,16 +72,21 @@ class Result {
     value.error = error;
 
   }
+  
+  Error* GetError() {
+  
+    if (IsErr())
+      return value.error;
+    return nullptr;
+    
+  }
 
-  inline OkType Expect(const char *message) {
+  OkType Expect(const char *message) {
 
-    if (!IsOk()) {
+    if (IsErr()) {
 
-      if (IsUnkErr())
-        FATAL("Result::Expect failed at '", message, "' with unknown error.");
-      else
-        FATAL("Result::Expect failed at '", message, "' with error '", value.error->Message(), "' from ",
-              value.error->GetSrcFile(), ":", value.error->GetSrcLine());
+      FATAL("Result::Expect failed at '", message, "' with error '", value.error->Message(), "' from ",
+            value.error->GetSrcFile(), ":", value.error->GetSrcLine());
 
     }
 
@@ -79,15 +94,12 @@ class Result {
 
   }
 
-  inline OkType Unwrap() {
+  OkType Unwrap() {
 
-    if (!IsOk()) {
+    if (IsErr()) {
 
-      if (IsUnkErr())
-        FATAL("Result::Unwrap failed with unknown error.");
-      else
-        FATAL("Result::Unwrap failed with error '", value.error->Message(), "' from ", value.error->GetSrcFile(), ":",
-              value.error->GetSrcLine());
+      FATAL("Result::Unwrap failed with error '", value.error->Message(), "' from ", value.error->GetSrcFile(), ":",
+            value.error->GetSrcLine());
 
     }
 
@@ -95,50 +107,86 @@ class Result {
 
   }
 
-  inline operator OkType() {
+  // Automatic Unwrap, can be dangerous
+  /* operator OkType() {
 
     return Unwrap();
 
-  }
+  } */
 
-  inline bool IsOk() {
+  bool IsOk() {
 
     return tag == kOk;
 
   }
 
-  inline bool IsErr() {
+  bool IsErr() {
 
     return tag == kError;
 
   }
 
-  inline bool IsUnkErr() {
+  static Result<OkType> Ok(OkType ok) {
 
-    return tag == kUnknownError;
-
-  }
-
-  static Result Ok(OkType ok) {
-
-    return Result(ok);
+    return Result<OkType>(ok);
 
   }
 
-  static Result Err(Error *error) {
+  static Result<OkType> Err(Error *error) {
 
-    Result result;
-    result.tag = kError;
-    result.value.error = error;
-    return result;
+    return Result<OkType>(error);
 
   }
 
-  static Result UnkErr() {
+};
 
-    Result result;
-    result.tag = kUnknownError;
-    return result;
+template<>
+class Result<void> {
+
+  Error *error;
+
+ public:
+
+  Result() : error(nullptr) {}
+  
+  Result(Error *error_) : error(error_) {}
+
+  Error* GetError() {
+    return error;
+  }
+
+  void Expect(const char *message) {
+
+    if (IsErr()) {
+
+      FATAL("Result::Expect failed at '", message, "' with error '", error->Message(), "' from ",
+            error->GetSrcFile(), ":", error->GetSrcLine());
+
+    }
+
+  }
+
+  bool IsOk() {
+
+    return error == nullptr;
+
+  }
+
+  bool IsErr() {
+
+    return error != nullptr;
+
+  }
+
+  static Result<void> Ok() {
+
+    return Result<void>();
+
+  }
+
+  static Result<void> Err(Error *error) {
+
+    return Result<void>(error);
 
   }
 

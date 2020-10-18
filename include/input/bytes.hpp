@@ -59,7 +59,7 @@ public:
   */
   Result<size_t> Serialize(u8* buffer, size_t size) override {
     if (bytes.size() > size)
-      return MAKE_ERR(NotEnoughSpaceError);
+      return ERR(NotEnoughSpaceError);
     std::copy_n(bytes.data(), bytes.size(), buffer);
     return bytes.size();
   }
@@ -82,9 +82,10 @@ public:
   /*
     Assign an instance. Maybe return an error on type mistmatch? But requires dyncast.
   */
-  void Assign(Input* input) override {
+  Result<void> Assign(Input* input) override {
     DCHECK(dynamic_cast<BytesInput*>(input));
     bytes = static_cast<BytesInput*>(input)->bytes;
+    return OK();
   }
   
   /*

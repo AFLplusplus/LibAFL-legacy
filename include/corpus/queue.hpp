@@ -42,7 +42,7 @@ public:
 
   virtual Result<Entry*> Get() override {
     if(GetEntriesCount() == 0)
-      return MAKE_ERR(EmptyContainerError);
+      return ERR(EmptyContainerError);
     if (pos == GetEntriesCount()) {
       pos = 0;
       ++cycles;

@@ -63,7 +63,7 @@ public:
   /*
     Assign an instance. Maybe return an error on type mistmatch? But requires dyncast.
   */
-  virtual void Assign(Input* input) = 0;
+  virtual Result<void> Assign(Input* input) = 0;
   
   /*
     Clear the input content.
@@ -73,8 +73,8 @@ public:
   /*
     Serialization to files functions.
   */
-  virtual void SaveToFile(const char* filename);
-  virtual void LoadFromFile(const char* filename);
+  virtual Result<void> SaveToFile(const char* filename);
+  virtual Result<void> LoadFromFile(const char* filename);
 
 };
 

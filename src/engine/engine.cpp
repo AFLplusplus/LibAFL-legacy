@@ -73,8 +73,8 @@ bool Engine::Execute(Input* input, Entry* entry) {
 
 void Engine::FuzzOne() {
 
-  Entry* entry = mainCorpus->Get();
-  Input* input = entry->LoadInput()->Copy();
+  Entry* entry = mainCorpus->Get().Expect("Cannot get an entry from the corpus");
+  Input* input = entry->LoadInput()->Copy().Expect("Cannot copy the input");
   
   for (auto stage : stages) {
   

@@ -32,18 +32,20 @@ namespace afl {
 
 static __thread u8 g_loadsave_file_temp_buffer[kMaxInputBytes];
 
-void Input::LoadFromFile(const char* filename) {
+Result<void> Input::LoadFromFile(const char* filename) {
   std::basic_ifstream<u8> ifile(filename, std::ios::binary);
   ifile.read(g_loadsave_file_temp_buffer, kMaxInputBytes);
-  Deserialize(g_loadsave_file_temp_buffer, ifile.gcount()).Expect("Cannot deserialize the file content");
+  R(Deserialize(g_loadsave_file_temp_buffer, ifile.gcount()));
   ifile.close();
+  return OK();
 }
 
-void Input::SaveToFile(const char* filename) {
+Result<void> Input::SaveToFile(const char* filename) {
   std::basic_ofstream<u8> ofile(filename, std::ios::binary);
-  size_t size = Serialize(g_loadsave_file_temp_buffer, kMaxInputBytes).Expect("Cannot serialize and save to file");
+  size_t size = R(Serialize(g_loadsave_file_temp_buffer, kMaxInputBytes));
   ofile.write(g_loadsave_file_temp_buffer, size);
   ofile.close();
+  return OK();
 }
 
 } // namespace afl

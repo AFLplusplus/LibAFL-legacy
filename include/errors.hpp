@@ -34,8 +34,6 @@
 
 namespace afl {
 
-#define MAKE_ERR(type, ...) new (type)(__FILE__, __LINE__, ##__VA_ARGS__)
-
 class Error {
 
   const char *srcFile;
