@@ -33,77 +33,77 @@
 
 #ifdef USE_COLOR
 
-  #define cBLK "\x1b[0;30m"
-  #define cRED "\x1b[0;31m"
-  #define cGRN "\x1b[0;32m"
-  #define cBRN "\x1b[0;33m"
-  #define cBLU "\x1b[0;34m"
-  #define cMGN "\x1b[0;35m"
-  #define cCYA "\x1b[0;36m"
-  #define cLGR "\x1b[0;37m"
-  #define cGRA "\x1b[1;90m"
-  #define cLRD "\x1b[1;91m"
-  #define cLGN "\x1b[1;92m"
-  #define cYEL "\x1b[1;93m"
-  #define cLBL "\x1b[1;94m"
-  #define cPIN "\x1b[1;95m"
-  #define cLCY "\x1b[1;96m"
-  #define cBRI "\x1b[1;97m"
-  #define cRST "\x1b[0m"
+#define cBLK "\x1b[0;30m"
+#define cRED "\x1b[0;31m"
+#define cGRN "\x1b[0;32m"
+#define cBRN "\x1b[0;33m"
+#define cBLU "\x1b[0;34m"
+#define cMGN "\x1b[0;35m"
+#define cCYA "\x1b[0;36m"
+#define cLGR "\x1b[0;37m"
+#define cGRA "\x1b[1;90m"
+#define cLRD "\x1b[1;91m"
+#define cLGN "\x1b[1;92m"
+#define cYEL "\x1b[1;93m"
+#define cLBL "\x1b[1;94m"
+#define cPIN "\x1b[1;95m"
+#define cLCY "\x1b[1;96m"
+#define cBRI "\x1b[1;97m"
+#define cRST "\x1b[0m"
 
-  #define bgBLK "\x1b[40m"
-  #define bgRED "\x1b[41m"
-  #define bgGRN "\x1b[42m"
-  #define bgBRN "\x1b[43m"
-  #define bgBLU "\x1b[44m"
-  #define bgMGN "\x1b[45m"
-  #define bgCYA "\x1b[46m"
-  #define bgLGR "\x1b[47m"
-  #define bgGRA "\x1b[100m"
-  #define bgLRD "\x1b[101m"
-  #define bgLGN "\x1b[102m"
-  #define bgYEL "\x1b[103m"
-  #define bgLBL "\x1b[104m"
-  #define bgPIN "\x1b[105m"
-  #define bgLCY "\x1b[106m"
-  #define bgBRI "\x1b[107m"
+#define bgBLK "\x1b[40m"
+#define bgRED "\x1b[41m"
+#define bgGRN "\x1b[42m"
+#define bgBRN "\x1b[43m"
+#define bgBLU "\x1b[44m"
+#define bgMGN "\x1b[45m"
+#define bgCYA "\x1b[46m"
+#define bgLGR "\x1b[47m"
+#define bgGRA "\x1b[100m"
+#define bgLRD "\x1b[101m"
+#define bgLGN "\x1b[102m"
+#define bgYEL "\x1b[103m"
+#define bgLBL "\x1b[104m"
+#define bgPIN "\x1b[105m"
+#define bgLCY "\x1b[106m"
+#define bgBRI "\x1b[107m"
 
 #else
 
-  #define cBLK ""
-  #define cRED ""
-  #define cGRN ""
-  #define cBRN ""
-  #define cBLU ""
-  #define cMGN ""
-  #define cCYA ""
-  #define cLGR ""
-  #define cGRA ""
-  #define cLRD ""
-  #define cLGN ""
-  #define cYEL ""
-  #define cLBL ""
-  #define cPIN ""
-  #define cLCY ""
-  #define cBRI ""
-  #define cRST ""
+#define cBLK ""
+#define cRED ""
+#define cGRN ""
+#define cBRN ""
+#define cBLU ""
+#define cMGN ""
+#define cCYA ""
+#define cLGR ""
+#define cGRA ""
+#define cLRD ""
+#define cLGN ""
+#define cYEL ""
+#define cLBL ""
+#define cPIN ""
+#define cLCY ""
+#define cBRI ""
+#define cRST ""
 
-  #define bgBLK ""
-  #define bgRED ""
-  #define bgGRN ""
-  #define bgBRN ""
-  #define bgBLU ""
-  #define bgMGN ""
-  #define bgCYA ""
-  #define bgLGR ""
-  #define bgGRA ""
-  #define bgLRD ""
-  #define bgLGN ""
-  #define bgYEL ""
-  #define bgLBL ""
-  #define bgPIN ""
-  #define bgLCY ""
-  #define bgBRI ""
+#define bgBLK ""
+#define bgRED ""
+#define bgGRN ""
+#define bgBRN ""
+#define bgBLU ""
+#define bgMGN ""
+#define bgCYA ""
+#define bgLGR ""
+#define bgGRA ""
+#define bgLRD ""
+#define bgLGN ""
+#define bgYEL ""
+#define bgLBL ""
+#define bgPIN ""
+#define bgLCY ""
+#define bgBRI ""
 
 #endif
 
@@ -113,39 +113,39 @@
 
 #ifdef FANCY_BOXES
 
-  #define SET_G1 "\x1b)0"                                                              /* Set G1 for box drawing    */
-  #define RESET_G1 "\x1b)B"                                                            /* Reset G1 to ASCII         */
-  #define bSTART "\x0e"                                                                /* Enter G1 drawing mode     */
-  #define bSTOP "\x0f"                                                                 /* Leave G1 drawing mode     */
-  #define bH "q"                                                                       /* Horizontal line           */
-  #define bV "x"                                                                       /* Vertical line             */
-  #define bLT "l"                                                                      /* Left top corner           */
-  #define bRT "k"                                                                      /* Right top corner          */
-  #define bLB "m"                                                                      /* Left bottom corner        */
-  #define bRB "j"                                                                      /* Right bottom corner       */
-  #define bX "n"                                                                       /* Cross                     */
-  #define bVR "t"                                                                      /* Vertical, branch right    */
-  #define bVL "u"                                                                      /* Vertical, branch left     */
-  #define bHT "v"                                                                      /* Horizontal, branch top    */
-  #define bHB "w"                                                                      /* Horizontal, branch bottom */
+#define SET_G1 "\x1b)0"   /* Set G1 for box drawing    */
+#define RESET_G1 "\x1b)B" /* Reset G1 to ASCII         */
+#define bSTART "\x0e"     /* Enter G1 drawing mode     */
+#define bSTOP "\x0f"      /* Leave G1 drawing mode     */
+#define bH "q"            /* Horizontal line           */
+#define bV "x"            /* Vertical line             */
+#define bLT "l"           /* Left top corner           */
+#define bRT "k"           /* Right top corner          */
+#define bLB "m"           /* Left bottom corner        */
+#define bRB "j"           /* Right bottom corner       */
+#define bX "n"            /* Cross                     */
+#define bVR "t"           /* Vertical, branch right    */
+#define bVL "u"           /* Vertical, branch left     */
+#define bHT "v"           /* Horizontal, branch top    */
+#define bHB "w"           /* Horizontal, branch bottom */
 
 #else
 
-  #define SET_G1 ""
-  #define RESET_G1 ""
-  #define bSTART ""
-  #define bSTOP ""
-  #define bH "-"
-  #define bV "|"
-  #define bLT "+"
-  #define bRT "+"
-  #define bLB "+"
-  #define bRB "+"
-  #define bX "+"
-  #define bVR "+"
-  #define bVL "+"
-  #define bHT "+"
-  #define bHB "+"
+#define SET_G1 ""
+#define RESET_G1 ""
+#define bSTART ""
+#define bSTOP ""
+#define bH "-"
+#define bV "|"
+#define bLT "+"
+#define bRT "+"
+#define bLB "+"
+#define bRB "+"
+#define bX "+"
+#define bVR "+"
+#define bVL "+"
+#define bHT "+"
+#define bHB "+"
 
 #endif
 
@@ -159,53 +159,70 @@
 #define _TOSTRING(x) _TOSTRING1(x)
 
 #ifdef DEBUG_BUILD
-  #define DEBUG(...) printErr(cMGN "[D]" cGRA " [" __FILE__ ":" _TOSTRING(__LINE__) "] " cRST, __VA_ARGS__, cRST "\n")
+#define DEBUG(...)                                                          \
+  printErr(cMGN "[D]" cGRA " [" __FILE__ ":" _TOSTRING(__LINE__) "] " cRST, \
+           __VA_ARGS__, cRST "\n")
 #else
-  #define DEBUG(...) do {} while(0)
+#define DEBUG(...) \
+  do {             \
+  } while (0)
 #endif
 
 /* Die with a verbose non-OS fatal error message. */
 
-#define FATAL(...)                                                                            \
-  do {                                                                                        \
-                                                                                              \
-    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] FATAL ERROR : " cRST, __VA_ARGS__, cLRD "\n       Location : " cRST, __func__, "(), " __FILE__ ":", __LINE__, "\n\n"); \
-    std::exit(1);                                                                             \
-                                                                                              \
+#define FATAL(...)                                                             \
+  do {                                                                         \
+    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] FATAL ERROR : " cRST, \
+             __VA_ARGS__, cLRD "\n       Location : " cRST, __func__,          \
+             "(), " __FILE__ ":", __LINE__, "\n\n");                           \
+    std::exit(1);                                                              \
+                                                                               \
   } while (0)
 
 /* Die by calling afl_abort() to provide a core dump. */
 
-#define ABORT(...)  \
-  do {                                                                                        \
-                                                                                              \
-    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] PROGRAM ABORT : " cRST, __VA_ARGS__, cLRD "\n         Location : " cRST, __func__, "(), " __FILE__ ":", __LINE__, "\n\n"); \
-    std::abort();                                                                             \
-                                                                                              \
+#define ABORT(...)                                                      \
+  do {                                                                  \
+    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD                       \
+             "\n[-] PROGRAM ABORT : " cRST,                             \
+             __VA_ARGS__, cLRD "\n         Location : " cRST, __func__, \
+             "(), " __FILE__ ":", __LINE__, "\n\n");                    \
+    std::abort();                                                       \
+                                                                        \
   } while (0)
 
 /* Die while also including the output of perror(). */
 
-/*#define PFATAL(...)                                                                             \
-  do {                                                                                          \
+/*#define PFATAL(...) \
+  do { \
                                                                                                 \
-    afl_print_error_fmt(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-]  SYSTEM ERROR : " cRST __VA_ARGS__);       \
-    afl_print_error_fmt(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n", __FUNCTION__, __FILE__, __LINE__); \
-    afl_print_error_fmt(cLRD "       OS message : " cRST "%s\n", strerror(errno));                             \
+    afl_print_error_fmt(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-]  SYSTEM
+  ERROR : " cRST __VA_ARGS__);       \
+    afl_print_error_fmt(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n",
+  __FUNCTION__, __FILE__, __LINE__); \
+    afl_print_error_fmt(cLRD "       OS message : " cRST "%s\n",
+  strerror(errno));                             \
     afl_print_error_flush();  \
-    afl_exit(1);                                                                                    \
+    afl_exit(1); \
                                                                                                 \
   } while (0)*/
 
-
 #ifndef CHECK
-  #define CHECK(expr) if (!likely(expr)) { FATAL("CHECK failed: " #expr); }
+#define CHECK(expr)                \
+  if (!likely(expr)) {             \
+    FATAL("CHECK failed: " #expr); \
+  }
 #endif
 
 #ifdef DEBUG_BUILD
-  #define DCHECK(expr) if (!likely(expr)) { FATAL("DCHECK failed: " #expr); }
+#define DCHECK(expr)                \
+  if (!likely(expr)) {              \
+    FATAL("DCHECK failed: " #expr); \
+  }
 #else
-  #define DCHECK(expr) do {} while(0);
+#define DCHECK(expr) \
+  do {               \
+  } while (0);
 #endif
 
 #undef _TOSTRING1
@@ -213,49 +230,49 @@
 
 namespace afl {
 
-template<typename Last>
+template <typename Last>
 static inline void print(Last last) {
   std::cout << last;
 }
 
-template<typename First, typename ... Types>
-static inline void print(First first, Types ... args) {
+template <typename First, typename... Types>
+static inline void print(First first, Types... args) {
   std::cout << first;
   print(args...);
 }
 
-template<typename Last>
+template <typename Last>
 static inline void printErr(Last last) {
   std::cerr << last;
 }
 
-template<typename First, typename ... Types>
-static inline void printErr(First first, Types ... args) {
+template <typename First, typename... Types>
+static inline void printErr(First first, Types... args) {
   std::cerr << first;
   printErr(args...);
 }
 
 /* Show a prefixed warning. */
 
-template<typename ... Types>
-static inline void printWarn(Types ... args) {
+template <typename... Types>
+static inline void printWarn(Types... args) {
   printErr(cYEL "[!] " cBRI "WARNING: ", args..., cRST "\n");
 }
 
 /* Show a prefixed "doing something" message. */
 
-template<typename ... Types>
-static inline void printAct(Types ... args) {
+template <typename... Types>
+static inline void printAct(Types... args) {
   print(cLBL "[*] " cRST, args..., cRST "\n");
 }
 
 /* Show a prefixed "success" message. */
 
-template<typename ... Types>
-static inline void printOk(Types ... args) {
+template <typename... Types>
+static inline void printOk(Types... args) {
   print(cLBL "[*] " cRST, args..., cRST "\n");
 }
 
-} // namespace afl
+}  // namespace afl
 
-#endif                                                                                           /* ! _HAVE_DEBUG_H */
+#endif /* ! _HAVE_DEBUG_H */

@@ -35,75 +35,53 @@ namespace afl {
 
 class Feedback;
 
-template<class Derived>
+template <class Derived>
 class T_MapEntryMetadata : public EntryMetadata {
-
   std::vector<size_t> mapEntries;
   Feedback* feedback;
 
-public:
-
+ public:
   T_MapEntryMetadata(Feedback* feedback_) : feedback(feedback_) {}
 
-  Feedback* GetFeedback() {
-    return feedback;
-  }
+  Feedback* GetFeedback() { return feedback; }
 
-  size_t GetMapEntriesCount() {
-    return mapEntries.size();
-  }
+  size_t GetMapEntriesCount() { return mapEntries.size(); }
 
-  void AddMapEntry(size_t entry) {
-    mapEntries.push_back(entry);
-  }
+  void AddMapEntry(size_t entry) { mapEntries.push_back(entry); }
 
   void AddNewMapEntry(size_t entry) {
     static_cast<Derived*>(this)->AddNewMapEntry(entry);
   }
-  
+
   void AddIncrementMapEntry(size_t entry) {
     static_cast<Derived*>(this)->AddIncrementMapEntry(entry);
   }
-  
+
   size_t GetMapEntry(size_t index) {
     DCHECK(index < GetNewMapEntriesCount());
     return mapEntries[index];
   }
-
 };
 
 class MapNewsEntryMetadata : public T_MapEntryMetadata<MapNewsEntryMetadata> {
-
-public:
-
+ public:
   using T_MapEntryMetadata<MapNewsEntryMetadata>::T_MapEntryMetadata;
 
-  void AddNewMapEntry(size_t entry) {
-    AddMapEntry(entry);
-  }
-  
-  void AddIncrementMapEntry(size_t entry) {
-    (void)entry;
-  }
+  void AddNewMapEntry(size_t entry) { AddMapEntry(entry); }
 
+  void AddIncrementMapEntry(size_t entry) { (void)entry; }
 };
 
-class MapIncrementsEntryMetadata : public T_MapEntryMetadata<MapIncrementsEntryMetadata> {
-
-public:
-
+class MapIncrementsEntryMetadata
+    : public T_MapEntryMetadata<MapIncrementsEntryMetadata> {
+ public:
   using T_MapEntryMetadata<MapIncrementsEntryMetadata>::T_MapEntryMetadata;
 
-  void AddNewMapEntry(size_t entry) {
-    AddMapEntry(entry);
-  }
-  
-  void AddIncrementMapEntry(size_t entry) {
-    AddMapEntry(entry);
-  }
+  void AddNewMapEntry(size_t entry) { AddMapEntry(entry); }
 
+  void AddIncrementMapEntry(size_t entry) { AddMapEntry(entry); }
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif

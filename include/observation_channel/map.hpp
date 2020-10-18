@@ -33,35 +33,26 @@
 
 namespace afl {
 
-template<typename MapType>
+template <typename MapType>
 class BaseMapObservationChannel : public ObservationChannel {
-
-protected:
-
+ protected:
   MapType traceMap;
   size_t traceMapSize;
 
-public:
-
-  BaseMapObservationChannel(MapType trace_map, size_t trace_map_size) : traceMap(trace_map), traceMapSize(trace_map_size) {}
+ public:
+  BaseMapObservationChannel(MapType trace_map, size_t trace_map_size)
+      : traceMap(trace_map), traceMapSize(trace_map_size) {}
 
   /*
     Getters.
   */
-  MapType GetMap() {
-    return traceMap;
-  }
-  virtual size_t GetSize() {
-    return traceMapSize;
-  }
-  
+  MapType GetMap() { return traceMap; }
+  virtual size_t GetSize() { return traceMapSize; }
 };
 
-template<typename MapBaseType, MapBaseType init_value = 0>
+template <typename MapBaseType, MapBaseType init_value = 0>
 class MapObservationChannel : public BaseMapObservationChannel<MapBaseType*> {
-
-public:
-
+ public:
   using BaseMapObservationChannel<MapBaseType*>::BaseMapObservationChannel;
 
   /*
@@ -70,10 +61,8 @@ public:
   void Reset() override {
     std::fill_n(this->GetMap(), init_value, this->GetSize());
   }
-  
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

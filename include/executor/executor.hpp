@@ -29,80 +29,66 @@
 
 #include <vector>
 
-#include "result.hpp"
 #include "observation_channel/observation_channel.hpp"
+#include "result.hpp"
 
 namespace afl {
 
 class ObservationChannel;
 class Input;
 
-enum class ExitType {
-  Ok,
-  Crash,
-  Oom
-};
+enum class ExitType { Ok, Crash, Oom };
 
 /*
-  An Executor is an entity with a set of violation oracles, a set of observation channels, a function that allows
-  instructing the SUT about the input to test, and a function to run the SUT.
+  An Executor is an entity with a set of violation oracles, a set of observation
+  channels, a function that allows instructing the SUT about the input to test,
+  and a function to run the SUT.
 */
 class Executor {
-
-protected:
-
+ protected:
   std::vector<ObservationChannel*> observationChannels;
-  
-  Input* currentInput;
-  
-public:
 
+  Input* currentInput;
+
+ public:
   /*
     Run the target represented by the executor.
   */
   virtual Result<ExitType> RunTarget() = 0;
-  
+
   /*
     Instruct the SUT about the input.
   */
-  virtual void PlaceInput(Input* input) {
-    currentInput = input;
-  }
-  
-  Input* GetCurrentInput() {
-    return currentInput;
-  }
-  
+  virtual void PlaceInput(Input* input) { currentInput = input; }
+
+  Input* GetCurrentInput() { return currentInput; }
+
   std::vector<ObservationChannel*>& GetObservationChannels() {
     return observationChannels;
   }
-  
+
   void ResetObservationChannels() {
     for (auto obv : observationChannels)
       obv->Reset();
   }
-  
+
   void PostExecObservationChannels() {
     for (auto obv : observationChannels)
       obv->PostExec(this);
   }
-  
+
   void AddObserationChannel(ObservationChannel* observation_channel) {
     observationChannels.push_back(observation_channel);
   }
-  
-  template <class ObservationChannelType, typename...ArgsTypes>
-  ObservationChannelType* CreateObservationChannel(ArgsTypes... args) {
 
+  template <class ObservationChannelType, typename... ArgsTypes>
+  ObservationChannelType* CreateObservationChannel(ArgsTypes... args) {
     ObservationChannelType* obj = new ObservationChannelType(args...);
     AddObserationChannel(obj);
     return obj;
-
   }
-
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

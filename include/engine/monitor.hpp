@@ -29,55 +29,39 @@
 
 #include "result.hpp"
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 namespace afl {
 
 class Mutator;
 
 class Monitor {
-
-public:
-
+ public:
   virtual std::string Report() = 0;
-
 };
 
 class StageMonitor : public Monitor {
-
   const char* stageName;
 
-public:
+ public:
+  void SetStageName(const char* name) { stageName = name; }
 
-  void SetStageName(const char* name) {
-    stageName = name;
-  }
-
-  std::string Report() override {
-    return stageName;
-  }
-
+  std::string Report() override { return stageName; }
 };
 
 class FindingsMonitor : public Monitor {
-
   std::unordered_map<Mutator*, size_t> findingsByMutator;
   size_t findingsTotalNum;
 
-public:
-
-  void AddFinding(Mutator* mutator) {
-    findingsByMutator[mutator]++;
-  }
+ public:
+  void AddFinding(Mutator* mutator) { findingsByMutator[mutator]++; }
 
   std::string Report() override {
-    return ""; // TODO
+    return "";  // TODO
   }
-
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

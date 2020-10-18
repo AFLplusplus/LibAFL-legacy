@@ -27,36 +27,35 @@
 #ifndef LIBAFL_EXECUTOR_INMEMORY_H
 #define LIBAFL_EXECUTOR_INMEMORY_H
 
-#include "result.hpp"
 #include "executor/executor.hpp"
 #include "input/input.hpp"
+#include "result.hpp"
 
 namespace afl {
 
-typedef ExitType (*HarnessFunction)(Executor *, u8 *, size_t);
+typedef ExitType (*HarnessFunction)(Executor*, u8*, size_t);
 
 class InMemoryExecutor;
 extern InMemoryExecutor* g_current_inmemory_executor;
 
 /*
-  An Executor is an entity with a set of violation oracles, a set of observation channels, a function that allows
-  instructing the SUT about the input to test, and a function to run the SUT.
+  An Executor is an entity with a set of violation oracles, a set of observation
+  channels, a function that allows instructing the SUT about the input to test,
+  and a function to run the SUT.
 */
 class InMemoryExecutor : public Executor {
-
-protected:
-
+ protected:
   HarnessFunction harnessFunction;
-  
+
   /* libFuzzer compatibility */
-  char **argv;
-  int    argc;
+  char** argv;
+  int argc;
 
   u8* buffer;
-  
-public:
 
-  InMemoryExecutor(HarnessFunction harness_function) : harnessFunction(harness_function) {
+ public:
+  InMemoryExecutor(HarnessFunction harness_function)
+      : harnessFunction(harness_function) {
     buffer = new u8[kMaxInputBytes];
   }
 
@@ -70,10 +69,8 @@ public:
     }
     return ExitType::Ok;
   }
-
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

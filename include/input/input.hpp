@@ -36,35 +36,35 @@ namespace afl {
 const size_t kMaxInputBytes = 1048576;
 
 /*
-  An Input entity defines one possible sample from the Input Space and can hold properties about the input itself, the
-  relation between the input and the SUT, or the input and the specification.
+  An Input entity defines one possible sample from the Input Space and can hold
+  properties about the input itself, the relation between the input and the SUT,
+  or the input and the specification.
 */
 class Input {
-  
-public:
-
+ public:
   virtual ~Input() = default;
 
   /*
     Serialize the input to a buffer.
   */
   virtual Result<size_t> Serialize(u8* buffer, size_t size) = 0;
-  
+
   /*
     Deserialize the input from a buffer.
   */
   virtual Result<size_t> Deserialize(u8* buffer, size_t size) = 0;
-  
+
   /*
     Copy this instance.
   */
   virtual Result<Input*> Copy() = 0;
 
   /*
-    Assign an instance. Maybe return an error on type mistmatch? But requires dyncast.
+    Assign an instance. Maybe return an error on type mistmatch? But requires
+    dyncast.
   */
   virtual Result<void> Assign(Input* input) = 0;
-  
+
   /*
     Clear the input content.
   */
@@ -75,10 +75,8 @@ public:
   */
   virtual Result<void> SaveToFile(const char* filename);
   virtual Result<void> LoadFromFile(const char* filename);
-
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

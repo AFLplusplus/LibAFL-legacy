@@ -27,8 +27,8 @@
 #ifndef LIBAFL_MUTATOR_HAVOC_H
 #define LIBAFL_MUTATOR_HAVOC_H
 
-#include "mutator/scheduled.hpp"
 #include "corpus/corpus.hpp"
+#include "mutator/scheduled.hpp"
 
 namespace afl {
 
@@ -45,12 +45,11 @@ void MutationCloneBytes(ScheduledMutator* mutator, Input* input);
 void MutationSplice(ScheduledMutator* mutator, Input* input);
 
 class HavocMutator : public ScheduledMutator {
-
   Corpus* corpus;
 
-public:
-
-  HavocMutator(RandomState* random_state, Corpus* corpus_) : ScheduledMutator(random_state), corpus(corpus_) {
+ public:
+  HavocMutator(RandomState* random_state, Corpus* corpus_)
+      : ScheduledMutator(random_state), corpus(corpus_) {
     AddMutation(MutationFlipBit);
     AddMutation(MutationFlip2Bits);
     AddMutation(MutationFlip4Bits);
@@ -64,11 +63,10 @@ public:
     if (corpus)
       AddMutation(MutationSplice);
   }
-  HavocMutator(RandomState* random_state) : HavocMutator(random_state, nullptr) {}
-
+  HavocMutator(RandomState* random_state)
+      : HavocMutator(random_state, nullptr) {}
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

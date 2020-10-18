@@ -35,112 +35,72 @@
 namespace afl {
 
 class Error {
+  const char* srcFile;
+  size_t srcLine;
 
-  const char *srcFile;
-  size_t      srcLine;
+ public:
+  Error(const char* src_file, size_t src_line)
+      : srcFile(src_file), srcLine(src_line) {}
 
-public:
-  Error(const char *src_file, size_t src_line) : srcFile(src_file), srcLine(src_line) {}
+  virtual const char* Message() = 0;
 
-  virtual const char *Message() = 0;
+  const char* GetSrcFile() { return srcFile; }
 
-  const char *GetSrcFile() {
-
-    return srcFile;
-
-  }
-
-  size_t GetSrcLine() {
-
-    return srcLine;
-
-  }
-
+  size_t GetSrcLine() { return srcLine; }
 };
 
 class RuntimeError : public Error {
+  const char* message;
 
-  const char *message;
+ public:
+  RuntimeError(const char* src_file, size_t src_line, const char* msg)
+      : Error(src_file, src_line), message(msg) {}
 
-public:
-  RuntimeError(const char *src_file, size_t src_line, const char *msg) : Error(src_file, src_line), message(msg) {}
-
-  const char *Message() override {
-
-    return message;
-
-  }
-
+  const char* Message() override { return message; }
 };
 
 class AllocationError : public Error {
+ public:
+  AllocationError(const char* src_file, size_t src_line)
+      : Error(src_file, src_line) {}
 
-public:
-  AllocationError(const char *src_file, size_t src_line) : Error(src_file, src_line) {}
-
-  const char *Message() override {
-
-    return "Cannot allocate memory";
-
-  }
-
+  const char* Message() override { return "Cannot allocate memory"; }
 };
 
 class OSError : public Error {
-
   int errNum;
 
-public:
-  OSError(const char *src_file, size_t src_line, int err_num) : Error(src_file, src_line), errNum(err_num) {}
+ public:
+  OSError(const char* src_file, size_t src_line, int err_num)
+      : Error(src_file, src_line), errNum(err_num) {}
 
-  const char *Message() override {
-
-    return strerror(errNum);
-
-  }
-
+  const char* Message() override { return strerror(errNum); }
 };
 
 class OutOfBoundsError : public Error {
+ public:
+  OutOfBoundsError(const char* src_file, size_t src_line)
+      : Error(src_file, src_line) {}
 
-public:
-  OutOfBoundsError(const char *src_file, size_t src_line) : Error(src_file, src_line) {}
-
-  const char *Message() override {
-
-    return "Out of bound access";
-
-  }
-
+  const char* Message() override { return "Out of bound access"; }
 };
 
 class NotEnoughSpaceError : public Error {
+ public:
+  NotEnoughSpaceError(const char* src_file, size_t src_line)
+      : Error(src_file, src_line) {}
 
-public:
-  NotEnoughSpaceError(const char *src_file, size_t src_line) : Error(src_file, src_line) {}
-
-  const char *Message() override {
-
-    return "Not enough space in container";
-
-  }
-
+  const char* Message() override { return "Not enough space in container"; }
 };
 
 class EmptyContainerError : public Error {
+ public:
+  EmptyContainerError(const char* src_file, size_t src_line)
+      : Error(src_file, src_line) {}
 
-public:
-  EmptyContainerError(const char *src_file, size_t src_line) : Error(src_file, src_line) {}
-
-  const char *Message() override {
-
-    return "Empty container";
-
-  }
-
+  const char* Message() override { return "Empty container"; }
 };
 
 }  // namespace afl
 
 #endif
-

@@ -27,8 +27,8 @@
 #ifndef LIBAFL_MUTATOR_SCHEDULED_H
 #define LIBAFL_MUTATOR_SCHEDULED_H
 
-#include "mutator/mutator.hpp"
 #include "input/input.hpp"
+#include "mutator/mutator.hpp"
 #include "utils/random.hpp"
 
 #include <vector>
@@ -40,17 +40,15 @@ class ScheduledMutator;
 typedef void (*MutationFunctionType)(ScheduledMutator*, Input*);
 
 class ScheduledMutator : public Mutator {
-
   std::vector<MutationFunctionType> mutations;
 
-public:
-
+ public:
   using Mutator::Mutator;
 
   virtual size_t Iterations(Input* input) {
     return 1 << (1 + (size_t)GetRandomState()->Below(7));
   }
-  
+
   virtual MutationFunctionType Schedule(Input* input) {
     return GetMutationByIndex(GetRandomState()->Below(GetMutationsCount()));
   }
@@ -61,31 +59,25 @@ public:
     return mutations[index];
   }
 
-  size_t GetMutationsCount() {
-    return mutations.size();
-  }
-  
+  size_t GetMutationsCount() { return mutations.size(); }
+
   void AddMutation(MutationFunctionType mutation) {
     mutations.push_back(mutation);
   }
-  
+
   /*
     Mutate an Input in-place.
   */
   virtual void Mutate(Input* input, size_t stage_idx) override {
-  
     (void)stage_idx;
-  
+
     size_t num = Iterations(input);
-    
+
     for (size_t i = 0; i < num; ++i)
       Schedule(input)(this, input);
-
   }
-
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

@@ -34,54 +34,42 @@
 namespace afl {
 
 class MutationalStage : public Stage {
-  
   std::vector<Mutator*> mutators;
 
-public:
-
+ public:
   using Stage::Stage;
 
   virtual size_t Iterations(Entry* entry) {
     return 1 + (size_t)GetRandomState()->Below(128);
   }
-  
-  void Perform(Input* input, Entry* entry) override {
 
+  void Perform(Input* input, Entry* entry) override {
     size_t num = Iterations(entry);
     auto original = entry->LoadInput();
-  
+
     for (size_t i = 0; i < num; ++i) {
-    
       for (auto mutator : mutators)
         mutator->Mutate(input, i);
-        
+
       bool interesting = GetEngine()->Execute(input, entry);
-      
+
       for (auto mutator : mutators)
         mutator->PostExec(interesting, i);
-      
+
       input->Assign(original);
-    
     }
-
-  }
-  
-  void AddMutator(Mutator* mutator) {
-    mutators.push_back(mutator);
   }
 
-  template <class MutatorType, typename...ArgsTypes>
+  void AddMutator(Mutator* mutator) { mutators.push_back(mutator); }
+
+  template <class MutatorType, typename... ArgsTypes>
   MutatorType* CreateMutator(ArgsTypes... args) {
-
     MutatorType* obj = new MutatorType(GetRandomState(), args...);
     AddMutator(obj);
     return obj;
-
   }
-
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

@@ -27,8 +27,8 @@
 #ifndef LIBAFL_INPUT_BYTES_H
 #define LIBAFL_INPUT_BYTES_H
 
-#include "result.hpp"
 #include "input/input.hpp"
+#include "result.hpp"
 
 #include <string>
 #include <utility>
@@ -38,21 +38,18 @@ namespace afl {
 // TODO use incremental call to std::string::reserve()
 
 class BytesInput : public Input {
-
   std::string bytes;
 
-public:
-
-  BytesInput(u8* buffer, size_t size) : bytes(reinterpret_cast<char*>(buffer), size) {}
+ public:
+  BytesInput(u8* buffer, size_t size)
+      : bytes(reinterpret_cast<char*>(buffer), size) {}
   BytesInput(const std::string& string) : bytes(string) {}
   BytesInput(std::string&& string) : bytes(string) {}
   BytesInput(const BytesInput& bytes_input) : bytes(bytes_input.bytes) {}
   BytesInput(BytesInput&& bytes_input) : bytes(std::move(bytes_input.bytes)) {}
   BytesInput() {}
 
-  std::string& Bytes() {
-    return bytes;
-  }
+  std::string& Bytes() { return bytes; }
 
   /*
     Serialize the input to a buffer.
@@ -63,7 +60,7 @@ public:
     std::copy_n(bytes.data(), bytes.size(), buffer);
     return bytes.size();
   }
-  
+
   /*
     Deserialize the input from a buffer.
   */
@@ -71,33 +68,28 @@ public:
     bytes.copy(reinterpret_cast<char*>(buffer), size);
     return bytes.size();
   }
-  
+
   /*
     Copy this instance.
   */
-  Result<Input*> Copy() override {
-    return new BytesInput(*this);
-  }
+  Result<Input*> Copy() override { return new BytesInput(*this); }
 
   /*
-    Assign an instance. Maybe return an error on type mistmatch? But requires dyncast.
+    Assign an instance. Maybe return an error on type mistmatch? But requires
+    dyncast.
   */
   Result<void> Assign(Input* input) override {
     DCHECK(dynamic_cast<BytesInput*>(input));
     bytes = static_cast<BytesInput*>(input)->bytes;
     return OK();
   }
-  
+
   /*
     Clear the input content.
   */
-  void Clear() override {
-    bytes.clear();
-  }
-
+  void Clear() override { bytes.clear(); }
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

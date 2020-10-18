@@ -33,31 +33,24 @@
 namespace afl {
 
 class Stage {
-  
   RandomState* randomState;
   Engine* engine;
-  
-public:
 
-  Stage(RandomState* random_state, Engine* engine_) : randomState(random_state), engine(engine_) {}
+ public:
+  Stage(RandomState* random_state, Engine* engine_)
+      : randomState(random_state), engine(engine_) {}
 
-  inline RandomState* GetRandomState() {
-    return randomState;
-  }
-  
+  inline RandomState* GetRandomState() { return randomState; }
+
   inline void SetRandomState(RandomState* random_state) {
     randomState = random_state;
   }
 
-  inline Engine* GetEngine() {
-    return engine;
-  }
+  inline Engine* GetEngine() { return engine; }
 
   virtual void Perform(Input* input, Entry* entry) = 0;
-
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

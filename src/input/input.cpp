@@ -35,17 +35,21 @@ static __thread u8 g_loadsave_file_temp_buffer[kMaxInputBytes];
 Result<void> Input::LoadFromFile(const char* filename) {
   std::basic_ifstream<u8> ifile(filename, std::ios::binary);
   ifile.read(g_loadsave_file_temp_buffer, kMaxInputBytes);
-  R(Deserialize(g_loadsave_file_temp_buffer, ifile.gcount()));
+  auto res = Deserialize(g_loadsave_file_temp_buffer, ifile.gcount());
+  if (!res.IsOk())
+    return res.GetError();
   ifile.close();
   return OK();
 }
 
 Result<void> Input::SaveToFile(const char* filename) {
   std::basic_ofstream<u8> ofile(filename, std::ios::binary);
-  size_t size = R(Serialize(g_loadsave_file_temp_buffer, kMaxInputBytes));
-  ofile.write(g_loadsave_file_temp_buffer, size);
+  auto size = Serialize(g_loadsave_file_temp_buffer, kMaxInputBytes);
+  if (!size.IsOk())
+    return size.GetError();
+  ofile.write(g_loadsave_file_temp_buffer, size.Unwrap());
   ofile.close();
   return OK();
 }
 
-} // namespace afl
+}  // namespace afl

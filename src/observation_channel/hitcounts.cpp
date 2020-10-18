@@ -35,34 +35,33 @@ namespace afl {
 static u16 g_count_class_lookup16[65536];
 
 static u8 CountClassU8(u8 value) {
-
-  if (value <= 2) return value;
-  else if (value == 3) return 4;
-  else if (value >= 4 && value <= 7) return 8;
-  else if (value >= 8 && value <= 15) return 16;
-  else if (value >= 16 && value <= 31) return 32;
-  else if (value >= 32 && value <= 127) return 64;
-  else return 128;
-
+  if (value <= 2)
+    return value;
+  else if (value == 3)
+    return 4;
+  else if (value >= 4 && value <= 7)
+    return 8;
+  else if (value >= 8 && value <= 15)
+    return 16;
+  else if (value >= 16 && value <= 31)
+    return 32;
+  else if (value >= 32 && value <= 127)
+    return 64;
+  else
+    return 128;
 }
 
 static bool InitCountClass16() {
-
   u32 b1, b2;
 
   for (b1 = 0; b1 < 256; b1++) {
-
     for (b2 = 0; b2 < 256; b2++) {
-
       g_count_class_lookup16[(b1 << 8) + b2] =
           (CountClassU8(b1) << 8) | CountClassU8(b2);
-
     }
-
   }
-  
-  return true;
 
+  return true;
 }
 
 static bool g_count_class_lookup16_initialized = InitCountClass16();
@@ -70,59 +69,47 @@ static bool g_count_class_lookup16_initialized = InitCountClass16();
 #ifdef WORD_SIZE_64
 
 void HitcountsMapObservationChannel::PostExec(Executor* executor) {
-
-  u64 *mem = reinterpret_cast<u64*>(GetMap());
+  u64* mem = reinterpret_cast<u64*>(GetMap());
 
   u32 i = (GetSize() >> 3);
 
   while (i--) {
-
     /* Optimize for sparse bitmaps. */
 
     if (unlikely(*mem)) {
-
-      u16 *mem16 = reinterpret_cast<u16*>(mem);
+      u16* mem16 = reinterpret_cast<u16*>(mem);
 
       mem16[0] = g_count_class_lookup16[mem16[0]];
       mem16[1] = g_count_class_lookup16[mem16[1]];
       mem16[2] = g_count_class_lookup16[mem16[2]];
       mem16[3] = g_count_class_lookup16[mem16[3]];
-
     }
 
     ++mem;
-
   }
-
 }
 
 #else
 
 void HitcountsMapObservationChannel::PostExec(Executor* executor) {
-
-  u32 *mem = reinterpret_cast<u32*>(GetMap());
+  u32* mem = reinterpret_cast<u32*>(GetMap());
 
   u32 i = (GetSize() >> 2);
 
   while (i--) {
-
     /* Optimize for sparse bitmaps. */
 
     if (unlikely(*mem)) {
-
-      u16 *mem16 = reinterpret_cast<u16*>(mem);
+      u16* mem16 = reinterpret_cast<u16*>(mem);
 
       mem16[0] = g_count_class_lookup16[mem16[0]];
       mem16[1] = g_count_class_lookup16[mem16[1]];
-
     }
 
     ++mem;
-
   }
-
 }
 
 #endif
 
-} // namespace afl
+}  // namespace afl

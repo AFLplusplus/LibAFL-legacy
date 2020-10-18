@@ -27,24 +27,21 @@
 #ifndef LIBAFL_OBSERVATION_CHANNEL_HITCOUNTS_H
 #define LIBAFL_OBSERVATION_CHANNEL_HITCOUNTS_H
 
-#include "types.hpp"
 #include "observation_channel/map.hpp"
+#include "types.hpp"
 
 namespace afl {
 
 class HitcountsMapObservationChannel : public MapObservationChannel<u8> {
-
-public:
-
+ public:
   using MapObservationChannel<u8>::MapObservationChannel;
 
   /*
     Bucketize the map after the execution.
   */
   void PostExec(Executor* executor) override;
-  
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif

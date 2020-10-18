@@ -29,40 +29,32 @@
 
 #include "input/input.hpp"
 
-#include <typeinfo>
 #include <typeindex>
+#include <typeinfo>
 #include <unordered_map>
 
 namespace afl {
 
-class EntryMetadata {
-  
-};
+class EntryMetadata {};
 
 class Entry {
-
   Input* input;
-  
+
   std::unordered_map<std::type_index, EntryMetadata*> metaDatas;
 
   char* fileName;
   bool isOnDisk;
 
-public:
-
+ public:
   Entry(Input* input_) : input(input_) {}
-  
+
   // TODO atomic flag to avoid cache eviction while using the input.
   Input* LoadInput();
-  
-  bool IsOnDisk() {
-    return isOnDisk;
-  }
-  
-  const char* GetFileName() {
-    return fileName;
-  }
-  
+
+  bool IsOnDisk() { return isOnDisk; }
+
+  const char* GetFileName() { return fileName; }
+
   inline bool AddMeta(EntryMetadata* meta) {
     auto index = std::type_index(typeid(*meta));
     auto it = metaDatas.find(index);
@@ -71,26 +63,24 @@ public:
     metaDatas[index] = meta;
     return true;
   }
-  
+
   inline EntryMetadata* GetMeta(const std::type_index index) {
     auto it = metaDatas.find(index);
     if (it == metaDatas.end())
       return nullptr;
     return it->second;
   }
-  
+
   inline EntryMetadata* GetMeta(const std::type_info& info) {
     return GetMeta(std::type_index(info));
   }
-  
-  template<typename EntryMetaType>
+
+  template <typename EntryMetaType>
   inline EntryMetaType* GetMeta() {
     return GetMeta(typeid(EntryMetaType));
   }
-  
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

@@ -32,16 +32,14 @@
 namespace afl {
 
 class QueueCorpus : public Corpus {
-
   size_t pos = 0;
   size_t cycles = 0;
 
-public:
-
+ public:
   using Corpus::Corpus;
 
   virtual Result<Entry*> Get() override {
-    if(GetEntriesCount() == 0)
+    if (GetEntriesCount() == 0)
       return ERR(EmptyContainerError);
     if (pos == GetEntriesCount()) {
       pos = 0;
@@ -49,18 +47,12 @@ public:
     }
     return GetByIndex(pos++);
   }
-  
-  size_t GetCycles() {
-    return cycles;
-  }
-  
-  size_t GetPos() {
-    return pos;
-  }
-  
+
+  size_t GetCycles() { return cycles; }
+
+  size_t GetPos() { return pos; }
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

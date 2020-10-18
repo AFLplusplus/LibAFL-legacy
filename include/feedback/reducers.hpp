@@ -31,18 +31,18 @@
 
 namespace afl {
 
-template<typename T>
+template <typename T>
 static inline T ReducerMax(T first, T second) {
   return first > second ? first : second;
 }
 
-template<typename T>
+template <typename T>
 static inline T ReducerMin(T first, T second) {
   return first < second ? first : second;
 }
 
 // TODO use compilers builting like GCC's __builtin_clz
-template<typename T>
+template <typename T>
 static inline T ReducerLogBucket(T first, T second) {
   T hibit = 0;
   while (second > 1) {
@@ -52,16 +52,16 @@ static inline T ReducerLogBucket(T first, T second) {
   return first | hibit;
 }
 
-template<typename T>
+template <typename T>
 static inline T ReducerBitUnion(T first, T second) {
   return first | second;
 }
 
-template<typename T>
+template <typename T>
 static inline T ReducerBitIntersection(T first, T second) {
   return first & second;
 }
 
-} // namespace afl
+}  // namespace afl
 
 #endif

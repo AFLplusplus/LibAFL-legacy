@@ -30,10 +30,10 @@
 #include "types.hpp"
 
 static inline size_t NextPow2(size_t in) {
-
   // Commented this out as this behavior doesn't change, according to unittests
   // if (in == 0 || in > (size_t)-1) {
-  //   return 0;                  /* avoid undefined behaviour under-/overflow */
+  //   return 0;                  /* avoid undefined behaviour under-/overflow
+  //   */
   // }
 
   size_t out = in - 1;
@@ -43,13 +43,10 @@ static inline size_t NextPow2(size_t in) {
   out |= out >> 8;
   out |= out >> 16;
   return out + 1;
-
 }
 
 static inline u64 Rotl(const u64 x, int k) {
-
   return (x << k) | (x >> (64 - k));
-
 }
 
 #endif

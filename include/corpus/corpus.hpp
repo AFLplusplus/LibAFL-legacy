@@ -24,49 +24,39 @@
 
  */
 
-#ifndef LIBAFL_CORPUS_CORPUS_H 
+#ifndef LIBAFL_CORPUS_CORPUS_H
 #define LIBAFL_CORPUS_CORPUS_H
 
-#include "result.hpp"
-#include "errors.hpp"
 #include "corpus/entry.hpp"
+#include "errors.hpp"
+#include "result.hpp"
 #include "utils/random.hpp"
 
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 namespace afl {
 
 class Corpus {
-
-protected:
+ protected:
   std::vector<Entry*> entries;
-  
+
   char dirPath[PATH_MAX];
   u8 isOnDisk;
-  
+
   RandomState* randomState;
 
-public:
-
+ public:
   Corpus(RandomState* random_state) : randomState(random_state) {}
 
-  RandomState* GetRandomState() {
-    return randomState;
-  }
-  
-  void SetRandomState(RandomState* random_state) {
-    randomState = random_state;
-  }
+  RandomState* GetRandomState() { return randomState; }
 
-  size_t GetEntriesCount() {
-    return entries.size();
-  }
+  void SetRandomState(RandomState* random_state) { randomState = random_state; }
 
-  virtual void Insert(Entry* entry) {
-    entries.push_back(entry);
-  }
-  
+  size_t GetEntriesCount() { return entries.size(); }
+
+  virtual void Insert(Entry* entry) { entries.push_back(entry); }
+
   virtual bool Remove(Entry* entry) {
     auto it = std::find(entries.begin(), entries.end(), entry);
     if (it != entries.end()) {
@@ -75,26 +65,22 @@ public:
     }
     return false;
   }
-  
+
   Result<Entry*> GetByIndex(size_t index) {
-    if(index >= GetEntriesCount())
+    if (index >= GetEntriesCount())
       return ERR(OutOfBoundsError);
     return entries[index];
   }
-  
+
   Result<Entry*> GetRandom() {
-    if(GetEntriesCount() == 0)
+    if (GetEntriesCount() == 0)
       return ERR(EmptyContainerError);
     return GetByIndex(randomState->Below(GetEntriesCount()));
   }
-  
-  virtual Result<Entry*> Get() {
-    return GetRandom();
-  }
-  
+
+  virtual Result<Entry*> Get() { return GetRandom(); }
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
-

@@ -25,63 +25,58 @@
  */
 
 #include "engine/engine.hpp"
-#include "feedback/feedback.hpp"
-#include "executor/executor.hpp"
+
 #include "corpus/corpus.hpp"
+#include "executor/executor.hpp"
+#include "feedback/feedback.hpp"
 #include "stage/stage.hpp"
 
 using namespace afl;
 
 bool Engine::Execute(Input* input, Entry* entry) {
-
   if (startTime == std::chrono::milliseconds{0})
-    startTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch());
+    startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch());
 
   executor->ResetObservationChannels();
   executor->PlaceInput(input);
-  
+
   PreExec();
-  
+
   // TODO execution time
-  
+
   executor->RunTarget();
   ++executions;
-  
+
   PostExec();
 
   executor->PostExecObservationChannels();
-  
+
   // TODO find a way to pass metadatas for the entry
-  
+
   float rate = 0.0;
-  for(auto feedback : feedbacks)
+  for (auto feedback : feedbacks)
     rate += feedback->IsInteresting(executor, input);
 
   if (rate >= 0.5) {
-  
     auto entry = new Entry(input);
-    //entry->AddMeta(meta);
+    // entry->AddMeta(meta);
     mainCorpus->Insert(entry);
-    
-    return true;
-  
-  }
-  
-  return false;
 
+    return true;
+  }
+
+  return false;
 }
 
 void Engine::FuzzOne() {
-
-  Entry* entry = mainCorpus->Get().Expect("Cannot get an entry from the corpus");
+  Entry* entry =
+      mainCorpus->Get().Expect("Cannot get an entry from the corpus");
   Input* input = entry->LoadInput()->Copy().Expect("Cannot copy the input");
-  
+
   for (auto stage : stages) {
-  
     stage->Perform(input, entry);
-  
   }
-  
+
   delete input;
-  
 }

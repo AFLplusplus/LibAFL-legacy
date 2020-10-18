@@ -32,26 +32,23 @@ namespace afl {
 class Executor;
 
 class ObservationChannel {
-  
-public:
-
+ public:
   /*
     Flush the channel, if needed.
   */
-  virtual void Flush() {};
-  
+  virtual void Flush(){};
+
   /*
     Reset the channel.
   */
   virtual void Reset() = 0;
-  
+
   /*
     Post execution hook.
   */
-  virtual void PostExec(Executor* executor) {};
-
+  virtual void PostExec(Executor* executor){};
 };
 
-} // namespace afl
+}  // namespace afl
 
 #endif
