@@ -27,8 +27,10 @@
 #ifndef LIBAFL_FEEDBACK_FEEDBACK_H
 #define LIBAFL_FEEDBACK_FEEDBACK_H
 
-#include "corpus/corpus.hpp"
 #include "result.hpp"
+
+#include "corpus/corpus.hpp"
+#include "corpus/entry.hpp"
 
 namespace afl {
 
@@ -38,7 +40,7 @@ class Feedback {
   Corpus* ownCorpus = nullptr;
 
  public:
-  virtual Result<float> IsInteresting(Executor* executor, Input* input) = 0;
+  virtual Result<float> IsInteresting(Executor* executor, Entry*& entry) = 0;
 
   void SetOwnCorpus(Corpus* corpus) { ownCorpus = corpus; }
 

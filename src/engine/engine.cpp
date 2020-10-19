@@ -52,18 +52,22 @@ Result<bool> Engine::Execute(Input* input, Entry* entry) {
 
   TRY(executor->PostExecObservationChannels());
 
-  // TODO find a way to pass metadatas for the entry
-
+  // The first IsInteresting that wants to add an input to the mainCorpus,
+  // if any, is responsible to initialize new_entry.
+  Entry *new_entry = nullptr;
   float rate = 0.0;
-  for (auto feedback : feedbacks)
-    rate += TRY(feedback->IsInteresting(executor, input));
+
+  for (auto feedback : feedbacks) {
+    rate += TRY_HANDLE(feedback->IsInteresting(executor, new_entry), {
+      if (new_entry) delete new_entry;
+    });
+  }
 
   if (rate >= 0.5) {
-    auto entry = new Entry(input);
-    // entry->AddMeta(meta);
-    mainCorpus->Insert(entry);
-
+    mainCorpus->Insert(new_entry);
     return true;
+  } else if (new_entry) {
+    delete new_entry;
   }
 
   return false;
