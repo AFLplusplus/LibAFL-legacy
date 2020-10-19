@@ -45,7 +45,7 @@ namespace afl {
     _res.UnsafeUnwrap();            \
   })
 
-#define TRYBLOCK(result, block)     \
+#define TRY_HANDLE(result, block)   \
   ({                                \
     auto _res = (result);           \
     if (unlikely(_res.IsErr())) {   \

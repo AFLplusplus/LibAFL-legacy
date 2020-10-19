@@ -37,7 +37,7 @@ namespace afl {
 
 class ScheduledMutator;
 
-typedef void (*MutationFunctionType)(ScheduledMutator*, Input*);
+typedef Result<void> (*MutationFunctionType)(ScheduledMutator*, Input*);
 
 class ScheduledMutator : public Mutator {
   std::vector<MutationFunctionType> mutations;
@@ -54,6 +54,7 @@ class ScheduledMutator : public Mutator {
   }
 
   MutationFunctionType GetMutationByIndex(size_t index) {
+    // TODO maybe use CHECK or return an Error
     if (index >= mutations.size())
       return nullptr;
     return mutations[index];
@@ -68,13 +69,15 @@ class ScheduledMutator : public Mutator {
   /*
     Mutate an Input in-place.
   */
-  virtual void Mutate(Input* input, size_t stage_idx) override {
+  virtual Result<void> Mutate(Input* input, size_t stage_idx) override {
     (void)stage_idx;
 
     size_t num = Iterations(input);
 
     for (size_t i = 0; i < num; ++i)
-      Schedule(input)(this, input);
+      TRY(Schedule(input)(this, input));
+    
+    return OK();
   }
 };
 

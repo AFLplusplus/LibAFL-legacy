@@ -59,7 +59,10 @@ class Executor {
   /*
     Instruct the SUT about the input.
   */
-  virtual void PlaceInput(Input* input) { currentInput = input; }
+  virtual Result<void> PlaceInput(Input* input) {
+    currentInput = input;
+    return OK();
+  }
 
   Input* GetCurrentInput() { return currentInput; }
 
@@ -67,14 +70,16 @@ class Executor {
     return observationChannels;
   }
 
-  void ResetObservationChannels() {
+  Result<void> ResetObservationChannels() {
     for (auto obv : observationChannels)
-      obv->Reset();
+      TRY(obv->Reset());
+    return OK();
   }
 
-  void PostExecObservationChannels() {
+  Result<void> PostExecObservationChannels() {
     for (auto obv : observationChannels)
-      obv->PostExec(this);
+      TRY(obv->PostExec(this));
+    return OK();
   }
 
   void AddObserationChannel(ObservationChannel* observation_channel) {

@@ -27,8 +27,9 @@
 #ifndef LIBAFL_MUTATOR_MUTATOR_H
 #define LIBAFL_MUTATOR_MUTATOR_H
 
-#include "input/input.hpp"
 #include "result.hpp"
+
+#include "input/input.hpp"
 #include "utils/random.hpp"
 
 namespace afl {
@@ -50,14 +51,16 @@ class Mutator {
   /*
     Mutate an Input in-place.
   */
-  virtual void Mutate(Input* input, size_t stage_idx) = 0;
+  virtual Result<void> Mutate(Input* input, size_t stage_idx) = 0;
 
-  void Mutate(Input* input) { Mutate(input, static_cast<size_t>(-1)); }
+  Result<void> Mutate(Input* input) { return Mutate(input, static_cast<size_t>(-1)); }
 
-  virtual void PostExec(bool is_interesting, size_t stage_idx){};
+  virtual Result<void> PostExec(bool is_interesting, size_t stage_idx) {
+    return OK();
+  }
 
-  void PostExec(bool is_interesting) {
-    PostExec(is_interesting, static_cast<size_t>(-1));
+  Result<void> PostExec(bool is_interesting) {
+    return PostExec(is_interesting, static_cast<size_t>(-1));
   }
 };
 

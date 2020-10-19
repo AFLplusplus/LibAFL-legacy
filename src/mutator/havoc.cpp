@@ -31,26 +31,48 @@
 
 namespace afl {
 
-void MutationFlipBit(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationFlipBit(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationFlip2Bits(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationFlip2Bits(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationFlip4Bits(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationFlip4Bits(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationFlipByte(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationFlipByte(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationFlip2Bytes(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationFlip2Bytes(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationFlip4Bytes(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationFlip4Bytes(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationRandomByteAddSub(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationRandomByteAddSub(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationRandomByte(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationRandomByte(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationDeleteBytes(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationDeleteBytes(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationCloneBytes(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationCloneBytes(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
-void MutationSplice(ScheduledMutator* mutator, Input* input) {}
+Result<void> MutationSplice(ScheduledMutator* mutator, Input* input) {
+  return OK();
+}
 
 }  // namespace afl

@@ -59,9 +59,9 @@ Result<bool> Engine::Execute(Input* input, Entry* entry) {
     rate += TRY(feedback->IsInteresting(executor, input));
 
   if (rate >= 0.5) {
-    auto entry = NEW(Entry, input);
+    auto entry = new Entry(input);
     // entry->AddMeta(meta);
-    TRY(mainCorpus->Insert(entry));
+    mainCorpus->Insert(entry);
 
     return true;
   }
@@ -74,10 +74,12 @@ Result<void> Engine::FuzzOne() {
   Input* input = TRY(TRY(entry->LoadInput())->Copy());
 
   for (auto stage : stages) {
-    TRYBLOCK(stage->Perform(input, entry), {
+    currentStage = stage;
+    TRY_HANDLE(stage->Perform(input, entry), {
       delete input;
     });
   }
 
   delete input;
+  return OK();
 }

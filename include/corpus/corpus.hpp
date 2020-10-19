@@ -56,13 +56,8 @@ class Corpus {
 
   size_t GetEntriesCount() { return entries.size(); }
 
-  virtual Result<void> Insert(Entry* entry) {
-    try {
-      entries.push_back(entry);
-    } catch (std::bad_alloc& ba) {
-      return ERR(AllocationError);
-    }
-    return OK();
+  virtual void Insert(Entry* entry) {
+    entries.push_back(entry);
   }
 
   virtual bool Remove(Entry* entry) {

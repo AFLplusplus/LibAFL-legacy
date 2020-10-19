@@ -38,7 +38,7 @@ class Feedback {
   Corpus* ownCorpus = nullptr;
 
  public:
-  virtual float IsInteresting(Executor* executor, Input* input) = 0;
+  virtual Result<float> IsInteresting(Executor* executor, Input* input) = 0;
 
   void SetOwnCorpus(Corpus* corpus) { ownCorpus = corpus; }
 

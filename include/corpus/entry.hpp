@@ -49,22 +49,18 @@ class Entry {
   Entry(Input* input_) : input(input_) {}
 
   // TODO atomic flag to avoid cache eviction while using the input.
-  Input* LoadInput();
+  Result<Input*> LoadInput();
 
   bool IsOnDisk() { return isOnDisk; }
 
   const char* GetFileName() { return fileName; }
 
-  Result<bool> AddMeta(EntryMetadata* meta) {
+  bool AddMeta(EntryMetadata* meta) {
     auto index = std::type_index(typeid(*meta));
     auto it = metaDatas.find(index);
     if (it != metaDatas.end())
       return false;
-    try {
-      metaDatas[index] = meta;
-    } catch (std::bad_alloc& ba) {
-      return ERR(AllocationError);
-    }
+    metaDatas[index] = meta;
     return true;
   }
 

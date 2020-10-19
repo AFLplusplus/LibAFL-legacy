@@ -27,6 +27,8 @@
 #ifndef LIBAFL_STAGE_STAGE_H
 #define LIBAFL_STAGE_STAGE_H
 
+#include "result.hpp"
+
 #include "engine/engine.hpp"
 #include "utils/random.hpp"
 
@@ -40,15 +42,15 @@ class Stage {
   Stage(RandomState* random_state, Engine* engine_)
       : randomState(random_state), engine(engine_) {}
 
-  inline RandomState* GetRandomState() { return randomState; }
+  RandomState* GetRandomState() { return randomState; }
 
-  inline void SetRandomState(RandomState* random_state) {
+  void SetRandomState(RandomState* random_state) {
     randomState = random_state;
   }
 
-  inline Engine* GetEngine() { return engine; }
+  Engine* GetEngine() { return engine; }
 
-  virtual void Perform(Input* input, Entry* entry) = 0;
+  virtual Result<void> Perform(Input* input, Entry* entry) = 0;
 };
 
 }  // namespace afl

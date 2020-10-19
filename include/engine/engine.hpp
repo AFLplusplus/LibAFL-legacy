@@ -56,9 +56,10 @@ class Engine {
   Corpus* mainCorpus;
   Executor* executor;
 
-  size_t executions;
+  size_t executions = 0;
   std::chrono::milliseconds startTime{0};
   std::chrono::milliseconds lastFindingTime{0};
+  Stage* currentStage = nullptr;
 
   std::unordered_map<std::type_index, Monitor*> monitors;
 
@@ -70,13 +71,8 @@ class Engine {
 
   void SetRandomState(RandomState* random_state) { randomState = random_state; }
 
-  Result<void> AddFeedback(Feedback* feedback) {
-    try {
-      feedbacks.push_back(feedback);
-    } catch (std::bad_alloc& ba) {
-      return ERR(AllocationError);
-    }
-    return OK();
+  void AddFeedback(Feedback* feedback) {
+    feedbacks.push_back(feedback);
   }
 
   // TODO maybe we need to wrap in a Result all the CreateX
@@ -88,13 +84,8 @@ class Engine {
     return obj;
   }
 
-  Result<void> AddStage(Stage* stage) {
-    try {
-      stages.push_back(stage);
-    } catch (std::bad_alloc& ba) {
-      return ERR(AllocationError);
-    }
-    return OK();
+  void AddStage(Stage* stage) {
+    stages.push_back(stage);
   }
 
   template <class StageType, typename... ArgsTypes>
@@ -110,16 +101,12 @@ class Engine {
 
   size_t GetExecutions() { return executions; }
 
-  Result<bool> AddMonitor(Monitor* monitor) {
+  bool AddMonitor(Monitor* monitor) {
     auto index = std::type_index(typeid(*monitor));
     auto it = monitors.find(index);
     if (it != monitors.end())
       return false;
-    try {
-      monitors[index] = monitor;
-    } catch (std::bad_alloc& ba) {
-      return ERR(AllocationError);
-    }
+    monitors[index] = monitor;
     return true;
   }
 

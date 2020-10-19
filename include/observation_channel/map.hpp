@@ -58,8 +58,9 @@ class MapObservationChannel : public BaseMapObservationChannel<MapBaseType*> {
   /*
     Reset the channel.
   */
-  void Reset() override {
+  Result<void> Reset() override {
     std::fill_n(this->GetMap(), init_value, this->GetSize());
+    return OK();
   }
 };
 

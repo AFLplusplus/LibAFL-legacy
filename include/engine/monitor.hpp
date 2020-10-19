@@ -41,26 +41,13 @@ class Monitor {
   virtual std::string Report() = 0;
 };
 
-class StageMonitor : public Monitor {
-  const char* stageName;
-
- public:
-  void SetStageName(const char* name) { stageName = name; }
-
-  std::string Report() override { return stageName; }
-};
-
 class FindingsMonitor : public Monitor {
   std::unordered_map<Mutator*, size_t> findingsByMutator;
   size_t findingsTotalNum;
 
  public:
-  Result<void> AddFinding(Mutator* mutator) {
-    try {
-      findingsByMutator[mutator]++;
-    } catch (std::bad_alloc& ba) {
-      return ERR(AllocationError);
-    }
+  void AddFinding(Mutator* mutator) {
+    findingsByMutator[mutator]++;
   }
 
   std::string Report() override {

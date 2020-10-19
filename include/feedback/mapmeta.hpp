@@ -58,7 +58,8 @@ class T_MapEntryMetadata : public EntryMetadata {
   }
 
   size_t GetMapEntry(size_t index) {
-    DCHECK(index < GetNewMapEntriesCount());
+    CHECK(index < GetMapEntriesCount());
+    // TODO use Result<size_t>
     return mapEntries[index];
   }
 };

@@ -39,7 +39,7 @@ class HitcountsMapObservationChannel : public MapObservationChannel<u8> {
   /*
     Bucketize the map after the execution.
   */
-  void PostExec(Executor* executor) override;
+  Result<void> PostExec(Executor* executor) override;
 };
 
 }  // namespace afl

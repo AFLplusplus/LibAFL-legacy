@@ -27,6 +27,8 @@
 #ifndef LIBAFL_OBSERVATION_CHANNEL_OBSERVATION_CHANNEL_H
 #define LIBAFL_OBSERVATION_CHANNEL_OBSERVATION_CHANNEL_H
 
+#include "result.hpp"
+
 namespace afl {
 
 class Executor;
@@ -36,17 +38,21 @@ class ObservationChannel {
   /*
     Flush the channel, if needed.
   */
-  virtual void Flush(){};
+  virtual Result<void> Flush() {
+    return OK();
+  }
 
   /*
     Reset the channel.
   */
-  virtual void Reset() = 0;
+  virtual Result<void> Reset() = 0;
 
   /*
     Post execution hook.
   */
-  virtual void PostExec(Executor* executor){};
+  virtual Result<void> PostExec(Executor* executor) {
+    return OK();
+  }
 };
 
 }  // namespace afl

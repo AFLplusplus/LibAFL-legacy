@@ -32,17 +32,17 @@
 
 namespace afl {
 
-void MutationFlipBit(ScheduledMutator* mutator, Input* input);
-void MutationFlip2Bits(ScheduledMutator* mutator, Input* input);
-void MutationFlip4Bits(ScheduledMutator* mutator, Input* input);
-void MutationFlipByte(ScheduledMutator* mutator, Input* input);
-void MutationFlip2Bytes(ScheduledMutator* mutator, Input* input);
-void MutationFlip4Bytes(ScheduledMutator* mutator, Input* input);
-void MutationRandomByteAddSub(ScheduledMutator* mutator, Input* input);
-void MutationRandomByte(ScheduledMutator* mutator, Input* input);
-void MutationDeleteBytes(ScheduledMutator* mutator, Input* input);
-void MutationCloneBytes(ScheduledMutator* mutator, Input* input);
-void MutationSplice(ScheduledMutator* mutator, Input* input);
+Result<void> MutationFlipBit(ScheduledMutator* mutator, Input* input);
+Result<void> MutationFlip2Bits(ScheduledMutator* mutator, Input* input);
+Result<void> MutationFlip4Bits(ScheduledMutator* mutator, Input* input);
+Result<void> MutationFlipByte(ScheduledMutator* mutator, Input* input);
+Result<void> MutationFlip2Bytes(ScheduledMutator* mutator, Input* input);
+Result<void> MutationFlip4Bytes(ScheduledMutator* mutator, Input* input);
+Result<void> MutationRandomByteAddSub(ScheduledMutator* mutator, Input* input);
+Result<void> MutationRandomByte(ScheduledMutator* mutator, Input* input);
+Result<void> MutationDeleteBytes(ScheduledMutator* mutator, Input* input);
+Result<void> MutationCloneBytes(ScheduledMutator* mutator, Input* input);
+Result<void> MutationSplice(ScheduledMutator* mutator, Input* input);
 
 class HavocMutator : public ScheduledMutator {
   Corpus* corpus;

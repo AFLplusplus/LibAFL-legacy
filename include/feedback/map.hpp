@@ -55,7 +55,7 @@ class BaseMapFeedback : public Feedback {
  public:
   MapType& GetVirginMap() { return virginMap; }
 
-  float IsInteresting(Executor* executor, Input* input) override;
+  Result<float> IsInteresting(Executor* executor, Input* input) override;
 };
 
 /*
@@ -68,7 +68,7 @@ template <typename MapType,
           auto ReduceFunction,
           MapBaseType init_value,
           typename EntryMetaType>
-float BaseMapFeedback<MapType,
+Result<float> BaseMapFeedback<MapType,
                       MapBaseType,
                       map_size,
                       ObvervationChannelType,
@@ -147,7 +147,7 @@ class BaseMapFeedback<MapType,
  public:
   MapType& GetVirginMap() { return virginMap; }
 
-  float IsInteresting(Executor* executor, Input* input) override;
+  Result<float> IsInteresting(Executor* executor, Input* input) override;
 };
 
 template <typename MapType,
@@ -156,7 +156,7 @@ template <typename MapType,
           typename ObvervationChannelType,
           auto ReduceFunction,
           MapBaseType init_value>
-float BaseMapFeedback<MapType,
+Result<float> BaseMapFeedback<MapType,
                       MapBaseType,
                       map_size,
                       ObvervationChannelType,
@@ -222,17 +222,11 @@ class BaseMapFeedback<u8[map_size],
  public:
   auto& GetVirginMap() { return virginMap; }
 
-  float IsInteresting(Executor* executor, Input* input) override;
+  Result<float> IsInteresting(Executor* executor, Input* input) override;
 };
 
 template <size_t map_size>
-float BaseMapFeedback<u8[map_size],
-                      u8,
-                      map_size,
-                      HitcountsMapObservationChannel,
-                      ReducerMax<u8>,
-                      0,
-                      void>::IsInteresting(Executor* executor, Input* input) {
+Result<float> BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>, 0, void>::IsInteresting(Executor* executor, Input* input) {
   float ret = 0.0;
 
   for (auto ob : executor->GetObservationChannels()) {

@@ -43,21 +43,22 @@ class MutationalStage : public Stage {
     return 1 + (size_t)GetRandomState()->Below(128);
   }
 
-  void Perform(Input* input, Entry* entry) override {
+  Result<void> Perform(Input* input, Entry* entry) override {
     size_t num = Iterations(entry);
-    auto original = entry->LoadInput();
+    auto original = TRY(entry->LoadInput());
 
     for (size_t i = 0; i < num; ++i) {
       for (auto mutator : mutators)
-        mutator->Mutate(input, i);
+        TRY(mutator->Mutate(input, i));
 
-      bool interesting = GetEngine()->Execute(input, entry);
+      bool interesting = TRY(GetEngine()->Execute(input, entry));
 
       for (auto mutator : mutators)
-        mutator->PostExec(interesting, i);
+        TRY(mutator->PostExec(interesting, i));
 
-      input->Assign(original);
+      TRY(input->Assign(original));
     }
+    return OK();
   }
 
   void AddMutator(Mutator* mutator) { mutators.push_back(mutator); }

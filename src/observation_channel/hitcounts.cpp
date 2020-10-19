@@ -35,20 +35,21 @@ namespace afl {
 static u16 g_count_class_lookup16[65536];
 
 static u8 CountClassU8(u8 value) {
-  if (value <= 2)
+  if (value <= 2) {
     return value;
-  else if (value == 3)
+  } else if (value == 3) {
     return 4;
-  else if (value >= 4 && value <= 7)
+  } else if (value >= 4 && value <= 7) {
     return 8;
-  else if (value >= 8 && value <= 15)
+  } else if (value >= 8 && value <= 15) {
     return 16;
-  else if (value >= 16 && value <= 31)
+  } else if (value >= 16 && value <= 31) {
     return 32;
-  else if (value >= 32 && value <= 127)
+  } else if (value >= 32 && value <= 127) {
     return 64;
-  else
+  } else {
     return 128;
+  }
 }
 
 static bool InitCountClass16() {
@@ -68,7 +69,7 @@ static bool g_count_class_lookup16_initialized = InitCountClass16();
 
 #ifdef WORD_SIZE_64
 
-void HitcountsMapObservationChannel::PostExec(Executor* executor) {
+Result<void> HitcountsMapObservationChannel::PostExec(Executor* executor) {
   u64* mem = reinterpret_cast<u64*>(GetMap());
 
   u32 i = (GetSize() >> 3);
@@ -87,11 +88,13 @@ void HitcountsMapObservationChannel::PostExec(Executor* executor) {
 
     ++mem;
   }
+  
+  return OK();
 }
 
 #else
 
-void HitcountsMapObservationChannel::PostExec(Executor* executor) {
+Result<void> HitcountsMapObservationChannel::PostExec(Executor* executor) {
   u32* mem = reinterpret_cast<u32*>(GetMap());
 
   u32 i = (GetSize() >> 2);
@@ -108,6 +111,8 @@ void HitcountsMapObservationChannel::PostExec(Executor* executor) {
 
     ++mem;
   }
+  
+  return OK();
 }
 
 #endif
