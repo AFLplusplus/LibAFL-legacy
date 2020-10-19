@@ -69,13 +69,13 @@ template <typename MapType,
           MapBaseType init_value,
           typename EntryMetaType>
 Result<float> BaseMapFeedback<MapType,
-                      MapBaseType,
-                      map_size,
-                      ObvervationChannelType,
-                      ReduceFunction,
-                      init_value,
-                      EntryMetaType>::IsInteresting(Executor* executor,
-                                                    Entry*& entry) {
+                              MapBaseType,
+                              map_size,
+                              ObvervationChannelType,
+                              ReduceFunction,
+                              init_value,
+                              EntryMetaType>::IsInteresting(Executor* executor,
+                                                            Entry*& entry) {
   bool found_new = false, found_increment = false;
 
   auto meta = new EntryMetaType();
@@ -117,7 +117,7 @@ Result<float> BaseMapFeedback<MapType,
     // never add to the Engine corpus when there is a Feedback specific corpus
     return 0.0;
   }
-  
+
   if (found_new || found_increment) {
     if (entry == nullptr)
       entry = new Entry(executor->GetCurrentInput());
@@ -164,12 +164,13 @@ template <typename MapType,
           auto ReduceFunction,
           MapBaseType init_value>
 Result<float> BaseMapFeedback<MapType,
-                      MapBaseType,
-                      map_size,
-                      ObvervationChannelType,
-                      ReduceFunction,
-                      init_value,
-                      void>::IsInteresting(Executor* executor, Entry*& entry) {
+                              MapBaseType,
+                              map_size,
+                              ObvervationChannelType,
+                              ReduceFunction,
+                              init_value,
+                              void>::IsInteresting(Executor* executor,
+                                                   Entry*& entry) {
   bool found_new = false, found_increment = false;
 
   for (auto ob : executor->GetObservationChannels()) {
@@ -204,7 +205,7 @@ Result<float> BaseMapFeedback<MapType,
     // never add to the Engine corpus when there is a Feedback specific corpus
     return 0.0;
   }
-  
+
   if (found_new || found_increment) {
     if (entry == nullptr)
       entry = new Entry(executor->GetCurrentInput());
@@ -238,7 +239,14 @@ class BaseMapFeedback<u8[map_size],
 };
 
 template <size_t map_size>
-Result<float> BaseMapFeedback<u8[map_size], u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>, 0, void>::IsInteresting(Executor* executor, Entry*& entry) {
+Result<float> BaseMapFeedback<u8[map_size],
+                              u8,
+                              map_size,
+                              HitcountsMapObservationChannel,
+                              ReducerMax<u8>,
+                              0,
+                              void>::IsInteresting(Executor* executor,
+                                                   Entry*& entry) {
   float ret = 0.0;
 
   for (auto ob : executor->GetObservationChannels()) {

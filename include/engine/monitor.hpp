@@ -46,9 +46,7 @@ class FindingsMonitor : public Monitor {
   size_t findingsTotalNum;
 
  public:
-  void AddFinding(Mutator* mutator) {
-    findingsByMutator[mutator]++;
-  }
+  void AddFinding(Mutator* mutator) { findingsByMutator[mutator]++; }
 
   std::string Report() override {
     return "";  // TODO

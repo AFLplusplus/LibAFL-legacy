@@ -38,9 +38,7 @@ class ObservationChannel {
   /*
     Flush the channel, if needed.
   */
-  virtual Result<void> Flush() {
-    return OK();
-  }
+  virtual Result<void> Flush() { return OK(); }
 
   /*
     Reset the channel.
@@ -50,9 +48,7 @@ class ObservationChannel {
   /*
     Post execution hook.
   */
-  virtual Result<void> PostExec(Executor* executor) {
-    return OK();
-  }
+  virtual Result<void> PostExec(Executor* executor) { return OK(); }
 };
 
 }  // namespace afl

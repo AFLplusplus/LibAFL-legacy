@@ -54,12 +54,13 @@ Result<bool> Engine::Execute(Input* input, Entry* entry) {
 
   // The first IsInteresting that wants to add an input to the mainCorpus,
   // if any, is responsible to initialize new_entry.
-  Entry *new_entry = nullptr;
+  Entry* new_entry = nullptr;
   float rate = 0.0;
 
   for (auto feedback : feedbacks) {
     rate += TRY_HANDLE(feedback->IsInteresting(executor, new_entry), {
-      if (new_entry) delete new_entry;
+      if (new_entry)
+        delete new_entry;
     });
   }
 
@@ -79,9 +80,7 @@ Result<void> Engine::FuzzOne() {
 
   for (auto stage : stages) {
     currentStage = stage;
-    TRY_HANDLE(stage->Perform(input, entry), {
-      delete input;
-    });
+    TRY_HANDLE(stage->Perform(input, entry), { delete input; });
   }
 
   delete input;

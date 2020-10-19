@@ -44,9 +44,7 @@ class Stage {
 
   RandomState* GetRandomState() { return randomState; }
 
-  void SetRandomState(RandomState* random_state) {
-    randomState = random_state;
-  }
+  void SetRandomState(RandomState* random_state) { randomState = random_state; }
 
   Engine* GetEngine() { return engine; }
 

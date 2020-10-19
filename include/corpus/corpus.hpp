@@ -56,9 +56,7 @@ class Corpus {
 
   size_t GetEntriesCount() { return entries.size(); }
 
-  virtual void Insert(Entry* entry) {
-    entries.push_back(entry);
-  }
+  virtual void Insert(Entry* entry) { entries.push_back(entry); }
 
   virtual bool Remove(Entry* entry) {
     auto it = std::find(entries.begin(), entries.end(), entry);

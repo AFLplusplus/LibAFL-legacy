@@ -53,7 +53,9 @@ class Mutator {
   */
   virtual Result<void> Mutate(Input* input, size_t stage_idx) = 0;
 
-  Result<void> Mutate(Input* input) { return Mutate(input, static_cast<size_t>(-1)); }
+  Result<void> Mutate(Input* input) {
+    return Mutate(input, static_cast<size_t>(-1));
+  }
 
   virtual Result<void> PostExec(bool is_interesting, size_t stage_idx) {
     return OK();

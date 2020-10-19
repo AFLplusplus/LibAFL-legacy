@@ -79,7 +79,7 @@ class BytesInput : public Input {
     dyncast.
   */
   Result<void> Assign(Input* input) override {
-    DCHECK(dynamic_cast<BytesInput*>(input)); // maybe use Error for this check
+    DCHECK(dynamic_cast<BytesInput*>(input));  // maybe use Error for this check
     bytes = static_cast<BytesInput*>(input)->bytes;
     return OK();
   }

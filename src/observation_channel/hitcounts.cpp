@@ -88,7 +88,7 @@ Result<void> HitcountsMapObservationChannel::PostExec(Executor* executor) {
 
     ++mem;
   }
-  
+
   return OK();
 }
 
@@ -111,7 +111,7 @@ Result<void> HitcountsMapObservationChannel::PostExec(Executor* executor) {
 
     ++mem;
   }
-  
+
   return OK();
 }
 

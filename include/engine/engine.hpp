@@ -71,9 +71,7 @@ class Engine {
 
   void SetRandomState(RandomState* random_state) { randomState = random_state; }
 
-  void AddFeedback(Feedback* feedback) {
-    feedbacks.push_back(feedback);
-  }
+  void AddFeedback(Feedback* feedback) { feedbacks.push_back(feedback); }
 
   // TODO maybe we need to wrap in a Result all the CreateX
 
@@ -84,9 +82,7 @@ class Engine {
     return obj;
   }
 
-  void AddStage(Stage* stage) {
-    stages.push_back(stage);
-  }
+  void AddStage(Stage* stage) { stages.push_back(stage); }
 
   template <class StageType, typename... ArgsTypes>
   StageType* CreateStage(ArgsTypes... args) {

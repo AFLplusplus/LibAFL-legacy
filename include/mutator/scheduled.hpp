@@ -76,7 +76,7 @@ class ScheduledMutator : public Mutator {
 
     for (size_t i = 0; i < num; ++i)
       TRY(Schedule(input)(this, input));
-    
+
     return OK();
   }
 };
