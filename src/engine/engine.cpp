@@ -34,6 +34,8 @@
 using namespace afl;
 
 Result<bool> Engine::Execute(Input* input, Entry* entry) {
+  (void)entry; // TODO link parent entries
+
   if (startTime == std::chrono::milliseconds{0})
     startTime = std::chrono::duration_cast<std::chrono::milliseconds>(
         std::chrono::system_clock::now().time_since_epoch());

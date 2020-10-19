@@ -27,12 +27,15 @@
 #ifndef LIBAFL_ENGINE_ENGINE_H
 #define LIBAFL_ENGINE_ENGINE_H
 
-#include "engine/monitor.hpp"
-#include "input/input.hpp"
 #include "result.hpp"
+
+#include "engine/monitor.hpp"
+#include "generator/generator.hpp"
+#include "input/input.hpp"
 #include "utils/random.hpp"
 
 #include <chrono>
+#include <filesystem>
 #include <typeindex>
 #include <typeinfo>
 #include <unordered_map>
@@ -120,6 +123,37 @@ class Engine {
   template <typename MonitorType>
   MonitorType* GetMonitor() {
     return GetMonitor(typeid(MonitorType));
+  }
+
+  template <typename InputType>
+  Result<size_t> LoadInputs(const char* directory_path) {
+    size_t numAdded = 0;
+    for (const auto it : std::filesystem::directory_iterator(directory_path)) {
+      if (it.is_regular_file()) {
+        auto input = new InputType();
+        input->LoadFromFile(it.path().c_str());
+        if (TRY(Execute(input))) {
+          numAdded++;
+        }
+      }
+    }
+    return numAdded;
+  }
+
+  Result<size_t> GenerateInputs(Generator* generator, size_t generations) {
+    size_t numAdded = 0;
+    for (size_t i = 0; i < generations; ++i) {
+      auto input = TRY(generator->Generate());
+      if (TRY(Execute(input))) {
+        numAdded++;
+      }
+    }
+    return numAdded;
+  }
+
+  Result<bool> GenerateDummyInput(Generator* generator) {
+    auto input = TRY(generator->GenerateDummy());
+    return TRY(Execute(input));
   }
 
   /* Useful hooks */
