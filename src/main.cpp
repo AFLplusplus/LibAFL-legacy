@@ -6,6 +6,7 @@
 #include "mutator/havoc.hpp"
 #include "observation_channel/hitcounts.hpp"
 #include "stage/mutational.hpp"
+#include "generator/bytes.hpp"
 
 using namespace afl;
 
@@ -14,6 +15,8 @@ const size_t kMapSize = 65536;
 u8 __afl_map[kMapSize];
 
 ExitType Harness(Executor* executor, u8* buffer, size_t size) {
+  if (size > 1)
+    __afl_map[buffer[0]] = buffer[1];
   return ExitType::Ok;
 }
 
@@ -28,7 +31,15 @@ int main() {
   engine.CreateFeedback<HitcountsMapFeedback<kMapSize>>();
   engine.CreateStage<MutationalStage>()->CreateMutator<HavocMutator>();
 
-  engine.FuzzOne();
+  PrintableGenerator gen(&rand);
+  Print(engine.GenerateInputs(&gen, 3).Unwrap());
+
+  size_t cnt = 0;
+  while (true) {
+    PrintAct("Fuzz interation #", cnt, ", inputs in corpus: ", corpus.GetEntriesCount());
+    engine.FuzzOne();
+    ++cnt;
+  }
 
   return 0;
 }

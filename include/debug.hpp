@@ -20,7 +20,7 @@
 
  */
 
-/* This file contains helpers for debugging and fancy printing */
+/* This file contains helpers for debugging and fancy Printing */
 
 #ifndef LIBAFL_DEBUG_H
 #define LIBAFL_DEBUG_H
@@ -160,7 +160,7 @@
 
 #ifdef DEBUG_BUILD
 #define DEBUG(...)                                                          \
-  printErr(cMGN "[D]" cGRA " [" __FILE__ ":" _TOSTRING(__LINE__) "] " cRST, \
+  PrintErr(cMGN "[D]" cGRA " [" __FILE__ ":" _TOSTRING(__LINE__) "] " cRST, \
            __VA_ARGS__, cRST "\n")
 #else
 #define DEBUG(...) \
@@ -172,7 +172,7 @@
 
 #define FATAL(...)                                                             \
   do {                                                                         \
-    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] FATAL ERROR : " cRST, \
+    PrintErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-] FATAL ERROR : " cRST, \
              __VA_ARGS__, cLRD "\n       Location : " cRST, __func__,          \
              "(), " __FILE__ ":", __LINE__, "\n\n");                           \
     std::exit(1);                                                              \
@@ -183,7 +183,7 @@
 
 #define ABORT(...)                                                      \
   do {                                                                  \
-    printErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD                       \
+    PrintErr(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD                       \
              "\n[-] PROGRAM ABORT : " cRST,                             \
              __VA_ARGS__, cLRD "\n         Location : " cRST, __func__, \
              "(), " __FILE__ ":", __LINE__, "\n\n");                    \
@@ -196,13 +196,13 @@
 /*#define PFATAL(...) \
   do { \
                                                                                                 \
-    afl_print_error_fmt(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-]  SYSTEM
+    afl_Print_error_fmt(bSTOP RESET_G1 CURSOR_SHOW cRST cLRD "\n[-]  SYSTEM
   ERROR : " cRST __VA_ARGS__);       \
-    afl_print_error_fmt(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n",
+    afl_Print_error_fmt(cLRD "\n    Stop location : " cRST "%s(), %s:%u\n",
   __FUNCTION__, __FILE__, __LINE__); \
-    afl_print_error_fmt(cLRD "       OS message : " cRST "%s\n",
+    afl_Print_error_fmt(cLRD "       OS message : " cRST "%s\n",
   strerror(errno));                             \
-    afl_print_error_flush();  \
+    afl_Print_error_flush();  \
     afl_exit(1); \
                                                                                                 \
   } while (0)*/
@@ -231,46 +231,46 @@
 namespace afl {
 
 template <typename Last>
-static inline void print(Last last) {
+static inline void Print(Last last) {
   std::cout << last;
 }
 
 template <typename First, typename... Types>
-static inline void print(First first, Types... args) {
+static inline void Print(First first, Types... args) {
   std::cout << first;
-  print(args...);
+  Print(args...);
 }
 
 template <typename Last>
-static inline void printErr(Last last) {
+static inline void PrintErr(Last last) {
   std::cerr << last;
 }
 
 template <typename First, typename... Types>
-static inline void printErr(First first, Types... args) {
+static inline void PrintErr(First first, Types... args) {
   std::cerr << first;
-  printErr(args...);
+  PrintErr(args...);
 }
 
 /* Show a prefixed warning. */
 
 template <typename... Types>
-static inline void printWarn(Types... args) {
-  printErr(cYEL "[!] " cBRI "WARNING: ", args..., cRST "\n");
+static inline void PrintWarn(Types... args) {
+  PrintErr(cYEL "[!] " cBRI "WARNING: ", args..., cRST "\n");
 }
 
 /* Show a prefixed "doing something" message. */
 
 template <typename... Types>
-static inline void printAct(Types... args) {
-  print(cLBL "[*] " cRST, args..., cRST "\n");
+static inline void PrintAct(Types... args) {
+  Print(cLBL "[*] " cRST, args..., cRST "\n");
 }
 
 /* Show a prefixed "success" message. */
 
 template <typename... Types>
-static inline void printOk(Types... args) {
-  print(cLBL "[*] " cRST, args..., cRST "\n");
+static inline void PrintOk(Types... args) {
+  Print(cLBL "[*] " cRST, args..., cRST "\n");
 }
 
 }  // namespace afl

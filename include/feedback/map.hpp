@@ -109,7 +109,7 @@ Result<float> BaseMapFeedback<MapType,
 
   if (GetOwnCorpus()) {
     if (found_new || found_increment) {
-      auto own_entry = new Entry(executor->GetCurrentInput());
+      auto own_entry = new Entry(TRY(executor->GetCurrentInput()->Copy()));
       own_entry->AddMeta(meta);
       GetOwnCorpus()->Insert(own_entry);
     }
@@ -120,7 +120,7 @@ Result<float> BaseMapFeedback<MapType,
 
   if (found_new || found_increment) {
     if (entry == nullptr)
-      entry = new Entry(executor->GetCurrentInput());
+      entry = new Entry(TRY(executor->GetCurrentInput()->Copy()));
     entry->AddMeta(meta);
 
     if (found_new)
@@ -199,7 +199,7 @@ Result<float> BaseMapFeedback<MapType,
 
   if (GetOwnCorpus()) {
     if (found_new || found_increment) {
-      GetOwnCorpus()->Insert(new Entry(executor->GetCurrentInput()));
+      GetOwnCorpus()->Insert(new Entry(TRY(executor->GetCurrentInput()->Copy())));
     }
 
     // never add to the Engine corpus when there is a Feedback specific corpus
@@ -208,7 +208,7 @@ Result<float> BaseMapFeedback<MapType,
 
   if (found_new || found_increment) {
     if (entry == nullptr)
-      entry = new Entry(executor->GetCurrentInput());
+      entry = new Entry(TRY(executor->GetCurrentInput()->Copy()));
 
     if (found_new)
       return 1.0;
@@ -228,7 +228,7 @@ class BaseMapFeedback<u8[map_size],
                       map_size,
                       HitcountsMapObservationChannel,
                       ReducerMax<u8>,
-                      0,
+                      u8(-1),
                       void> : public Feedback {
   u8 virginMap[map_size];
 
@@ -244,7 +244,7 @@ Result<float> BaseMapFeedback<u8[map_size],
                               map_size,
                               HitcountsMapObservationChannel,
                               ReducerMax<u8>,
-                              0,
+                              u8(-1),
                               void>::IsInteresting(Executor* executor,
                                                    Entry*& entry) {
   float ret = 0.0;
@@ -322,10 +322,10 @@ Result<float> BaseMapFeedback<u8[map_size],
       break;
     }
   }
-
+  
   if (GetOwnCorpus()) {
     if (ret > 0.0) {
-      auto entry = new Entry(executor->GetCurrentInput());
+      auto entry = new Entry(TRY(executor->GetCurrentInput()->Copy()));
       GetOwnCorpus()->Insert(entry);
     }
 
@@ -334,7 +334,7 @@ Result<float> BaseMapFeedback<u8[map_size],
   }
 
   if (ret > 0.0 && entry == nullptr) {
-    entry = new Entry(executor->GetCurrentInput());
+    entry = new Entry(TRY(executor->GetCurrentInput()->Copy()));
   }
 
   return ret;
@@ -428,7 +428,7 @@ using MinMapFeedbackU64 = MapFeedback<u64,
 
 template <size_t map_size>
 using HitcountsMapFeedback =
-    MapFeedback<u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>>;
+    MapFeedback<u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>, u8(-1)>;
 
 }  // namespace afl
 

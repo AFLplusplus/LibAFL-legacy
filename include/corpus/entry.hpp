@@ -42,8 +42,8 @@ class Entry {
 
   std::unordered_map<std::type_index, EntryMetadata*> metaDatas;
 
-  char* fileName;
-  bool isOnDisk;
+  char* fileName = nullptr;
+  bool isOnDisk = false;
 
  public:
   Entry(Input* input_) : input(input_) {}

@@ -32,7 +32,8 @@ using namespace afl;
 
 Result<Input*> Entry::LoadInput() {
   if (isOnDisk) {
-    input->LoadFromFile(fileName);
+    TRY(input->LoadFromFile(fileName));
+    isOnDisk = false;
   }
   return input;
 }

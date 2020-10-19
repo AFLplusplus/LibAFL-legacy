@@ -28,50 +28,65 @@
  */
 
 #include "mutator/havoc.hpp"
+#include "input/bytes.hpp"
 
 namespace afl {
 
 Result<void> MutationFlipBit(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
+  std::string& bytes = static_cast<BytesInput*>(input)->Bytes();
+  size_t bit = mutator->GetRandomState()->Below(bytes.size() << 3);
+  bytes[bit >> 3] ^= (128 >> (bit & 7));
   return OK();
 }
 
 Result<void> MutationFlip2Bits(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationFlip4Bits(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationFlipByte(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationFlip2Bytes(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationFlip4Bytes(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationRandomByteAddSub(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationRandomByte(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationDeleteBytes(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationCloneBytes(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationSplice(ScheduledMutator* mutator, Input* input) {
+  DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 

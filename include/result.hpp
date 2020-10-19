@@ -93,7 +93,7 @@ class Result {
 
   OkType Expect(const char* message) {
     if (IsErr()) {
-      FATAL("Result::Expect failed at '", message, "' with error '",
+      ABORT("Result::Expect failed at '", message, "' with error '",
             value.error->Message(), "' from ", value.error->GetSrcFile(), ":",
             value.error->GetSrcLine());
     }
@@ -103,7 +103,7 @@ class Result {
 
   OkType Unwrap() {
     if (IsErr()) {
-      FATAL("Result::Unwrap failed with error '", value.error->Message(),
+      ABORT("Result::Unwrap failed with error '", value.error->Message(),
             "' from ", value.error->GetSrcFile(), ":",
             value.error->GetSrcLine());
     }
@@ -144,7 +144,7 @@ class Result<void> {
 
   void Expect(const char* message) {
     if (IsErr()) {
-      FATAL("Result::Expect failed at '", message, "' with error '",
+      ABORT("Result::Expect failed at '", message, "' with error '",
             error->Message(), "' from ", error->GetSrcFile(), ":",
             error->GetSrcLine());
     }
@@ -152,7 +152,7 @@ class Result<void> {
 
   void Unwrap() {
     if (IsErr()) {
-      FATAL("Result::Unwrap failed with error '", error->Message(), "' from ",
+      ABORT("Result::Unwrap failed with error '", error->Message(), "' from ",
             error->GetSrcFile(), ":", error->GetSrcLine());
     }
   }

@@ -30,18 +30,19 @@
 #include "generator/generator.hpp"
 #include "input/bytes.hpp"
 
-#define BYTESGENERATOR_DEFAULT_MAXSIZE 4096
+const size_t kBytesGeneratorDefaultMaxSize = 4096;
 
 namespace afl {
 
 class BytesGenerator : public Generator {
+protected:
   size_t maxSize;
 
  public:
-  BytesGenerator(RnadomState* random_state, size_t max_size)
+  BytesGenerator(RandomState* random_state, size_t max_size)
       : Generator(random_state), maxSize(max_size) {}
-  BytesGenerator(RnadomState* random_state)
-      : BytesGenerator(random_state, BYTESGENERATOR_DEFAULT_MAXSIZE) {}
+  BytesGenerator(RandomState* random_state)
+      : BytesGenerator(random_state, kBytesGeneratorDefaultMaxSize) {}
 
   virtual Result<Input*> Generate() override {
     size_t size = GetRandomState()->Below(maxSize);
@@ -49,7 +50,7 @@ class BytesGenerator : public Generator {
     generated.resize(size);
 
     for (size_t i = 0; i < size; ++i) {
-      generated[i] = reinterpret_cast<char>(GetRandomState()->Below(256));
+      generated[i] = static_cast<char>(GetRandomState()->Below(256));
     }
 
     return new BytesInput(generated);
@@ -57,6 +58,10 @@ class BytesGenerator : public Generator {
 
   virtual Result<Input*> GenerateDummy() override {
     return new BytesInput(std::string(64, '\0'));
+  }
+  
+  size_t GetMaxSize() {
+    return maxSize;
   }
 };
 
