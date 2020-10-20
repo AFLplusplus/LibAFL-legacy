@@ -29,7 +29,6 @@
 
 #include "types.hpp"
 
-#include <cerrno>
 #include <cstring>
 
 namespace afl {
