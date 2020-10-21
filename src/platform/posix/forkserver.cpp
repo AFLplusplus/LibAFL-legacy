@@ -217,70 +217,73 @@ Result<void> ForkServerHelper::Start(ForkServerExecutor* executor,
 Result<void> ForkServerHelper::WriteInput(ForkServerExecutor* executor,
                                           u8* buffer,
                                           size_t size) {
-  
   // TODO in memory case
-  
+
   if (executor->GetInputType() != ForkServerExecutor::InputType::kStdin) {
     outFd = open(outFileName, O_RDWR | O_CREAT | O_EXCL, 00600);
   }
 
   ssize_t write_len = write(outFd, buffer, size);
 
-  if (write_len < 0) return ERR(OSError, errno);
-  if (write_len != size) return ERR(ShortWriteError, write_len, size);
+  if (write_len < 0)
+    return ERR(OSError, errno);
+  if (write_len != size)
+    return ERR(ShortWriteError, write_len, size);
 
   if (executor->GetInputType() != ForkServerExecutor::InputType::kStdin) {
     close(outFd);
   }
-  
+
   return OK();
 }
 
 Result<ExitType> ForkServerHelper::ExecuteOnce(ForkServerExecutor* executor) {
-  
   int res;
 
   /*
     We have the fork server up and running.
     First, tell it if the previous run timed out.
   */
-  
+
   u32 write_value = static_cast<u32>(lastRunTimedOut);
 
   if ((res = write(ctlFd, &write_value, 4)) != 4) {
-
-    return ERR(RuntimeError, "Unable to request new process from ForkServer (OOM?)");
-
+    return ERR(RuntimeError,
+               "Unable to request new process from ForkServer (OOM?)");
   }
 
   lastRunTimedOut = false;
 
   if ((res = read(stFd, &pid, 4)) != 4) {
-
-    return ERR(RuntimeError, "Unable to request new process from ForkServer (OOM?)");
-
+    return ERR(RuntimeError,
+               "Unable to request new process from ForkServer (OOM?)");
   }
 
-  if (pid <= 0) { FATAL("Fork server is misbehaving (OOM?)"); }
+  if (pid <= 0) {
+    FATAL("Fork server is misbehaving (OOM?)");
+  }
 
   auto timeout_ms = executor->GetTimeoutMs();
 
   u32 exec_ms = ReadTimed(stFd, &childStatus, timeout_ms);
 
   if (exec_ms > timeout_ms) {
-
     /* If there was no response from forkserver after timeout seconds,
     we kill the child. The forkserver should inform us afterwards */
 
     kill(pid, SIGKILL);
     lastRunTimedOut = true;
-    if (read(stFd, &childStatus, 4) < 4) { exec_ms = 0; }
-
+    if (read(stFd, &childStatus, 4) < 4) {
+      exec_ms = 0;
+    }
   }
 
-  if (!exec_ms) {}
+  if (!exec_ms) {
+  }
 
-  if (!WIFSTOPPED(childStatus)) { pid = 0; }
+  if (!WIFSTOPPED(childStatus)) {
+    pid = 0;
+  }
 
   if (executor->GetInputType() != ForkServerExecutor::InputType::kStdin) {
     unlink(outFileName);
@@ -289,13 +292,12 @@ Result<ExitType> ForkServerHelper::ExecuteOnce(ForkServerExecutor* executor) {
   /* Report outcome to caller. */
 
   if (WIFSIGNALED(childStatus)) {
-
     lastKillSignal = WTERMSIG(childStatus);
 
-    if (lastRunTimedOut && lastKillSignal == SIGKILL) return ExitType::kTimeOut;
+    if (lastRunTimedOut && lastKillSignal == SIGKILL)
+      return ExitType::kTimeOut;
 
     return ExitType::kCrash;
-
   }
 
   return ExitType::kOk;

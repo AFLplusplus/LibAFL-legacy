@@ -27,9 +27,13 @@
 #ifndef LIBAFL_PLATFORM_SHMEM_H
 #define LIBAFL_PLATFORM_SHMEM_H
 
-#include "debug.hpp"
-#include "errors.hpp"
+#include "result.hpp"
 #include "types.hpp"
+
+// TODO this is an hack atm
+#ifndef PLATFORM
+#define PLATFORM posix
+#endif
 
 namespace afl {
 
@@ -37,15 +41,31 @@ const size_t kSharedMemoryNameMaxSize = 24;
 
 class SharedMemory {
   char name[kSharedMemoryNameMaxSize];
-  void* data;
 
-  u8* mem;
-  size_t size;
+#if PLATFORM == posix
+  int fd;
+#endif
+
+  u8* mem = nullptr;
+  size_t size = 0;
 
  public:
-  SharedMemory* ByName(const char* name);
+  SharedMemory() {}
+  ~SharedMemory();
 
-  bool SetEnv();
+  Result<void> ByName(const char* name, size_t size);
+
+  Result<void> Create(size_t size);
+
+  Result<bool> SetEnv(const char* env_name);
+
+  bool IsInited() { return mem != nullptr; }
+
+  u8* GetMem() { return mem; }
+
+  size_t GetSize() { return size; }
+
+  const char* GetName() { return name; }
 };
 
 }  // namespace afl
