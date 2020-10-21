@@ -15,6 +15,7 @@ const size_t kMapSize = 65536;
 u8 __afl_map[kMapSize];
 
 ExitType Harness(Executor* executor, u8* buffer, size_t size) {
+  (void) executor;
   if (size > 1)
     __afl_map[buffer[0]] = buffer[1];
   return ExitType::kOk;

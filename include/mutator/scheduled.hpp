@@ -45,10 +45,12 @@ class ScheduledMutator : public Mutator {
   using Mutator::Mutator;
 
   virtual size_t Iterations(Input* input) {
+    (void) input;
     return 1 << (1 + (size_t)GetRandomState()->Below(7));
   }
 
   virtual MutationFunctionType Schedule(Input* input) {
+    (void) input;
     return GetMutationByIndex(GetRandomState()->Below(GetMutationsCount()));
   }
 

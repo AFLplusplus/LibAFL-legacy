@@ -41,51 +41,71 @@ Result<void> MutationFlipBit(ScheduledMutator* mutator, Input* input) {
 }
 
 Result<void> MutationFlip2Bits(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationFlip4Bits(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationFlipByte(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationFlip2Bytes(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationFlip4Bytes(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationRandomByteAddSub(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationRandomByte(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationDeleteBytes(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationCloneBytes(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }
 
 Result<void> MutationSplice(ScheduledMutator* mutator, Input* input) {
+  (void)mutator;
+  (void)input;
   DCHECK(dynamic_cast<BytesInput*>(input));
   return OK();
 }

@@ -39,6 +39,7 @@ class MutationalStage : public Stage {
   using Stage::Stage;
 
   virtual size_t Iterations(Entry* entry) {
+    (void) entry;
     return 1 + (size_t)GetRandomState()->Below(128);
   }
 

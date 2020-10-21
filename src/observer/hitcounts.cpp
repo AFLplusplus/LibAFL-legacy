@@ -95,6 +95,8 @@ Result<void> HitcountsMapObservationChannel::PostExec(Executor* executor) {
 #else
 
 Result<void> HitcountsMapObservationChannel::PostExec(Executor* executor) {
+
+  (void) executor;
   u32* mem = reinterpret_cast<u32*>(GetMap());
 
   u32 i = (GetSize() >> 2);

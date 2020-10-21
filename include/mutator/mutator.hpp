@@ -57,6 +57,8 @@ class Mutator {
   }
 
   virtual Result<void> PostExec(bool is_interesting, size_t stage_idx) {
+    (void) is_interesting;
+    (void) stage_idx;
     return OK();
   }
 

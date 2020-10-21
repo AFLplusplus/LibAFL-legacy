@@ -39,24 +39,6 @@ typedef int16_t s16;
 typedef int32_t s32;
 typedef int64_t s64;
 
-#ifndef MIN
-
-#define MIN(a, b)           \
-  ({                        \
-    __typeof__(a) _a = (a); \
-    __typeof__(b) _b = (b); \
-    _a < _b ? _a : _b;      \
-  })
-
-#define MAX(a, b)           \
-  ({                        \
-    __typeof__(a) _a = (a); \
-    __typeof__(b) _b = (b); \
-    _a > _b ? _a : _b;      \
-  })
-
-#endif /* !MIN */
-
 #define SWAP16(_x)                    \
   ({                                  \
     u16 _ret = (_x);                  \

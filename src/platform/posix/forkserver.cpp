@@ -70,11 +70,11 @@ restart_select:
     if (likely(len_read == 4)) {  // for speed we put this first
 
 #if defined(__linux__)
-      u32 exec_ms = MIN(
-          timeout_ms,
-          ((u64)timeout_ms - (timeout.tv_sec * 1000 + timeout.tv_usec / 1000)));
+      u32 exec_ms = std::min(
+          static_cast<u64>(timeout_ms),
+          (static_cast<u64>(timeout_ms) - (timeout.tv_sec * 1000 + timeout.tv_usec / 1000)));
 #else
-      u32 exec_ms = MIN(timeout_ms,
+      u32 exec_ms = std::min(timeout_ms,
                         std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::system_clock::now().time_since_epoch())
                                 .count() -

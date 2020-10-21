@@ -55,8 +55,8 @@ class Engine {
   std::vector<Feedback*> feedbacks;
   std::vector<Stage*> stages;
 
-  Corpus* mainCorpus;
   Executor* executor;
+  Corpus* mainCorpus;
 
   size_t executions = 0;
   std::chrono::milliseconds startTime{0};
