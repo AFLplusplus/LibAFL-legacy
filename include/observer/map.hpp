@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_OBSERVATION_CHANNEL_MAP_H
-#define LIBAFL_OBSERVATION_CHANNEL_MAP_H
+#pragma once
 
 #include "observer/observation_channel.hpp"
 
@@ -66,5 +65,3 @@ class MapObservationChannel : public BaseMapObservationChannel<MapBaseType*> {
 };
 
 }  // namespace afl
-
-#endif

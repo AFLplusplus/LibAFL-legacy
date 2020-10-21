@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_RESULT_H
-#define LIBAFL_RESULT_H
+#pragma once
 
 #include "debug.hpp"
 #include "errors.hpp"
@@ -173,5 +172,3 @@ class Result<void> {
 };
 
 }  // namespace afl
-
-#endif

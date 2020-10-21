@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_PLATFORM_SHMEM_H
-#define LIBAFL_PLATFORM_SHMEM_H
+#pragma once
 
 #include "result.hpp"
 #include "types.hpp"
@@ -69,5 +68,3 @@ class SharedMemory {
 };
 
 }  // namespace afl
-
-#endif

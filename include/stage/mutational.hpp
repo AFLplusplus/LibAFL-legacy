@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_STAGE_MUTATIONAL_H
-#define LIBAFL_STAGE_MUTATIONAL_H
+#pragma once
 
 #include "stage/stage.hpp"
 
@@ -72,5 +71,3 @@ class MutationalStage : public Stage {
 };
 
 }  // namespace afl
-
-#endif

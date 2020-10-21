@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_ENGINE_ENGINE_H
-#define LIBAFL_ENGINE_ENGINE_H
+#pragma once
 
 #include "result.hpp"
 
@@ -178,5 +177,3 @@ class Engine {
 };
 
 }  // namespace afl
-
-#endif

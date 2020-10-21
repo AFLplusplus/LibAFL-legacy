@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_CORPUS_CORPUS_H
-#define LIBAFL_CORPUS_CORPUS_H
+#pragma once
 
 #include "errors.hpp"
 #include "result.hpp"
@@ -85,5 +84,3 @@ class Corpus {
 };
 
 }  // namespace afl
-
-#endif

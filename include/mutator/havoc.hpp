@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_MUTATOR_HAVOC_H
-#define LIBAFL_MUTATOR_HAVOC_H
+#pragma once
 
 #include "corpus/corpus.hpp"
 #include "mutator/scheduled.hpp"
@@ -68,5 +67,3 @@ class HavocMutator : public ScheduledMutator {
 };
 
 }  // namespace afl
-
-#endif

@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_INPUT_INPUT_H
-#define LIBAFL_INPUT_INPUT_H
+#pragma once
 
 #include "result.hpp"
 #include "types.hpp"
@@ -78,5 +77,3 @@ class Input {
 };
 
 }  // namespace afl
-
-#endif

@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_FEEDBACK_MAPMETA_H
-#define LIBAFL_FEEDBACK_MAPMETA_H
+#pragma once
 
 #include "debug.hpp"
 
@@ -84,5 +83,3 @@ class MapIncrementsEntryMetadata
 };
 
 }  // namespace afl
-
-#endif

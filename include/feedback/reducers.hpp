@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_FEEDBACK_REDUCERS_H
-#define LIBAFL_FEEDBACK_REDUCERS_H
+#pragma once
 
 #include <algorithm>
 
@@ -63,5 +62,3 @@ static inline T ReducerBitIntersection(T first, T second) {
 }
 
 }  // namespace afl
-
-#endif

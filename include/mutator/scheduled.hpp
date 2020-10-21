@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_MUTATOR_SCHEDULED_H
-#define LIBAFL_MUTATOR_SCHEDULED_H
+#pragma once
 
 #include "input/input.hpp"
 #include "mutator/mutator.hpp"
@@ -82,5 +81,3 @@ class ScheduledMutator : public Mutator {
 };
 
 }  // namespace afl
-
-#endif

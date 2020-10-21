@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_CORPUS_ENTRY_H
-#define LIBAFL_CORPUS_ENTRY_H
+#pragma once
 
 #include "input/input.hpp"
 
@@ -82,5 +81,3 @@ class Entry {
 };
 
 }  // namespace afl
-
-#endif

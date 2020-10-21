@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_ENGINE_MONITOR_H
-#define LIBAFL_ENGINE_MONITOR_H
+#pragma once
 
 #include "result.hpp"
 
@@ -57,5 +56,3 @@ class FindingsMonitor : public Monitor {
 };
 
 }  // namespace afl
-
-#endif

@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_ERRORS_H
-#define LIBAFL_ERRORS_H
+#pragma once
 
 #include "types.hpp"
 
@@ -124,5 +123,3 @@ class EmptyContainerError : public Error {
 };
 
 }  // namespace afl
-
-#endif

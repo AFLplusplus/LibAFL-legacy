@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_CORPUS_QUEUE_H
-#define LIBAFL_CORPUS_QUEUE_H
+#pragma once
 
 #include "corpus/corpus.hpp"
 
@@ -54,5 +53,3 @@ class QueueCorpus : public Corpus {
 };
 
 }  // namespace afl
-
-#endif

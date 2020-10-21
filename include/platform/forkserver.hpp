@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_PLATFORM_FORKSERVER_H
-#define LIBAFL_PLATFORM_FORKSERVER_H
+#pragma once
 
 #include "errors.hpp"
 #include "result.hpp"
@@ -84,5 +83,3 @@ class ForkServerHelper {
 };
 
 }  // namespace afl
-
-#endif

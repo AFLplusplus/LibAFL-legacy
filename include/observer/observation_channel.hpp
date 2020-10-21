@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_OBSERVATION_CHANNEL_OBSERVATION_CHANNEL_H
-#define LIBAFL_OBSERVATION_CHANNEL_OBSERVATION_CHANNEL_H
+#pragma once
 
 #include "result.hpp"
 
@@ -54,5 +53,3 @@ class ObservationChannel {
 };
 
 }  // namespace afl
-
-#endif

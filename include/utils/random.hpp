@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_UTILS_RANDOM_H
-#define LIBAFL_UTILS_RANDOM_H
+#pragma once
 
 #include "debug.hpp"
 #include "types.hpp"
@@ -91,5 +90,3 @@ class RandomState {
 };
 
 }  // namespace afl
-
-#endif /* AFL_RAND_H */

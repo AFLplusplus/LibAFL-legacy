@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_EXECUTOR_INMEMORY_H
-#define LIBAFL_EXECUTOR_INMEMORY_H
+#pragma once
 
 #include "result.hpp"
 
@@ -71,5 +70,3 @@ class InMemoryExecutor : public Executor {
 };
 
 }  // namespace afl
-
-#endif

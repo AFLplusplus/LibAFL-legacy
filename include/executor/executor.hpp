@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_EXECUTOR_EXECUTOR_H
-#define LIBAFL_EXECUTOR_EXECUTOR_H
+#pragma once
 
 #include "result.hpp"
 
@@ -99,5 +98,3 @@ class Executor {
 };
 
 }  // namespace afl
-
-#endif

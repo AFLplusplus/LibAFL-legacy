@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_OBSERVATION_CHANNEL_HITCOUNTS_H
-#define LIBAFL_OBSERVATION_CHANNEL_HITCOUNTS_H
+#pragma once
 
 #include "observer/map.hpp"
 #include "types.hpp"
@@ -43,5 +42,3 @@ class HitcountsMapObservationChannel : public MapObservationChannel<u8> {
 };
 
 }  // namespace afl
-
-#endif

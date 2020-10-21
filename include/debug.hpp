@@ -22,8 +22,7 @@
 
 /* This file contains helpers for debugging and fancy Printing */
 
-#ifndef LIBAFL_DEBUG_H
-#define LIBAFL_DEBUG_H
+#pragma once
 
 #include <iostream>
 
@@ -274,5 +273,3 @@ static inline void PrintOk(Types... args) {
 }
 
 }  // namespace afl
-
-#endif /* ! _HAVE_DEBUG_H */

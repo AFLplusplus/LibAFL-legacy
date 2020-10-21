@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_UTILS_MISC_H
-#define LIBAFL_UTILS_MISC_H
+#pragma once
 
 #include "types.hpp"
 
@@ -48,5 +47,3 @@ static inline size_t NextPow2(size_t in) {
 static inline u64 Rotl(const u64 x, int k) {
   return (x << k) | (x >> (64 - k));
 }
-
-#endif

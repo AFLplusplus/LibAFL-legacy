@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_GENERATOR_BYTES_H
-#define LIBAFL_GENERATOR_BYTES_H
+#pragma once
 
 #include "generator/generator.hpp"
 #include "input/bytes.hpp"
@@ -94,5 +93,3 @@ class PrintableGenerator : public BytesGenerator {
 };
 
 }  // namespace afl
-
-#endif

@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_STAGE_STAGE_H
-#define LIBAFL_STAGE_STAGE_H
+#pragma once
 
 #include "result.hpp"
 
@@ -54,5 +53,3 @@ class Stage {
 };
 
 }  // namespace afl
-
-#endif

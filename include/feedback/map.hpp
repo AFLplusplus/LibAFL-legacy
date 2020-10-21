@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_FEEDBACK_MAP_H
-#define LIBAFL_FEEDBACK_MAP_H
+#pragma once
 
 #include "feedback/feedback.hpp"
 #include "feedback/mapmeta.hpp"
@@ -432,5 +431,3 @@ using HitcountsMapFeedback =
     MapFeedback<u8, map_size, HitcountsMapObservationChannel, ReducerMax<u8>, u8(-1)>;
 
 }  // namespace afl
-
-#endif

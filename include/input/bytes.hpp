@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_INPUT_BYTES_H
-#define LIBAFL_INPUT_BYTES_H
+#pragma once
 
 #include "input/input.hpp"
 #include "result.hpp"
@@ -91,5 +90,3 @@ class BytesInput : public Input {
 };
 
 }  // namespace afl
-
-#endif

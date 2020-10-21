@@ -227,7 +227,7 @@ Result<void> ForkServerHelper::WriteInput(ForkServerExecutor* executor,
 
   if (write_len < 0)
     return ERR(OSError, errno);
-  if (write_len != size)
+  if (static_cast<size_t>(write_len) != size)
     return ERR(ShortWriteError, write_len, size);
 
   if (executor->GetInputType() != ForkServerExecutor::InputType::kStdin) {

@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_MUTATOR_MUTATOR_H
-#define LIBAFL_MUTATOR_MUTATOR_H
+#pragma once
 
 #include "result.hpp"
 
@@ -69,5 +68,3 @@ class Mutator {
 };
 
 }  // namespace afl
-
-#endif

@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_GENERATOR_GENERATOR_H
-#define LIBAFL_GENERATOR_GENERATOR_H
+#pragma once
 
 #include "result.hpp"
 
@@ -52,5 +51,3 @@ class Generator {
 };
 
 }  // namespace afl
-
-#endif

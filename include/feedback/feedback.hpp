@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_FEEDBACK_FEEDBACK_H
-#define LIBAFL_FEEDBACK_FEEDBACK_H
+#pragma once
 
 #include "result.hpp"
 
@@ -50,5 +49,3 @@ class Feedback {
 };
 
 }  // namespace afl
-
-#endif

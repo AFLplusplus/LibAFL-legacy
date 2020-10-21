@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_TYPES_H
-#define LIBAFL_TYPES_H
+#pragma once
 
 #include <cstddef>
 #include <cstdint>
@@ -99,6 +98,4 @@ typedef int64_t s64;
 #ifndef unlikely
 #define unlikely(_x) __builtin_expect(!!(_x), 0)
 #endif
-#endif
-
 #endif

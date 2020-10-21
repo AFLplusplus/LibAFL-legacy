@@ -24,8 +24,7 @@
 
  */
 
-#ifndef LIBAFL_EXECUTOR_FORKSERVER_H
-#define LIBAFL_EXECUTOR_FORKSERVER_H
+#pragma once
 
 #include "result.hpp"
 
@@ -78,5 +77,3 @@ protected:
 };
 
 }  // namespace afl
-
-#endif
