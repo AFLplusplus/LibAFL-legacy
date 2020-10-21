@@ -29,7 +29,7 @@
 
 #include "result.hpp"
 
-#include "observation_channel/observation_channel.hpp"
+#include "observer/observation_channel.hpp"
 
 #include <vector>
 

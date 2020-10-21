@@ -4,7 +4,7 @@
 #include "feedback/map.hpp"
 #include "input/bytes.hpp"
 #include "mutator/havoc.hpp"
-#include "observation_channel/hitcounts.hpp"
+#include "observer/hitcounts.hpp"
 #include "stage/mutational.hpp"
 #include "generator/bytes.hpp"
 

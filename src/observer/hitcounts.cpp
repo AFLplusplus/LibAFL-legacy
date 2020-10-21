@@ -24,7 +24,7 @@
 
  */
 
-#include "observation_channel/hitcounts.hpp"
+#include "observer/hitcounts.hpp"
 
 namespace afl {
 

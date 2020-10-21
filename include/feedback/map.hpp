@@ -30,8 +30,8 @@
 #include "feedback/feedback.hpp"
 #include "feedback/mapmeta.hpp"
 #include "feedback/reducers.hpp"
-#include "observation_channel/hitcounts.hpp"
-#include "observation_channel/map.hpp"
+#include "observer/hitcounts.hpp"
+#include "observer/map.hpp"
 #include "types.hpp"
 
 #include <algorithm>  // std::fill_n

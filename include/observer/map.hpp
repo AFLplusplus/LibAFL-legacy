@@ -24,22 +24,45 @@
 
  */
 
-#ifndef LIBAFL_OBSERVATION_CHANNEL_HITCOUNTS_H
-#define LIBAFL_OBSERVATION_CHANNEL_HITCOUNTS_H
+#ifndef LIBAFL_OBSERVATION_CHANNEL_MAP_H
+#define LIBAFL_OBSERVATION_CHANNEL_MAP_H
 
-#include "observation_channel/map.hpp"
-#include "types.hpp"
+#include "observer/observation_channel.hpp"
+
+#include <algorithm>  // std::fill_n
 
 namespace afl {
 
-class HitcountsMapObservationChannel : public MapObservationChannel<u8> {
+template <typename MapType>
+class BaseMapObservationChannel : public ObservationChannel {
+ protected:
+  MapType traceMap;
+  size_t traceMapSize;
+
  public:
-  using MapObservationChannel<u8>::MapObservationChannel;
+  BaseMapObservationChannel(MapType trace_map, size_t trace_map_size)
+      : traceMap(trace_map), traceMapSize(trace_map_size) {}
 
   /*
-    Bucketize the map after the execution.
+    Getters.
   */
-  Result<void> PostExec(Executor* executor) override;
+  MapType GetMap() { return traceMap; }
+  virtual size_t GetSize() { return traceMapSize; }
+};
+
+template <typename MapBaseType, MapBaseType init_value = 0>
+class MapObservationChannel : public BaseMapObservationChannel<MapBaseType*> {
+ public:
+  using BaseMapObservationChannel<MapBaseType*>::BaseMapObservationChannel;
+
+  /*
+    Reset the channel.
+  */
+  Result<void> Reset() override {
+    std::fill_n(this->GetMap(), init_value, this->GetSize());
+    MEM_BARRIER();
+    return OK();
+  }
 };
 
 }  // namespace afl
