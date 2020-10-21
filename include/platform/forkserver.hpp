@@ -77,7 +77,7 @@ class ForkServerHelper {
                           u8* buffer,
                           size_t size);
 
-  Result<void> RunTarget(ForkServerExecutor* executor);
+  Result<void> ExecuteOnce(ForkServerExecutor* executor);
 };
 
 }  // namespace afl

@@ -27,17 +27,18 @@
 #ifndef LIBAFL_EXECUTOR_EXECUTOR_H
 #define LIBAFL_EXECUTOR_EXECUTOR_H
 
-#include <vector>
+#include "result.hpp"
 
 #include "observation_channel/observation_channel.hpp"
-#include "result.hpp"
+
+#include <vector>
 
 namespace afl {
 
 class ObservationChannel;
 class Input;
 
-enum class ExitType { Ok, Crash, Oom };
+enum class ExitType { kOk, kCrash, kOom };
 
 /*
   An Executor is an entity with a set of violation oracles, a set of observation

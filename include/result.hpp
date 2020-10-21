@@ -93,9 +93,7 @@ class Result {
 
   OkType Expect(const char* message) {
     if (IsErr()) {
-      ABORT("Result::Expect failed at '", message, "' with error '",
-            value.error->Message(), "' from ", value.error->GetSrcFile(), ":",
-            value.error->GetSrcLine());
+      ABORT("Result::Expect failed at '", message, "' with ", typeid(*value.error).name(), " '", value.error->Message(), "' from ", value.error->GetSrcFile(), ":", value.error->GetSrcLine());
     }
 
     return value.ok;
@@ -103,8 +101,8 @@ class Result {
 
   OkType Unwrap() {
     if (IsErr()) {
-      ABORT("Result::Unwrap failed with error '", value.error->Message(),
-            "' from ", value.error->GetSrcFile(), ":",
+      ABORT("Result::Unwrap failed with ", typeid(*value.error).name(), " '",
+            value.error->Message(), "' from ", value.error->GetSrcFile(), ":",
             value.error->GetSrcLine());
     }
 
@@ -144,16 +142,17 @@ class Result<void> {
 
   void Expect(const char* message) {
     if (IsErr()) {
-      ABORT("Result::Expect failed at '", message, "' with error '",
-            error->Message(), "' from ", error->GetSrcFile(), ":",
-            error->GetSrcLine());
+      ABORT("Result::Expect failed at '", message, "' with ",
+            typeid(*error).name(), " '", error->Message(), "' from ",
+            error->GetSrcFile(), ":", error->GetSrcLine());
     }
   }
 
   void Unwrap() {
     if (IsErr()) {
-      ABORT("Result::Unwrap failed with error '", error->Message(), "' from ",
-            error->GetSrcFile(), ":", error->GetSrcLine());
+      ABORT("Result::Unwrap failed with ", typeid(*error).name(), " '",
+            error->Message(), "' from ", error->GetSrcFile(), ":",
+            error->GetSrcLine());
     }
   }
 

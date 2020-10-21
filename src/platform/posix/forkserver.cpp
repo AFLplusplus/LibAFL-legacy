@@ -24,8 +24,8 @@
 
  */
 
+#include "executor/forkserver.hpp"
 #include "platform/forkserver.hpp"
-#include "input/input.hpp"
 
 #include <fcntl.h>
 #include <signal.h>
@@ -178,13 +178,13 @@ Result<void> ForkServerHelper::Start(ForkServerExecutor* executor,
   /* Wait for the fork server to come up, but don't wait too long. */
 
   rlen = 0;
-  if (executor->GetTimeout()) {
-    u32 time_ms = ReadTimed(stFd, &status, executor->GetTimeout());
+  if (executor->GetTimeoutMs()) {
+    u32 time_ms = ReadTimed(stFd, &status, executor->GetTimeoutMs());
 
     if (!time_ms) {
       kill(pid, SIGKILL);
 
-    } else if (time_ms > executor->GetTimeout()) {
+    } else if (time_ms > executor->GetTimeoutMs()) {
       lastRunTimedOut = true;
       kill(pid, SIGKILL);
 
@@ -220,6 +220,6 @@ Result<void> ForkServerHelper::WriteInput(ForkServerExecutor* executor,
   return OK();
 }
 
-Result<void> ForkServerHelper::RunTarget(ForkServerExecutor* executor) {
+Result<void> ForkServerHelper::ExecuteOnce(ForkServerExecutor* executor) {
   return OK();
 }

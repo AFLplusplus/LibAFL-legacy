@@ -24,47 +24,58 @@
 
  */
 
-#ifndef LIBAFL_EXECUTOR_INMEMORY_H
-#define LIBAFL_EXECUTOR_INMEMORY_H
+#ifndef LIBAFL_EXECUTOR_FORKSERVER_H
+#define LIBAFL_EXECUTOR_FORKSERVER_H
 
 #include "result.hpp"
 
 #include "executor/executor.hpp"
 #include "input/input.hpp"
+#include "platform/forkserver.hpp"
 
 namespace afl {
 
-typedef ExitType (*HarnessFunction)(Executor*, u8*, size_t);
-
-class InMemoryExecutor;
-extern InMemoryExecutor* g_current_inmemory_executor;
-
-class InMemoryExecutor : public Executor {
- protected:
-  HarnessFunction harnessFunction;
-
-  /* libFuzzer compatibility */
-  char** argv;
-  int argc;
-
-  u8* buffer;
-
+class ForkServerExecutor : public Executor {
  public:
-  InMemoryExecutor(HarnessFunction harness_function)
-      : harnessFunction(harness_function) {
+  enum class InputType {
+    kStdin,
+    kFile,
+    kInMemory
+  };
+
+  ForkServerExecutor(char** argv_, InputType input_type, u32 timeout_ms) : argv(argv_), inputType(input_type), timeoutMs(timeout_ms) {
     buffer = new u8[kMaxInputBytes];
+    helper.Start(this, argv).Expect("Cannot start the ForkServer");
+  }
+  ForkServerExecutor(char** argv_, InputType input_type) : ForkServerExecutor(argv_, input_type, 0) {}
+  
+  virtual Result<void> PlaceInput(Input* input) override {
+    TRY(Executor::PlaceInput(input));
+    size_t size = TRY(GetCurrentInput()->Serialize(buffer, kMaxInputBytes));
+    return helper.WriteInput(this, buffer, size);
   }
 
   virtual Result<ExitType> RunTarget() override {
-    auto res = GetCurrentInput()->Serialize(buffer, kMaxInputBytes);
-    if (res.IsOk()) {
-      g_current_inmemory_executor = this;
-      auto exit_type = harnessFunction(this, buffer, res.Unwrap());
-      g_current_inmemory_executor = nullptr;
-      return exit_type;
-    }
+    helper.ExecuteOnce(this);
     return ExitType::kOk;
   }
+  
+  InputType GetInputType() {
+    return inputType;
+  }
+ 
+  u32 GetTimeoutMs() {
+    return timeoutMs;
+  }
+ 
+protected:
+  ForkServerHelper helper;
+
+  char** argv;
+  InputType inputType;
+  u32 timeoutMs;
+  
+  u8* buffer;
 };
 
 }  // namespace afl
