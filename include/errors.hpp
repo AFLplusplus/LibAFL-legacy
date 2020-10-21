@@ -30,6 +30,7 @@
 #include "types.hpp"
 
 #include <cstring>
+#include <string>
 
 namespace afl {
 
@@ -41,7 +42,7 @@ class Error {
   Error(const char* src_file, size_t src_line)
       : srcFile(src_file), srcLine(src_line) {}
 
-  virtual const char* Message() = 0;
+  virtual const std::string Message() = 0;
 
   const char* GetSrcFile() { return srcFile; }
 
@@ -49,13 +50,13 @@ class Error {
 };
 
 class RuntimeError : public Error {
-  const char* message;
+  std::string message;
 
  public:
-  RuntimeError(const char* src_file, size_t src_line, const char* msg)
+  RuntimeError(const char* src_file, size_t src_line, const std::string& msg)
       : Error(src_file, src_line), message(msg) {}
 
-  const char* Message() override { return message; }
+  const std::string Message() override { return message; }
 };
 
 class AllocationError : public Error {
@@ -63,7 +64,7 @@ class AllocationError : public Error {
   AllocationError(const char* src_file, size_t src_line)
       : Error(src_file, src_line) {}
 
-  const char* Message() override { return "Cannot allocate memory"; }
+  const std::string Message() override { return "Cannot allocate memory"; }
 };
 
 class OSError : public Error {
@@ -73,7 +74,25 @@ class OSError : public Error {
   OSError(const char* src_file, size_t src_line, int err_num)
       : Error(src_file, src_line), errNum(err_num) {}
 
-  const char* Message() override { return strerror(errNum); }
+  const std::string Message() override { return strerror(errNum); }
+};
+
+class ShortWriteError : public Error {
+  size_t gotSize, expectedSize;
+
+ public:
+  ShortWriteError(const char* src_file,
+                  size_t src_line,
+                  size_t got_size,
+                  size_t exprected_size)
+      : Error(src_file, src_line),
+        gotSize(got_size),
+        expectedSize(exprected_size) {}
+
+  const std::string Message() override {
+    return "Expected " + std::to_string(expectedSize) + " but got " +
+           std::to_string(gotSize);
+  }
 };
 
 class OutOfBoundsError : public Error {
@@ -81,7 +100,7 @@ class OutOfBoundsError : public Error {
   OutOfBoundsError(const char* src_file, size_t src_line)
       : Error(src_file, src_line) {}
 
-  const char* Message() override { return "Out of bound access"; }
+  const std::string Message() override { return "Out of bound access"; }
 };
 
 class NotEnoughSpaceError : public Error {
@@ -89,7 +108,9 @@ class NotEnoughSpaceError : public Error {
   NotEnoughSpaceError(const char* src_file, size_t src_line)
       : Error(src_file, src_line) {}
 
-  const char* Message() override { return "Not enough space in container"; }
+  const std::string Message() override {
+    return "Not enough space in container";
+  }
 };
 
 class EmptyContainerError : public Error {
@@ -97,7 +118,7 @@ class EmptyContainerError : public Error {
   EmptyContainerError(const char* src_file, size_t src_line)
       : Error(src_file, src_line) {}
 
-  const char* Message() override { return "Empty container"; }
+  const std::string Message() override { return "Empty container"; }
 };
 
 }  // namespace afl

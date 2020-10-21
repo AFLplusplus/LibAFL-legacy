@@ -47,7 +47,7 @@ class ChildBrokenError : public Error {
   ChildBrokenError(const char* src_file, size_t src_line)
       : Error(src_file, src_line) {}
 
-  const char* Message() override { return "Broken child"; }
+  const std::string Message() override { return "Broken child"; }
 };
 
 class ForkServerExecutor;
@@ -59,6 +59,9 @@ class ForkServerHelper {
   int outFd;
   int devNullFd;
   int ctlFd, stFd;
+
+  s32 childStatus;
+  u8 lastKillSignal;
 
   u32* messagePtr;
 
@@ -77,7 +80,7 @@ class ForkServerHelper {
                           u8* buffer,
                           size_t size);
 
-  Result<void> ExecuteOnce(ForkServerExecutor* executor);
+  Result<ExitType> ExecuteOnce(ForkServerExecutor* executor);
 };
 
 }  // namespace afl

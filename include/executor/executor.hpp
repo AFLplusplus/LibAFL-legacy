@@ -38,7 +38,7 @@ namespace afl {
 class ObservationChannel;
 class Input;
 
-enum class ExitType { kOk, kCrash, kOom };
+enum class ExitType { kOk, kCrash, kOom, kTimeOut };
 
 /*
   An Executor is an entity with a set of violation oracles, a set of observation

@@ -93,7 +93,10 @@ class Result {
 
   OkType Expect(const char* message) {
     if (IsErr()) {
-      ABORT("Result::Expect failed at '", message, "' with ", typeid(*value.error).name(), " '", value.error->Message(), "' from ", value.error->GetSrcFile(), ":", value.error->GetSrcLine());
+      ABORT("Result::Expect failed at '", message, "' with ",
+            typeid(*value.error).name(), " '", value.error->Message(),
+            "' from ", value.error->GetSrcFile(), ":",
+            value.error->GetSrcLine());
     }
 
     return value.ok;

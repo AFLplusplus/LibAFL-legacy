@@ -56,8 +56,7 @@ class ForkServerExecutor : public Executor {
   }
 
   virtual Result<ExitType> RunTarget() override {
-    helper.ExecuteOnce(this);
-    return ExitType::kOk;
+    return helper.ExecuteOnce(this);
   }
   
   InputType GetInputType() {
