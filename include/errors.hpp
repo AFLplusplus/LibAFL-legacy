@@ -47,6 +47,8 @@ class Error {
   const char* GetSrcFile() { return srcFile; }
 
   size_t GetSrcLine() { return srcLine; }
+
+  virtual ~Error() = default;
 };
 
 class RuntimeError : public Error {

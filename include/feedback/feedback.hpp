@@ -45,6 +45,8 @@ class Feedback {
   void SetOwnCorpus(Corpus* corpus) { ownCorpus = corpus; }
 
   Corpus* GetOwnCorpus() { return ownCorpus; }
+
+  virtual ~Feedback() = default;
 };
 
 }  // namespace afl

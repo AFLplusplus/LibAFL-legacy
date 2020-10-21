@@ -49,6 +49,8 @@ class ObservationChannel {
     Post execution hook.
   */
   virtual Result<void> PostExec(Executor* executor) { return OK(); }
+
+  virtual ~ObservationChannel() = default;
 };
 
 }  // namespace afl

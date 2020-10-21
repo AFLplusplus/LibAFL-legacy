@@ -173,6 +173,8 @@ class Engine {
     while (true)
       TRY(FuzzOne());
   }
+
+  virtual ~Engine() = default;
 };
 
 }  // namespace afl

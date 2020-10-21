@@ -49,6 +49,8 @@ class Stage {
   Engine* GetEngine() { return engine; }
 
   virtual Result<void> Perform(Input* input, Entry* entry) = 0;
+
+  virtual ~Stage() = default;
 };
 
 }  // namespace afl

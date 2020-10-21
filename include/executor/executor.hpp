@@ -93,6 +93,9 @@ class Executor {
     AddObserationChannel(obj);
     return obj;
   }
+
+  virtual ~Executor() = default;
+
 };
 
 }  // namespace afl

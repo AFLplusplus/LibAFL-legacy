@@ -64,6 +64,8 @@ class Mutator {
   Result<void> PostExec(bool is_interesting) {
     return PostExec(is_interesting, static_cast<size_t>(-1));
   }
+
+  virtual ~Mutator() = default;
 };
 
 }  // namespace afl

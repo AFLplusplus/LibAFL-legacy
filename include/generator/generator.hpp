@@ -47,6 +47,8 @@ class Generator {
   virtual Result<Input*> Generate() = 0;
 
   virtual Result<Input*> GenerateDummy() = 0;
+
+  virtual ~Generator() = default;
 };
 
 }  // namespace afl

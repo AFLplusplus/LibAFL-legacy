@@ -80,6 +80,8 @@ class Corpus {
   }
 
   virtual Result<Entry*> Get() { return GetRandom(); }
+
+  virtual ~Corpus() = default;
 };
 
 }  // namespace afl

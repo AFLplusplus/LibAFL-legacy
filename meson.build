@@ -12,17 +12,22 @@
 #                                                                                 #
 ###################################################################################
 
-
-
 project('libafl', 'cpp',
     version         : '0.0.1',
     license         : 'LGPL',
-    meson_version   : '>=0.50.0',
-    default_options : ['cpp_std=c++17']
-    )
+    # 0.49 is what Debian 10 ships, according to:
+    # https://gitlab.gnome.org/GNOME/glib/blob/master/meson.build
+    meson_version   : '>=0.49.2',
+    default_options : [
+        'buildtype=debugoptimized',
+        'c_std=c11',
+        'cpp_std=c++17',
+    ]
+)
 
+cxx = meson.get_compiler('cpp')
 
-libafl_deps = [
+libafl_sources = [
     'src/corpus/entry.cpp',
     'src/engine/engine.cpp',
     'src/executor/inmemory.cpp',
@@ -31,23 +36,27 @@ libafl_deps = [
     'src/observer/hitcounts.cpp',
 ]
 
+deps = []
+
 if host_machine.system() != 'windows'
     # Not windows? Pretty sure we should be in posix land.
-    libafl_deps += [
+    libafl_sources += [
         'src/platform/posix/android-ashmem.h',
         'src/platform/posix/forkserver.cpp',
         'src/platform/posix/shmem.cpp',
     ]
+    librt = cxx.find_library('rt', required : false)
+    deps += [librt]
 endif
 
 incdir = include_directories('include')
 
-libafl = library('libafl', sources: libafl_deps, include_directories: incdir)
+libafl = library('libafl', sources: libafl_sources,  include_directories: incdir, dependencies: deps)
 
-executable('main', link_with: libafl, include_directories: incdir, sources: ['src/main.cpp'])
+executable('main', link_with: libafl, dependencies: deps, include_directories: incdir, sources: ['src/main.cpp'])
 
 inc_test = include_directories('test')
-test_catch = executable('test-catch', link_with: libafl, include_directories:[incdir, inc_test], sources: [
+test_catch = executable('test-catch', link_with: libafl, dependencies: deps, include_directories:[incdir, inc_test], sources: [
     'test/catch.hpp',
     'test/corpus/corpus.cpp',
     'test/main.cpp',

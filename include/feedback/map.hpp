@@ -236,6 +236,7 @@ class BaseMapFeedback<u8[map_size],
   auto& GetVirginMap() { return virginMap; }
 
   Result<float> IsInteresting(Executor* executor, Entry*& entry) override;
+
 };
 
 template <size_t map_size>

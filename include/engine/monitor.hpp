@@ -39,6 +39,8 @@ class Mutator;
 class Monitor {
  public:
   virtual std::string Report() = 0;
+
+  virtual ~Monitor() = default;
 };
 
 class FindingsMonitor : public Monitor {
@@ -51,6 +53,7 @@ class FindingsMonitor : public Monitor {
   std::string Report() override {
     return "";  // TODO
   }
+
 };
 
 }  // namespace afl
