@@ -13,6 +13,8 @@ TEST_CASE("Corpus can insert", "[Corpus]") {
   corpus.Insert(entry);
 
   REQUIRE( corpus.GetEntriesCount() == 1 );
-  REQUIRE( corpus.GetByIndex(0) == entry );
+  auto corpusEntry = corpus.GetByIndex(0);
+  REQUIRE(!corpusEntry.IsErr());
+  REQUIRE( corpus.GetByIndex(0).Unwrap() == entry );
 
 }
