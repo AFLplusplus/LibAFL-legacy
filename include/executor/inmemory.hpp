@@ -36,9 +36,6 @@ namespace afl {
 
 typedef ExitType (*HarnessFunction)(Executor*, u8*, size_t);
 
-class InMemoryExecutor;
-extern InMemoryExecutor* g_current_inmemory_executor;
-
 class InMemoryExecutor : public Executor {
  protected:
   HarnessFunction harnessFunction;
@@ -49,6 +46,8 @@ class InMemoryExecutor : public Executor {
 
   u8* buffer;
 
+  static InMemoryExecutor* currentInstance;
+
  public:
   InMemoryExecutor(HarnessFunction harness_function)
       : harnessFunction(harness_function) {
@@ -58,12 +57,16 @@ class InMemoryExecutor : public Executor {
   virtual Result<ExitType> RunTarget() override {
     auto res = GetCurrentInput()->Serialize(buffer, kMaxInputBytes);
     if (res.IsOk()) {
-      g_current_inmemory_executor = this;
+      currentInstance = this;
       auto exit_type = harnessFunction(this, buffer, res.Unwrap());
-      g_current_inmemory_executor = nullptr;
+      currentInstance = nullptr;
       return exit_type;
     }
     return ExitType::kOk;
+  }
+  
+  static InMemoryExecutor* Current() {
+    return currentInstance;
   }
 };
 

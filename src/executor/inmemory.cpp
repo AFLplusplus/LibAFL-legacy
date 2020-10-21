@@ -26,8 +26,6 @@
 
 #include "executor/inmemory.hpp"
 
-namespace afl {
+using namespace afl;
 
-InMemoryExecutor* g_current_inmemory_executor;
-
-}
+InMemoryExecutor* InMemoryExecutor::currentInstance = nullptr;
