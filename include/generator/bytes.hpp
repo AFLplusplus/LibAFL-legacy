@@ -49,7 +49,12 @@ protected:
     generated.resize(size);
 
     for (size_t i = 0; i < size; ++i) {
-      generated[i] = static_cast<char>(GetRandomState()->Below(256));
+      // A little optimization: We grab the next 8 chars from random.
+      u64 next = GetRandomState()->Next();
+      // For each of the 8 bytes, shift by a byte, get the char out.
+      for (size_t k = 0; k < 8 && i + k < size; k++) {
+        generated[i + k] = static_cast<char>(next >> k*8);
+      }
     }
 
     return new BytesInput(generated);
