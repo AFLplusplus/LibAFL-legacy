@@ -1,4 +1,6 @@
 use ::libc;
+use ::c2rust_asm_casts;
+use c2rust_asm_casts::AsmCastTrait;
 extern "C" {
     #[no_mangle]
     static mut stdout: *mut _IO_FILE;
@@ -60,10 +62,6 @@ extern "C" {
     #[no_mangle]
     fn accept(__fd: libc::c_int, __addr: *mut sockaddr,
               __addr_len: *mut socklen_t) -> libc::c_int;
-    #[no_mangle]
-    fn htonl(__hostlong: uint32_t) -> uint32_t;
-    #[no_mangle]
-    fn htons(__hostshort: uint16_t) -> uint16_t;
     #[no_mangle]
     fn inet_addr(__cp: *const libc::c_char) -> in_addr_t;
     #[no_mangle]
@@ -199,14 +197,35 @@ pub const AFL_RET_ALLOC: afl_ret = 3;
 pub const AFL_RET_FILE_DUPLICATE: afl_ret = 2;
 pub const AFL_RET_UNKNOWN_ERROR: afl_ret = 1;
 pub const AFL_RET_SUCCESS: afl_ret = 0;
-/* This file includes return codes for libafl. */
-/* Shorthand to check for RET_SUCCESS */
-/* If expr != AFL_RET_SUCCESS, run block, error is in err. Return from here will return the parent func */
-/* Shorthand to check for RET_SUCCESS and assign to ret */
 pub type afl_ret_t = afl_ret;
 pub type u8_0 = uint8_t;
 pub type u16_0 = uint16_t;
 pub type u32_0 = uint32_t;
+/*
+   american fuzzy lop++ - type definitions and minor macros
+   --------------------------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ */
+/* Extended forkserver option values */
+/* Reporting errors */
+/* Reporting options */
+// FS_OPT_MAX_MAPSIZE is 8388608 = 0x800000 = 2^23 = 1 << 22
 pub type u64_0 = libc::c_ulonglong;
 pub type s32 = int32_t;
 pub type s64 = int64_t;
@@ -315,64 +334,6 @@ pub struct afl_shmem {
     pub map_size: size_t,
 }
 pub type llmp_message_t = llmp_message;
-/*
-A PoC for low level message passing
-
-To send new messages, the clients place a new message at the end of their
-client_out_map. If the ringbuf is filled up, they start place a
-LLMP_AGE_END_OF_PAGE_V1 msg and alloc a new shmap.
-Once the broker mapped a page, it flags it save for unmapping.
-
-[client0]        [client1]    ...    [clientN]
-  |                  |                 /
-[client0_out] [client1_out] ... [clientN_out]
-  |                 /                /
-  |________________/                /
-  |________________________________/
- \|/
-[broker]
-
-After the broker received a new message for clientN, (clientN_out->current_id
-!= last_message->message_id) the broker will copy the message content to its
-own, centralized page.
-
-The clients periodically check (current_broadcast_map->current_id !=
-last_message->message_id) for new incoming messages. If the page is filled up,
-the broker instead creates a new page and places a LLMP_TAG_END_OF_PAGE_V1
-message in its queue. The LLMP_TAG_END_PAGE_V1 buf contains the new string to
-access the shared map. The clients then switch over to read from that new
-current map.
-
-[broker]
-  |
-[current_broadcast_map]
-  |
-  |___________________________________
-  |_________________                  \
-  |                 \                  \
-  |                  |                  |
- \|/                \|/                \|/
-[client0]        [client1]    ...    [clientN]
-
-In the future, if we need zero copy, the current_broadcast_map could instead
-list the client_out_map ID an offset for each message. In that case, the clients
-also need to create new shmaps once their bufs are filled up.
-
-
-To use, you will have to create a broker using llmp_broker_new().
-Then register some clientloops using llmp_broker_register_threaded_clientloop
-(or launch them as seperate processes) and call llmp_broker_run();
-
-*/
-// for sharedmem
-/* We'll start of with 256 megabyte per fuzzer */
-/* What byte count llmp messages should be aligned to */
-/* llmp tags */
-/* Storage class for hooks used at various places in llmp. */
-/* The actual message.
-    Sender is the original client id.
-    The buf can be cast to any content.
-    Once committed, this should not be touched again. */
 #[derive(Copy, Clone)]
 #[repr(C, packed)]
 pub struct llmp_message {
@@ -452,6 +413,31 @@ pub struct afl_input {
     pub copy_buf: *mut u8_0,
     pub funcs: afl_input_funcs,
 }
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_input_funcs {
@@ -891,6 +877,10 @@ pub struct llmp_payload_new_page {
 }
 /* size of this map */
 /* 0-terminated str handle for this map */
+/* This file includes return codes for libafl. */
+/* Shorthand to check for RET_SUCCESS */
+/* If expr != AFL_RET_SUCCESS, run block, error is in err. Return from here will return the parent func */
+/* Shorthand to check for RET_SUCCESS and assign to ret */
 /* Returns a string representation of afl_ret_t or of the errno if applicable */
 #[inline]
 unsafe extern "C" fn afl_ret_stringify(mut afl_ret: afl_ret_t)
@@ -930,30 +920,30 @@ unsafe extern "C" fn afl_ret_stringify(mut afl_ret: afl_ret_t)
                 return b"Allocation failed\x00" as *const u8 as
                            *const libc::c_char as *mut libc::c_char
             }
-            current_block_17 = 15859320420022735487;
+            current_block_17 = 14790635814531717251;
         }
-        4 => { current_block_17 = 15859320420022735487; }
-        6 => { current_block_17 = 8169317795695357680; }
-        12 => { current_block_17 = 10284973786955371720; }
+        4 => { current_block_17 = 14790635814531717251; }
+        6 => { current_block_17 = 14041587506167490878; }
+        12 => { current_block_17 = 7325919439520858036; }
         _ => {
             return b"Unknown error. Please report this bug!\x00" as *const u8
                        as *const libc::c_char as *mut libc::c_char
         }
     }
     match current_block_17 {
-        15859320420022735487 =>
+        14790635814531717251 =>
         /* fall-through */
         {
             if *__errno_location() == 0 {
                 return b"Error opening file\x00" as *const u8 as
                            *const libc::c_char as *mut libc::c_char
             }
-            current_block_17 = 8169317795695357680;
+            current_block_17 = 14041587506167490878;
         }
         _ => { }
     }
     match current_block_17 {
-        8169317795695357680 =>
+        14041587506167490878 =>
         /* fall-through */
         {
             if *__errno_location() == 0 {
@@ -1108,10 +1098,6 @@ unsafe extern "C" fn new_map_size(mut max_alloc: size_t) -> size_t {
  * llmp_page_t->messages */
 unsafe extern "C" fn _llmp_page_init(mut page: *mut llmp_page_t,
                                      mut sender: u32_0, mut size: size_t) {
-    printf(b"[D] [src/llmp.c:155] _llmp_page_init %p %u %lu\n\x00" as
-               *const u8 as *const libc::c_char, page, sender, size);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     (*page).sender = sender;
     ::std::ptr::write_volatile(&mut (*page).current_msg_id as *mut size_t,
                                0 as libc::c_int as size_t);
@@ -1163,11 +1149,6 @@ pub unsafe extern "C" fn llmp_recv(mut page: *mut llmp_page_t,
 pub unsafe extern "C" fn llmp_recv_blocking(mut page: *mut llmp_page_t,
                                             mut last_msg: *mut llmp_message_t)
  -> *mut llmp_message_t {
-    printf(b"[D] [src/llmp.c:211] llmp_recv_blocking %p %p page->current_msg_id %lu last_msg->message_id %u\n\x00"
-               as *const u8 as *const libc::c_char, page, last_msg,
-           (*page).current_msg_id, (*last_msg).message_id);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     let mut current_msg_id: u32_0 = 0 as libc::c_int as u32_0;
     if !last_msg.is_null() {
         if (*last_msg).tag == 0xaf1e0f1 as libc::c_int as libc::c_uint &&
@@ -1212,14 +1193,6 @@ pub unsafe extern "C" fn llmp_recv_blocking(mut page: *mut llmp_page_t,
 pub unsafe extern "C" fn llmp_alloc_eop(mut page: *mut llmp_page_t,
                                         mut last_msg: *mut llmp_message_t)
  -> *mut llmp_message_t {
-    if !llmp_msg_in_page(page, last_msg) {
-        /* This should only happen if the initial alloc > initial page len */
-        printf(b"[D] [src/llmp.c:254] EOP without any useful last_msg in the current page. size_used %ld, size_total %ld, last_msg_ptr: %p, max_alloc_size: %ld\x00"
-                   as *const u8 as *const libc::c_char, (*page).size_used,
-               (*page).size_total, last_msg, (*page).max_alloc_size);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
-    }
     if (*page).size_used.wrapping_add(llmp_align((::std::mem::size_of::<llmp_message_t>()
                                                       as
                                                       libc::c_ulong).wrapping_add(::std::mem::size_of::<llmp_payload_new_page_t>()
@@ -1283,10 +1256,6 @@ pub unsafe extern "C" fn llmp_alloc_next(mut page: *mut llmp_page_t,
                                          mut last_msg: *mut llmp_message_t,
                                          mut buf_len: size_t)
  -> *mut llmp_message_t {
-    printf(b"[D] [src/llmp.c:289] llmp_alloc_next %p %p %lu\n\x00" as
-               *const u8 as *const libc::c_char, page, last_msg, buf_len);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     let mut buf_len_padded: size_t = buf_len;
     let mut complete_msg_size: size_t =
         llmp_align((::std::mem::size_of::<llmp_message_t>() as
@@ -1326,11 +1295,6 @@ pub unsafe extern "C" fn llmp_alloc_next(mut page: *mut llmp_page_t,
                                                                                                                           as
                                                                                                                           libc::c_ulong)))
                > (*page).size_total {
-            printf(b"[D] [src/llmp.c:322] No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: %ld, total size %ld). Returning NULL\x00"
-                       as *const u8 as *const libc::c_char, buf_len_padded,
-                   (*page).size_used, (*page).size_total);
-            printf(b"\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             /* We're full. */
             return 0 as *mut llmp_message_t
         }
@@ -1366,11 +1330,6 @@ pub unsafe extern "C" fn llmp_alloc_next(mut page: *mut llmp_page_t,
                                                                                                                           as
                                                                                                                           libc::c_ulong)))
                > (*page).size_total {
-            printf(b"[D] [src/llmp.c:352] No more space in page (tried %ld bytes + END_OF_PAGE_LEN, used: %ld, total size %ld). Returning NULL\x00"
-                       as *const u8 as *const libc::c_char, buf_len_padded,
-                   (*page).size_used, (*page).size_total);
-            printf(b"\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             /* Still space for the new message plus the additional "we're full" message?
      */
             /* We're full. */
@@ -1421,11 +1380,6 @@ pub unsafe extern "C" fn llmp_alloc_next(mut page: *mut llmp_page_t,
 #[no_mangle]
 pub unsafe extern "C" fn llmp_send(mut page: *mut llmp_page_t,
                                    mut msg: *mut llmp_message_t) -> bool {
-    printf(b"[D] [src/llmp.c:403] llmp_send %p %p message_id %u\n\x00" as
-               *const u8 as *const libc::c_char, page, msg,
-           (*msg).message_id);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     if (*msg).tag as libc::c_longlong == 0xdeadaf as libc::c_longlong {
         printf(b"\x1b[?25h\n[-] PROGRAM ABORT : No tag set on message with id %d!\x00"
                    as *const u8 as *const libc::c_char, (*msg).message_id);
@@ -1438,10 +1392,6 @@ pub unsafe extern "C" fn llmp_send(mut page: *mut llmp_page_t,
         exit(1 as libc::c_int);
     }
     if msg.is_null() || !llmp_msg_in_page(page, msg) {
-        printf(b"[D] [src/llmp.c:409] BUG: Uh-Oh! Wrong msg passed to llmp_send_allocated :(\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return 0 as libc::c_int != 0
     }
     asm!("" : : : "memory" : "volatile");
@@ -1454,19 +1404,6 @@ pub unsafe extern "C" fn llmp_send(mut page: *mut llmp_page_t,
 unsafe extern "C" fn _llmp_broker_current_broadcast_map(mut broker_state:
                                                             *mut llmp_broker_t)
  -> *mut afl_shmem_t {
-    printf(b"[D] [src/llmp.c:424] _llmp_broker_current_broadcast_map %p [%u]-> %p\n\x00"
-               as *const u8 as *const libc::c_char, broker_state,
-           ((*broker_state).broadcast_map_count as
-                u32_0).wrapping_sub(1 as libc::c_int as libc::c_uint),
-           &mut *(*broker_state).broadcast_maps.offset((*broker_state).broadcast_map_count.wrapping_sub(1
-                                                                                                            as
-                                                                                                            libc::c_int
-                                                                                                            as
-                                                                                                            libc::c_ulong)
-                                                           as isize) as
-               *mut afl_shmem_t);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     return &mut *(*broker_state).broadcast_maps.offset((*broker_state).broadcast_map_count.wrapping_sub(1
                                                                                                             as
                                                                                                             libc::c_int
@@ -1497,11 +1434,6 @@ pub unsafe extern "C" fn llmp_new_page_shmem(mut uninited_afl_shmem:
     }
     _llmp_page_init(shmem2page(uninited_afl_shmem), sender as u32_0,
                     size_requested);
-    printf(b"[D] [src/llmp.c:436] llmp_new_page_shmem %p %lu %lu -> size %lu\n\x00"
-               as *const u8 as *const libc::c_char, uninited_afl_shmem,
-           sender, size_requested, size);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     return shmem2page(uninited_afl_shmem);
 }
 /* This function handles EOP by creating a new shared page and informing the
@@ -1511,11 +1443,6 @@ unsafe extern "C" fn llmp_handle_out_eop(mut maps: *mut afl_shmem_t,
                                          mut last_msg_p:
                                              *mut *mut llmp_message_t)
  -> *mut afl_shmem_t {
-    printf(b"[D] [src/llmp.c:445] llmp_handle_out_eop %p %p=%lu %p=%p\n\x00"
-               as *const u8 as *const libc::c_char, maps, map_count_p,
-           *map_count_p, last_msg_p, *last_msg_p);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     let mut map_count: u32_0 = *map_count_p as u32_0;
     let mut old_map: *mut llmp_page_t =
         shmem2page(&mut *maps.offset(map_count.wrapping_sub(1 as libc::c_int
@@ -1529,23 +1456,13 @@ unsafe extern "C" fn llmp_handle_out_eop(mut maps: *mut afl_shmem_t,
                          libc::c_ulong).wrapping_mul(::std::mem::size_of::<afl_shmem_t>()
                                                          as libc::c_ulong)) as
             *mut afl_shmem_t;
-    if maps.is_null() {
-        printf(b"[D] [src/llmp.c:452] Unable to alloc space for broker map\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
-        return 0 as *mut afl_shmem_t
-    }
+    if maps.is_null() { return 0 as *mut afl_shmem_t }
     /* Broadcast a new, large enough, message. Also sorry for that c ptr stuff! */
     let mut new_map: *mut llmp_page_t =
         llmp_new_page_shmem(&mut *maps.offset(map_count as isize),
                             (*old_map).sender as size_t,
                             new_map_size((*old_map).max_alloc_size));
     if new_map.is_null() {
-        printf(b"[D] [src/llmp.c:461] Unable to initialize new broker page\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_free(maps as *mut libc::c_void);
         return 0 as *mut afl_shmem_t
     }
@@ -1576,10 +1493,6 @@ unsafe extern "C" fn llmp_handle_out_eop(mut maps: *mut afl_shmem_t,
     *last_msg_p = 0 as *mut llmp_message_t;
     /* Send the last msg on the old buf */
     if !llmp_send(old_map, out) {
-        printf(b"[D] [src/llmp.c:494] Could not inform the broker!\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_free(maps as *mut libc::c_void);
         return 0 as *mut afl_shmem_t
     }
@@ -1590,10 +1503,6 @@ unsafe extern "C" fn llmp_handle_out_eop(mut maps: *mut afl_shmem_t,
 pub unsafe extern "C" fn llmp_broker_handle_out_eop(mut broker:
                                                         *mut llmp_broker_t)
  -> afl_ret_t {
-    printf(b"[D] [src/llmp.c:507] Broadcasting broker EOP\x00" as *const u8 as
-               *const libc::c_char);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     (*broker).broadcast_maps =
         llmp_handle_out_eop((*broker).broadcast_maps,
                             &mut (*broker).broadcast_map_count,
@@ -1664,10 +1573,6 @@ unsafe extern "C" fn llmp_broker_register_client(mut broker:
                                                                                                  libc::c_ulong))
             as *mut llmp_broker_clientdata_t;
     if (*broker).llmp_clients.is_null() {
-        printf(b"[D] [src/llmp.c:551] Failed to register new client!\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return 0 as *mut llmp_broker_clientdata_t
     }
     let mut client: *mut llmp_broker_clientdata_t =
@@ -1690,49 +1595,14 @@ unsafe extern "C" fn llmp_broker_register_client(mut broker:
                ::std::mem::size_of::<afl_shmem_t>() as libc::c_ulong) as
             *mut afl_shmem_t;
     if (*client).cur_client_map.is_null() {
-        printf(b"[D] [src/llmp.c:567] Could not allocate mem for client map\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return 0 as *mut llmp_broker_clientdata_t
     }
     if afl_shmem_by_str((*client).cur_client_map, shm_str, map_size).is_null()
        {
-        printf(b"[D] [src/llmp.c:574] Could not map shmem \'%s\'\x00" as
-                   *const u8 as *const libc::c_char, shm_str);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return 0 as *mut llmp_broker_clientdata_t
-    }
-    printf(b"[D] [src/llmp.c:580] Registerd new client.\x00" as *const u8 as
-               *const libc::c_char);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
-    let mut i: size_t = 0;
-    i = 0 as libc::c_int as size_t;
-    while i < (*broker).llmp_client_count {
-        let mut actual_id: u32_0 =
-            (*(*(*broker).llmp_clients.offset(i as isize)).client_state).id;
-        if i != actual_id as libc::c_ulong {
-            printf(b"\x1b[?25h\n[-] PROGRAM ABORT : Inconsistent client state detected: id is %d but should be %ld\x00"
-                       as *const u8 as *const libc::c_char, actual_id, i);
-            printf(b"\n         Location : %s(), %s:%u\n\n\x00" as *const u8
-                       as *const libc::c_char,
-                   (*::std::mem::transmute::<&[u8; 28],
-                                             &[libc::c_char; 28]>(b"llmp_broker_register_client\x00")).as_ptr(),
-                   b"src/llmp.c\x00" as *const u8 as *const libc::c_char,
-                   585 as libc::c_int);
-            exit(1 as libc::c_int);
-        }
-        i = i.wrapping_add(1)
     }
     (*broker).llmp_client_count = (*broker).llmp_client_count.wrapping_add(1);
     // tODO: Add client map
-    printf(b"[D] [src/llmp.c:595] Added clientprocess with id %d\x00" as
-               *const u8 as *const libc::c_char,
-           (*(*client).client_state).id);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     return client;
 }
 /* broker broadcast to its own page for all others to read */
@@ -1751,17 +1621,6 @@ unsafe extern "C" fn llmp_broker_handle_new_msgs(mut broker:
     while current_message_id as libc::c_ulong != (*incoming).current_msg_id {
         let mut msg: *mut llmp_message_t =
             llmp_recv(incoming, (*client).last_msg_broker_read);
-        printf(b"[D] [src/llmp.c:616] Broker send: our current_message_id for client %d (at ptr %p) is %d%s, now processing msg id %d with tag 0x%X\x00"
-                   as *const u8 as *const libc::c_char,
-               (*(*client).client_state).id, client, current_message_id,
-               if !(*client).last_msg_broker_read.is_null() {
-                   b"\x00" as *const u8 as *const libc::c_char
-               } else {
-                   b" (last msg was NULL)\x00" as *const u8 as
-                       *const libc::c_char
-               }, (*msg).message_id, (*msg).tag);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         if msg.is_null() {
             printf(b"\x1b[?25h\n[-] PROGRAM ABORT : No message received but not all message ids receved! Data out of sync?\x00"
                        as *const u8 as *const libc::c_char);
@@ -1798,11 +1657,6 @@ unsafe extern "C" fn llmp_broker_handle_new_msgs(mut broker:
                        626 as libc::c_int);
                 exit(1 as libc::c_int);
             }
-            printf(b"[D] [src/llmp.c:630] Got EOP from client %d. Mapping new map.\x00"
-                       as *const u8 as *const libc::c_char,
-                   (*(*client).client_state).id);
-            printf(b"\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             /* We can reuse the map mem space, no need to free and calloc.
       However, the pageinfo points to the map we're about to unmap.
       Copy the contents first. */
@@ -1832,10 +1686,6 @@ unsafe extern "C" fn llmp_broker_handle_new_msgs(mut broker:
                 exit(1 as libc::c_int);
             }
         } else if (*msg).tag == 0xc11e471 as libc::c_int as libc::c_uint {
-            printf(b"[D] [src/llmp.c:651] Will add a new client.\x00" as
-                       *const u8 as *const libc::c_char);
-            printf(b"\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             /* This client informs us about yet another new client
       add it to the list! Also, no need to forward this msg. */
             let mut pageinfo_0: *mut llmp_payload_new_page_t =
@@ -1895,20 +1745,11 @@ unsafe extern "C" fn llmp_broker_handle_new_msgs(mut broker:
                 if !llmp_msg_in_page(shmem2page((*client).cur_client_map),
                                      msg) {
                     /* Special handling in case the client got exchanged inside the message_hook, for example after a crash. */
-                    printf(b"[D] [src/llmp.c:689] Message hook altered the client. We\'ll yield for now.\x00"
-                               as *const u8 as *const libc::c_char);
-                    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                    fflush(stdout);
                     return
                 }
                 i = i.wrapping_add(1)
             }
             if forward_msg {
-                printf(b"[D] [src/llmp.c:698] Broadcasting msg with id %d, tag 0x%X\x00"
-                           as *const u8 as *const libc::c_char,
-                       (*msg).message_id, (*msg).tag);
-                printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
                 let mut out: *mut llmp_message_t =
                     llmp_broker_alloc_next(broker, (*msg).buf_len_padded);
                 if out.is_null() {
@@ -1927,13 +1768,6 @@ unsafe extern "C" fn llmp_broker_handle_new_msgs(mut broker:
                 /* Copy over the whole message.
         If we should need zero copy, we could instead post a link to the
         original msg with the map_id and offset. */
-                printf(b"[D] [src/llmp.c:712] broker memcpy %p->%lu %p->%lu copy %lu\n\x00"
-                           as *const u8 as *const libc::c_char, out,
-                       (*out).buf_len_padded, msg, (*msg).buf_len_padded,
-                       (::std::mem::size_of::<llmp_message_t>() as
-                            libc::c_ulong).wrapping_add((*msg).buf_len_padded));
-                printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
                 let mut actual_size: size_t = (*out).buf_len_padded;
                 memcpy(out as *mut libc::c_void, msg as *const libc::c_void,
                        (::std::mem::size_of::<llmp_message_t>() as
@@ -1969,8 +1803,8 @@ unsafe extern "C" fn llmp_broker_handle_new_msgs(mut broker:
  * its own shared page, once. */
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page, once. */
-#[inline]
-unsafe extern "C" fn llmp_broker_once(mut broker: *mut llmp_broker_t) {
+#[no_mangle]
+pub unsafe extern "C" fn llmp_broker_once(mut broker: *mut llmp_broker_t) {
     let mut i: u32_0 = 0;
     asm!("" : : : "memory" : "volatile");
     i = 0 as libc::c_int as u32_0;
@@ -2044,10 +1878,6 @@ unsafe extern "C" fn _llmp_client_wrapped_loop(mut llmp_client_broker_metadata_p
     }
 
   */
-    printf(b"[D] [src/llmp.c:810] Client looping\x00" as *const u8 as
-               *const libc::c_char);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     (*metadata).clientloop.expect("non-null function pointer")((*metadata).client_state,
                                                                (*metadata).data);
     printf(b"[!] WARNING: Client loop exited for client %d\x00" as *const u8
@@ -2092,10 +1922,6 @@ pub unsafe extern "C" fn llmp_broker_launch_client(mut broker:
             printf(b"\n\x00" as *const u8 as *const libc::c_char);
             return 0 as libc::c_int != 0
         }
-        printf(b"[D] [src/llmp.c:838] Launching new client process\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         let mut child_id: libc::c_int = fork();
         if child_id < 0 as libc::c_int {
             printf(b"[!] WARNING: Could not fork\x00" as *const u8 as
@@ -2111,19 +1937,7 @@ pub unsafe extern "C" fn llmp_broker_launch_client(mut broker:
       close(dev_null_fd);
       */
                 /* in the child, start loop, exit afterwards. */
-                printf(b"[D] [src/llmp.c:855] LLMP child process started\x00"
-                           as *const u8 as *const libc::c_char);
-                printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
-                printf(b"[D] [src/llmp.c:856] Fork child loop\x00" as
-                           *const u8 as *const libc::c_char);
-                printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
                 _llmp_client_wrapped_loop(clientdata as *mut libc::c_void);
-                printf(b"[D] [src/llmp.c:858] Fork child loop exited\x00" as
-                           *const u8 as *const libc::c_char);
-                printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
                 exit(1 as libc::c_int);
             }
         }
@@ -2236,20 +2050,7 @@ unsafe extern "C" fn llmp_client_prune_old_pages(mut client:
               (*shmem2page(&mut *(*client).out_maps.offset(0 as libc::c_int as
                                                                isize))).save_to_unmap
                   as libc::c_int != 0 {
-        printf(b"[D] [src/llmp.c:954] Page %ld is save to unmap. Unmapping...\x00"
-                   as *const u8 as *const libc::c_char,
-               (*shmem2page(&mut *(*client).out_maps.offset(0 as libc::c_int
-                                                                as
-                                                                isize))).current_msg_id);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         /* This page is save to unmap. The broker already reads or read it. */
-        printf(b"[D] [src/llmp.c:957] Unmap shared map %s from client\x00" as
-                   *const u8 as *const libc::c_char,
-               (*(*client).out_maps.offset(0 as libc::c_int as
-                                               isize)).shm_str.as_mut_ptr());
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_shmem_deinit(&mut *(*client).out_maps.offset(0 as libc::c_int as
                                                              isize));
         /* We remove at the start, move the other pages back. */
@@ -2267,20 +2068,10 @@ unsafe extern "C" fn llmp_client_prune_old_pages(mut client:
 unsafe extern "C" fn llmp_client_handle_out_eop(mut client:
                                                     *mut llmp_client_t)
  -> bool {
-    printf(b"[D] [src/llmp.c:970] Sending client EOP for client %d\x00" as
-               *const u8 as *const libc::c_char, (*client).id);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     (*client).out_maps =
         llmp_handle_out_eop((*client).out_maps, &mut (*client).out_map_count,
                             &mut (*client).last_msg_sent);
-    if (*client).out_maps.is_null() {
-        printf(b"[D] [src/llmp.c:974] An error occurred when handling client eop\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
-        return 0 as libc::c_int != 0
-    }
+    if (*client).out_maps.is_null() { return 0 as libc::c_int != 0 }
     /* Prune old pages!
     This is a good time to see if we can unallocate older pages.
     The broker would have informed us by setting the flag
@@ -2349,10 +2140,6 @@ pub unsafe extern "C" fn llmp_client_recv(mut client: *mut llmp_client_t)
                            *mut libc::c_void, pageinfo as *const libc::c_void,
                        ::std::mem::size_of::<llmp_payload_new_page_t>() as
                            libc::c_ulong);
-                printf(b"[D] [src/llmp.c:1026] Got EOP from broker. Mapping new map.\x00"
-                           as *const u8 as *const libc::c_char);
-                printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
                 /* Never read by broker broker: shmem2page(map)->save_to_unmap = true; */
                 afl_shmem_deinit(broadcast_map);
                 if afl_shmem_by_str((*client).current_broadcast_map,
@@ -2390,36 +2177,8 @@ pub unsafe extern "C" fn llmp_client_recv_blocking(mut client:
                     (*(*client).last_msg_recvd).message_id
                 } else { 0 as libc::c_int as libc::c_uint }) as libc::c_ulong
            {
-            printf(b"[D] [src/llmp.c:1060] Blocking read got new page->current_msg_id %ld (last msg id was %d)\x00"
-                       as *const u8 as *const libc::c_char,
-                   (*page).current_msg_id,
-                   if !(*client).last_msg_recvd.is_null() {
-                       (*(*client).last_msg_recvd).message_id
-                   } else { 0 as libc::c_int as libc::c_uint });
-            printf(b"\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             let mut ret: *mut llmp_message_t = llmp_client_recv(client);
-            if !ret.is_null() {
-                printf(b"[D] [src/llmp.c:1065] blocking got new msg %d\x00" as
-                           *const u8 as *const libc::c_char,
-                       (*ret).message_id);
-                printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
-                return ret
-            }
-            if !(*client).last_msg_recvd.is_null() &&
-                   (*(*client).last_msg_recvd).tag ==
-                       0xaf1e0f1 as libc::c_int as libc::c_uint {
-                printf(b"\x1b[?25h\n[-] PROGRAM ABORT : BUG: client recv returned null unexpectedly\x00"
-                           as *const u8 as *const libc::c_char);
-                printf(b"\n         Location : %s(), %s:%u\n\n\x00" as
-                           *const u8 as *const libc::c_char,
-                       (*::std::mem::transmute::<&[u8; 26],
-                                                 &[libc::c_char; 26]>(b"llmp_client_recv_blocking\x00")).as_ptr(),
-                       b"src/llmp.c\x00" as *const u8 as *const libc::c_char,
-                       1073 as libc::c_int);
-                exit(1 as libc::c_int);
-            }
+            if !ret.is_null() { return ret }
             /* last msg will exist, even if EOP was handled internally */
             page = shmem2page((*client).current_broadcast_map)
         }
@@ -2458,10 +2217,6 @@ pub unsafe extern "C" fn llmp_client_alloc_next(mut client:
         /* Page is full -> Tell broker and start from the beginning.
     Also, pray the broker got all messaes we're overwriting. :) */
         if !llmp_client_handle_out_eop(client) {
-            printf(b"[D] [src/llmp.c:1111] BUG: Error sending EOP\x00" as
-                       *const u8 as *const libc::c_char);
-            printf(b"\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             return 0 as *mut llmp_message_t
         }
         if (*client).out_map_count == last_map_count ||
@@ -2495,13 +2250,7 @@ pub unsafe extern "C" fn llmp_client_alloc_next(mut client:
                                                                            as
                                                                            isize)),
                             0 as *mut llmp_message_t, size);
-        if msg.is_null() {
-            printf(b"[D] [src/llmp.c:1129] BUG: Something went wrong allocating a msg in the shmap\x00"
-                       as *const u8 as *const libc::c_char);
-            printf(b"\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
-            return 0 as *mut llmp_message_t
-        }
+        if msg.is_null() { return 0 as *mut llmp_message_t }
     }
     (*msg).sender = (*client).id;
     (*msg).message_id =
@@ -2527,18 +2276,6 @@ pub unsafe extern "C" fn llmp_client_cancel(mut client: *mut llmp_client_t,
                                                                                             as
                                                                                             libc::c_ulong)
                                                        as isize));
-    if !llmp_msg_in_page(page, msg) {
-        printf(b"\x1b[?25h\n[-] PROGRAM ABORT : BUG: Trying to cancel msg that\'s not in page! (%p not in %p with size %ld)\x00"
-                   as *const u8 as *const libc::c_char, msg, page,
-               (*page).size_total);
-        printf(b"\n         Location : %s(), %s:%u\n\n\x00" as *const u8 as
-                   *const libc::c_char,
-               (*::std::mem::transmute::<&[u8; 19],
-                                         &[libc::c_char; 19]>(b"llmp_client_cancel\x00")).as_ptr(),
-               b"src/llmp.c\x00" as *const u8 as *const libc::c_char,
-               1155 as libc::c_int);
-        exit(1 as libc::c_int);
-    }
     (*msg).tag = 0xdeadaf as libc::c_longlong as u32_0;
     (*page).size_used =
         ((*page).size_used as
@@ -2553,11 +2290,6 @@ pub unsafe extern "C" fn llmp_client_send(mut client_state:
                                               *mut llmp_client_t,
                                           mut msg: *mut llmp_message_t)
  -> bool {
-    printf(b"[D] [src/llmp.c:1169] Client %d sends new msg at %p with tag 0x%X and size %ld\x00"
-               as *const u8 as *const libc::c_char, (*client_state).id, msg,
-           (*msg).tag, (*msg).buf_len_padded);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     let mut page: *mut llmp_page_t =
         shmem2page(&mut *(*client_state).out_maps.offset((*client_state).out_map_count.wrapping_sub(1
                                                                                                         as
@@ -2565,18 +2297,6 @@ pub unsafe extern "C" fn llmp_client_send(mut client_state:
                                                                                                         as
                                                                                                         libc::c_ulong)
                                                              as isize));
-    if !llmp_msg_in_page(page, msg) {
-        printf(b"\x1b[?25h\n[-] PROGRAM ABORT : BUG: Message to send not in correct page (%p not in %p with size %ld)\x00"
-                   as *const u8 as *const libc::c_char, msg, page,
-               (*page).size_total);
-        printf(b"\n         Location : %s(), %s:%u\n\n\x00" as *const u8 as
-                   *const libc::c_char,
-               (*::std::mem::transmute::<&[u8; 17],
-                                         &[libc::c_char; 17]>(b"llmp_client_send\x00")).as_ptr(),
-               b"src/llmp.c\x00" as *const u8 as *const libc::c_char,
-               1176 as libc::c_int);
-        exit(1 as libc::c_int);
-    }
     let mut ret: bool = llmp_send(page, msg);
     (*client_state).last_msg_sent = msg;
     return ret;
@@ -2614,9 +2334,52 @@ pub unsafe extern "C" fn llmp_clientloop_process_server(mut client_state:
         socket(2 as libc::c_int, SOCK_STREAM as libc::c_int,
                0 as libc::c_int);
     serv_addr.sin_family = 2 as libc::c_int as sa_family_t;
-    serv_addr.sin_addr.s_addr = htonl(0x7f000001 as libc::c_int as in_addr_t);
+    serv_addr.sin_addr.s_addr =
+        ({
+             let mut __v: libc::c_uint = 0;
+             let mut __x: libc::c_uint =
+                 0x7f000001 as libc::c_int as in_addr_t;
+             if 0 != 0 {
+                 __v =
+                     (__x & 0xff000000 as libc::c_uint) >> 24 as libc::c_int |
+                         (__x & 0xff0000 as libc::c_int as libc::c_uint) >>
+                             8 as libc::c_int |
+                         (__x & 0xff00 as libc::c_int as libc::c_uint) <<
+                             8 as libc::c_int |
+                         (__x & 0xff as libc::c_int as libc::c_uint) <<
+                             24 as libc::c_int
+             } else {
+                 let fresh0 = &mut __v;
+                 let fresh1;
+                 let fresh2 = __x;
+                 asm!("bswap $0" : "=r" (fresh1) : "0"
+                      (c2rust_asm_casts::AsmCast::cast_in(fresh0, fresh2)) :);
+                 c2rust_asm_casts::AsmCast::cast_out(fresh0, fresh2, fresh1);
+             }
+             __v
+         });
     /* port 2801 */
-    serv_addr.sin_port = htons(port as uint16_t);
+    serv_addr.sin_port =
+        ({
+             let mut __v: libc::c_ushort = 0;
+             let mut __x: libc::c_ushort = port as libc::c_ushort;
+             if 0 != 0 {
+                 __v =
+                     (__x as libc::c_int >> 8 as libc::c_int &
+                          0xff as libc::c_int |
+                          (__x as libc::c_int & 0xff as libc::c_int) <<
+                              8 as libc::c_int) as libc::c_ushort
+             } else {
+                 let fresh3 = &mut __v;
+                 let fresh4;
+                 let fresh5 = __x;
+                 asm!("rorw $$8, ${0:w}" : "=r" (fresh4) : "0"
+                      (c2rust_asm_casts::AsmCast::cast_in(fresh3, fresh5)) :
+                      "cc");
+                 c2rust_asm_casts::AsmCast::cast_out(fresh3, fresh5, fresh4);
+             }
+             __v
+         });
     let mut backoff: uint32_t = 2 as libc::c_int as uint32_t;
     while bind(listenfd, &mut serv_addr as *mut sockaddr_in as *mut sockaddr,
                ::std::mem::size_of::<sockaddr_in>() as libc::c_ulong as
@@ -2670,69 +2433,59 @@ pub unsafe extern "C" fn llmp_clientloop_process_server(mut client_state:
             printf(b"[!] WARNING: Error on accept\x00" as *const u8 as
                        *const libc::c_char);
             printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        } else {
-            printf(b"[D] [src/llmp.c:1235] New clientprocess connected\x00" as
-                       *const u8 as *const libc::c_char);
+        } else if write(connfd,
+                        &mut initial_broadcast_map as
+                            *mut llmp_payload_new_page_t as
+                            *const libc::c_void,
+                        ::std::mem::size_of::<llmp_payload_new_page_t>() as
+                            libc::c_ulong) as libc::c_ulong !=
+                      ::std::mem::size_of::<llmp_payload_new_page_t>() as
+                          libc::c_ulong {
+            printf(b"[!] WARNING: Socket_client: TCP client disconnected immediately\x00"
+                       as *const u8 as *const libc::c_char);
             printf(b"\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
-            if write(connfd,
-                     &mut initial_broadcast_map as
-                         *mut llmp_payload_new_page_t as *const libc::c_void,
-                     ::std::mem::size_of::<llmp_payload_new_page_t>() as
-                         libc::c_ulong) as libc::c_ulong !=
-                   ::std::mem::size_of::<llmp_payload_new_page_t>() as
-                       libc::c_ulong {
-                printf(b"[!] WARNING: Socket_client: TCP client disconnected immediately\x00"
-                           as *const u8 as *const libc::c_char);
-                printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                close(connfd);
-            } else {
-                let mut rlen_total: size_t = 0 as libc::c_int as size_t;
-                while rlen_total <
-                          ::std::mem::size_of::<llmp_payload_new_page_t>() as
-                              libc::c_ulong {
-                    let mut rlen: ssize_t =
-                        read(connfd,
-                             payload.offset(rlen_total as isize) as
-                                 *mut libc::c_void,
-                             (::std::mem::size_of::<llmp_payload_new_page_t>()
-                                  as libc::c_ulong).wrapping_sub(rlen_total));
-                    if rlen < 0 as libc::c_int as libc::c_long {
-                        // TODO: Handle EINTR?
-                        printf(b"[!] WARNING: No complete map str receved from TCP client\x00"
-                                   as *const u8 as *const libc::c_char);
-                        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                        close(connfd);
-                    } else {
-                        rlen_total =
-                            (rlen_total as
-                                 libc::c_ulong).wrapping_add(rlen as
-                                                                 libc::c_ulong)
-                                as size_t as size_t
-                    }
-                }
-                close(connfd);
-                printf(b"[D] [src/llmp.c:1265] Got new client with map id %s and size %ld\x00"
-                           as *const u8 as *const libc::c_char,
-                       (*payload).shm_str.as_mut_ptr(), (*payload).map_size);
-                printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
-                if !llmp_client_send(client_state, msg) {
-                    printf(b"\x1b[?25h\n[-] PROGRAM ABORT : BUG: Error sending incoming tcp msg to broker\x00"
+            close(connfd);
+        } else {
+            let mut rlen_total: size_t = 0 as libc::c_int as size_t;
+            while rlen_total <
+                      ::std::mem::size_of::<llmp_payload_new_page_t>() as
+                          libc::c_ulong {
+                let mut rlen: ssize_t =
+                    read(connfd,
+                         payload.offset(rlen_total as isize) as
+                             *mut libc::c_void,
+                         (::std::mem::size_of::<llmp_payload_new_page_t>() as
+                              libc::c_ulong).wrapping_sub(rlen_total));
+                if rlen < 0 as libc::c_int as libc::c_long {
+                    // TODO: Handle EINTR?
+                    printf(b"[!] WARNING: No complete map str receved from TCP client\x00"
                                as *const u8 as *const libc::c_char);
-                    printf(b"\n         Location : %s(), %s:%u\n\n\x00" as
-                               *const u8 as *const libc::c_char,
-                           (*::std::mem::transmute::<&[u8; 31],
-                                                     &[libc::c_char; 31]>(b"llmp_clientloop_process_server\x00")).as_ptr(),
-                           b"src/llmp.c\x00" as *const u8 as
-                               *const libc::c_char, 1267 as libc::c_int);
-                    exit(1 as libc::c_int);
+                    printf(b"\n\x00" as *const u8 as *const libc::c_char);
+                    close(connfd);
+                } else {
+                    rlen_total =
+                        (rlen_total as
+                             libc::c_ulong).wrapping_add(rlen as
+                                                             libc::c_ulong) as
+                            size_t as size_t
                 }
-                msg =
-                    llmp_client_alloc_next(client_state,
-                                           ::std::mem::size_of::<llmp_payload_new_page_t>()
-                                               as libc::c_ulong)
             }
+            close(connfd);
+            if !llmp_client_send(client_state, msg) {
+                printf(b"\x1b[?25h\n[-] PROGRAM ABORT : BUG: Error sending incoming tcp msg to broker\x00"
+                           as *const u8 as *const libc::c_char);
+                printf(b"\n         Location : %s(), %s:%u\n\n\x00" as
+                           *const u8 as *const libc::c_char,
+                       (*::std::mem::transmute::<&[u8; 31],
+                                                 &[libc::c_char; 31]>(b"llmp_clientloop_process_server\x00")).as_ptr(),
+                       b"src/llmp.c\x00" as *const u8 as *const libc::c_char,
+                       1267 as libc::c_int);
+                exit(1 as libc::c_int);
+            }
+            msg =
+                llmp_client_alloc_next(client_state,
+                                       ::std::mem::size_of::<llmp_payload_new_page_t>()
+                                           as libc::c_ulong)
         }
     };
 }
@@ -2748,10 +2501,6 @@ pub unsafe extern "C" fn llmp_client_new_unconnected() -> *mut llmp_client_t {
                ::std::mem::size_of::<afl_shmem_t>() as libc::c_ulong) as
             *mut afl_shmem_t;
     if (*client_state).current_broadcast_map.is_null() {
-        printf(b"[D] [src/llmp.c:1283] Could not allocate mem\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return 0 as *mut llmp_client_t
     }
     (*client_state).out_maps =
@@ -2761,10 +2510,6 @@ pub unsafe extern "C" fn llmp_client_new_unconnected() -> *mut llmp_client_t {
                                                          as libc::c_ulong)) as
             *mut afl_shmem_t;
     if (*client_state).out_maps.is_null() {
-        printf(b"[D] [src/llmp.c:1290] Could not allocate memory\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         free((*client_state).current_broadcast_map as *mut libc::c_void);
         free(client_state as *mut libc::c_void);
         return 0 as *mut llmp_client_t
@@ -2777,10 +2522,6 @@ pub unsafe extern "C" fn llmp_client_new_unconnected() -> *mut llmp_client_t {
                            (*client_state).id as size_t,
                            ((1 as libc::c_int) << 28 as libc::c_int) as
                                size_t).is_null() {
-        printf(b"[D] [src/llmp.c:1301] Could not create sharedmem\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_free((*client_state).out_maps as *mut libc::c_void);
         free((*client_state).current_broadcast_map as *mut libc::c_void);
         free(client_state as *mut libc::c_void);
@@ -2838,10 +2579,6 @@ pub unsafe extern "C" fn llmp_client_new(mut port: libc::c_int)
             *mut afl_shmem_t;
     if (*client_state).current_broadcast_map.is_null() {
         llmp_client_delete(client_state);
-        printf(b"[D] [src/llmp.c:1353] Could not allocate mem\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return 0 as *mut llmp_client_t
     }
     (*client_state).out_maps =
@@ -2851,27 +2588,18 @@ pub unsafe extern "C" fn llmp_client_new(mut port: libc::c_int)
                                                          as libc::c_ulong)) as
             *mut afl_shmem_t;
     if (*client_state).out_maps.is_null() {
-        printf(b"[D] [src/llmp.c:1360] Could not allocate memory\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         free((*client_state).current_broadcast_map as *mut libc::c_void);
         free(client_state as *mut libc::c_void);
         return 0 as *mut llmp_client_t
     }
     (*client_state).out_map_count = 1 as libc::c_int as size_t;
-    if llmp_new_page_shmem(&mut *(*client_state).out_maps.offset(0 as
-                                                                     libc::c_int
-                                                                     as
-                                                                     isize),
-                           (*client_state).id as size_t,
-                           ((1 as libc::c_int) << 28 as libc::c_int) as
-                               size_t).is_null() {
-        printf(b"[D] [src/llmp.c:1371] Could not create sharedmem\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
-    } else {
+    if !llmp_new_page_shmem(&mut *(*client_state).out_maps.offset(0 as
+                                                                      libc::c_int
+                                                                      as
+                                                                      isize),
+                            (*client_state).id as size_t,
+                            ((1 as libc::c_int) << 28 as libc::c_int) as
+                                size_t).is_null() {
         // socket create and varification
         connfd =
             socket(2 as libc::c_int, SOCK_STREAM as libc::c_int,
@@ -2893,15 +2621,32 @@ pub unsafe extern "C" fn llmp_client_new(mut port: libc::c_int)
         servaddr.sin_family = 2 as libc::c_int as sa_family_t;
         servaddr.sin_addr.s_addr =
             inet_addr(b"127.0.0.1\x00" as *const u8 as *const libc::c_char);
-        servaddr.sin_port = htons(port as uint16_t);
-        if connect(connfd, &mut servaddr as *mut sockaddr_in as *mut sockaddr,
-                   ::std::mem::size_of::<sockaddr_in>() as libc::c_ulong as
-                       socklen_t) != 0 as libc::c_int {
-            printf(b"[D] [src/llmp.c:1388] Unable to connect to broker at localhost:%d, make sure it\'s running and has a port exposed\x00"
-                       as *const u8 as *const libc::c_char, port);
-            printf(b"\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
-        } else {
+        servaddr.sin_port =
+            ({
+                 let mut __v: libc::c_ushort = 0;
+                 let mut __x: libc::c_ushort = port as libc::c_ushort;
+                 if 0 != 0 {
+                     __v =
+                         (__x as libc::c_int >> 8 as libc::c_int &
+                              0xff as libc::c_int |
+                              (__x as libc::c_int & 0xff as libc::c_int) <<
+                                  8 as libc::c_int) as libc::c_ushort
+                 } else {
+                     let fresh6 = &mut __v;
+                     let fresh7;
+                     let fresh8 = __x;
+                     asm!("rorw $$8, ${0:w}" : "=r" (fresh7) : "0"
+                          (c2rust_asm_casts::AsmCast::cast_in(fresh6, fresh8))
+                          : "cc");
+                     c2rust_asm_casts::AsmCast::cast_out(fresh6, fresh8,
+                                                         fresh7);
+                 }
+                 __v
+             });
+        if !(connect(connfd,
+                     &mut servaddr as *mut sockaddr_in as *mut sockaddr,
+                     ::std::mem::size_of::<sockaddr_in>() as libc::c_ulong as
+                         socklen_t) != 0 as libc::c_int) {
             client_map_msg =
                 llmp_payload_new_page_t{map_size: 0, shm_str: [0; 20],};
             broker_map_msg =
@@ -2940,7 +2685,7 @@ pub unsafe extern "C" fn llmp_client_new(mut port: libc::c_int)
                 if !(rlen_total <
                          ::std::mem::size_of::<llmp_payload_new_page_t>() as
                              libc::c_ulong) {
-                    current_block = 6243635450180130569;
+                    current_block = 11777552016271000781;
                     break ;
                 }
                 let mut rlen: ssize_t =
@@ -2954,17 +2699,13 @@ pub unsafe extern "C" fn llmp_client_new(mut port: libc::c_int)
                               libc::c_ulong).wrapping_sub(rlen_total));
                 if rlen < 0 as libc::c_int as libc::c_long {
                     // TODO: Handle EINTR?
-                    printf(b"[D] [src/llmp.c:1415] Got short response from broker via TCP\x00"
-                               as *const u8 as *const libc::c_char);
-                    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                    fflush(stdout);
                     close(connfd);
                     afl_shmem_deinit(&mut *(*client_state).out_maps.offset(0
                                                                                as
                                                                                libc::c_int
                                                                                as
                                                                                isize));
-                    current_block = 11053096150074480450;
+                    current_block = 17574801987628971675;
                     break ;
                 } else {
                     rlen_total =
@@ -2975,17 +2716,13 @@ pub unsafe extern "C" fn llmp_client_new(mut port: libc::c_int)
                 }
             }
             match current_block {
-                11053096150074480450 => { }
+                17574801987628971675 => { }
                 _ => {
                     close(connfd);
                     if afl_shmem_by_str((*client_state).current_broadcast_map,
                                         broker_map_msg.shm_str.as_mut_ptr(),
                                         broker_map_msg.map_size).is_null() {
                         // TODO: Handle EINTR?
-                        printf(b"[D] [src/llmp.c:1431] Could not allocate shmem\x00"
-                                   as *const u8 as *const libc::c_char);
-                        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-                        fflush(stdout);
                         afl_shmem_deinit(&mut *(*client_state).out_maps.offset(0
                                                                                    as
                                                                                    libc::c_int
@@ -3025,20 +2762,12 @@ pub unsafe extern "C" fn llmp_broker_register_childprocess_clientloop(mut broker
     if llmp_new_page_shmem(&mut client_map, (*broker).llmp_client_count,
                            ((1 as libc::c_int) << 28 as libc::c_int) as
                                size_t).is_null() {
-        printf(b"[D] [src/llmp.c:1457] Failed to set up shmem for new client.\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return 0 as libc::c_int != 0
     }
     let mut client: *mut llmp_broker_clientdata_t =
         llmp_broker_register_client(broker, client_map.shm_str.as_mut_ptr(),
                                     client_map.map_size);
     if client.is_null() {
-        printf(b"[D] [src/llmp.c:1465] Could not register threaded client\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_shmem_deinit(&mut client_map);
         return 0 as libc::c_int != 0
     }
@@ -3051,10 +2780,6 @@ pub unsafe extern "C" fn llmp_broker_register_childprocess_clientloop(mut broker
                     ::std::mem::size_of::<afl_shmem_t>() as libc::c_ulong) as
             *mut afl_shmem_t;
     if (*(*client).client_state).out_maps.is_null() {
-        printf(b"[D] [src/llmp.c:1478] Could not alloc mem for client map\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_shmem_deinit(&mut client_map);
         afl_shmem_deinit((*client).cur_client_map);
         /* "Unregister" by subtracting the client from count */
@@ -3073,11 +2798,6 @@ pub unsafe extern "C" fn llmp_broker_register_childprocess_clientloop(mut broker
         &mut *(*broker).broadcast_maps.offset(0 as libc::c_int as isize) as
             *mut afl_shmem_t;
     (*(*client).client_state).out_map_count = 1 as libc::c_int as size_t;
-    printf(b"[D] [src/llmp.c:1496] Registered threaded client with id %d (loop func at %p)\x00"
-               as *const u8 as *const libc::c_char,
-           (*(*client).client_state).id, (*client).clientloop);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     return 1 as libc::c_int != 0;
 }
 /* Register a new pthread/threaded client.
@@ -3110,10 +2830,6 @@ pub unsafe extern "C" fn llmp_broker_register_threaded_clientloop(mut broker:
     if llmp_new_page_shmem(&mut client_map, (*broker).llmp_client_count,
                            ((1 as libc::c_int) << 28 as libc::c_int) as
                                size_t).is_null() {
-        printf(b"[D] [src/llmp.c:1518] Failed to set up shmem for new client.\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return 0 as libc::c_int != 0
     }
     let mut pthread: *mut pthread_t =
@@ -3121,10 +2837,6 @@ pub unsafe extern "C" fn llmp_broker_register_threaded_clientloop(mut broker:
                ::std::mem::size_of::<pthread_t>() as libc::c_ulong) as
             *mut pthread_t;
     if pthread.is_null() {
-        printf(b"[D] [src/llmp.c:1526] Failed to alloc pthread struct\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_shmem_deinit(&mut client_map);
         return 0 as libc::c_int != 0
     }
@@ -3132,10 +2844,6 @@ pub unsafe extern "C" fn llmp_broker_register_threaded_clientloop(mut broker:
         llmp_broker_register_client(broker, client_map.shm_str.as_mut_ptr(),
                                     client_map.map_size);
     if client.is_null() {
-        printf(b"[D] [src/llmp.c:1535] Could not register threaded client\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_shmem_deinit(&mut client_map);
         free(pthread as *mut libc::c_void);
         return 0 as libc::c_int != 0
@@ -3150,10 +2858,6 @@ pub unsafe extern "C" fn llmp_broker_register_threaded_clientloop(mut broker:
                     ::std::mem::size_of::<afl_shmem_t>() as libc::c_ulong) as
             *mut afl_shmem_t;
     if (*(*client).client_state).out_maps.is_null() {
-        printf(b"[D] [src/llmp.c:1550] Could not alloc mem for client map\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_shmem_deinit(&mut client_map);
         afl_shmem_deinit((*client).cur_client_map);
         free(pthread as *mut libc::c_void);
@@ -3173,11 +2877,6 @@ pub unsafe extern "C" fn llmp_broker_register_threaded_clientloop(mut broker:
         &mut *(*broker).broadcast_maps.offset(0 as libc::c_int as isize) as
             *mut afl_shmem_t;
     (*(*client).client_state).out_map_count = 1 as libc::c_int as size_t;
-    printf(b"[D] [src/llmp.c:1569] Registered threaded client with id %d (loop func at %p)\x00"
-               as *const u8 as *const libc::c_char,
-           (*(*client).client_state).id, (*client).clientloop);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     return 1 as libc::c_int != 0;
 }
 /* Register a simple tcp client that will listen for new shard map clients via
@@ -3198,10 +2897,6 @@ pub unsafe extern "C" fn llmp_broker_register_local_server(mut broker:
                                                               -> ()),
                                                  port as size_t as
                                                      *mut libc::c_void) {
-        printf(b"[D] [src/llmp.c:1581] Error registering new threaded client\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return 0 as libc::c_int != 0
     }
     return 1 as libc::c_int != 0;
@@ -3226,18 +2921,14 @@ pub unsafe extern "C" fn llmp_add_hook_generic(mut hooks_p:
                                                                                  libc::c_ulong))
             as *mut llmp_hookdata_t;
     if hooks.is_null() {
-        printf(b"[D] [src/llmp.c:1599] realloc for msg hooks failed\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         *hooks_p = 0 as *mut llmp_hookdata_t;
         *hooks_count_p = 0 as libc::c_int as size_t;
         return AFL_RET_ALLOC
     }
-    let ref mut fresh0 = (*hooks.offset(hooks_count as isize)).func;
-    *fresh0 = new_hook_func;
-    let ref mut fresh1 = (*hooks.offset(hooks_count as isize)).data;
-    *fresh1 = new_hook_data;
+    let ref mut fresh9 = (*hooks.offset(hooks_count as isize)).func;
+    *fresh9 = new_hook_func;
+    let ref mut fresh10 = (*hooks.offset(hooks_count as isize)).data;
+    *fresh10 = new_hook_data;
     *hooks_p = hooks;
     *hooks_count_p =
         hooks_count.wrapping_add(1 as libc::c_int as libc::c_ulong);
@@ -3306,13 +2997,7 @@ pub unsafe extern "C" fn llmp_broker_init(mut broker: *mut llmp_broker_t)
                          libc::c_ulong).wrapping_mul(::std::mem::size_of::<afl_shmem_t>()
                                                          as libc::c_ulong)) as
             *mut afl_shmem_t;
-    if (*broker).broadcast_maps.is_null() {
-        printf(b"[D] [src/llmp.c:1639] Broker map realloc failed\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
-        return AFL_RET_ALLOC
-    }
+    if (*broker).broadcast_maps.is_null() { return AFL_RET_ALLOC }
     (*broker).broadcast_map_count = 1 as libc::c_int as size_t;
     (*broker).llmp_client_count = 0 as libc::c_int as size_t;
     (*broker).llmp_clients = 0 as *mut llmp_broker_clientdata_t;
@@ -3320,19 +3005,76 @@ pub unsafe extern "C" fn llmp_broker_init(mut broker: *mut llmp_broker_t)
                            -(1 as libc::c_int) as size_t,
                            ((1 as libc::c_int) << 28 as libc::c_int) as
                                size_t).is_null() {
-        printf(b"[D] [src/llmp.c:1651] Broker map init failed\x00" as
-                   *const u8 as *const libc::c_char);
-        printf(b"\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         afl_free((*broker).broadcast_maps as *mut libc::c_void);
         return AFL_RET_ALLOC
     }
-    printf(b"[D] [src/llmp.c:1657] Sucess\x00" as *const u8 as
-               *const libc::c_char);
-    printf(b"\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     return AFL_RET_SUCCESS;
 }
+/*
+A PoC for low level message passing
+
+To send new messages, the clients place a new message at the end of their
+client_out_map. If the ringbuf is filled up, they start place a
+LLMP_AGE_END_OF_PAGE_V1 msg and alloc a new shmap.
+Once the broker mapped a page, it flags it save for unmapping.
+
+[client0]        [client1]    ...    [clientN]
+  |                  |                 /
+[client0_out] [client1_out] ... [clientN_out]
+  |                 /                /
+  |________________/                /
+  |________________________________/
+ \|/
+[broker]
+
+After the broker received a new message for clientN, (clientN_out->current_id
+!= last_message->message_id) the broker will copy the message content to its
+own, centralized page.
+
+The clients periodically check (current_broadcast_map->current_id !=
+last_message->message_id) for new incoming messages. If the page is filled up,
+the broker instead creates a new page and places a LLMP_TAG_END_OF_PAGE_V1
+message in its queue. The LLMP_TAG_END_PAGE_V1 buf contains the new string to
+access the shared map. The clients then switch over to read from that new
+current map.
+
+[broker]
+  |
+[current_broadcast_map]
+  |
+  |___________________________________
+  |_________________                  \
+  |                 \                  \
+  |                  |                  |
+ \|/                \|/                \|/
+[client0]        [client1]    ...    [clientN]
+
+In the future, if we need zero copy, the current_broadcast_map could instead
+list the client_out_map ID an offset for each message. In that case, the clients
+also need to create new shmaps once their bufs are filled up.
+
+
+To use, you will have to create a broker using llmp_broker_new().
+Then register some clientloops using llmp_broker_register_threaded_clientloop
+(or launch them as seperate processes) and call llmp_broker_run();
+
+*/
+// for sharedmem
+/* We'll start of with 256 megabyte per fuzzer */
+/* What byte count llmp messages should be aligned to */
+/* llmp tags */
+/* Storage class for hooks used at various places in llmp. */
+/* The actual message.
+    Sender is the original client id.
+    The buf can be cast to any content.
+    Once committed, this should not be touched again. */
+/* Tag is the (unique) tag of a message.
+  It should be unique per application and version */
+/* the sender's id */
+/* unique id for this msg */
+/* the length of the payload, as requested by the caller */
+/* the actual length of the payload, including padding to the next msg */
+/* the content (syntax needs c99) */
 /* A sharedmap page, used for unidirectional data flow.
    After a new message is added, current_msg_id should be set to the messages'
    unique id. Will then be read by the connected clients. If the page is full, a

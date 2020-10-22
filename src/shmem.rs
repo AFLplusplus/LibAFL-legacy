@@ -18,7 +18,8 @@ extern "C" {
     fn shmat(__shmid: libc::c_int, __shmaddr: *const libc::c_void,
              __shmflg: libc::c_int) -> *mut libc::c_void;
     #[no_mangle]
-    fn atoi(__nptr: *const libc::c_char) -> libc::c_int;
+    fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char,
+              _: libc::c_int) -> libc::c_long;
     #[no_mangle]
     fn setenv(__name: *const libc::c_char, __value: *const libc::c_char,
               __replace: libc::c_int) -> libc::c_int;
@@ -98,6 +99,11 @@ pub struct afl_shmem {
 // A generic sharememory region to be used by any functions (queues or feedbacks
 // too.)
 pub type afl_shmem_t = afl_shmem;
+#[inline]
+unsafe extern "C" fn atoi(mut __nptr: *const libc::c_char) -> libc::c_int {
+    return strtol(__nptr, 0 as *mut libc::c_void as *mut *mut libc::c_char,
+                  10 as libc::c_int) as libc::c_int;
+}
 #[no_mangle]
 pub unsafe extern "C" fn afl_shmem_deinit(mut shm: *mut afl_shmem_t) {
     if shm.is_null() || (*shm).map.is_null() {

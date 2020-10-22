@@ -736,7 +736,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
 
 /* The broker walks all pages and looks for changes, then broadcasts them on
  * its own shared page, once. */
-inline void llmp_broker_once(llmp_broker_t *broker) {
+void llmp_broker_once(llmp_broker_t *broker) {
 
   u32 i;
   MEM_BARRIER();

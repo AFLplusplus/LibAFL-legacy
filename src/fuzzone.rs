@@ -20,6 +20,10 @@ pub type int32_t = __int32_t;
 pub type int64_t = __int64_t;
 pub type uint8_t = __uint8_t;
 pub type uint32_t = __uint32_t;
+/* This file includes return codes for libafl. */
+/* Shorthand to check for RET_SUCCESS */
+/* If expr != AFL_RET_SUCCESS, run block, error is in err. Return from here will return the parent func */
+/* Shorthand to check for RET_SUCCESS and assign to ret */
 pub type afl_ret = libc::c_uint;
 pub const AFL_RET_EMPTY: afl_ret = 20;
 pub const AFL_RET_ERROR_INPUT_COPY: afl_ret = 19;
@@ -426,6 +430,31 @@ pub struct afl_queue_global_funcs {
                                                             *mut afl_queue_feedback_t)
                                        -> afl_ret_t>,
 }
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
 pub type afl_queue_feedback_t = afl_queue_feedback;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -489,6 +518,10 @@ We've tried to keep it generic and yet including, but if you want to extend the
 queue/entry, simply "inherit" this struct by including it in your custom struct
 and keeping it as the first member of your struct.
 */
+/*TODO: Still need to add a base implementation for this.*/
+// AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_queue_feedback, AFL_DECL_PARAMS(afl_feedback_t *feedback, char *name),
+//                                   AFL_CALL_PARAMS(feedback, name));
+// Default implementations for the functions for queue_entry vtable
 pub type afl_queue_t = afl_queue;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -567,7 +600,6 @@ pub struct afl_entry_funcs {
     pub get_child: Option<unsafe extern "C" fn(_: *mut afl_entry_t, _: size_t)
                               -> *mut afl_entry_t>,
 }
-/*TODO: Still need to add a base implementation for this.*/
 pub type afl_entry_info_t = afl_entry_info;
 #[derive(Copy, Clone)]
 #[repr(C, packed)]

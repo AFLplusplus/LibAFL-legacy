@@ -254,6 +254,30 @@ pub struct afl_fuzz_one_funcs {
 /* This file contains commonly used functionality for libafl */
 // We're declaring a few structs here which have an interdependency between them
 pub type afl_engine_t = afl_engine;
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   The Engine is the main and central part of the fuzzer. It contains the
+   queues, feedbacks, executor and the fuzz_one (which in turn has stages)
+
+ */
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_engine {
@@ -507,6 +531,11 @@ pub struct afl_input_funcs {
                               -> *mut u8_0>,
     pub delete: Option<unsafe extern "C" fn(_: *mut afl_input_t) -> ()>,
 }
+/*TODO: Still need to add a base implementation for this.*/
+// AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_queue_feedback, AFL_DECL_PARAMS(afl_feedback_t *feedback, char *name),
+//                                   AFL_CALL_PARAMS(feedback, name));
+// Default implementations for the functions for queue_entry vtable
+/* TODO: Add the base  */
 // Inheritence from base queue
 // "constructor" for the above feedback queue
 pub type afl_queue_global_t = afl_queue_global;
@@ -776,7 +805,6 @@ pub struct afl_entry_funcs {
     pub get_child: Option<unsafe extern "C" fn(_: *mut afl_entry_t, _: size_t)
                               -> *mut afl_entry_t>,
 }
-/*TODO: Still need to add a base implementation for this.*/
 pub type afl_entry_info_t = afl_entry_info;
 #[derive(Copy, Clone)]
 #[repr(C, packed)]
@@ -811,6 +839,36 @@ pub struct afl_stage {
     pub mutators_count: size_t,
 }
 pub type afl_mutator_t = afl_mutator;
+/* Random number counter*/
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+
+ */
+// Mutator struct will have many internal functions like mutate, trimming etc.
+// This is based on both the FFF prototype and the custom mutators that we have
+// in AFL++ without the AFL++ specific parts
+// The params here are in_buf and out_buf.
+// Mutate function
+// Checks if the queue entry is to be fuzzed or not
+// Post process API AFL++
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_mutator {
@@ -892,7 +950,6 @@ pub struct in_memory_executor {
     pub global_queue: *mut afl_queue_global_t,
 }
 pub type in_memory_executor_t = in_memory_executor;
-/* Random number counter*/
 /* In non-debug mode, we just do straightforward aliasing of the above
      functions to user-visible names such as ck_alloc(). */
 /* _WANT_ORIGINAL_AFL_ALLOC */

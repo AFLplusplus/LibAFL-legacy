@@ -29,10 +29,6 @@ extern "C" {
     #[no_mangle]
     fn strerror(_: libc::c_int) -> *mut libc::c_char;
     #[no_mangle]
-    static mut stdout: *mut _IO_FILE;
-    #[no_mangle]
-    fn fflush(__stream: *mut FILE) -> libc::c_int;
-    #[no_mangle]
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     #[no_mangle]
     fn afl_input_init(input: *mut afl_input_t) -> afl_ret_t;
@@ -42,6 +38,8 @@ extern "C" {
      -> afl_ret_t;
     #[no_mangle]
     fn llmp_client_recv(client: *mut llmp_client_t) -> *mut llmp_message_t;
+    /* TODO: Add implementations for installing crash handlers */
+    // Something similar to the child process
     /* Run `handle_file` for each file in the dirpath, recursively.
 void *data will be passed to handle_file as 2nd param.
 if handle_file returns false, further execution stops. */
@@ -59,8 +57,6 @@ pub type __int32_t = libc::c_int;
 pub type __uint32_t = libc::c_uint;
 pub type __int64_t = libc::c_long;
 pub type __uint64_t = libc::c_ulong;
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
 pub type __time_t = libc::c_long;
 pub type __ssize_t = libc::c_long;
 pub type ssize_t = __ssize_t;
@@ -127,48 +123,6 @@ pub type u32_0 = uint32_t;
 pub type u64_0 = libc::c_ulonglong;
 pub type s32 = int32_t;
 pub type s64 = int64_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_FILE {
-    pub _flags: libc::c_int,
-    pub _IO_read_ptr: *mut libc::c_char,
-    pub _IO_read_end: *mut libc::c_char,
-    pub _IO_read_base: *mut libc::c_char,
-    pub _IO_write_base: *mut libc::c_char,
-    pub _IO_write_ptr: *mut libc::c_char,
-    pub _IO_write_end: *mut libc::c_char,
-    pub _IO_buf_base: *mut libc::c_char,
-    pub _IO_buf_end: *mut libc::c_char,
-    pub _IO_save_base: *mut libc::c_char,
-    pub _IO_backup_base: *mut libc::c_char,
-    pub _IO_save_end: *mut libc::c_char,
-    pub _markers: *mut _IO_marker,
-    pub _chain: *mut _IO_FILE,
-    pub _fileno: libc::c_int,
-    pub _flags2: libc::c_int,
-    pub _old_offset: __off_t,
-    pub _cur_column: libc::c_ushort,
-    pub _vtable_offset: libc::c_schar,
-    pub _shortbuf: [libc::c_char; 1],
-    pub _lock: *mut libc::c_void,
-    pub _offset: __off64_t,
-    pub __pad1: *mut libc::c_void,
-    pub __pad2: *mut libc::c_void,
-    pub __pad3: *mut libc::c_void,
-    pub __pad4: *mut libc::c_void,
-    pub __pad5: size_t,
-    pub _mode: libc::c_int,
-    pub _unused2: [libc::c_char; 20],
-}
-pub type _IO_lock_t = ();
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_marker {
-    pub _next: *mut _IO_marker,
-    pub _sbuf: *mut _IO_FILE,
-    pub _pos: libc::c_int,
-}
-pub type FILE = _IO_FILE;
 /* AFL alloc buffer, the struct is here so we don't need to do fancy ptr
  * arithmetics */
 #[derive(Copy, Clone)]
@@ -502,6 +456,10 @@ pub struct afl_input_funcs {
                               -> *mut u8_0>,
     pub delete: Option<unsafe extern "C" fn(_: *mut afl_input_t) -> ()>,
 }
+// AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_queue_feedback, AFL_DECL_PARAMS(afl_feedback_t *feedback, char *name),
+//                                   AFL_CALL_PARAMS(feedback, name));
+// Default implementations for the functions for queue_entry vtable
+/* TODO: Add the base  */
 // Inheritence from base queue
 // "constructor" for the above feedback queue
 pub type afl_queue_global_t = afl_queue_global;
@@ -689,6 +647,9 @@ pub struct afl_observer_funcs {
     pub post_exec: Option<unsafe extern "C" fn(_: *mut afl_observer_t,
                                                _: *mut afl_engine_t) -> ()>,
 }
+// This has a few parts, the first deals with crash handling.
+/* afl_exit_t is for the fuzzed target, as opposed to afl_ret_t
+which is for internal functions. */
 pub type afl_exit_t = afl_exit;
 pub type afl_exit = libc::c_uint;
 pub const AFL_EXIT_OOM: afl_exit = 9;
@@ -845,36 +806,6 @@ pub struct afl_stage {
     pub mutators_count: size_t,
 }
 pub type afl_mutator_t = afl_mutator;
-/* Random number counter*/
-/*
-   american fuzzy lop++ - fuzzer header
-   ------------------------------------
-
-   Originally written by Michal Zalewski
-
-   Now maintained by Marc Heuse <mh@mh-sec.de>,
-                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
-                     Andrea Fioraldi <andreafioraldi@gmail.com>,
-                     Dominik Maier <mail@dmnk.co>
-
-   Copyright 2016, 2017 Google Inc. All rights reserved.
-   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at:
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-
- */
-// Mutator struct will have many internal functions like mutate, trimming etc.
-// This is based on both the FFF prototype and the custom mutators that we have
-// in AFL++ without the AFL++ specific parts
-// The params here are in_buf and out_buf.
-// Mutate function
-// Checks if the queue entry is to be fuzzed or not
-// Post process API AFL++
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_mutator {
@@ -903,6 +834,7 @@ pub struct afl_mutator_funcs {
     pub get_stage: Option<unsafe extern "C" fn(_: *mut afl_mutator_t)
                               -> *mut afl_stage_t>,
 }
+/* Random number counter*/
 /*
    american fuzzy lop++ - fuzzer header
    ------------------------------------
@@ -936,22 +868,6 @@ pub struct afl_stage_funcs {
                                                           _:
                                                               *mut afl_mutator_t)
                                          -> afl_ret_t>,
-}
-#[inline]
-unsafe extern "C" fn afl_entry_new(mut input: *mut afl_input_t,
-                                   mut info: *mut afl_entry_info_t)
- -> *mut afl_entry_t {
-    let mut ret: *mut afl_entry_t =
-        calloc(1 as libc::c_int as libc::c_ulong,
-               ::std::mem::size_of::<afl_entry_t>() as libc::c_ulong) as
-            *mut afl_entry_t;
-    if ret.is_null() { return 0 as *mut afl_entry_t }
-    if afl_entry_init(ret, input, info) as libc::c_uint !=
-           AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-        free(ret as *mut libc::c_void);
-        return 0 as *mut afl_entry_t
-    }
-    return ret;
 }
 /* Returns a string representation of afl_ret_t or of the errno if applicable */
 #[inline]
@@ -992,30 +908,30 @@ unsafe extern "C" fn afl_ret_stringify(mut afl_ret: afl_ret_t)
                 return b"Allocation failed\x00" as *const u8 as
                            *const libc::c_char as *mut libc::c_char
             }
-            current_block_17 = 6100629464535663547;
+            current_block_17 = 7061776971255144309;
         }
-        4 => { current_block_17 = 6100629464535663547; }
-        6 => { current_block_17 = 10219713304939013295; }
-        12 => { current_block_17 = 3089853308412511092; }
+        4 => { current_block_17 = 7061776971255144309; }
+        6 => { current_block_17 = 16058436874353032090; }
+        12 => { current_block_17 = 2084429286258642802; }
         _ => {
             return b"Unknown error. Please report this bug!\x00" as *const u8
                        as *const libc::c_char as *mut libc::c_char
         }
     }
     match current_block_17 {
-        6100629464535663547 =>
+        7061776971255144309 =>
         /* fall-through */
         {
             if *__errno_location() == 0 {
                 return b"Error opening file\x00" as *const u8 as
                            *const libc::c_char as *mut libc::c_char
             }
-            current_block_17 = 10219713304939013295;
+            current_block_17 = 16058436874353032090;
         }
         _ => { }
     }
     match current_block_17 {
-        10219713304939013295 =>
+        16058436874353032090 =>
         /* fall-through */
         {
             if *__errno_location() == 0 {
@@ -1130,6 +1046,22 @@ unsafe extern "C" fn afl_input_new() -> *mut afl_input_t {
            AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
         free(ret as *mut libc::c_void);
         return 0 as *mut afl_input_t
+    }
+    return ret;
+}
+#[inline]
+unsafe extern "C" fn afl_entry_new(mut input: *mut afl_input_t,
+                                   mut info: *mut afl_entry_info_t)
+ -> *mut afl_entry_t {
+    let mut ret: *mut afl_entry_t =
+        calloc(1 as libc::c_int as libc::c_ulong,
+               ::std::mem::size_of::<afl_entry_t>() as libc::c_ulong) as
+            *mut afl_entry_t;
+    if ret.is_null() { return 0 as *mut afl_entry_t }
+    if afl_entry_init(ret, input, info) as libc::c_uint !=
+           AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
+        free(ret as *mut libc::c_void);
+        return 0 as *mut afl_entry_t
     }
     return ret;
 }
@@ -1411,22 +1343,11 @@ unsafe extern "C" fn afl_engine_handle_single_testcase_load(mut infile:
  -> bool {
     let mut engine: *mut afl_engine_t = data as *mut afl_engine_t;
     let mut input: *mut afl_input_t = afl_input_new();
-    if input.is_null() {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/engine.c:166] \x1b[0mError allocating input %s\x00"
-                   as *const u8 as *const libc::c_char, infile);
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
-        return 0 as libc::c_int != 0
-    }
+    if input.is_null() { return 0 as libc::c_int != 0 }
     let mut err: afl_ret_t =
         (*input).funcs.load_from_file.expect("non-null function pointer")(input,
                                                                           infile);
     if err as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/engine.c:177] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         printf(b"\x1b[1;93m[!] \x1b[1;97mWARNING: \x1b[0mError loading seed %s: %s\x00"
                    as *const u8 as *const libc::c_char, infile,
                afl_ret_stringify(err));
@@ -1472,13 +1393,7 @@ unsafe extern "C" fn afl_engine_handle_single_testcase_load(mut infile:
   /* We add the corpus to the global queue */
     let mut entry: *mut afl_entry_t =
         afl_entry_new(input, 0 as *mut afl_entry_info_t);
-    if entry.is_null() {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/engine.c:218] \x1b[0mError allocating entry.\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
-        return 0 as libc::c_int != 0
-    }
+    if entry.is_null() { return 0 as libc::c_int != 0 }
     (*(*engine).global_queue).base.funcs.insert.expect("non-null function pointer")(&mut (*(*engine).global_queue).base,
                                                                                     entry);
     if (*engine).verbose != 0 {
@@ -1604,12 +1519,6 @@ pub unsafe extern "C" fn afl_engine_loop(mut engine: *mut afl_engine_t)
                                                                                            msg);
                 if err as libc::c_uint !=
                        AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-                    printf(b"\x1b[0;35m[D]\x1b[1;90m [src/engine.c:332] \x1b[0mAFL_TRY returning error: %s\x00"
-                               as *const u8 as *const libc::c_char,
-                           afl_ret_stringify(err));
-                    printf(b"\x1b[0m\n\x00" as *const u8 as
-                               *const libc::c_char);
-                    fflush(stdout);
                     return err
                 }
             }

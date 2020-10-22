@@ -6,6 +6,9 @@ extern "C" {
     #[no_mangle]
     fn closedir(__dirp: *mut DIR) -> libc::c_int;
     #[no_mangle]
+    fn gettimeofday(__tv: *mut timeval, __tz: __timezone_ptr_t)
+     -> libc::c_int;
+    #[no_mangle]
     fn memmove(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
     #[no_mangle]
@@ -15,10 +18,63 @@ extern "C" {
     fn strlen(_: *const libc::c_char) -> libc::c_ulong;
 }
 pub type __uint8_t = libc::c_uchar;
+pub type __time_t = libc::c_long;
+pub type __suseconds_t = libc::c_long;
 pub type DIR = __dirstream;
 pub type size_t = libc::c_ulong;
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct timeval {
+    pub tv_sec: __time_t,
+    pub tv_usec: __suseconds_t,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub struct timezone {
+    pub tz_minuteswest: libc::c_int,
+    pub tz_dsttime: libc::c_int,
+}
+pub type __timezone_ptr_t = *mut timezone;
 pub type uint8_t = __uint8_t;
 pub type u8_0 = uint8_t;
+pub type u64_0 = libc::c_ulonglong;
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
+/* Get unix time in microseconds */
+#[no_mangle]
+pub unsafe extern "C" fn afl_get_cur_time_us() -> u64_0 {
+    let mut tv: timeval = timeval{tv_sec: 0, tv_usec: 0,};
+    let mut tz: timezone = timezone{tz_minuteswest: 0, tz_dsttime: 0,};
+    gettimeofday(&mut tv, &mut tz);
+    return (tv.tv_sec as
+                libc::c_ulonglong).wrapping_mul(1000000 as
+                                                    libc::c_ulonglong).wrapping_add(tv.tv_usec
+                                                                                        as
+                                                                                        libc::c_ulonglong);
+}
 /* returns true, if the given dir exists, else false */
 #[no_mangle]
 pub unsafe extern "C" fn afl_dir_exists(mut dirpath: *mut libc::c_char)
@@ -36,6 +92,23 @@ pub unsafe extern "C" fn afl_dir_exists(mut dirpath: *mut libc::c_char)
     if dir_in.is_null() { return 0 as libc::c_int != 0 }
     closedir(dir_in);
     return 1 as libc::c_int != 0;
+}
+/* Get unix time in seconds */
+#[no_mangle]
+pub unsafe extern "C" fn afl_get_cur_time() -> u64_0 {
+    return afl_get_cur_time_us().wrapping_div(1000 as libc::c_int as
+                                                  libc::c_ulonglong);
+}
+/* Get unix time in microseconds */
+/* Get unix time in microseconds */
+/* Get unix time in seconds */
+/* Get unix time in microseconds */
+#[no_mangle]
+pub unsafe extern "C" fn afl_get_cur_time_s() -> u64_0 {
+    let mut tv: timeval = timeval{tv_sec: 0, tv_usec: 0,};
+    let mut tz: timezone = timezone{tz_minuteswest: 0, tz_dsttime: 0,};
+    gettimeofday(&mut tv, &mut tz);
+    return tv.tv_sec as u64_0;
 }
 /* Few helper functions */
 #[no_mangle]

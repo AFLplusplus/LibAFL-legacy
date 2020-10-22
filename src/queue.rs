@@ -2,18 +2,19 @@ use ::libc;
 extern "C" {
     pub type afl_executor;
     #[no_mangle]
-    fn stat(__file: *const libc::c_char, __buf: *mut stat) -> libc::c_int;
-    #[no_mangle]
     fn mkdir(__path: *const libc::c_char, __mode: __mode_t) -> libc::c_int;
+    #[no_mangle]
+    fn __xstat(__ver: libc::c_int, __filename: *const libc::c_char,
+               __stat_buf: *mut stat) -> libc::c_int;
+    #[no_mangle]
+    fn read(__fd: libc::c_int, __buf: *mut libc::c_void, __nbytes: size_t)
+     -> ssize_t;
     #[no_mangle]
     fn calloc(_: libc::c_ulong, _: libc::c_ulong) -> *mut libc::c_void;
     #[no_mangle]
     fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
     #[no_mangle]
     fn free(__ptr: *mut libc::c_void);
-    #[no_mangle]
-    fn read(__fd: libc::c_int, __buf: *mut libc::c_void, __nbytes: size_t)
-     -> ssize_t;
     #[no_mangle]
     fn exit(_: libc::c_int) -> !;
     #[no_mangle]
@@ -25,10 +26,6 @@ extern "C" {
     #[no_mangle]
     fn strcpy(_: *mut libc::c_char, _: *const libc::c_char)
      -> *mut libc::c_char;
-    #[no_mangle]
-    static mut stdout: *mut _IO_FILE;
-    #[no_mangle]
-    fn fflush(__stream: *mut FILE) -> libc::c_int;
     #[no_mangle]
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     #[no_mangle]
@@ -47,7 +44,6 @@ pub type __ino_t = libc::c_ulong;
 pub type __mode_t = libc::c_uint;
 pub type __nlink_t = libc::c_ulong;
 pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
 pub type __time_t = libc::c_long;
 pub type __blksize_t = libc::c_long;
 pub type __blkcnt_t = libc::c_long;
@@ -142,48 +138,6 @@ pub type u32_0 = uint32_t;
 pub type u64_0 = libc::c_ulonglong;
 pub type s32 = int32_t;
 pub type s64 = int64_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_FILE {
-    pub _flags: libc::c_int,
-    pub _IO_read_ptr: *mut libc::c_char,
-    pub _IO_read_end: *mut libc::c_char,
-    pub _IO_read_base: *mut libc::c_char,
-    pub _IO_write_base: *mut libc::c_char,
-    pub _IO_write_ptr: *mut libc::c_char,
-    pub _IO_write_end: *mut libc::c_char,
-    pub _IO_buf_base: *mut libc::c_char,
-    pub _IO_buf_end: *mut libc::c_char,
-    pub _IO_save_base: *mut libc::c_char,
-    pub _IO_backup_base: *mut libc::c_char,
-    pub _IO_save_end: *mut libc::c_char,
-    pub _markers: *mut _IO_marker,
-    pub _chain: *mut _IO_FILE,
-    pub _fileno: libc::c_int,
-    pub _flags2: libc::c_int,
-    pub _old_offset: __off_t,
-    pub _cur_column: libc::c_ushort,
-    pub _vtable_offset: libc::c_schar,
-    pub _shortbuf: [libc::c_char; 1],
-    pub _lock: *mut libc::c_void,
-    pub _offset: __off64_t,
-    pub __pad1: *mut libc::c_void,
-    pub __pad2: *mut libc::c_void,
-    pub __pad3: *mut libc::c_void,
-    pub __pad4: *mut libc::c_void,
-    pub __pad5: size_t,
-    pub _mode: libc::c_int,
-    pub _unused2: [libc::c_char; 20],
-}
-pub type _IO_lock_t = ();
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_marker {
-    pub _next: *mut _IO_marker,
-    pub _sbuf: *mut _IO_FILE,
-    pub _pos: libc::c_int,
-}
-pub type FILE = _IO_FILE;
 /* AFL alloc buffer, the struct is here so we don't need to do fancy ptr
  * arithmetics */
 #[derive(Copy, Clone)]
@@ -483,6 +437,7 @@ pub struct afl_engine_func {
     pub loop_0: Option<unsafe extern "C" fn(_: *mut afl_engine_t)
                            -> afl_ret_t>,
 }
+pub type afl_input_t = afl_input;
 /* Serialized map id */
 /*
    american fuzzy lop++ - fuzzer header
@@ -509,7 +464,6 @@ pub struct afl_engine_func {
    a lot of features that AFL++ already provides.
 
  */
-pub type afl_input_t = afl_input;
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_input {
@@ -618,6 +572,37 @@ pub struct afl_feedback_funcs {
                                        -> *mut afl_queue_feedback_t>,
 }
 pub type afl_executor_t = afl_executor;
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
+/*
+This is the generic interface implementation for the queue and queue entries.
+We've tried to keep it generic and yet including, but if you want to extend the
+queue/entry, simply "inherit" this struct by including it in your custom struct
+and keeping it as the first member of your struct.
+*/
 pub type afl_queue_t = afl_queue;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -696,6 +681,7 @@ pub struct afl_entry_funcs {
     pub get_child: Option<unsafe extern "C" fn(_: *mut afl_entry_t, _: size_t)
                               -> *mut afl_entry_t>,
 }
+/*TODO: Still need to add a base implementation for this.*/
 pub type afl_entry_info_t = afl_entry_info;
 #[derive(Copy, Clone)]
 #[repr(C, packed)]
@@ -818,47 +804,19 @@ pub struct afl_stage_funcs {
                                                               *mut afl_mutator_t)
                                          -> afl_ret_t>,
 }
-/*-**********************************************************************
-     *  64-bit hash
-     ************************************************************************/
-/* C99 */
 pub type XXH64_hash_t = uint64_t;
-/* *******************************************************************
- *  64-bit hash functions
- *********************************************************************/
-/* ******   Memory access   *******/
 pub type xxh_u64 = XXH64_hash_t;
 pub type XXH_alignment = libc::c_uint;
 pub const XXH_unaligned: XXH_alignment = 1;
 pub const XXH_aligned: XXH_alignment = 0;
-/* ULLONG_MAX */
-/* *************************************
-   *  Compiler Specific Options
-   ***************************************/
-/* Visual Studio warning fix */
-/* disable inlining hints */
-/* enable inlining hints */
-/* Visual Studio */
-/* *************************************
-   *  Debug
-   ***************************************/
-  /*
-   * XXH_DEBUGLEVEL is expected to be defined externally, typically via the
-   * compiler's command line options. The value must be a number.
-   */
-/* backwards compat */
-/* note: use after variable declarations */
-/* *************************************
-   *  Basic Types
-   ***************************************/
-/* C99 */
 pub type xxh_u8 = uint8_t;
 pub type xxh_u32 = XXH32_hash_t;
-/*-**********************************************************************
-   *  32-bit hash
-   ************************************************************************/
-/* C99 */
 pub type XXH32_hash_t = uint32_t;
+#[inline]
+unsafe extern "C" fn stat(mut __path: *const libc::c_char,
+                          mut __statbuf: *mut stat) -> libc::c_int {
+    return __xstat(1 as libc::c_int, __path, __statbuf);
+}
 #[inline]
 unsafe extern "C" fn afl_entry_delete(mut afl_entry: *mut afl_entry_t) {
     afl_entry_deinit(afl_entry);
@@ -953,49 +911,10 @@ unsafe extern "C" fn afl_realloc(mut buf: *mut libc::c_void,
 unsafe extern "C" fn afl_free(mut buf: *mut libc::c_void) {
     if !buf.is_null() { free(afl_alloc_bufptr(buf) as *mut libc::c_void); };
 }
-/* ***   Memory access   *** */
-/*
- * Portable and safe solution. Generally efficient.
- * see: https://stackoverflow.com/a/32095106/646947
- */
-unsafe extern "C" fn XXH_read32(mut memPtr: *const libc::c_void) -> xxh_u32 {
-    let mut val: xxh_u32 = 0;
-    memcpy(&mut val as *mut xxh_u32 as *mut libc::c_void, memPtr,
-           ::std::mem::size_of::<xxh_u32>() as libc::c_ulong);
-    return val;
-}
-/* Visual Studio */
-unsafe extern "C" fn XXH_swap32(mut x: xxh_u32) -> xxh_u32 {
-    return x << 24 as libc::c_int & 0xff000000 as libc::c_uint |
-               x << 8 as libc::c_int & 0xff0000 as libc::c_int as libc::c_uint
-               | x >> 8 as libc::c_int & 0xff00 as libc::c_int as libc::c_uint
-               | x >> 24 as libc::c_int & 0xff as libc::c_int as libc::c_uint;
-}
-/*
-   * XXH_FORCE_MEMORY_ACCESS==3 is an endian-independent byteshift load.
-   *
-   * This is ideal for older compilers which don't inline memcpy.
-   */
-unsafe extern "C" fn XXH_readLE32(mut ptr: *const libc::c_void) -> xxh_u32 {
-    return if 1 as libc::c_int != 0 {
-               XXH_read32(ptr)
-           } else { XXH_swap32(XXH_read32(ptr)) };
-}
-unsafe extern "C" fn XXH_readLE32_align(mut ptr: *const libc::c_void,
-                                        mut align: XXH_alignment) -> xxh_u32 {
-    if align as libc::c_uint == XXH_unaligned as libc::c_int as libc::c_uint {
-        return XXH_readLE32(ptr)
-    } else {
-        return if 1 as libc::c_int != 0 {
-                   *(ptr as *const xxh_u32)
-               } else { XXH_swap32(*(ptr as *const xxh_u32)) }
-    };
-}
 #[inline]
 unsafe extern "C" fn afl_rand_rotl(x: u64_0, mut k: libc::c_int) -> u64_0 {
     return x << k | x >> 64 as libc::c_int - k;
 }
-/* get the next random number */
 #[inline]
 unsafe extern "C" fn afl_rand_next(mut rnd: *mut afl_rand_t) -> u64_0 {
     let result: uint64_t =
@@ -1028,15 +947,12 @@ unsafe extern "C" fn afl_rand_next(mut rnd: *mut afl_rand_t) -> u64_0 {
                       45 as libc::c_int);
     return result as u64_0;
 }
-/* get a random int below the given int (exclusive) */
 #[inline]
 unsafe extern "C" fn afl_rand_below(mut rnd: *mut afl_rand_t,
                                     mut limit: u64_0) -> u64_0 {
     if limit <= 1 as libc::c_int as libc::c_ulonglong {
         return 0 as libc::c_int as u64_0
     }
-    /* The boundary not being necessarily a power of 2,
-     we need to ensure the result uniformity. */
     let fresh0 = (*rnd).rand_cnt;
     (*rnd).rand_cnt = (*rnd).rand_cnt.wrapping_sub(1);
     if fresh0 == 0 && !(*rnd).fixed_seed {
@@ -1058,10 +974,6 @@ unsafe extern "C" fn afl_rand_below(mut rnd: *mut afl_rand_t,
                                                                                               libc::c_ulonglong))
                 as u32_0
     }
-    /* Modulo is biased - we don't want our fuzzing to be biased so let's do it
-  right. See
-  https://stackoverflow.com/questions/10984974/why-do-people-say-there-is-modulo-bias-when-using-a-random-number-generator
-  */
     let mut unbiased_rnd: u64_0 = 0;
     loop  {
         unbiased_rnd = afl_rand_next(rnd);
@@ -1076,26 +988,806 @@ unsafe extern "C" fn afl_rand_below(mut rnd: *mut afl_rand_t,
     }
     return unbiased_rnd.wrapping_rem(limit);
 }
-/* !
- * XXH64():
- * Returns the 64-bit hash of sequence of length @length stored at memory
- * address @input.
- * @seed can be used to alter the result predictably.
- *
- * This function usually runs faster on 64-bit systems, but slower on 32-bit
- * systems (see benchmark).
- *
- * Note: XXH3 provides competitive speed for both 32-bit and 64-bit systems,
- * and offers true 64/128 bit hash results. It provides a superior level of
- * dispersion, and greatly reduces the risks of collisions.
- */
-#[inline]
-unsafe extern "C" fn XXH_INLINE_XXH64(mut input: *const libc::c_void,
-                                      mut len: size_t, mut seed: XXH64_hash_t)
- -> XXH64_hash_t {
-    return XXH64_endian_align(input as *const xxh_u8, len, seed,
-                              XXH_unaligned);
+unsafe extern "C" fn XXH64_mergeRound(mut acc: xxh_u64, mut val: xxh_u64)
+ -> xxh_u64 {
+    val = XXH64_round(0 as libc::c_int as xxh_u64, val);
+    acc ^= val;
+    acc = acc.wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+    return acc;
 }
+unsafe extern "C" fn XXH64_round(mut acc: xxh_u64, mut input: xxh_u64)
+ -> xxh_u64 {
+    acc =
+        (acc as libc::c_ulong).wrapping_add(input.wrapping_mul(XXH_PRIME64_2))
+            as xxh_u64 as xxh_u64;
+    acc =
+        acc << 31 as libc::c_int |
+            acc >> 64 as libc::c_int - 31 as libc::c_int;
+    acc =
+        (acc as libc::c_ulong).wrapping_mul(XXH_PRIME64_1) as xxh_u64 as
+            xxh_u64;
+    return acc;
+}
+unsafe extern "C" fn XXH_read64(mut memPtr: *const libc::c_void) -> xxh_u64 {
+    let mut val: xxh_u64 = 0;
+    memcpy(&mut val as *mut xxh_u64 as *mut libc::c_void, memPtr,
+           ::std::mem::size_of::<xxh_u64>() as libc::c_ulong);
+    return val;
+}
+#[inline(always)]
+unsafe extern "C" fn XXH_readLE64(mut ptr: *const libc::c_void) -> xxh_u64 {
+    return if 1 as libc::c_int != 0 {
+               XXH_read64(ptr)
+           } else { XXH_swap64(XXH_read64(ptr)) };
+}
+unsafe extern "C" fn XXH_swap64(mut x: xxh_u64) -> xxh_u64 {
+    return ((x << 56 as libc::c_int) as libc::c_ulonglong &
+                0xff00000000000000 as libc::c_ulonglong |
+                (x << 40 as libc::c_int) as libc::c_ulonglong &
+                    0xff000000000000 as libc::c_ulonglong |
+                (x << 24 as libc::c_int) as libc::c_ulonglong &
+                    0xff0000000000 as libc::c_ulonglong |
+                (x << 8 as libc::c_int) as libc::c_ulonglong &
+                    0xff00000000 as libc::c_ulonglong |
+                (x >> 8 as libc::c_int) as libc::c_ulonglong &
+                    0xff000000 as libc::c_ulonglong |
+                (x >> 24 as libc::c_int) as libc::c_ulonglong &
+                    0xff0000 as libc::c_ulonglong |
+                (x >> 40 as libc::c_int) as libc::c_ulonglong &
+                    0xff00 as libc::c_ulonglong |
+                (x >> 56 as libc::c_int) as libc::c_ulonglong &
+                    0xff as libc::c_ulonglong) as xxh_u64;
+}
+#[inline(always)]
+unsafe extern "C" fn XXH_readLE64_align(mut ptr: *const libc::c_void,
+                                        mut align: XXH_alignment) -> xxh_u64 {
+    if align as libc::c_uint == XXH_unaligned as libc::c_int as libc::c_uint {
+        return XXH_readLE64(ptr)
+    } else {
+        return if 1 as libc::c_int != 0 {
+                   *(ptr as *const xxh_u64)
+               } else { XXH_swap64(*(ptr as *const xxh_u64)) }
+    };
+}
+static mut XXH_PRIME64_4: xxh_u64 =
+    0x85ebca77c2b2ae63 as libc::c_ulonglong as xxh_u64;
+unsafe extern "C" fn XXH_read32(mut memPtr: *const libc::c_void) -> xxh_u32 {
+    let mut val: xxh_u32 = 0;
+    memcpy(&mut val as *mut xxh_u32 as *mut libc::c_void, memPtr,
+           ::std::mem::size_of::<xxh_u32>() as libc::c_ulong);
+    return val;
+}
+#[inline(always)]
+unsafe extern "C" fn XXH_readLE32(mut ptr: *const libc::c_void) -> xxh_u32 {
+    return if 1 as libc::c_int != 0 {
+               XXH_read32(ptr)
+           } else { XXH_swap32(XXH_read32(ptr)) };
+}
+unsafe extern "C" fn XXH_swap32(mut x: xxh_u32) -> xxh_u32 {
+    return x << 24 as libc::c_int & 0xff000000 as libc::c_uint |
+               x << 8 as libc::c_int & 0xff0000 as libc::c_int as libc::c_uint
+               | x >> 8 as libc::c_int & 0xff00 as libc::c_int as libc::c_uint
+               | x >> 24 as libc::c_int & 0xff as libc::c_int as libc::c_uint;
+}
+#[inline(always)]
+unsafe extern "C" fn XXH_readLE32_align(mut ptr: *const libc::c_void,
+                                        mut align: XXH_alignment) -> xxh_u32 {
+    if align as libc::c_uint == XXH_unaligned as libc::c_int as libc::c_uint {
+        return XXH_readLE32(ptr)
+    } else {
+        return if 1 as libc::c_int != 0 {
+                   *(ptr as *const xxh_u32)
+               } else { XXH_swap32(*(ptr as *const xxh_u32)) }
+    };
+}
+static mut XXH_PRIME64_5: xxh_u64 =
+    0x27d4eb2f165667c5 as libc::c_ulonglong as xxh_u64;
+static mut XXH_PRIME64_1: xxh_u64 =
+    0x9e3779b185ebca87 as libc::c_ulonglong as xxh_u64;
+static mut XXH_PRIME64_2: xxh_u64 =
+    0xc2b2ae3d27d4eb4f as libc::c_ulonglong as xxh_u64;
+static mut XXH_PRIME64_3: xxh_u64 =
+    0x165667b19e3779f9 as libc::c_ulonglong as xxh_u64;
+unsafe extern "C" fn XXH64_avalanche(mut h64: xxh_u64) -> xxh_u64 {
+    h64 ^= h64 >> 33 as libc::c_int;
+    h64 =
+        (h64 as libc::c_ulong).wrapping_mul(XXH_PRIME64_2) as xxh_u64 as
+            xxh_u64;
+    h64 ^= h64 >> 29 as libc::c_int;
+    h64 =
+        (h64 as libc::c_ulong).wrapping_mul(XXH_PRIME64_3) as xxh_u64 as
+            xxh_u64;
+    h64 ^= h64 >> 32 as libc::c_int;
+    return h64;
+}
+unsafe extern "C" fn XXH64_finalize(mut h64: xxh_u64, mut ptr: *const xxh_u8,
+                                    mut len: size_t, mut align: XXH_alignment)
+ -> xxh_u64 {
+    if 0 as libc::c_int != 0 || 0 as libc::c_int != 0 {
+        len &= 31 as libc::c_int as libc::c_ulong;
+        while len >= 8 as libc::c_int as libc::c_ulong {
+            let k1: xxh_u64 =
+                XXH64_round(0 as libc::c_int as xxh_u64,
+                            XXH_readLE64_align(ptr as *const libc::c_void,
+                                               align));
+            ptr = ptr.offset(8 as libc::c_int as isize);
+            h64 ^= k1;
+            h64 =
+                (h64 << 27 as libc::c_int |
+                     h64 >>
+                         64 as libc::c_int -
+                             27 as
+                                 libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+            len =
+                (len as
+                     libc::c_ulong).wrapping_sub(8 as libc::c_int as
+                                                     libc::c_ulong) as size_t
+                    as size_t
+        }
+        if len >= 4 as libc::c_int as libc::c_ulong {
+            h64 ^=
+                (XXH_readLE32_align(ptr as *const libc::c_void, align) as
+                     xxh_u64).wrapping_mul(XXH_PRIME64_1);
+            ptr = ptr.offset(4 as libc::c_int as isize);
+            h64 =
+                (h64 << 23 as libc::c_int |
+                     h64 >>
+                         64 as libc::c_int -
+                             23 as
+                                 libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
+            len =
+                (len as
+                     libc::c_ulong).wrapping_sub(4 as libc::c_int as
+                                                     libc::c_ulong) as size_t
+                    as size_t
+        }
+        while len > 0 as libc::c_int as libc::c_ulong {
+            let fresh1 = ptr;
+            ptr = ptr.offset(1);
+            h64 ^= (*fresh1 as libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+            h64 =
+                (h64 << 11 as libc::c_int |
+                     h64 >>
+                         64 as libc::c_int -
+                             11 as libc::c_int).wrapping_mul(XXH_PRIME64_1);
+            len = len.wrapping_sub(1)
+        }
+        return XXH64_avalanche(h64)
+    } else {
+        's_1165:
+            {
+                let mut current_block_221: u64;
+                match len & 31 as libc::c_int as libc::c_ulong {
+                    24 => {
+                        let k1_0: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_0;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 3009017103443065176;
+                    }
+                    16 => { current_block_221 = 3009017103443065176; }
+                    8 => { current_block_221 = 16383797545558020236; }
+                    28 => {
+                        let k1_3: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_3;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 8223123178938535296;
+                    }
+                    20 => { current_block_221 = 8223123178938535296; }
+                    12 => { current_block_221 = 2098866072637438281; }
+                    4 => { current_block_221 = 16032006980801283503; }
+                    25 => {
+                        let k1_6: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_6;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 14088773652436765153;
+                    }
+                    17 => { current_block_221 = 14088773652436765153; }
+                    9 => { current_block_221 = 5648010546727238795; }
+                    29 => {
+                        let k1_9: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_9;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 9238930168137955545;
+                    }
+                    21 => { current_block_221 = 9238930168137955545; }
+                    13 => { current_block_221 = 1363518629413258681; }
+                    5 => { current_block_221 = 16476895318783312317; }
+                    26 => {
+                        let k1_12: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_12;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 12891125997724673195;
+                    }
+                    18 => { current_block_221 = 12891125997724673195; }
+                    10 => { current_block_221 = 6187460035423770001; }
+                    30 => {
+                        let k1_15: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_15;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 2406527729975741273;
+                    }
+                    22 => { current_block_221 = 2406527729975741273; }
+                    14 => { current_block_221 = 10100697415310866218; }
+                    6 => { current_block_221 = 366167820972203224; }
+                    27 => {
+                        let k1_18: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_18;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 17257137101339889389;
+                    }
+                    19 => { current_block_221 = 17257137101339889389; }
+                    11 => { current_block_221 = 9673264076476189912; }
+                    31 => {
+                        let k1_21: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_21;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 11084876405037574633;
+                    }
+                    23 => { current_block_221 = 11084876405037574633; }
+                    15 => { current_block_221 = 5825487625081098988; }
+                    7 => { current_block_221 = 4106984966160723442; }
+                    3 => { current_block_221 = 18387648163930220037; }
+                    2 => { current_block_221 = 8983919349874786749; }
+                    1 => { current_block_221 = 2801475800627755398; }
+                    0 => { current_block_221 = 2848451063551427030; }
+                    _ => { break 's_1165 ; }
+                }
+                match current_block_221 {
+                    3009017103443065176 => {
+                        let k1_1: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_1;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 16383797545558020236;
+                    }
+                    8223123178938535296 => {
+                        let k1_4: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_4;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 2098866072637438281;
+                    }
+                    14088773652436765153 => {
+                        let k1_7: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_7;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 5648010546727238795;
+                    }
+                    9238930168137955545 => {
+                        let k1_10: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_10;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 1363518629413258681;
+                    }
+                    12891125997724673195 => {
+                        let k1_13: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_13;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 6187460035423770001;
+                    }
+                    2406527729975741273 => {
+                        let k1_16: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_16;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 10100697415310866218;
+                    }
+                    17257137101339889389 => {
+                        let k1_19: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_19;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 9673264076476189912;
+                    }
+                    11084876405037574633 => {
+                        let k1_22: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_22;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 5825487625081098988;
+                    }
+                    _ => { }
+                }
+                match current_block_221 {
+                    9673264076476189912 => {
+                        let k1_20: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_20;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        let fresh8 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh8 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        let fresh9 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh9 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        let fresh10 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh10 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        return XXH64_avalanche(h64)
+                    }
+                    6187460035423770001 => {
+                        let k1_14: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_14;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        let fresh4 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh4 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        let fresh5 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh5 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        return XXH64_avalanche(h64)
+                    }
+                    5648010546727238795 => {
+                        let k1_8: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_8;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        let fresh2 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh2 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        return XXH64_avalanche(h64)
+                    }
+                    16383797545558020236 => {
+                        let k1_2: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_2;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        return XXH64_avalanche(h64)
+                    }
+                    2098866072637438281 => {
+                        let k1_5: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_5;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 16032006980801283503;
+                    }
+                    1363518629413258681 => {
+                        let k1_11: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_11;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 16476895318783312317;
+                    }
+                    10100697415310866218 => {
+                        let k1_17: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_17;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 366167820972203224;
+                    }
+                    5825487625081098988 => {
+                        let k1_23: xxh_u64 =
+                            XXH64_round(0 as libc::c_int as xxh_u64,
+                                        XXH_readLE64_align(ptr as
+                                                               *const libc::c_void,
+                                                           align));
+                        ptr = ptr.offset(8 as libc::c_int as isize);
+                        h64 ^= k1_23;
+                        h64 =
+                            (h64 << 27 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         27 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
+                        current_block_221 = 4106984966160723442;
+                    }
+                    _ => { }
+                }
+                match current_block_221 {
+                    366167820972203224 => {
+                        h64 ^=
+                            (XXH_readLE32_align(ptr as *const libc::c_void,
+                                                align) as
+                                 xxh_u64).wrapping_mul(XXH_PRIME64_1);
+                        ptr = ptr.offset(4 as libc::c_int as isize);
+                        h64 =
+                            (h64 << 23 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         23 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
+                        let fresh6 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh6 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        let fresh7 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh7 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        return XXH64_avalanche(h64)
+                    }
+                    16476895318783312317 => {
+                        h64 ^=
+                            (XXH_readLE32_align(ptr as *const libc::c_void,
+                                                align) as
+                                 xxh_u64).wrapping_mul(XXH_PRIME64_1);
+                        ptr = ptr.offset(4 as libc::c_int as isize);
+                        h64 =
+                            (h64 << 23 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         23 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
+                        let fresh3 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh3 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        return XXH64_avalanche(h64)
+                    }
+                    16032006980801283503 => {
+                        h64 ^=
+                            (XXH_readLE32_align(ptr as *const libc::c_void,
+                                                align) as
+                                 xxh_u64).wrapping_mul(XXH_PRIME64_1);
+                        ptr = ptr.offset(4 as libc::c_int as isize);
+                        h64 =
+                            (h64 << 23 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         23 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
+                        return XXH64_avalanche(h64)
+                    }
+                    4106984966160723442 => {
+                        h64 ^=
+                            (XXH_readLE32_align(ptr as *const libc::c_void,
+                                                align) as
+                                 xxh_u64).wrapping_mul(XXH_PRIME64_1);
+                        ptr = ptr.offset(4 as libc::c_int as isize);
+                        h64 =
+                            (h64 << 23 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         23 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
+                        current_block_221 = 18387648163930220037;
+                    }
+                    _ => { }
+                }
+                match current_block_221 {
+                    18387648163930220037 => {
+                        let fresh11 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh11 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        current_block_221 = 8983919349874786749;
+                    }
+                    _ => { }
+                }
+                match current_block_221 {
+                    8983919349874786749 => {
+                        let fresh12 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh12 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
+                        current_block_221 = 2801475800627755398;
+                    }
+                    _ => { }
+                }
+                match current_block_221 {
+                    2801475800627755398 => {
+                        let fresh13 = ptr;
+                        ptr = ptr.offset(1);
+                        h64 ^=
+                            (*fresh13 as
+                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
+                        h64 =
+                            (h64 << 11 as libc::c_int |
+                                 h64 >>
+                                     64 as libc::c_int -
+                                         11 as
+                                             libc::c_int).wrapping_mul(XXH_PRIME64_1)
+                    }
+                    _ => { }
+                }
+                return XXH64_avalanche(h64)
+            }
+    }
+    return 0 as libc::c_int as xxh_u64;
+}
+#[inline(always)]
 unsafe extern "C" fn XXH64_endian_align(mut input: *const xxh_u8,
                                         mut len: size_t, mut seed: xxh_u64,
                                         mut align: XXH_alignment) -> xxh_u64 {
@@ -1181,773 +1873,12 @@ unsafe extern "C" fn XXH64_endian_align(mut input: *const xxh_u8,
     h64 = (h64 as libc::c_ulong).wrapping_add(len) as xxh_u64 as xxh_u64;
     return XXH64_finalize(h64, input, len, align);
 }
-unsafe extern "C" fn XXH64_finalize(mut h64: xxh_u64, mut ptr: *const xxh_u8,
-                                    mut len: size_t, mut align: XXH_alignment)
- -> xxh_u64 {
-    if 0 as libc::c_int != 0 || 0 as libc::c_int != 0 {
-        len &= 31 as libc::c_int as libc::c_ulong;
-        while len >= 8 as libc::c_int as libc::c_ulong {
-            let k1: xxh_u64 =
-                XXH64_round(0 as libc::c_int as xxh_u64,
-                            XXH_readLE64_align(ptr as *const libc::c_void,
-                                               align));
-            ptr = ptr.offset(8 as libc::c_int as isize);
-            h64 ^= k1;
-            h64 =
-                (h64 << 27 as libc::c_int |
-                     h64 >>
-                         64 as libc::c_int -
-                             27 as
-                                 libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-            len =
-                (len as
-                     libc::c_ulong).wrapping_sub(8 as libc::c_int as
-                                                     libc::c_ulong) as size_t
-                    as size_t
-        }
-        if len >= 4 as libc::c_int as libc::c_ulong {
-            h64 ^=
-                (XXH_readLE32_align(ptr as *const libc::c_void, align) as
-                     xxh_u64).wrapping_mul(XXH_PRIME64_1);
-            ptr = ptr.offset(4 as libc::c_int as isize);
-            h64 =
-                (h64 << 23 as libc::c_int |
-                     h64 >>
-                         64 as libc::c_int -
-                             23 as
-                                 libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
-            len =
-                (len as
-                     libc::c_ulong).wrapping_sub(4 as libc::c_int as
-                                                     libc::c_ulong) as size_t
-                    as size_t
-        }
-        while len > 0 as libc::c_int as libc::c_ulong {
-            let fresh1 = ptr;
-            ptr = ptr.offset(1);
-            h64 ^= (*fresh1 as libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-            h64 =
-                (h64 << 11 as libc::c_int |
-                     h64 >>
-                         64 as libc::c_int -
-                             11 as libc::c_int).wrapping_mul(XXH_PRIME64_1);
-            len = len.wrapping_sub(1)
-        }
-        return XXH64_avalanche(h64)
-    } else {
-        's_1165:
-            {
-                let mut current_block_221: u64;
-                match len & 31 as libc::c_int as libc::c_ulong {
-                    24 => {
-                        let k1_0: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_0;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 4914897813120785178;
-                    }
-                    16 => { current_block_221 = 4914897813120785178; }
-                    8 => { current_block_221 = 5745301828784214226; }
-                    28 => {
-                        let k1_3: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_3;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 1055471768422549395;
-                    }
-                    20 => { current_block_221 = 1055471768422549395; }
-                    12 => { current_block_221 = 5221028069996397600; }
-                    4 => { current_block_221 = 10275258781883576179; }
-                    25 => {
-                        let k1_6: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_6;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 603719335645434425;
-                    }
-                    17 => { current_block_221 = 603719335645434425; }
-                    9 => { current_block_221 = 8636480912482636806; }
-                    29 => {
-                        let k1_9: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_9;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 17408658601729812760;
-                    }
-                    21 => { current_block_221 = 17408658601729812760; }
-                    13 => { current_block_221 = 16930671882517526196; }
-                    5 => { current_block_221 = 12709057499291655549; }
-                    26 => {
-                        let k1_12: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_12;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 8668993126945043886;
-                    }
-                    18 => { current_block_221 = 8668993126945043886; }
-                    10 => { current_block_221 = 14702182890225863356; }
-                    30 => {
-                        let k1_15: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_15;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 6978042028105735759;
-                    }
-                    22 => { current_block_221 = 6978042028105735759; }
-                    14 => { current_block_221 = 5507434738182830386; }
-                    6 => { current_block_221 = 17441704831265967285; }
-                    27 => {
-                        let k1_18: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_18;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 15118377098007030281;
-                    }
-                    19 => { current_block_221 = 15118377098007030281; }
-                    11 => { current_block_221 = 17551501277733230131; }
-                    31 => {
-                        let k1_21: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_21;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 4533016403964175151;
-                    }
-                    23 => { current_block_221 = 4533016403964175151; }
-                    15 => { current_block_221 = 10234993813983002665; }
-                    7 => { current_block_221 = 8644997295631152337; }
-                    3 => { current_block_221 = 3831242657756473176; }
-                    2 => { current_block_221 = 11424372804886780935; }
-                    1 => { current_block_221 = 4381151188340077986; }
-                    0 => { current_block_221 = 15034927945609755375; }
-                    _ => { break 's_1165 ; }
-                }
-                match current_block_221 {
-                    4914897813120785178 => {
-                        let k1_1: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_1;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 5745301828784214226;
-                    }
-                    1055471768422549395 => {
-                        let k1_4: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_4;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 5221028069996397600;
-                    }
-                    603719335645434425 => {
-                        let k1_7: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_7;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 8636480912482636806;
-                    }
-                    17408658601729812760 => {
-                        let k1_10: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_10;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 16930671882517526196;
-                    }
-                    8668993126945043886 => {
-                        let k1_13: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_13;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 14702182890225863356;
-                    }
-                    6978042028105735759 => {
-                        let k1_16: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_16;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 5507434738182830386;
-                    }
-                    15118377098007030281 => {
-                        let k1_19: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_19;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 17551501277733230131;
-                    }
-                    4533016403964175151 => {
-                        let k1_22: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_22;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 10234993813983002665;
-                    }
-                    _ => { }
-                }
-                match current_block_221 {
-                    17551501277733230131 => {
-                        let k1_20: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_20;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        let fresh8 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh8 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        let fresh9 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh9 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        let fresh10 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh10 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        return XXH64_avalanche(h64)
-                    }
-                    14702182890225863356 => {
-                        let k1_14: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_14;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        let fresh4 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh4 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        let fresh5 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh5 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        return XXH64_avalanche(h64)
-                    }
-                    8636480912482636806 => {
-                        let k1_8: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_8;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        let fresh2 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh2 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        return XXH64_avalanche(h64)
-                    }
-                    5745301828784214226 => {
-                        let k1_2: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_2;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        return XXH64_avalanche(h64)
-                    }
-                    5221028069996397600 => {
-                        let k1_5: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_5;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 10275258781883576179;
-                    }
-                    16930671882517526196 => {
-                        let k1_11: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_11;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 12709057499291655549;
-                    }
-                    5507434738182830386 => {
-                        let k1_17: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_17;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 17441704831265967285;
-                    }
-                    10234993813983002665 => {
-                        let k1_23: xxh_u64 =
-                            XXH64_round(0 as libc::c_int as xxh_u64,
-                                        XXH_readLE64_align(ptr as
-                                                               *const libc::c_void,
-                                                           align));
-                        ptr = ptr.offset(8 as libc::c_int as isize);
-                        h64 ^= k1_23;
-                        h64 =
-                            (h64 << 27 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         27 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-                        current_block_221 = 8644997295631152337;
-                    }
-                    _ => { }
-                }
-                match current_block_221 {
-                    17441704831265967285 => {
-                        h64 ^=
-                            (XXH_readLE32_align(ptr as *const libc::c_void,
-                                                align) as
-                                 xxh_u64).wrapping_mul(XXH_PRIME64_1);
-                        ptr = ptr.offset(4 as libc::c_int as isize);
-                        h64 =
-                            (h64 << 23 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         23 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
-                        let fresh6 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh6 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        let fresh7 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh7 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        return XXH64_avalanche(h64)
-                    }
-                    12709057499291655549 => {
-                        h64 ^=
-                            (XXH_readLE32_align(ptr as *const libc::c_void,
-                                                align) as
-                                 xxh_u64).wrapping_mul(XXH_PRIME64_1);
-                        ptr = ptr.offset(4 as libc::c_int as isize);
-                        h64 =
-                            (h64 << 23 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         23 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
-                        let fresh3 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh3 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        return XXH64_avalanche(h64)
-                    }
-                    10275258781883576179 => {
-                        h64 ^=
-                            (XXH_readLE32_align(ptr as *const libc::c_void,
-                                                align) as
-                                 xxh_u64).wrapping_mul(XXH_PRIME64_1);
-                        ptr = ptr.offset(4 as libc::c_int as isize);
-                        h64 =
-                            (h64 << 23 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         23 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
-                        return XXH64_avalanche(h64)
-                    }
-                    8644997295631152337 => {
-                        h64 ^=
-                            (XXH_readLE32_align(ptr as *const libc::c_void,
-                                                align) as
-                                 xxh_u64).wrapping_mul(XXH_PRIME64_1);
-                        ptr = ptr.offset(4 as libc::c_int as isize);
-                        h64 =
-                            (h64 << 23 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         23 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_2).wrapping_add(XXH_PRIME64_3);
-                        current_block_221 = 3831242657756473176;
-                    }
-                    _ => { }
-                }
-                match current_block_221 {
-                    3831242657756473176 => {
-                        let fresh11 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh11 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        current_block_221 = 11424372804886780935;
-                    }
-                    _ => { }
-                }
-                match current_block_221 {
-                    11424372804886780935 => {
-                        let fresh12 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh12 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1);
-                        current_block_221 = 4381151188340077986;
-                    }
-                    _ => { }
-                }
-                match current_block_221 {
-                    4381151188340077986 => {
-                        let fresh13 = ptr;
-                        ptr = ptr.offset(1);
-                        h64 ^=
-                            (*fresh13 as
-                                 libc::c_ulong).wrapping_mul(XXH_PRIME64_5);
-                        h64 =
-                            (h64 << 11 as libc::c_int |
-                                 h64 >>
-                                     64 as libc::c_int -
-                                         11 as
-                                             libc::c_int).wrapping_mul(XXH_PRIME64_1)
-                    }
-                    _ => { }
-                }
-                return XXH64_avalanche(h64)
-            }
-    }
-    return 0 as libc::c_int as xxh_u64;
-}
-unsafe extern "C" fn XXH64_avalanche(mut h64: xxh_u64) -> xxh_u64 {
-    h64 ^= h64 >> 33 as libc::c_int;
-    h64 =
-        (h64 as libc::c_ulong).wrapping_mul(XXH_PRIME64_2) as xxh_u64 as
-            xxh_u64;
-    h64 ^= h64 >> 29 as libc::c_int;
-    h64 =
-        (h64 as libc::c_ulong).wrapping_mul(XXH_PRIME64_3) as xxh_u64 as
-            xxh_u64;
-    h64 ^= h64 >> 32 as libc::c_int;
-    return h64;
-}
-static mut XXH_PRIME64_3: xxh_u64 =
-    0x165667b19e3779f9 as libc::c_ulonglong as xxh_u64;
-static mut XXH_PRIME64_2: xxh_u64 =
-    0xc2b2ae3d27d4eb4f as libc::c_ulonglong as xxh_u64;
-static mut XXH_PRIME64_1: xxh_u64 =
-    0x9e3779b185ebca87 as libc::c_ulonglong as xxh_u64;
-static mut XXH_PRIME64_5: xxh_u64 =
-    0x27d4eb2f165667c5 as libc::c_ulonglong as xxh_u64;
-static mut XXH_PRIME64_4: xxh_u64 =
-    0x85ebca77c2b2ae63 as libc::c_ulonglong as xxh_u64;
-unsafe extern "C" fn XXH_readLE64_align(mut ptr: *const libc::c_void,
-                                        mut align: XXH_alignment) -> xxh_u64 {
-    if align as libc::c_uint == XXH_unaligned as libc::c_int as libc::c_uint {
-        return XXH_readLE64(ptr)
-    } else {
-        return if 1 as libc::c_int != 0 {
-                   *(ptr as *const xxh_u64)
-               } else { XXH_swap64(*(ptr as *const xxh_u64)) }
-    };
-}
-unsafe extern "C" fn XXH_swap64(mut x: xxh_u64) -> xxh_u64 {
-    return ((x << 56 as libc::c_int) as libc::c_ulonglong &
-                0xff00000000000000 as libc::c_ulonglong |
-                (x << 40 as libc::c_int) as libc::c_ulonglong &
-                    0xff000000000000 as libc::c_ulonglong |
-                (x << 24 as libc::c_int) as libc::c_ulonglong &
-                    0xff0000000000 as libc::c_ulonglong |
-                (x << 8 as libc::c_int) as libc::c_ulonglong &
-                    0xff00000000 as libc::c_ulonglong |
-                (x >> 8 as libc::c_int) as libc::c_ulonglong &
-                    0xff000000 as libc::c_ulonglong |
-                (x >> 24 as libc::c_int) as libc::c_ulonglong &
-                    0xff0000 as libc::c_ulonglong |
-                (x >> 40 as libc::c_int) as libc::c_ulonglong &
-                    0xff00 as libc::c_ulonglong |
-                (x >> 56 as libc::c_int) as libc::c_ulonglong &
-                    0xff as libc::c_ulonglong) as xxh_u64;
-}
-unsafe extern "C" fn XXH_readLE64(mut ptr: *const libc::c_void) -> xxh_u64 {
-    return if 1 as libc::c_int != 0 {
-               XXH_read64(ptr)
-           } else { XXH_swap64(XXH_read64(ptr)) };
-}
-unsafe extern "C" fn XXH_read64(mut memPtr: *const libc::c_void) -> xxh_u64 {
-    let mut val: xxh_u64 = 0;
-    memcpy(&mut val as *mut xxh_u64 as *mut libc::c_void, memPtr,
-           ::std::mem::size_of::<xxh_u64>() as libc::c_ulong);
-    return val;
-}
-unsafe extern "C" fn XXH64_round(mut acc: xxh_u64, mut input: xxh_u64)
- -> xxh_u64 {
-    acc =
-        (acc as libc::c_ulong).wrapping_add(input.wrapping_mul(XXH_PRIME64_2))
-            as xxh_u64 as xxh_u64;
-    acc =
-        acc << 31 as libc::c_int |
-            acc >> 64 as libc::c_int - 31 as libc::c_int;
-    acc =
-        (acc as libc::c_ulong).wrapping_mul(XXH_PRIME64_1) as xxh_u64 as
-            xxh_u64;
-    return acc;
-}
-unsafe extern "C" fn XXH64_mergeRound(mut acc: xxh_u64, mut val: xxh_u64)
- -> xxh_u64 {
-    val = XXH64_round(0 as libc::c_int as xxh_u64, val);
-    acc ^= val;
-    acc = acc.wrapping_mul(XXH_PRIME64_1).wrapping_add(XXH_PRIME64_4);
-    return acc;
+#[inline]
+unsafe extern "C" fn XXH_INLINE_XXH64(mut input: *const libc::c_void,
+                                      mut len: size_t, mut seed: XXH64_hash_t)
+ -> XXH64_hash_t {
+    return XXH64_endian_align(input as *const xxh_u8, len, seed,
+                              XXH_unaligned);
 }
 /*
    american fuzzy lop++ - fuzzer header
@@ -2026,6 +1957,9 @@ pub unsafe extern "C" fn afl_entry_deinit(mut entry: *mut afl_entry_t) {
   entry->input = NULL;
   */
 }
+// AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_queue_feedback, AFL_DECL_PARAMS(afl_feedback_t *feedback, char *name),
+//                                   AFL_CALL_PARAMS(feedback, name));
+// Default implementations for the functions for queue_entry vtable
 // Default implementations for the queue entry vtable functions
 #[no_mangle]
 pub unsafe extern "C" fn afl_entry_get_input(mut entry: *mut afl_entry_t)
@@ -2288,10 +2222,6 @@ pub unsafe extern "C" fn afl_queue_next_base_queue(mut queue:
                                                                                   libc::c_ulonglong);
         return current
     } else {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/queue.c:311] \x1b[0mEmpty queue at %p\x00"
-                   as *const u8 as *const libc::c_char, queue);
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         // Queue empty :(
         return 0 as *mut afl_entry_t
     };
@@ -2350,6 +2280,10 @@ pub unsafe extern "C" fn afl_queue_global_init(mut global_queue:
                                       _: *mut afl_engine_t) -> ());
     return AFL_RET_SUCCESS;
 }
+/* Register this as global queue for the engine.
+TODO: Make this a method of engine instead */
+/* TODO: ADD defualt implementation for the schedule function based on random.
+ */
 #[no_mangle]
 pub unsafe extern "C" fn afl_queue_global_deinit(mut global_queue:
                                                      *mut afl_queue_global_t) {
@@ -2398,6 +2332,8 @@ pub unsafe extern "C" fn afl_queue_global_add_feedback_queue(mut global_queue:
                                                                                 engine);
     return AFL_RET_SUCCESS;
 }
+// Function to get next entry from queue, we override the base_queue
+// implementation
 #[no_mangle]
 pub unsafe extern "C" fn afl_queue_next_global_queue(mut queue:
                                                          *mut afl_queue_t,
@@ -2425,6 +2361,11 @@ pub unsafe extern "C" fn afl_queue_next_global_queue(mut queue:
         return afl_queue_next_base_queue(queue, engine_id)
     };
 }
+// One global queue can have
+                                           // multiple feedback queues
+/*TODO: Add a map of Engine:feedback_queue
+    UPDATE: Engine will have a ptr to current feedback queue rather than this*/
+// Default implementations of global queue vtable functions
 #[no_mangle]
 pub unsafe extern "C" fn afl_queue_global_schedule(mut queue:
                                                        *mut afl_queue_global_t)

@@ -7,7 +7,6 @@
 #![allow(unused_mut)]
 #![feature(asm)]
 #![feature(const_raw_ptr_to_usize_cast)]
-#![feature(const_transmute)]
 #![feature(extern_types)]
 #![feature(label_break_value)]
 #![feature(main)]
@@ -26,12 +25,7 @@ extern crate libc;
 
 pub mod examples {
 pub mod afl_compiler_rt_o;
-pub mod forking_fuzzer;
-pub mod libaflfuzzer;
-pub mod libaflfuzzer_harness_libpng;
 pub mod libaflfuzzer_harness_test;
-pub mod llmp_main;
-pub mod target;
 } // mod examples
 pub mod src {
 pub mod aflpp;

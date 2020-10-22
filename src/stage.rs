@@ -2,6 +2,8 @@ use ::libc;
 extern "C" {
     pub type afl_executor;
     #[no_mangle]
+    fn afl_input_deinit(input: *mut afl_input_t);
+    #[no_mangle]
     fn read(__fd: libc::c_int, __buf: *mut libc::c_void, __nbytes: size_t)
      -> ssize_t;
     #[no_mangle]
@@ -16,13 +18,7 @@ extern "C" {
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
     #[no_mangle]
-    static mut stdout: *mut _IO_FILE;
-    #[no_mangle]
-    fn fflush(__stream: *mut FILE) -> libc::c_int;
-    #[no_mangle]
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
-    #[no_mangle]
-    fn afl_input_deinit(input: *mut afl_input_t);
     #[no_mangle]
     fn afl_entry_init(_: *mut afl_entry_t, _: *mut afl_input_t,
                       _: *mut afl_entry_info_t) -> afl_ret_t;
@@ -83,8 +79,6 @@ pub type __int32_t = libc::c_int;
 pub type __uint32_t = libc::c_uint;
 pub type __int64_t = libc::c_long;
 pub type __uint64_t = libc::c_ulong;
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
 pub type __ssize_t = libc::c_long;
 pub type size_t = libc::c_ulong;
 pub type ssize_t = __ssize_t;
@@ -120,78 +114,13 @@ pub const AFL_RET_FILE_DUPLICATE: afl_ret = 2;
 pub const AFL_RET_UNKNOWN_ERROR: afl_ret = 1;
 pub const AFL_RET_SUCCESS: afl_ret = 0;
 pub type afl_ret_t = afl_ret;
-/*
-   american fuzzy lop++ - type definitions and minor macros
-   --------------------------------------------------------
-
-   Originally written by Michal Zalewski
-
-   Now maintained by Marc Heuse <mh@mh-sec.de>,
-                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
-                     Andrea Fioraldi <andreafioraldi@gmail.com>,
-                     Dominik Maier <mail@dmnk.co>
-
-   Copyright 2016, 2017 Google Inc. All rights reserved.
-   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at:
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- */
 pub type u8_0 = uint8_t;
 pub type u32_0 = uint32_t;
-/* Extended forkserver option values */
-/* Reporting errors */
-/* Reporting options */
-// FS_OPT_MAX_MAPSIZE is 8388608 = 0x800000 = 2^23 = 1 << 22
 pub type u64_0 = libc::c_ulonglong;
 pub type s32 = int32_t;
 pub type s64 = int64_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_FILE {
-    pub _flags: libc::c_int,
-    pub _IO_read_ptr: *mut libc::c_char,
-    pub _IO_read_end: *mut libc::c_char,
-    pub _IO_read_base: *mut libc::c_char,
-    pub _IO_write_base: *mut libc::c_char,
-    pub _IO_write_ptr: *mut libc::c_char,
-    pub _IO_write_end: *mut libc::c_char,
-    pub _IO_buf_base: *mut libc::c_char,
-    pub _IO_buf_end: *mut libc::c_char,
-    pub _IO_save_base: *mut libc::c_char,
-    pub _IO_backup_base: *mut libc::c_char,
-    pub _IO_save_end: *mut libc::c_char,
-    pub _markers: *mut _IO_marker,
-    pub _chain: *mut _IO_FILE,
-    pub _fileno: libc::c_int,
-    pub _flags2: libc::c_int,
-    pub _old_offset: __off_t,
-    pub _cur_column: libc::c_ushort,
-    pub _vtable_offset: libc::c_schar,
-    pub _shortbuf: [libc::c_char; 1],
-    pub _lock: *mut libc::c_void,
-    pub _offset: __off64_t,
-    pub __pad1: *mut libc::c_void,
-    pub __pad2: *mut libc::c_void,
-    pub __pad3: *mut libc::c_void,
-    pub __pad4: *mut libc::c_void,
-    pub __pad5: size_t,
-    pub _mode: libc::c_int,
-    pub _unused2: [libc::c_char; 20],
-}
-pub type _IO_lock_t = ();
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_marker {
-    pub _next: *mut _IO_marker,
-    pub _sbuf: *mut _IO_FILE,
-    pub _pos: libc::c_int,
-}
-pub type FILE = _IO_FILE;
+/* AFL alloc buffer, the struct is here so we don't need to do fancy ptr
+ * arithmetics */
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_alloc_buf {
@@ -495,6 +424,45 @@ pub struct afl_input_funcs {
     pub delete: Option<unsafe extern "C" fn(_: *mut afl_input_t) -> ()>,
 }
 pub type afl_queue_global_t = afl_queue_global;
+/* Serialized map id */
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
+/*
+This is the generic interface implementation for the queue and queue entries.
+We've tried to keep it generic and yet including, but if you want to extend the
+queue/entry, simply "inherit" this struct by including it in your custom struct
+and keeping it as the first member of your struct.
+*/
+/*TODO: Still need to add a base implementation for this.*/
+// AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_queue_feedback, AFL_DECL_PARAMS(afl_feedback_t *feedback, char *name),
+//                                   AFL_CALL_PARAMS(feedback, name));
+// Default implementations for the functions for queue_entry vtable
+/* TODO: Add the base  */
+// Inheritence from base queue
+// "constructor" for the above feedback queue
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_queue_global {
@@ -503,13 +471,6 @@ pub struct afl_queue_global {
     pub feedback_queues_count: size_t,
     pub funcs: afl_queue_global_funcs,
 }
-/* Serialized map id */
-// AFL_NEW_AND_DELETE_FOR_WITH_PARAMS(afl_queue_feedback, AFL_DECL_PARAMS(afl_feedback_t *feedback, char *name),
-//                                   AFL_CALL_PARAMS(feedback, name));
-// Default implementations for the functions for queue_entry vtable
-/* TODO: Add the base  */
-// Inheritence from base queue
-// "constructor" for the above feedback queue
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_queue_global_funcs {
@@ -578,37 +539,6 @@ pub struct afl_feedback_funcs {
                                        -> *mut afl_queue_feedback_t>,
 }
 pub type afl_executor_t = afl_executor;
-/*
-   american fuzzy lop++ - fuzzer header
-   ------------------------------------
-
-   Originally written by Michal Zalewski
-
-   Now maintained by Marc Heuse <mh@mh-sec.de>,
-                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
-                     Andrea Fioraldi <andreafioraldi@gmail.com>,
-                     Dominik Maier <mail@dmnk.co>
-
-   Copyright 2016, 2017 Google Inc. All rights reserved.
-   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at:
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-   This is the Library based on AFL++ which can be used to build
-   customized fuzzers for a specific target while taking advantage of
-   a lot of features that AFL++ already provides.
-
- */
-/*
-This is the generic interface implementation for the queue and queue entries.
-We've tried to keep it generic and yet including, but if you want to extend the
-queue/entry, simply "inherit" this struct by including it in your custom struct
-and keeping it as the first member of your struct.
-*/
 pub type afl_queue_t = afl_queue;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -687,7 +617,6 @@ pub struct afl_entry_funcs {
     pub get_child: Option<unsafe extern "C" fn(_: *mut afl_entry_t, _: size_t)
                               -> *mut afl_entry_t>,
 }
-/*TODO: Still need to add a base implementation for this.*/
 pub type afl_entry_info_t = afl_entry_info;
 #[derive(Copy, Clone)]
 #[repr(C, packed)]
@@ -810,82 +739,37 @@ pub struct afl_stage_funcs {
                                                               *mut afl_mutator_t)
                                          -> afl_ret_t>,
 }
-/* Write the contents of the input to a file at the given loc */
-/* Write the contents of the input to a timeoutfile */
-/* Write the contents of the input which causes a crash in the target to a crashfile */
-/* Function to create and destroy a new input, allocates memory and initializes
-  it. In destroy, it first deinitializes the struct and then frees it. */
-#[inline]
-unsafe extern "C" fn afl_input_delete(mut afl_input: *mut afl_input_t) {
-    afl_input_deinit(afl_input);
-    free(afl_input as *mut libc::c_void);
-}
-/*
-   american fuzzy lop++ - error-checking, memory-zeroing alloc routines
-   --------------------------------------------------------------------
-
-   Originally written by Michal Zalewski
-
-   Now maintained by Marc Heuse <mh@mh-sec.de>,
-                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
-                     Andrea Fioraldi <andreafioraldi@gmail.com>,
-                     Dominik Maier <mail@dmnk.co>
-
-   Copyright 2016, 2017 Google Inc. All rights reserved.
-   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at:
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-   This allocator is not designed to resist malicious attackers (the canaries
-   are small and predictable), but provides a robust and portable way to detect
-   use-after-free, off-by-one writes, stale pointers, and so on.
-
- */
-/* this file contains anything allocator-realted libafl */
-/* Initial size used for afl_realloc */
-// Be careful! _WANT_ORIGINAL_AFL_ALLOC is not compatible with custom mutators
-// afl++ stuff without memory corruption checks - for speed
-/* User-facing macro to sprintf() to a dynamically allocated buffer. */
-/* Macro to enforce allocation limits as a last-resort defense against
-     integer overflows. */
-/* Macro to check malloc() failures and the like. */
-/* Allocate a buffer, explicitly not zeroing it. Returns NULL for zero-sized
-   requests. */
-/* Allocate a buffer, returning zeroed memory. */
-/* Free memory, checking for double free and corrupted heap. When DEBUG_BUILD
-   is set, the old memory will be also clobbered with 0xFF. */
-/* Re-allocate a buffer, checking for issues and zeroing any newly-added tail.
-   With DEBUG_BUILD, the buffer is always reallocated to a new addresses and the
-   old memory is clobbered with 0xFF. */
-/* Catch pointer issues sooner: force relocation and make sure that the
-     original buffer is wiped. */
-/* Create a buffer with a copy of a string. Returns NULL for NULL inputs. */
 /* In non-debug mode, we just do straightforward aliasing of the above
      functions to user-visible names such as ck_alloc(). */
 /* _WANT_ORIGINAL_AFL_ALLOC */
 /* This function calculates the next power of 2 greater or equal its argument.
  @return The rounded up power of 2 (if no overflow) or 0 on overflow.
 */
-// Commented this out as this behavior doesn't change, according to unittests
+#[inline]
+unsafe extern "C" fn next_pow2(mut in_0: size_t) -> size_t {
+    // Commented this out as this behavior doesn't change, according to unittests
   // if (in == 0 || in > (size_t)-1) {
-//
+    //
   //   return 0;                  /* avoid undefined behaviour under-/overflow
   //   */
   //
   // }
-/* AFL alloc buffer, the struct is here so we don't need to do fancy ptr
- * arithmetics */
-/* The complete allocated size, including the header of len
-   * AFL_ALLOC_SIZE_OFFSET */
-/* Make sure this is an alloc_buf */
-/* ptr to the first element of the actual buffer */
+    let mut out: size_t =
+        in_0.wrapping_sub(1 as libc::c_int as libc::c_ulong);
+    out |= out >> 1 as libc::c_int;
+    out |= out >> 2 as libc::c_int;
+    out |= out >> 4 as libc::c_int;
+    out |= out >> 8 as libc::c_int;
+    out |= out >> 16 as libc::c_int;
+    return out.wrapping_add(1 as libc::c_int as libc::c_ulong);
+}
 /* Returs the container element to this ptr */
-/* Gets the maximum size of the buf contents (ptr->complete_size -
- * AFL_ALLOC_SIZE_OFFSET) */
+#[inline]
+unsafe extern "C" fn afl_alloc_bufptr(mut buf: *mut libc::c_void)
+ -> *mut afl_alloc_buf {
+    return (buf as *mut u8_0).offset(-(16 as libc::c_ulong as isize)) as
+               *mut afl_alloc_buf;
+}
 /* This function makes sure *size is > size_needed after call.
  It will realloc *buf otherwise.
  *size will grow exponentially as per:
@@ -893,16 +777,6 @@ unsafe extern "C" fn afl_input_delete(mut afl_input: *mut afl_input_t) {
  Will return NULL and free *buf if size_needed is <1 or realloc failed.
  @return For convenience, this function returns *buf.
  */
-/* the size is always stored at buf - 1*size_t */
-/* No need to realloc */
-/* No initial size was set */
-/* grow exponentially */
-/* handle overflow: fall back to the original size_needed */
-/* alloc */
-#[inline]
-unsafe extern "C" fn afl_free(mut buf: *mut libc::c_void) {
-    if !buf.is_null() { free(afl_alloc_bufptr(buf) as *mut libc::c_void); };
-}
 #[inline]
 unsafe extern "C" fn afl_realloc(mut buf: *mut libc::c_void,
                                  mut size_needed: size_t)
@@ -911,6 +785,7 @@ unsafe extern "C" fn afl_realloc(mut buf: *mut libc::c_void,
     let mut current_size: size_t = 0 as libc::c_int as size_t;
     let mut next_size: size_t = 0 as libc::c_int as size_t;
     if !buf.is_null() {
+        /* the size is always stored at buf - 1*size_t */
         new_buf = afl_alloc_bufptr(buf);
         if (*new_buf).magic != 0xaf1a110c as libc::c_uint as libc::c_ulong {
             printf(b"\x0f\x1b)B\x1b[?25h\x1b[0m\x1b[1;91m\n[-] PROGRAM ABORT : \x1b[0mIllegal, non-null pointer passed to afl_realloc (buf 0x%p, magic 0x%x)\x00"
@@ -929,13 +804,18 @@ unsafe extern "C" fn afl_realloc(mut buf: *mut libc::c_void,
     size_needed =
         (size_needed as libc::c_ulong).wrapping_add(16 as libc::c_ulong) as
             size_t as size_t;
+    /* No need to realloc */
     if current_size >= size_needed { return buf }
+    /* No initial size was set */
     if size_needed < 64 as libc::c_int as libc::c_ulong {
         next_size = 64 as libc::c_int as size_t
     } else {
+        /* grow exponentially */
         next_size = next_pow2(size_needed);
+        /* handle overflow: fall back to the original size_needed */
         if next_size == 0 { next_size = size_needed }
     }
+    /* alloc */
     new_buf =
         realloc(new_buf as *mut libc::c_void, next_size) as
             *mut afl_alloc_buf;
@@ -945,21 +825,13 @@ unsafe extern "C" fn afl_realloc(mut buf: *mut libc::c_void,
     return (*new_buf).buf.as_mut_ptr() as *mut libc::c_void;
 }
 #[inline]
-unsafe extern "C" fn afl_alloc_bufptr(mut buf: *mut libc::c_void)
- -> *mut afl_alloc_buf {
-    return (buf as *mut u8_0).offset(-(16 as libc::c_ulong as isize)) as
-               *mut afl_alloc_buf;
+unsafe extern "C" fn afl_free(mut buf: *mut libc::c_void) {
+    if !buf.is_null() { free(afl_alloc_bufptr(buf) as *mut libc::c_void); };
 }
 #[inline]
-unsafe extern "C" fn next_pow2(mut in_0: size_t) -> size_t {
-    let mut out: size_t =
-        in_0.wrapping_sub(1 as libc::c_int as libc::c_ulong);
-    out |= out >> 1 as libc::c_int;
-    out |= out >> 2 as libc::c_int;
-    out |= out >> 4 as libc::c_int;
-    out |= out >> 8 as libc::c_int;
-    out |= out >> 16 as libc::c_int;
-    return out.wrapping_add(1 as libc::c_int as libc::c_ulong);
+unsafe extern "C" fn afl_input_delete(mut afl_input: *mut afl_input_t) {
+    afl_input_deinit(afl_input);
+    free(afl_input as *mut libc::c_void);
 }
 #[inline]
 unsafe extern "C" fn afl_entry_new(mut input: *mut afl_input_t,
@@ -1247,13 +1119,7 @@ pub unsafe extern "C" fn afl_stage_perform(mut stage: *mut afl_stage_t,
                                        (*copy).len.wrapping_add(::std::mem::size_of::<afl_entry_info_t>()
                                                                     as
                                                                     libc::c_ulong));
-            if msg.is_null() {
-                printf(b"\x1b[0;35m[D]\x1b[1;90m [src/stage.c:172] \x1b[0mError allocating llmp message\x00"
-                           as *const u8 as *const libc::c_char);
-                printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
-                return AFL_RET_ALLOC
-            }
+            if msg.is_null() { return AFL_RET_ALLOC }
             memcpy((*msg).buf.as_mut_ptr() as *mut libc::c_void,
                    (*copy).bytes as *const libc::c_void, (*copy).len);
             /* TODO FIXME - here we fill in the entry info structure on the queue */
@@ -1261,10 +1127,6 @@ pub unsafe extern "C" fn afl_stage_perform(mut stage: *mut afl_stage_t,
       // e.g. fill map hash
             (*msg).tag = 0xc0added1 as libc::c_uint;
             if !llmp_client_send((*(*stage).engine).llmp_client, msg) {
-                printf(b"\x1b[0;35m[D]\x1b[1;90m [src/stage.c:186] \x1b[0mAn error occurred sending our previously allocated msg\x00"
-                           as *const u8 as *const libc::c_char);
-                printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
                 return AFL_RET_UNKNOWN_ERROR
             }
             /* we don't add it to the queue but wait for it to come back from the broker for now.

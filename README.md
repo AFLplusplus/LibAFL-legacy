@@ -9,6 +9,13 @@ GSOC mentors:
 * [hexcoder](https://github.com/hexcoder-)
 * [domenukk](https://github.com/domenukk)
 
+## RUst
+
+Crosscompiled using the c2rust docker from dockerhub, and:
+```bash
+/tmp/.cargo/bin/c2rust transpile -e --binary libaflfuzzer --binary examples/libaflfuzzer compile_commands.json 
+```
+
 ## Content
 1. Introduction
 2. Elements of Fuzzing

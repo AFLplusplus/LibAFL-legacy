@@ -9,19 +9,11 @@ extern "C" {
     #[no_mangle]
     fn exit(_: libc::c_int) -> !;
     #[no_mangle]
-    fn __errno_location() -> *mut libc::c_int;
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
     #[no_mangle]
     fn memset(_: *mut libc::c_void, _: libc::c_int, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
-    fn strerror(_: libc::c_int) -> *mut libc::c_char;
-    #[no_mangle]
-    static mut stdout: *mut _IO_FILE;
-    #[no_mangle]
-    fn fflush(__stream: *mut FILE) -> libc::c_int;
     #[no_mangle]
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
 }
@@ -29,8 +21,6 @@ pub type __uint8_t = libc::c_uchar;
 pub type __int32_t = libc::c_int;
 pub type __uint32_t = libc::c_uint;
 pub type __int64_t = libc::c_long;
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
 pub type size_t = libc::c_ulong;
 pub type int32_t = __int32_t;
 pub type int64_t = __int64_t;
@@ -93,56 +83,6 @@ pub type u32_0 = uint32_t;
 pub type u64_0 = libc::c_ulonglong;
 pub type s32 = int32_t;
 pub type s64 = int64_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_FILE {
-    pub _flags: libc::c_int,
-    pub _IO_read_ptr: *mut libc::c_char,
-    pub _IO_read_end: *mut libc::c_char,
-    pub _IO_read_base: *mut libc::c_char,
-    pub _IO_write_base: *mut libc::c_char,
-    pub _IO_write_ptr: *mut libc::c_char,
-    pub _IO_write_end: *mut libc::c_char,
-    pub _IO_buf_base: *mut libc::c_char,
-    pub _IO_buf_end: *mut libc::c_char,
-    pub _IO_save_base: *mut libc::c_char,
-    pub _IO_backup_base: *mut libc::c_char,
-    pub _IO_save_end: *mut libc::c_char,
-    pub _markers: *mut _IO_marker,
-    pub _chain: *mut _IO_FILE,
-    pub _fileno: libc::c_int,
-    pub _flags2: libc::c_int,
-    pub _old_offset: __off_t,
-    pub _cur_column: libc::c_ushort,
-    pub _vtable_offset: libc::c_schar,
-    pub _shortbuf: [libc::c_char; 1],
-    pub _lock: *mut libc::c_void,
-    pub _offset: __off64_t,
-    pub __pad1: *mut libc::c_void,
-    pub __pad2: *mut libc::c_void,
-    pub __pad3: *mut libc::c_void,
-    pub __pad4: *mut libc::c_void,
-    pub __pad5: size_t,
-    pub _mode: libc::c_int,
-    pub _unused2: [libc::c_char; 20],
-}
-pub type _IO_lock_t = ();
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_marker {
-    pub _next: *mut _IO_marker,
-    pub _sbuf: *mut _IO_FILE,
-    pub _pos: libc::c_int,
-}
-pub type FILE = _IO_FILE;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct afl_fuzz_one {
-    pub engine: *mut afl_engine_t,
-    pub stages: *mut *mut afl_stage_t,
-    pub stages_count: size_t,
-    pub funcs: afl_fuzz_one_funcs,
-}
 /*
    american fuzzy lop++ - fuzzer header
    ------------------------------------
@@ -168,6 +108,14 @@ pub struct afl_fuzz_one {
  */
 #[derive(Copy, Clone)]
 #[repr(C)]
+pub struct afl_fuzz_one {
+    pub engine: *mut afl_engine_t,
+    pub stages: *mut *mut afl_stage_t,
+    pub stages_count: size_t,
+    pub funcs: afl_fuzz_one_funcs,
+}
+#[derive(Copy, Clone)]
+#[repr(C)]
 pub struct afl_fuzz_one_funcs {
     pub perform: Option<unsafe extern "C" fn(_: *mut afl_fuzz_one_t)
                             -> afl_ret_t>,
@@ -178,6 +126,32 @@ pub struct afl_fuzz_one_funcs {
                                                 _: *mut afl_engine_t)
                                -> afl_ret_t>,
 }
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
+/* This file contains commonly used functionality for libafl */
 // We're declaring a few structs here which have an interdependency between them
 pub type afl_engine_t = afl_engine;
 /*
@@ -333,6 +307,16 @@ pub struct llmp_hookdata_generic {
     pub func: *mut libc::c_void,
     pub data: *mut libc::c_void,
 }
+/* unique ID of this client */
+/* the last message we received */
+/* the current broadcast map to read from */
+/* the last msg we sent */
+/* Number of maps we're using */
+/* The maps to write to */
+/* Count of the hooks we'll call for each new shared map */
+/* The hooks we'll call for each new shared map */
+// A generic sharememory region to be used by any functions (queues or feedbacks
+// too.)
 pub type afl_shmem_t = afl_shmem;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -389,6 +373,32 @@ pub struct afl_engine_func {
     pub loop_0: Option<unsafe extern "C" fn(_: *mut afl_engine_t)
                            -> afl_ret_t>,
 }
+/* Serialized map id */
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
 pub type afl_input_t = afl_input;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -501,7 +511,33 @@ pub struct afl_executor_funcs {
     pub observers_reset: Option<unsafe extern "C" fn(_: *mut afl_executor_t)
                                     -> ()>,
 }
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
 pub type afl_observer_t = afl_observer;
+// vtable for the observation channel
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_observer {
@@ -516,17 +552,6 @@ pub struct afl_observer_funcs {
     pub post_exec: Option<unsafe extern "C" fn(_: *mut afl_observer_t,
                                                _: *mut afl_engine_t) -> ()>,
 }
-/* unique ID of this client */
-/* the last message we received */
-/* the current broadcast map to read from */
-/* the last msg we sent */
-/* Number of maps we're using */
-/* The maps to write to */
-/* Count of the hooks we'll call for each new shared map */
-/* The hooks we'll call for each new shared map */
-// This has a few parts, the first deals with crash handling.
-/* afl_exit_t is for the fuzzed target, as opposed to afl_ret_t
-which is for internal functions. */
 pub type afl_exit_t = afl_exit;
 pub type afl_exit = libc::c_uint;
 pub const AFL_EXIT_OOM: afl_exit = 9;
@@ -618,6 +643,38 @@ pub struct afl_entry_funcs {
                               -> *mut afl_entry_t>,
 }
 pub type afl_entry_info_t = afl_entry_info;
+/*
+   american fuzzy lop++ - fuzzer header
+   ------------------------------------
+
+   Originally written by Michal Zalewski
+
+   Now maintained by Marc Heuse <mh@mh-sec.de>,
+                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
+                     Andrea Fioraldi <andreafioraldi@gmail.com>,
+                     Dominik Maier <mail@dmnk.co>
+
+   Copyright 2016, 2017 Google Inc. All rights reserved.
+   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at:
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+   This is the Library based on AFL++ which can be used to build
+   customized fuzzers for a specific target while taking advantage of
+   a lot of features that AFL++ already provides.
+
+ */
+/*
+This is the generic interface implementation for the queue and queue entries.
+We've tried to keep it generic and yet including, but if you want to extend the
+queue/entry, simply "inherit" this struct by including it in your custom struct
+and keeping it as the first member of your struct.
+*/
+/*TODO: Still need to add a base implementation for this.*/
 #[derive(Copy, Clone)]
 #[repr(C, packed)]
 pub struct afl_entry_info {
@@ -658,31 +715,6 @@ pub struct afl_mutator {
     pub mutate_buf: *mut u8_0,
     pub funcs: afl_mutator_funcs,
 }
-/*
-   american fuzzy lop++ - fuzzer header
-   ------------------------------------
-
-   Originally written by Michal Zalewski
-
-   Now maintained by Marc Heuse <mh@mh-sec.de>,
-                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
-                     Andrea Fioraldi <andreafioraldi@gmail.com>,
-                     Dominik Maier <mail@dmnk.co>
-
-   Copyright 2016, 2017 Google Inc. All rights reserved.
-   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at:
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-
- */
-// Mutator struct will have many internal functions like mutate, trimming etc.
-// This is based on both the FFF prototype and the custom mutators that we have
-// in AFL++ without the AFL++ specific parts
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_mutator_funcs {
@@ -704,27 +736,6 @@ pub struct afl_mutator_funcs {
     pub get_stage: Option<unsafe extern "C" fn(_: *mut afl_mutator_t)
                               -> *mut afl_stage_t>,
 }
-/*
-   american fuzzy lop++ - fuzzer header
-   ------------------------------------
-
-   Originally written by Michal Zalewski
-
-   Now maintained by Marc Heuse <mh@mh-sec.de>,
-                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
-                     Andrea Fioraldi <andreafioraldi@gmail.com>,
-                     Dominik Maier <mail@dmnk.co>
-
-   Copyright 2016, 2017 Google Inc. All rights reserved.
-   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at:
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
- */
 #[derive(Copy, Clone)]
 #[repr(C)]
 pub struct afl_stage_funcs {
@@ -764,112 +775,8 @@ pub struct afl_feedback_cov {
     pub virgin_bits: *mut u8_0,
     pub size: size_t,
 }
-/*
-   american fuzzy lop++ - fuzzer header
-   ------------------------------------
-
-   Originally written by Michal Zalewski
-
-   Now maintained by Marc Heuse <mh@mh-sec.de>,
-                     Heiko Eißfeldt <heiko.eissfeldt@hexco.de>,
-                     Andrea Fioraldi <andreafioraldi@gmail.com>,
-                     Dominik Maier <mail@dmnk.co>
-
-   Copyright 2016, 2017 Google Inc. All rights reserved.
-   Copyright 2019-2020 AFLplusplus Project. All rights reserved.
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at:
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-   This is the Library based on AFL++ which can be used to build
-   customized fuzzers for a specific target while taking advantage of
-   a lot of features that AFL++ already provides.
-
- */
-// Default implementation of the functions
-// "Constructors" and "destructors" for the feedback
-/* Simple MaximizeMapFeedback implementation */
-/* Coverage Feedback */
 pub type afl_feedback_cov_t = afl_feedback_cov;
-/* This array holds the coveragemap observation channels the feedback is looking at */
-/* Returns a string representation of afl_ret_t or of the errno if applicable */
-#[inline]
-unsafe extern "C" fn afl_ret_stringify(mut afl_ret: afl_ret_t)
- -> *mut libc::c_char {
-    let mut current_block_17: u64;
-    match afl_ret as libc::c_uint {
-        0 => {
-            return b"Success\x00" as *const u8 as *const libc::c_char as
-                       *mut libc::c_char
-        }
-        8 => {
-            return b"No more elements in array\x00" as *const u8 as
-                       *const libc::c_char as *mut libc::c_char
-        }
-        9 => {
-            return b"Could not execute target\x00" as *const u8 as
-                       *const libc::c_char as *mut libc::c_char
-        }
-        10 => {
-            return b"Target did not behave as expected\x00" as *const u8 as
-                       *const libc::c_char as *mut libc::c_char
-        }
-        19 => {
-            return b"Error creating input copy\x00" as *const u8 as
-                       *const libc::c_char as *mut libc::c_char
-        }
-        20 => {
-            return b"Empty data\x00" as *const u8 as *const libc::c_char as
-                       *mut libc::c_char
-        }
-        2 => {
-            return b"File exists\x00" as *const u8 as *const libc::c_char as
-                       *mut libc::c_char
-        }
-        3 => {
-            if *__errno_location() == 0 {
-                return b"Allocation failed\x00" as *const u8 as
-                           *const libc::c_char as *mut libc::c_char
-            }
-            current_block_17 = 9124283142998713593;
-        }
-        4 => { current_block_17 = 9124283142998713593; }
-        6 => { current_block_17 = 9310518756776399870; }
-        12 => { current_block_17 = 16840486104825400973; }
-        _ => {
-            return b"Unknown error. Please report this bug!\x00" as *const u8
-                       as *const libc::c_char as *mut libc::c_char
-        }
-    }
-    match current_block_17 {
-        9124283142998713593 =>
-        /* fall-through */
-        {
-            if *__errno_location() == 0 {
-                return b"Error opening file\x00" as *const u8 as
-                           *const libc::c_char as *mut libc::c_char
-            }
-            current_block_17 = 9310518756776399870;
-        }
-        _ => { }
-    }
-    match current_block_17 {
-        9310518756776399870 =>
-        /* fall-through */
-        {
-            if *__errno_location() == 0 {
-                return b"Got less bytes than expected\x00" as *const u8 as
-                           *const libc::c_char as *mut libc::c_char
-            }
-        }
-        _ => { }
-    }
-    /* fall-through */
-    return strerror(*__errno_location());
-}
+/* Random number counter*/
 /*
    american fuzzy lop++ - fuzzer header
    ------------------------------------
@@ -913,6 +820,7 @@ pub unsafe extern "C" fn afl_feedback_init(mut feedback: *mut afl_feedback_t,
     (*feedback).tag = 0xfeedb43e as libc::c_uint;
     return AFL_RET_SUCCESS;
 }
+// "Constructors" and "destructors" for the feedback
 #[no_mangle]
 pub unsafe extern "C" fn afl_feedback_deinit(mut feedback:
                                                  *mut afl_feedback_t) {
@@ -921,6 +829,7 @@ pub unsafe extern "C" fn afl_feedback_deinit(mut feedback:
    */
     (*feedback).queue = 0 as *mut afl_queue_feedback_t;
 }
+// Default implementation of the functions
 #[no_mangle]
 pub unsafe extern "C" fn afl_feedback_set_queue(mut feedback:
                                                     *mut afl_feedback_t,
@@ -953,11 +862,6 @@ pub unsafe extern "C" fn afl_feedback_cov_init(mut feedback:
            size);
     let mut err: afl_ret_t = afl_feedback_init(&mut (*feedback).base, queue);
     if err as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/feedback.c:87] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         free((*feedback).virgin_bits as *mut libc::c_void);
         return err
     }
@@ -993,10 +897,6 @@ pub unsafe extern "C" fn afl_feedback_cov_set_virgin_bits(mut feedback:
         realloc((*feedback).virgin_bits as *mut libc::c_void, size) as
             *mut u8_0;
     if (*feedback).virgin_bits.is_null() {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/feedback.c:110] \x1b[0mFailed to alloc %ld bytes for virgin_bitmap\x00"
-                   as *const u8 as *const libc::c_char, size);
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         (*feedback).size = 0 as libc::c_int as size_t;
         return AFL_RET_ALLOC
     }
@@ -1021,17 +921,6 @@ pub unsafe extern "C" fn afl_feedback_cov_is_interesting(mut feedback:
                                                          mut fsrv:
                                                              *mut afl_executor_t)
  -> libc::c_float {
-    if (*feedback).tag != 0xfeedc0f8 as libc::c_uint {
-        printf(b"\x0f\x1b)B\x1b[?25h\x1b[0m\x1b[1;91m\n[-] PROGRAM ABORT : \x1b[0mCalled cov_is_interesting with non-cov feeback\x00"
-                   as *const u8 as *const libc::c_char);
-        printf(b"\x1b[1;91m\n         Location : \x1b[0m%s(), %s:%u\n\n\x00"
-                   as *const u8 as *const libc::c_char,
-               (*::std::mem::transmute::<&[u8; 32],
-                                         &[libc::c_char; 32]>(b"afl_feedback_cov_is_interesting\x00")).as_ptr(),
-               b"src/feedback.c\x00" as *const u8 as *const libc::c_char,
-               136 as libc::c_int);
-        exit(1 as libc::c_int);
-    }
     let mut map_feedback: *mut afl_feedback_cov_t =
         feedback as *mut afl_feedback_cov_t;
     let mut obs_channel: *mut afl_observer_covmap_t =
@@ -1100,22 +989,6 @@ pub unsafe extern "C" fn afl_feedback_cov_is_interesting(mut feedback:
         current = current.offset(1);
         virgin = virgin.offset(1)
     }
-    printf(b"\x1b[0;35m[D]\x1b[1;90m [src/feedback.c:215] \x1b[0mMAP: %p %lu\x00"
-               as *const u8 as *const libc::c_char,
-           (*obs_channel).shared_map.map, (*obs_channel).shared_map.map_size);
-    printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
-    let mut j: u32_0 = 0 as libc::c_int as u32_0;
-    while (j as libc::c_ulong) < (*obs_channel).shared_map.map_size {
-        if *(*obs_channel).shared_map.map.offset(j as isize) != 0 {
-            printf(b" %04x=%02x\x00" as *const u8 as *const libc::c_char, j,
-                   *(*obs_channel).shared_map.map.offset(j as isize) as
-                       libc::c_int);
-        }
-        j = j.wrapping_add(1)
-    }
-    printf(b" ret=%f\n\x00" as *const u8 as *const libc::c_char,
-           ret as libc::c_double);
     return ret;
 }
 /* Looks like we have not found any new bytes yet; see if any non-zero

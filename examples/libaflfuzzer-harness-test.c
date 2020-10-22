@@ -20,6 +20,13 @@ static void force_timeout(void) {
 
 }
 
+/* c2rust always expects this here */
+int LLVMFuzzerInitialize(int *argc, char ***argv) {
+  (void) argc;
+  (void) argv;
+  return 0;
+}
+
 /* The actual harness. Using PNG for our example. */
 int LLVMFuzzerTestOneInput(const uint8_t *input, size_t len) {
 

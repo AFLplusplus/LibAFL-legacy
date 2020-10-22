@@ -1,5 +1,5 @@
 TARGETS=libafl.so libafl.a libaflfuzzer.a examples/libaflfuzzer-test
-override CFLAGS  += -g -fPIC -Iinclude -Wall -Wextra -Werror -Wshadow -fstack-protector-strong 
+override CFLAGS  += -g -fPIC -Iinclude -Wall -Wextra -Wshadow -fstack-protector-strong -Wno-incompatible-pointer-types-discards-qualifiers
 
 ifdef DEBUG
   AFL_DEBUG=1 # always enable logs for now
@@ -90,8 +90,8 @@ libafl.a: src/llmp.o src/aflpp.o src/engine.o src/stage.o src/fuzzone.o src/feed
 	@rm -f libafl.a
 	ar -crs libafl.a $^
 
-examples/afl-compiler-rt.o:	examples/afl-compiler-rt.o.c
-	clang -O3 -Iinclude -c -o examples/afl-compiler-rt.o examples/afl-compiler-rt.o.c
+examples/afl-compiler-rt.o:	examples/afl-compiler-rt-o.c
+	clang -O3 -Iinclude -c -o examples/afl-compiler-rt.o examples/afl-compiler-rt-o.c
 
 libaflfuzzer.a: libafl.a examples/afl-compiler-rt.o examples/libaflfuzzer.c
 	@rm -f libaflfuzzer.a

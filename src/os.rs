@@ -4,16 +4,17 @@ extern "C" {
     #[no_mangle]
     fn kill(__pid: __pid_t, __sig: libc::c_int) -> libc::c_int;
     #[no_mangle]
-    fn atoi(__nptr: *const libc::c_char) -> libc::c_int;
-    #[no_mangle]
-    fn exit(_: libc::c_int) -> !;
-    #[no_mangle]
-    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
-    #[no_mangle]
     fn strncmp(_: *const libc::c_char, _: *const libc::c_char,
                _: libc::c_ulong) -> libc::c_int;
     #[no_mangle]
     fn strchr(_: *const libc::c_char, _: libc::c_int) -> *mut libc::c_char;
+    #[no_mangle]
+    fn exit(_: libc::c_int) -> !;
+    #[no_mangle]
+    fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char,
+              _: libc::c_int) -> libc::c_long;
+    #[no_mangle]
+    fn strlen(_: *const libc::c_char) -> libc::c_ulong;
     #[no_mangle]
     fn access(__name: *const libc::c_char, __type: libc::c_int)
      -> libc::c_int;
@@ -31,7 +32,8 @@ extern "C" {
     fn waitpid(__pid: __pid_t, __stat_loc: *mut libc::c_int,
                __options: libc::c_int) -> __pid_t;
     #[no_mangle]
-    fn stat(__file: *const libc::c_char, __buf: *mut stat) -> libc::c_int;
+    fn __xstat(__ver: libc::c_int, __filename: *const libc::c_char,
+               __stat_buf: *mut stat) -> libc::c_int;
     #[no_mangle]
     fn sched_setaffinity(__pid: __pid_t, __cpusetsize: size_t,
                          __cpuset: *const cpu_set_t) -> libc::c_int;
@@ -470,6 +472,16 @@ pub struct afl_os {
     pub handler_process: pid_t,
 }
 pub type afl_os_t = afl_os;
+#[inline]
+unsafe extern "C" fn atoi(mut __nptr: *const libc::c_char) -> libc::c_int {
+    return strtol(__nptr, 0 as *mut libc::c_void as *mut *mut libc::c_char,
+                  10 as libc::c_int) as libc::c_int;
+}
+#[inline]
+unsafe extern "C" fn stat(mut __path: *const libc::c_char,
+                          mut __statbuf: *mut stat) -> libc::c_int {
+    return __xstat(1 as libc::c_int, __path, __statbuf);
+}
 /* __APPLE__ || __FreeBSD__ || __OpenBSD__ */
 /* __linux__ */
 // Process related functions

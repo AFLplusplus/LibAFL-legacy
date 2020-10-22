@@ -1,4 +1,8 @@
-use ::libc;
+#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case,
+         non_upper_case_globals, unused_assignments, unused_mut)]
+#![register_tool(c2rust)]
+#![feature(const_raw_ptr_to_usize_cast, main, register_tool)]
+use ::c2rust_out::*;
 extern "C" {
     #[no_mangle]
     static mut stdout: *mut _IO_FILE;
@@ -23,13 +27,6 @@ extern "C" {
     #[no_mangle]
     fn afl_entry_init(_: *mut afl_entry_t, _: *mut afl_input_t,
                       _: *mut afl_entry_info_t) -> afl_ret_t;
-    #[no_mangle]
-    fn afl_queue_feedback_init(_: *mut afl_queue_feedback_t,
-                               _: *mut afl_feedback_t, _: *mut libc::c_char)
-     -> afl_ret_t;
-    // "constructor" for the above feedback queue
-    #[no_mangle]
-    fn afl_queue_feedback_deinit(_: *mut afl_queue_feedback_t);
     #[no_mangle]
     fn malloc(_: libc::c_ulong) -> *mut libc::c_void;
     #[no_mangle]
@@ -104,7 +101,11 @@ extern "C" {
                                         virgin_bits_copy_from: *mut u8_0,
                                         size: size_t) -> afl_ret_t;
     #[no_mangle]
-    fn atoi(__nptr: *const libc::c_char) -> libc::c_int;
+    fn afl_queue_feedback_init(_: *mut afl_queue_feedback_t,
+                               _: *mut afl_feedback_t, _: *mut libc::c_char)
+     -> afl_ret_t;
+    #[no_mangle]
+    fn afl_queue_feedback_deinit(_: *mut afl_queue_feedback_t);
     /* TODO: ADD defualt implementation for the schedule function based on random.
  */
     #[no_mangle]
@@ -114,6 +115,9 @@ extern "C" {
     #[no_mangle]
     fn open(__file: *const libc::c_char, __oflag: libc::c_int, _: ...)
      -> libc::c_int;
+    #[no_mangle]
+    fn strtol(_: *const libc::c_char, _: *mut *mut libc::c_char,
+              _: libc::c_int) -> libc::c_long;
     // afl executor_ops;
     // Function used to create an executor, we alloc the memory ourselves and
 // initialize the executor
@@ -144,24 +148,6 @@ extern "C" {
     #[no_mangle]
     fn in_memory_executor_init(in_memory_executor: *mut in_memory_executor_t,
                                harness: harness_function_type);
-    #[no_mangle]
-    fn afl_executor_deinit(_: *mut afl_executor_t);
-    #[no_mangle]
-    fn bind_to_cpu() -> afl_ret_t;
-    #[no_mangle]
-    fn afl_stage_deinit(_: *mut afl_stage_t);
-    #[no_mangle]
-    fn afl_stage_init(_: *mut afl_stage_t, _: *mut afl_engine_t) -> afl_ret_t;
-    #[no_mangle]
-    fn afl_stage_is_interesting(_: *mut afl_stage_t) -> libc::c_float;
-    #[no_mangle]
-    fn afl_stage_run(_: *mut afl_stage_t, _: *mut afl_input_t, _: bool)
-     -> afl_ret_t;
-    #[no_mangle]
-    fn afl_fuzz_one_deinit(_: *mut afl_fuzz_one_t);
-    #[no_mangle]
-    fn afl_fuzz_one_init(_: *mut afl_fuzz_one_t, _: *mut afl_engine_t)
-     -> afl_ret_t;
     /* Creates a new, unconnected, client state */
     #[no_mangle]
     fn llmp_client_new_unconnected() -> *mut llmp_client_t;
@@ -232,6 +218,7 @@ if the callback returns false, the message is not forwarded to the clients. */
      -> afl_ret_t;
     #[no_mangle]
     fn afl_engine_deinit(_: *mut afl_engine_t);
+    /* Add all default mutator funcs */
     #[no_mangle]
     fn afl_mutator_scheduled_add_havoc_funcs(mutator:
                                                  *mut afl_mutator_scheduled_t)
@@ -242,6 +229,24 @@ if the callback returns false, the message is not forwarded to the clients. */
                                   max_iterations: size_t) -> afl_ret_t;
     #[no_mangle]
     fn afl_mutator_scheduled_deinit(_: *mut afl_mutator_scheduled_t);
+    #[no_mangle]
+    fn afl_fuzz_one_init(_: *mut afl_fuzz_one_t, _: *mut afl_engine_t)
+     -> afl_ret_t;
+    #[no_mangle]
+    fn afl_fuzz_one_deinit(_: *mut afl_fuzz_one_t);
+    #[no_mangle]
+    fn afl_stage_run(_: *mut afl_stage_t, _: *mut afl_input_t, _: bool)
+     -> afl_ret_t;
+    #[no_mangle]
+    fn afl_stage_is_interesting(_: *mut afl_stage_t) -> libc::c_float;
+    #[no_mangle]
+    fn afl_stage_init(_: *mut afl_stage_t, _: *mut afl_engine_t) -> afl_ret_t;
+    #[no_mangle]
+    fn afl_stage_deinit(_: *mut afl_stage_t);
+    #[no_mangle]
+    fn bind_to_cpu() -> afl_ret_t;
+    #[no_mangle]
+    fn afl_executor_deinit(_: *mut afl_executor_t);
     #[no_mangle]
     fn LLVMFuzzerTestOneInput(_: *const uint8_t, _: size_t) -> libc::c_int;
     #[no_mangle]
@@ -836,6 +841,8 @@ pub struct afl_input_funcs {
                               -> *mut u8_0>,
     pub delete: Option<unsafe extern "C" fn(_: *mut afl_input_t) -> ()>,
 }
+// Inheritence from base queue
+// "constructor" for the above feedback queue
 pub type afl_queue_global_t = afl_queue_global;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -1486,30 +1493,30 @@ unsafe extern "C" fn afl_ret_stringify(mut afl_ret: afl_ret_t)
                 return b"Allocation failed\x00" as *const u8 as
                            *const libc::c_char as *mut libc::c_char
             }
-            current_block_17 = 5980888513698675880;
+            current_block_17 = 11192896001230211841;
         }
-        4 => { current_block_17 = 5980888513698675880; }
-        6 => { current_block_17 = 10931362511637487823; }
-        12 => { current_block_17 = 646501306906594405; }
+        4 => { current_block_17 = 11192896001230211841; }
+        6 => { current_block_17 = 9658077233304938347; }
+        12 => { current_block_17 = 8893027533750827950; }
         _ => {
             return b"Unknown error. Please report this bug!\x00" as *const u8
                        as *const libc::c_char as *mut libc::c_char
         }
     }
     match current_block_17 {
-        5980888513698675880 =>
+        11192896001230211841 =>
         /* fall-through */
         {
             if *__errno_location() == 0 {
                 return b"Error opening file\x00" as *const u8 as
                            *const libc::c_char as *mut libc::c_char
             }
-            current_block_17 = 10931362511637487823;
+            current_block_17 = 9658077233304938347;
         }
         _ => { }
     }
     match current_block_17 {
-        10931362511637487823 =>
+        9658077233304938347 =>
         /* fall-through */
         {
             if *__errno_location() == 0 {
@@ -1521,6 +1528,11 @@ unsafe extern "C" fn afl_ret_stringify(mut afl_ret: afl_ret_t)
     }
     /* fall-through */
     return strerror(*__errno_location());
+}
+#[inline]
+unsafe extern "C" fn atoi(mut __nptr: *const libc::c_char) -> libc::c_int {
+    return strtol(__nptr, 0 as *mut libc::c_void as *mut *mut libc::c_char,
+                  10 as libc::c_int) as libc::c_int;
 }
 #[inline]
 unsafe extern "C" fn afl_argv_cpy_dup(mut argc: libc::c_int,
@@ -1664,53 +1676,6 @@ unsafe extern "C" fn afl_queue_global_delete(mut afl_queue_global:
     free(afl_queue_global as *mut libc::c_void);
 }
 #[inline]
-unsafe extern "C" fn afl_executor_delete(mut afl_executor:
-                                             *mut afl_executor_t) {
-    afl_executor_deinit(afl_executor);
-    free(afl_executor as *mut libc::c_void);
-}
-#[inline]
-unsafe extern "C" fn afl_stage_delete(mut afl_stage: *mut afl_stage_t) {
-    afl_stage_deinit(afl_stage);
-    free(afl_stage as *mut libc::c_void);
-}
-#[inline]
-unsafe extern "C" fn afl_stage_new(mut engine: *mut afl_engine_t)
- -> *mut afl_stage_t {
-    let mut ret: *mut afl_stage_t =
-        calloc(1 as libc::c_int as libc::c_ulong,
-               ::std::mem::size_of::<afl_stage_t>() as libc::c_ulong) as
-            *mut afl_stage_t;
-    if ret.is_null() { return 0 as *mut afl_stage_t }
-    if afl_stage_init(ret, engine) as libc::c_uint !=
-           AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-        free(ret as *mut libc::c_void);
-        return 0 as *mut afl_stage_t
-    }
-    return ret;
-}
-#[inline]
-unsafe extern "C" fn afl_fuzz_one_delete(mut afl_fuzz_one:
-                                             *mut afl_fuzz_one_t) {
-    afl_fuzz_one_deinit(afl_fuzz_one);
-    free(afl_fuzz_one as *mut libc::c_void);
-}
-#[inline]
-unsafe extern "C" fn afl_fuzz_one_new(mut engine: *mut afl_engine_t)
- -> *mut afl_fuzz_one_t {
-    let mut ret: *mut afl_fuzz_one_t =
-        calloc(1 as libc::c_int as libc::c_ulong,
-               ::std::mem::size_of::<afl_fuzz_one_t>() as libc::c_ulong) as
-            *mut afl_fuzz_one_t;
-    if ret.is_null() { return 0 as *mut afl_fuzz_one_t }
-    if afl_fuzz_one_init(ret, engine) as libc::c_uint !=
-           AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-        free(ret as *mut libc::c_void);
-        return 0 as *mut afl_fuzz_one_t
-    }
-    return ret;
-}
-#[inline]
 unsafe extern "C" fn afl_rand_rotl(x: u64_0, mut k: libc::c_int) -> u64_0 {
     return x << k | x >> 64 as libc::c_int - k;
 }
@@ -1812,6 +1777,53 @@ unsafe extern "C" fn afl_mutator_scheduled_delete(mut afl_mutator_scheduled:
                                                       *mut afl_mutator_scheduled_t) {
     afl_mutator_scheduled_deinit(afl_mutator_scheduled);
     free(afl_mutator_scheduled as *mut libc::c_void);
+}
+#[inline]
+unsafe extern "C" fn afl_fuzz_one_new(mut engine: *mut afl_engine_t)
+ -> *mut afl_fuzz_one_t {
+    let mut ret: *mut afl_fuzz_one_t =
+        calloc(1 as libc::c_int as libc::c_ulong,
+               ::std::mem::size_of::<afl_fuzz_one_t>() as libc::c_ulong) as
+            *mut afl_fuzz_one_t;
+    if ret.is_null() { return 0 as *mut afl_fuzz_one_t }
+    if afl_fuzz_one_init(ret, engine) as libc::c_uint !=
+           AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
+        free(ret as *mut libc::c_void);
+        return 0 as *mut afl_fuzz_one_t
+    }
+    return ret;
+}
+#[inline]
+unsafe extern "C" fn afl_fuzz_one_delete(mut afl_fuzz_one:
+                                             *mut afl_fuzz_one_t) {
+    afl_fuzz_one_deinit(afl_fuzz_one);
+    free(afl_fuzz_one as *mut libc::c_void);
+}
+#[inline]
+unsafe extern "C" fn afl_stage_new(mut engine: *mut afl_engine_t)
+ -> *mut afl_stage_t {
+    let mut ret: *mut afl_stage_t =
+        calloc(1 as libc::c_int as libc::c_ulong,
+               ::std::mem::size_of::<afl_stage_t>() as libc::c_ulong) as
+            *mut afl_stage_t;
+    if ret.is_null() { return 0 as *mut afl_stage_t }
+    if afl_stage_init(ret, engine) as libc::c_uint !=
+           AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
+        free(ret as *mut libc::c_void);
+        return 0 as *mut afl_stage_t
+    }
+    return ret;
+}
+#[inline]
+unsafe extern "C" fn afl_stage_delete(mut afl_stage: *mut afl_stage_t) {
+    afl_stage_deinit(afl_stage);
+    free(afl_stage as *mut libc::c_void);
+}
+#[inline]
+unsafe extern "C" fn afl_executor_delete(mut afl_executor:
+                                             *mut afl_executor_t) {
+    afl_executor_deinit(afl_executor);
+    free(afl_executor as *mut libc::c_void);
 }
 /* pointer to the bitmap used by map-absed feedback, we'll report it if we crash. */
 static mut virgin_bits: *mut u8_0 = 0 as *const u8_0 as *mut u8_0;
@@ -2014,10 +2026,6 @@ pub unsafe extern "C" fn write_cur_state(mut out_msg: *mut llmp_message_t) {
 unsafe extern "C" fn handle_timeout(mut sig: libc::c_int,
                                     mut info: *mut siginfo_t,
                                     mut ucontext: *mut libc::c_void) {
-    printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:200] \x1b[0mTIMEOUT/SIGUSR2 received.\x00"
-               as *const u8 as *const libc::c_char);
-    printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     if current_fuzz_input_msg.is_null() {
         if debug != 0 {
             printf(b"\x1b[1;93m[!] \x1b[1;97mWARNING: \x1b[0mSIGUSR/timeout happened, but not currently fuzzing!\x00"
@@ -2069,11 +2077,6 @@ unsafe extern "C" fn handle_timeout(mut sig: libc::c_int,
                    *const libc::c_char, 230 as libc::c_int);
         exit(1 as libc::c_int);
     }
-    printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:231] \x1b[0mWe sent off the timeout at %p. Now waiting for broker to kill us :)\x00"
-               as *const u8 as *const libc::c_char,
-           (*info)._sifields._sigfault.si_addr);
-    printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     let mut current_out_map: *mut llmp_page_t =
         shmem2page(&mut *(*current_client).out_maps.offset((*current_client).out_map_count.wrapping_sub(1
                                                                                                             as
@@ -2085,10 +2088,6 @@ unsafe extern "C" fn handle_timeout(mut sig: libc::c_int,
     while (*current_out_map).save_to_unmap == 0 {
         usleep(10 as libc::c_int as __useconds_t);
     }
-    printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:242] \x1b[0mExiting client.\x00"
-               as *const u8 as *const libc::c_char);
-    printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     printf(b"\x0f\x1b)B\x1b[?25h\x1b[0m\x1b[1;91m\n[-] PROGRAM ABORT : \x1b[0mTIMOUT\x00"
                as *const u8 as *const libc::c_char);
     printf(b"\x1b[1;91m\n         Location : \x1b[0m%s(), %s:%u\n\n\x00" as
@@ -2156,26 +2155,11 @@ unsafe extern "C" fn handle_crash(mut sig: libc::c_int,
         }
         write_cur_state(current_fuzz_input_msg);
         llmp_client_send(current_client, current_fuzz_input_msg);
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:291] \x1b[0mWe sent off the crash at %p. Now waiting for broker...\x00"
-                   as *const u8 as *const libc::c_char,
-               (*info)._sifields._sigfault.si_addr);
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
-    } else {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:295] \x1b[0mWe died at %p, but didn\'t crash in the target :( - Waiting for the broker.\x00"
-                   as *const u8 as *const libc::c_char,
-               (*info)._sifields._sigfault.si_addr);
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
     }
     /* Wait for broker to map this page, so our work is done. Broker will restart this fuzzer */
     while (*current_out_map).save_to_unmap == 0 {
         usleep(10 as libc::c_int as __useconds_t);
-    }
-    printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:306] \x1b[0mReturning from crash handler.\x00"
-               as *const u8 as *const libc::c_char);
-    printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
+    };
     /* let's crash */
 }
 unsafe extern "C" fn setup_signal_handlers() {
@@ -2567,11 +2551,6 @@ pub unsafe extern "C" fn initialize_broker(mut in_dir: *mut libc::c_char,
     let mut err: afl_ret_t =
         afl_mutator_scheduled_add_havoc_funcs(mutators_havoc);
     if err as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:488] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         printf(b"\x0f\x1b)B\x1b[?25h\x1b[0m\x1b[1;91m\n[-] PROGRAM ABORT : \x1b[0mError adding mutators: %s\x00"
                    as *const u8 as *const libc::c_char,
                afl_ret_stringify(err));
@@ -2600,11 +2579,6 @@ pub unsafe extern "C" fn initialize_broker(mut in_dir: *mut libc::c_char,
                                                                                 &mut (*mutators_havoc).base);
     if err_0 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:493] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_0));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         printf(b"\x0f\x1b)B\x1b[?25h\x1b[0m\x1b[1;91m\n[-] PROGRAM ABORT : \x1b[0mError adding mutator: %s\x00"
                    as *const u8 as *const libc::c_char,
                afl_ret_stringify(err_0));
@@ -2635,11 +2609,6 @@ pub unsafe extern "C" fn initialize_broker(mut in_dir: *mut libc::c_char,
                                                                                         (*engine).in_dir);
         if err_1 as libc::c_uint !=
                AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-            printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:504] \x1b[0mAFL_TRY returning error: %s\x00"
-                       as *const u8 as *const libc::c_char,
-                   afl_ret_stringify(err_1));
-            printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             printf(b"\x1b[1;93m[!] \x1b[1;97mWARNING: \x1b[0mError loading testcase dir: %s\x00"
                        as *const u8 as *const libc::c_char,
                    afl_ret_stringify(err_1));
@@ -2799,11 +2768,6 @@ pub unsafe extern "C" fn fuzzer_process_main(mut llmp_client:
     let mut err: afl_ret_t =
         (*engine).funcs.loop_0.expect("non-null function pointer")(engine);
     if err as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:591] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         fflush(stdout);
         printf(b"\x0f\x1b)B\x1b[?25h\x1b[0m\x1b[1;91m\n[-]  SYSTEM ERROR : \x1b[0mError fuzzing the target: %s\x00"
                    as *const u8 as *const libc::c_char,
@@ -2863,19 +2827,11 @@ pub unsafe extern "C" fn broker_handle_client_restart(mut broker:
         // don't forward
     }
     /* Remove this client, then spawn a new client with the current state.*/
-    printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:636] \x1b[0mRemoving old/crashed client\x00"
-               as *const u8 as *const libc::c_char);
-    printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     /* TODO: We should probably waite for the old client pid to finish (or kill it?) before creating a new one */
     (*(*clientdata).client_state).current_broadcast_map =
         0 as *mut afl_shmem_t; // Don't kill our map :)
     llmp_client_delete((*clientdata).client_state);
     afl_shmem_deinit((*clientdata).cur_client_map);
-    printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:643] \x1b[0mCreating new client #phoenix\x00"
-               as *const u8 as *const libc::c_char);
-    printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     (*clientdata).client_state = llmp_client_new_unconnected();
     if (*clientdata).client_state.is_null() {
         fflush(stdout);
@@ -2982,10 +2938,6 @@ pub unsafe extern "C" fn broker_message_hook(mut broker: *mut llmp_broker_t,
                                                  as isize) as
             *mut broker_client_stats; // don't forward this to the clients
     (*client_stats).last_msg_time = afl_get_cur_time() as u32_0;
-    printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:692] \x1b[0mBroker: msg hook called with msg tag %X\x00"
-               as *const u8 as *const libc::c_char, (*msg).tag);
-    printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-    fflush(stdout);
     let mut state: *mut cur_state_t = 0 as *mut cur_state_t;
     let mut timeout_input: afl_input_t =
         afl_input_t{bytes: 0 as *mut u8_0,
@@ -3042,10 +2994,6 @@ pub unsafe extern "C" fn broker_message_hook(mut broker: *mut llmp_broker_t,
             return 0 as libc::c_int != 0
         }
         2770266193 => {
-            printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:705] \x1b[0mWe found a timeout...\x00"
-                       as *const u8 as *const libc::c_char);
-            printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             /* write timeout output */
             state =
                 ({
@@ -3099,11 +3047,6 @@ pub unsafe extern "C" fn broker_message_hook(mut broker: *mut llmp_broker_t,
             let mut err: afl_ret_t = afl_input_init(&mut timeout_input);
             if err as libc::c_uint !=
                    AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-                printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:726] \x1b[0mAFL_TRY returning error: %s\x00"
-                           as *const u8 as *const libc::c_char,
-                       afl_ret_stringify(err));
-                printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
                 printf(b"\x0f\x1b)B\x1b[?25h\x1b[0m\x1b[1;91m\n[-] PROGRAM ABORT : \x1b[0mError initializing input for crash: %s\x00"
                            as *const u8 as *const libc::c_char,
                        afl_ret_stringify(err));
@@ -3144,10 +3087,6 @@ pub unsafe extern "C" fn broker_message_hook(mut broker: *mut llmp_broker_t,
             return 0 as libc::c_int != 0
         }
         270396113 => {
-            printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:751] \x1b[0mWe found a crash!\x00"
-                       as *const u8 as *const libc::c_char);
-            printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             /* write crash output */
             state =
                 ({
@@ -3201,11 +3140,6 @@ pub unsafe extern "C" fn broker_message_hook(mut broker: *mut llmp_broker_t,
             let mut err_0: afl_ret_t = afl_input_init(&mut crashing_input);
             if err_0 as libc::c_uint !=
                    AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-                printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:772] \x1b[0mAFL_TRY returning error: %s\x00"
-                           as *const u8 as *const libc::c_char,
-                       afl_ret_stringify(err_0));
-                printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
                 printf(b"\x0f\x1b)B\x1b[?25h\x1b[0m\x1b[1;91m\n[-] PROGRAM ABORT : \x1b[0mError initializing input for crash: %s\x00"
                            as *const u8 as *const libc::c_char,
                        afl_ret_stringify(err_0));
@@ -3246,10 +3180,6 @@ pub unsafe extern "C" fn broker_message_hook(mut broker: *mut llmp_broker_t,
         }
         _ => {
             /* We'll foward anything else we don't know. */
-            printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:796] \x1b[0mUnknown message id: %X\x00"
-                       as *const u8 as *const libc::c_char, (*msg).tag);
-            printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-            fflush(stdout);
             return 1 as libc::c_int != 0
         }
     };
@@ -3500,12 +3430,6 @@ unsafe fn main_0(mut argc: libc::c_int, mut argv: *mut *mut libc::c_char)
                        time_cur_ms.wrapping_sub((*client_status).last_msg_time)
                            > 10000 as libc::c_int as libc::c_uint {
                     /* Note that the interesting client_ids start with 1 as 0 is the broker tcp server. */
-                    printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:929] \x1b[0mDetected timeout for client %d\x00"
-                               as *const u8 as *const libc::c_char,
-                           i + 1 as libc::c_int);
-                    printf(b"\x1b[0m\n\x00" as *const u8 as
-                               *const libc::c_char);
-                    fflush(stdout);
                     kill((*(*llmp_broker).llmp_clients.offset((i +
                                                                    1 as
                                                                        libc::c_int)
@@ -3522,14 +3446,7 @@ unsafe fn main_0(mut argc: libc::c_int, mut argv: *mut *mut libc::c_char)
                    total_execs.wrapping_div(time_elapsed));
             fflush(stdout);
             pid = waitpid(-(1 as libc::c_int), &mut status, 1 as libc::c_int);
-            if pid > 0 as libc::c_int {
-                // this pid is gone
-        // TODO: Check if we missed a crash via llmp?
-                printf(b"\x1b[0;35m[D]\x1b[1;90m [examples/libaflfuzzer.c:946] \x1b[0mChild with pid %d is gone.\x00"
-                           as *const u8 as *const libc::c_char, pid);
-                printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-                fflush(stdout);
-            }
+            (pid) > 0 as libc::c_int;
         }
     };
 }

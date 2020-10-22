@@ -30,25 +30,17 @@ extern "C" {
     pub type afl_fuzz_one;
     pub type afl_executor;
     #[no_mangle]
-    fn free(__ptr: *mut libc::c_void);
-    #[no_mangle]
     fn realloc(_: *mut libc::c_void, _: libc::c_ulong) -> *mut libc::c_void;
+    #[no_mangle]
+    fn free(__ptr: *mut libc::c_void);
     #[no_mangle]
     fn exit(_: libc::c_int) -> !;
     #[no_mangle]
     fn read(__fd: libc::c_int, __buf: *mut libc::c_void, __nbytes: size_t)
      -> ssize_t;
     #[no_mangle]
-    fn __errno_location() -> *mut libc::c_int;
-    #[no_mangle]
     fn memcpy(_: *mut libc::c_void, _: *const libc::c_void, _: libc::c_ulong)
      -> *mut libc::c_void;
-    #[no_mangle]
-    fn strerror(_: libc::c_int) -> *mut libc::c_char;
-    #[no_mangle]
-    static mut stdout: *mut _IO_FILE;
-    #[no_mangle]
-    fn fflush(__stream: *mut FILE) -> libc::c_int;
     #[no_mangle]
     fn printf(_: *const libc::c_char, _: ...) -> libc::c_int;
     // Returns new buf containing the substring token
@@ -73,8 +65,6 @@ pub type __int32_t = libc::c_int;
 pub type __uint32_t = libc::c_uint;
 pub type __int64_t = libc::c_long;
 pub type __uint64_t = libc::c_ulong;
-pub type __off_t = libc::c_long;
-pub type __off64_t = libc::c_long;
 pub type __ssize_t = libc::c_long;
 pub type ssize_t = __ssize_t;
 pub type int32_t = __int32_t;
@@ -139,48 +129,6 @@ pub type u32_0 = uint32_t;
 pub type u64_0 = libc::c_ulonglong;
 pub type s32 = int32_t;
 pub type s64 = int64_t;
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_FILE {
-    pub _flags: libc::c_int,
-    pub _IO_read_ptr: *mut libc::c_char,
-    pub _IO_read_end: *mut libc::c_char,
-    pub _IO_read_base: *mut libc::c_char,
-    pub _IO_write_base: *mut libc::c_char,
-    pub _IO_write_ptr: *mut libc::c_char,
-    pub _IO_write_end: *mut libc::c_char,
-    pub _IO_buf_base: *mut libc::c_char,
-    pub _IO_buf_end: *mut libc::c_char,
-    pub _IO_save_base: *mut libc::c_char,
-    pub _IO_backup_base: *mut libc::c_char,
-    pub _IO_save_end: *mut libc::c_char,
-    pub _markers: *mut _IO_marker,
-    pub _chain: *mut _IO_FILE,
-    pub _fileno: libc::c_int,
-    pub _flags2: libc::c_int,
-    pub _old_offset: __off_t,
-    pub _cur_column: libc::c_ushort,
-    pub _vtable_offset: libc::c_schar,
-    pub _shortbuf: [libc::c_char; 1],
-    pub _lock: *mut libc::c_void,
-    pub _offset: __off64_t,
-    pub __pad1: *mut libc::c_void,
-    pub __pad2: *mut libc::c_void,
-    pub __pad3: *mut libc::c_void,
-    pub __pad4: *mut libc::c_void,
-    pub __pad5: size_t,
-    pub _mode: libc::c_int,
-    pub _unused2: [libc::c_char; 20],
-}
-pub type _IO_lock_t = ();
-#[derive(Copy, Clone)]
-#[repr(C)]
-pub struct _IO_marker {
-    pub _next: *mut _IO_marker,
-    pub _sbuf: *mut _IO_FILE,
-    pub _pos: libc::c_int,
-}
-pub type FILE = _IO_FILE;
 /* AFL alloc buffer, the struct is here so we don't need to do fancy ptr
  * arithmetics */
 #[derive(Copy, Clone)]
@@ -469,6 +417,8 @@ pub struct afl_input_funcs {
                               -> *mut u8_0>,
     pub delete: Option<unsafe extern "C" fn(_: *mut afl_input_t) -> ()>,
 }
+// Inheritence from base queue
+// "constructor" for the above feedback queue
 pub type afl_queue_global_t = afl_queue_global;
 #[derive(Copy, Clone)]
 #[repr(C)]
@@ -781,81 +731,6 @@ pub type afl_mutator_func
     =
     Option<unsafe extern "C" fn(_: *mut afl_mutator_t, _: *mut afl_input_t)
                -> ()>;
-/* Returns a string representation of afl_ret_t or of the errno if applicable */
-#[inline]
-unsafe extern "C" fn afl_ret_stringify(mut afl_ret: afl_ret_t)
- -> *mut libc::c_char {
-    let mut current_block_17: u64;
-    match afl_ret as libc::c_uint {
-        0 => {
-            return b"Success\x00" as *const u8 as *const libc::c_char as
-                       *mut libc::c_char
-        }
-        8 => {
-            return b"No more elements in array\x00" as *const u8 as
-                       *const libc::c_char as *mut libc::c_char
-        }
-        9 => {
-            return b"Could not execute target\x00" as *const u8 as
-                       *const libc::c_char as *mut libc::c_char
-        }
-        10 => {
-            return b"Target did not behave as expected\x00" as *const u8 as
-                       *const libc::c_char as *mut libc::c_char
-        }
-        19 => {
-            return b"Error creating input copy\x00" as *const u8 as
-                       *const libc::c_char as *mut libc::c_char
-        }
-        20 => {
-            return b"Empty data\x00" as *const u8 as *const libc::c_char as
-                       *mut libc::c_char
-        }
-        2 => {
-            return b"File exists\x00" as *const u8 as *const libc::c_char as
-                       *mut libc::c_char
-        }
-        3 => {
-            if *__errno_location() == 0 {
-                return b"Allocation failed\x00" as *const u8 as
-                           *const libc::c_char as *mut libc::c_char
-            }
-            current_block_17 = 9124283142998713593;
-        }
-        4 => { current_block_17 = 9124283142998713593; }
-        6 => { current_block_17 = 9310518756776399870; }
-        12 => { current_block_17 = 16840486104825400973; }
-        _ => {
-            return b"Unknown error. Please report this bug!\x00" as *const u8
-                       as *const libc::c_char as *mut libc::c_char
-        }
-    }
-    match current_block_17 {
-        9124283142998713593 =>
-        /* fall-through */
-        {
-            if *__errno_location() == 0 {
-                return b"Error opening file\x00" as *const u8 as
-                           *const libc::c_char as *mut libc::c_char
-            }
-            current_block_17 = 9310518756776399870;
-        }
-        _ => { }
-    }
-    match current_block_17 {
-        9310518756776399870 =>
-        /* fall-through */
-        {
-            if *__errno_location() == 0 {
-                return b"Got less bytes than expected\x00" as *const u8 as
-                           *const libc::c_char as *mut libc::c_char
-            }
-        }
-        _ => { }
-    }
-    /* fall-through */
-    return strerror(*__errno_location());
-}
 /* In non-debug mode, we just do straightforward aliasing of the above
      functions to user-visible names such as ck_alloc(). */
 /* _WANT_ORIGINAL_AFL_ALLOC */
@@ -1088,11 +963,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_init(mut sched_mut:
                                                         size_t) -> afl_ret_t {
     let mut err: afl_ret_t = afl_mutator_init(&mut (*sched_mut).base, engine);
     if err as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:53] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err
     }
     (*sched_mut).base.funcs.mutate =
@@ -1676,11 +1546,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                    ->
                                                                                        ()));
     if err as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:449] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err
     }
     let mut err_0: afl_ret_t =
@@ -1695,11 +1560,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                        ()));
     if err_0 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:450] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_0));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err_0
     }
     let mut err_1: afl_ret_t =
@@ -1714,11 +1574,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                        ()));
     if err_1 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:451] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_1));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err_1
     }
     let mut err_2: afl_ret_t =
@@ -1733,11 +1588,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                        ()));
     if err_2 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:452] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_2));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err_2
     }
     let mut err_3: afl_ret_t =
@@ -1752,11 +1602,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                        ()));
     if err_3 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:453] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_3));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err_3
     }
     let mut err_4: afl_ret_t =
@@ -1771,11 +1616,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                        ()));
     if err_4 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:454] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_4));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err_4
     }
     let mut err_5: afl_ret_t =
@@ -1790,11 +1630,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                        ()));
     if err_5 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:455] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_5));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err_5
     }
     let mut err_6: afl_ret_t =
@@ -1809,11 +1644,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                        ()));
     if err_6 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:456] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_6));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err_6
     }
     let mut err_7: afl_ret_t =
@@ -1828,11 +1658,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                        ()));
     if err_7 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:457] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_7));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err_7
     }
     let mut err_8: afl_ret_t =
@@ -1847,11 +1672,6 @@ pub unsafe extern "C" fn afl_mutator_scheduled_add_havoc_funcs(mut mutator:
                                                                                        ()));
     if err_8 as libc::c_uint != AFL_RET_SUCCESS as libc::c_int as libc::c_uint
        {
-        printf(b"\x1b[0;35m[D]\x1b[1;90m [src/mutator.c:458] \x1b[0mAFL_TRY returning error: %s\x00"
-                   as *const u8 as *const libc::c_char,
-               afl_ret_stringify(err_8));
-        printf(b"\x1b[0m\n\x00" as *const u8 as *const libc::c_char);
-        fflush(stdout);
         return err_8
     }
     return AFL_RET_SUCCESS;

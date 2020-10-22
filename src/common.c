@@ -29,7 +29,7 @@
 #include "common.h"
 
 /* Get unix time in microseconds */
-inline u64 afl_get_cur_time_us(void) {
+u64 afl_get_cur_time_us(void) {
 
   struct timeval  tv;
   struct timezone tz;
@@ -55,14 +55,14 @@ bool afl_dir_exists(char *dirpath) {
 }
 
 /* Get unix time in seconds */
-inline u64 afl_get_cur_time(void) {
+u64 afl_get_cur_time(void) {
 
   return afl_get_cur_time_us() / 1000;
 
 }
 
 /* Get unix time in microseconds */
-inline u64 afl_get_cur_time_s(void) {
+u64 afl_get_cur_time_s(void) {
 
   struct timeval  tv;
   struct timezone tz;
