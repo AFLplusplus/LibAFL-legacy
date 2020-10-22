@@ -682,7 +682,7 @@ static inline void llmp_broker_handle_new_msgs(llmp_broker_t *broker, llmp_broke
       for (i = 0; i < broker->msg_hook_count; i++) {
 
         llmp_hookdata_t *msg_hook = &broker->msg_hooks[i];
-        forward_msg &= ((llmp_message_hook_func *)msg_hook->func)(broker, client, msg, msg_hook->data);
+        forward_msg = forward_msg && ((llmp_message_hook_func *)msg_hook->func)(broker, client, msg, msg_hook->data);
         if (unlikely(!llmp_msg_in_page(shmem2page(client->cur_client_map), msg))) {
 
           /* Special handling in case the client got exchanged inside the message_hook, for example after a crash. */
