@@ -1,8 +1,10 @@
 # LibAFL
 
+**This repository is for the C version of LibAFL. It is superseeded by [LibAFL in Rust](https://github.com/AFLplusplus/LibAFL)!**
+
 LibAFL is a fuzzing library/framework developed for building efficient fuzzers.
 
-**Disaclaimer: LibAFL is still very WIP, likely the API will change a lot, do not use it now. However, feel free to contribute also with ideas or requests opening an issue.**
+_Disaclaimer: LibAFL is still very WIP, likely the API will change a lot, do not use it now. However, feel free to contribute also with ideas or requests opening an issue._
 
 LibAFL was initially developed as GSOC project by [rishi9101](https://github.com/rish9101)
 GSOC mentors: 
